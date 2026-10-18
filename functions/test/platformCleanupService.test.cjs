@@ -52,7 +52,7 @@ function fixture(options = {}) {
       if (options.connectionPage) return reply(options.connectionPage(url));
       return reply({ items: options.connections || [], _links: { next: null } });
     }
-    if (path.endsWith('/schemas')) return reply({ results: [schema], _page: { next: null } });
+    if (path.endsWith('/schemas')) return reply(options.schemaPage ? options.schemaPage(url) : { results: [schema], _page: { next: null } });
     throw new Error(`Unexpected mock URL ${url}`);
   };
   return { calls, service: createPlatformCleanupService({ fetchImpl }), rename: () => { changed = true; } };
@@ -257,6 +257,99 @@ test('Catalog pagination continues after server-capped short pages', async () =>
   const audit = await service.audit(auth, { resource_type: 'schema', resource_id: schemaId });
   assert.equal(audit.dependencies.datasets[0].id, id);
   assert.ok(calls.some((call) => call.url.searchParams.get('start') === '2'));
+});
+
+test('Catalog metadata is not interpreted as a dataset or counted in offsets', async () => {
+  const { service, calls } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0'
+      ? { [id]: dataset, _page: { count: 1 }, _links: {} }
+      : { _page: { count: 0 }, _links: {} },
+  });
+  const inventory = await service.list(auth, { resource_type: 'dataset' });
+  assert.equal(inventory.count, 1);
+  const pages = calls.filter((call) => call.path.endsWith('/dataSets'));
+  assert.deepEqual(pages.map((call) => call.url.searchParams.get('start')), ['0', '1']);
+});
+
+test('Catalog supports Data Viewer envelopes with exact IDs and explicit pagination', async () => {
+  const other = '69c38a17866d0ec0db681794';
+  for (const wrapper of ['children', 'results', 'datasets']) {
+    const { service } = fixture({
+      catalog: (url) => url.searchParams.get('start') === '0'
+        ? { [wrapper]: [{ id, ...dataset }], _links: { next: { href: '/dataSets?start=1&limit=100' } } }
+        : { [wrapper]: [{ '@id': other, ...dataset }], _page: { next: null } },
+    });
+    const inventory = await service.list(auth, { resource_type: 'dataset' });
+    assert.deepEqual(inventory.resources.map((row) => row.id), [id, other]);
+  }
+});
+
+test('Catalog follows numeric offsets and stops only on verified completion', async () => {
+  const { service } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0'
+      ? { [id]: dataset, _page: { next: 1 } }
+      : { _page: { next: null } },
+  });
+  assert.equal((await service.list(auth, { resource_type: 'dataset' })).count, 1);
+});
+
+test('Catalog rejects backward numeric continuations without another request', async () => {
+  const { service, calls } = fixture({
+    catalog: () => ({ [id]: dataset, _page: { next: 0 } }),
+  });
+  await assert.rejects(service.list(auth, { resource_type: 'dataset' }), { status: 502 });
+  assert.equal(calls.length, 1);
+});
+
+test('Catalog refuses missing identities, unknown keys, mixed envelopes and unsafe continuation', async () => {
+  for (const data of [
+    { results: [dataset] },
+    { unknown: {} },
+    { results: [], children: [] },
+    { results: [], [id]: dataset },
+    { results: {}, _page: { next: null } },
+    { _links: { next: { href: 'https://example.com/dataSets' } } },
+    { _page: { next: 'unverified-cursor' } },
+    { _page: [] },
+    { _links: 'invalid' },
+    { _links: { next: {} } },
+    { _page: { next: false } },
+    { _page: { next: [1] } },
+  ]) {
+    const { service, calls } = fixture({ catalog: () => data });
+    await assert.rejects(service.list(auth, { resource_type: 'dataset' }));
+    assert.ok(calls.every((call) => call.url.origin === 'https://platform.adobe.io'));
+    assert.ok(calls.every((call) => call.method === 'GET'));
+  }
+});
+
+test('Schema Registry accepts only same-resource service-relative continuation paths', async () => {
+  for (const source of ['_links', '_page']) {
+    for (const href of [
+      '/tenant/schemas?orderby=title&start=Example',
+      '/data/foundation/schemaregistry/tenant/schemas?orderby=title&start=Example',
+      'https://platform.adobe.io/tenant/schemas?orderby=title&start=Example',
+    ]) {
+      const { service, calls } = fixture({
+        schemaPage: (url) => url.searchParams.has('start')
+          ? { results: [{ ...schema, $id: `${schemaId}99`, title: 'Other' }], _page: { next: null } }
+          : { results: [schema], [source]: { next: source === '_links' ? { href } : href } },
+      });
+      assert.equal((await service.list(auth, { resource_type: 'schema' })).count, 2);
+      assert.ok(calls.every((call) => call.path === '/data/foundation/schemaregistry/tenant/schemas'));
+    }
+    for (const href of [
+      '/global/schemas?start=Example',
+      '/tenant/descriptors?start=Example',
+      'https://example.com/tenant/schemas?start=Example',
+      '/tenant/schemas?orderby=title&limit=100',
+    ]) {
+      const { service } = fixture({
+        schemaPage: () => ({ results: [], _links: { next: { href } } }),
+      });
+      await assert.rejects(service.list(auth, { resource_type: 'schema' }), { status: 502 });
+    }
+  }
 });
 
 test('follows descriptor cursors and finds incoming dependencies beyond the first page', async () => {

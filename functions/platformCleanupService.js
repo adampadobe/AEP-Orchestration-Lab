@@ -119,17 +119,65 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     return { raw, resource: summary(type, raw, id), etag: result.etag || raw['meta:registryMetadata']?.eTag || '' };
   }
 
+  function inventoryUrl(next, path, page, seenPages) {
+    const url = new URL(next, `${BASE}${path}`);
+    const relativePath = path.startsWith(REGISTRY) ? path.slice('/data/foundation/schemaregistry'.length)
+      : path.startsWith(FLOW) ? path.slice(FLOW.length)
+        : path === CATALOG ? '/dataSets' : null;
+    // Adobe uses service-relative continuation paths; only the same exact resource is allowed.
+    if (url.origin === BASE && url.pathname === relativePath) url.pathname = path;
+    url.searchParams.sort();
+    const reason = url.origin !== BASE || url.username || url.password || url.hash ? 'unexpected_origin'
+      : url.pathname !== path ? 'unexpected_path'
+        : seenPages.has(url.href) ? 'repeated_page' : null;
+    if (reason) {
+      throw failure(502, 'Unsafe or repeated pagination link; cleanup audit stopped.', {
+        inventory: path, page: page + 1, reason,
+      });
+    }
+    seenPages.add(url.href);
+    return url;
+  }
+
+  function continuation(data) {
+    for (const key of ['_page', '_links']) {
+      if (data[key] != null && (typeof data[key] !== 'object' || Array.isArray(data[key]))) {
+        throw failure(502, 'Invalid inventory pagination metadata; cleanup audit stopped.');
+      }
+    }
+    const link = data._links?.next;
+    const href = typeof link === 'string' ? link : link?.href;
+    const cursor = data._page?.next;
+    if ((link != null && (typeof href !== 'string' || !href))
+        || (cursor != null && typeof cursor !== 'string'
+          && !(typeof cursor === 'number' && Number.isSafeInteger(cursor) && cursor >= 0))) {
+      throw failure(502, 'Invalid inventory continuation; cleanup audit stopped.');
+    }
+    return { link, href, cursor };
+  }
+
   async function listCatalog(auth) {
     const result = [];
     const seen = new Set();
+    const seenPages = new Set();
+    let next = null;
     for (let page = 0, start = 0; page < MAX_PAGES; page++) {
-      const { data } = await request(auth, `${CATALOG}?start=${start}&limit=${PAGE_SIZE}&properties=name,schemaRef,tags,updated`);
+      const url = inventoryUrl(next || `${CATALOG}?start=${start}&limit=${PAGE_SIZE}&properties=name,schemaRef,tags,updated`,
+        CATALOG, page, seenPages);
+      const { data } = await request(auth, url.href);
       if (!data || Array.isArray(data) || typeof data !== 'object') throw failure(502, 'Unexpected Catalog list response.');
-      const entries = Object.entries(data);
-      if (!entries.length) return result;
+      // The Data Viewer supports keyed Catalog objects plus children/results envelopes.
+      const wrappers = ['children', 'results', 'datasets'].filter((key) => Object.hasOwn(data, key));
+      if (wrappers.length > 1 || (wrappers.length && (
+        !Array.isArray(data[wrappers[0]])
+        || Object.keys(data).some((key) => ![wrappers[0], '_page', '_links'].includes(key))
+      ))) throw failure(502, 'Ambiguous Catalog inventory envelope; cleanup audit stopped.');
+      const entries = wrappers.length
+        ? data[wrappers[0]].map((raw) => [raw?.id || raw?.['@id'], raw])
+        : Object.entries(data).filter(([key]) => !['_page', '_links'].includes(key));
       for (const [id, raw] of entries) {
         const reason = seen.has(id) ? 'repeated_dataset_id'
-          : !/^[a-f0-9]{24}$/i.test(id) ? 'invalid_dataset_id'
+          : typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id) ? 'invalid_dataset_id'
             : !raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.name !== 'string'
               ? 'invalid_dataset_metadata' : null;
         if (reason) {
@@ -140,8 +188,22 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         seen.add(id);
         result.push({ ...raw, id });
       }
-      // Servers may cap the requested page size. An empty page, not a short page, proves completion.
-      start += entries.length;
+      const { link, href, cursor } = continuation(data);
+      if (href) next = href;
+      else if (cursor != null && cursor !== '') {
+        if (typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)) next = cursor;
+        else if (/^\d+$/.test(String(cursor))) {
+          next = `${CATALOG}?start=${encodeURIComponent(cursor)}&limit=${PAGE_SIZE}&properties=name,schemaRef,tags,updated`;
+        } else throw failure(502, 'Unverifiable Catalog continuation; cleanup audit stopped.');
+      } else {
+        if (data._page?.next === null || link === null || !entries.length) return result;
+        next = null;
+      }
+      // Without an explicit terminal marker, only an empty page proves completion.
+      const offset = url.searchParams.get('start');
+      if (offset != null && /^\d+$/.test(offset) && Number.isSafeInteger(Number(offset))) {
+        start = Number(offset) + entries.length;
+      } else if (!next) throw failure(502, 'Unverifiable Catalog completion; cleanup audit stopped.');
     }
     throw failure(409, 'Catalog inventory limit reached; deletion is blocked.');
   }
@@ -152,17 +214,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     const order = path.startsWith(REGISTRY) ? `&orderby=${key === 'results' && path.endsWith('/schemas') ? 'title' : '@id'}` : '';
     let next = `${path}?limit=${PAGE_SIZE}${order}`;
     for (let page = 0; page < MAX_PAGES; page++) {
-      const url = new URL(next, `${BASE}${path}`);
-      if (path.startsWith(FLOW) && url.pathname === `/${path.split('/').pop()}`) url.pathname = path;
-      const reason = url.origin !== BASE ? 'unexpected_origin'
-        : url.pathname !== path ? 'unexpected_path'
-          : seenPages.has(url.href) ? 'repeated_page' : null;
-      if (reason) {
-        throw failure(502, 'Unsafe or repeated pagination link; cleanup audit stopped.', {
-          inventory: path, page: page + 1, reason,
-        });
-      }
-      seenPages.add(url.href);
+      const url = inventoryUrl(next, path, page, seenPages);
       const { data } = await request(auth, url.href, { accept });
       let items = data?.[key];
       if (!Array.isArray(items) && path.endsWith('/descriptors')) {
@@ -177,12 +229,12 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       }
       if (!Array.isArray(items)) throw failure(502, `Unexpected ${path} inventory response.`);
       result.push(...items);
-      const link = data._links?.next;
-      const href = typeof link === 'string' ? link : link?.href;
-      const cursor = data._page?.next;
+      const { link, href, cursor } = continuation(data);
       if (href) next = href;
-      else if (cursor != null && cursor !== '') next = `${path}?limit=${PAGE_SIZE}${order}&start=${encodeURIComponent(cursor)}`;
-      else {
+      else if (cursor != null && cursor !== '') {
+        next = typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)
+          ? cursor : `${path}?limit=${PAGE_SIZE}${order}&start=${encodeURIComponent(cursor)}`;
+      } else {
         if (items.length >= PAGE_SIZE && data._page?.next !== null && link !== null) {
           throw failure(409, `Pagination completion is ambiguous for ${path}; deletion is blocked.`);
         }
