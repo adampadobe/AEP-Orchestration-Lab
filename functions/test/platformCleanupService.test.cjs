@@ -262,7 +262,7 @@ test('Catalog pagination continues after server-capped short pages', async () =>
 test('Catalog metadata is not interpreted as a dataset or counted in offsets', async () => {
   const { service, calls } = fixture({
     catalog: (url) => url.searchParams.get('start') === '0'
-      ? { [id]: dataset, _page: { count: 1 }, _links: {} }
+      ? { [id]: dataset, _page: { count: 1 }, _links: {}, _metadata: { total: 1 } }
       : { _page: { count: 0 }, _links: {} },
   });
   const inventory = await service.list(auth, { resource_type: 'dataset' });
@@ -307,6 +307,7 @@ test('Catalog refuses missing identities, unknown keys, mixed envelopes and unsa
     { unknown: {} },
     { results: [], children: [] },
     { results: [], [id]: dataset },
+    { '0123456789abcdef0123456789abcdef': dataset },
     { results: {}, _page: { next: null } },
     { _links: { next: { href: 'https://example.com/dataSets' } } },
     { _page: { next: 'unverified-cursor' } },
@@ -321,6 +322,17 @@ test('Catalog refuses missing identities, unknown keys, mixed envelopes and unsa
     assert.ok(calls.every((call) => call.url.origin === 'https://platform.adobe.io'));
     assert.ok(calls.every((call) => call.method === 'GET'));
   }
+});
+
+test('Catalog diagnostics classify invalid keys without returning the key value', async () => {
+  const invalidId = '0123456789abcdef0123456789abcdef';
+  const { service } = fixture({ catalog: () => ({ [invalidId]: dataset }) });
+  await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
+    assert.equal(error.detail.reason, 'invalid_dataset_id');
+    assert.equal(error.detail.keyShape, 'hex-32');
+    assert.equal(JSON.stringify(error.detail).includes(invalidId), false);
+    return true;
+  });
 });
 
 test('Schema Registry accepts only same-resource service-relative continuation paths', async () => {
@@ -349,6 +361,12 @@ test('Schema Registry accepts only same-resource service-relative continuation p
       });
       await assert.rejects(service.list(auth, { resource_type: 'schema' }), { status: 502 });
     }
+    const { service } = fixture({
+      schemaPage: (url) => url.searchParams.has('start')
+        ? { results: [{ ...schema, $id: `${schemaId}99`, title: 'Other' }], _page: { next: null } }
+        : { results: [schema], _links: { next: { href: 'https://platform.adobe.io/data/foundation/schemaregistry/tenant/schemas/?start=Example' } } },
+    });
+    assert.equal((await service.list(auth, { resource_type: 'schema' })).count, 2);
   }
 });
 
