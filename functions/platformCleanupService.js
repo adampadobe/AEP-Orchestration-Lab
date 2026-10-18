@@ -116,8 +116,23 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     const raw = type === 'dataset' ? result.data?.[id] : result.data;
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)
         || (type === 'schema' && raw.$id !== id)) throw failure(502, 'Platform resource identity could not be verified.');
-    if (type === 'schema' && (raw['meta:containerId'] !== 'tenant' || raw.imsOrg !== auth.orgId)) {
-      throw failure(403, 'Only schemas owned by the configured Adobe organisation can be deleted.');
+    if (type === 'schema') {
+      const denyOwnership = () => failure(403, 'Only schemas owned by the configured Adobe organisation can be deleted.', {
+        containerIsTenant: raw['meta:containerId'] === 'tenant',
+        hasImsOrg: Object.hasOwn(raw, 'imsOrg'),
+        orgMatches: raw.imsOrg === auth.orgId,
+      });
+      if (raw['meta:containerId'] !== 'tenant') throw denyOwnership();
+      if (raw.imsOrg !== auth.orgId) {
+        const relational = Array.isArray(raw['meta:extends'])
+          && raw['meta:extends'].includes('https://ns.adobe.com/xdm/data/adhoc-v2');
+        if (Object.hasOwn(raw, 'imsOrg') || !relational) throw denyOwnership();
+        // Relational responses may omit imsOrg; verify the authenticated registry's namespace.
+        const { data: stats } = await request(auth, '/data/foundation/schemaregistry/stats');
+        if (stats?.imsOrg !== auth.orgId || typeof stats.tenantId !== 'string'
+            || !/^[A-Za-z0-9_-]+$/.test(stats.tenantId)
+            || !id.startsWith(`https://ns.adobe.com/${stats.tenantId}/schemas/`)) throw denyOwnership();
+      }
     }
     const name = type === 'dataset' ? raw.name : raw.title;
     if (typeof name !== 'string' || !name) throw failure(502, 'Platform resource name is missing or invalid.');
