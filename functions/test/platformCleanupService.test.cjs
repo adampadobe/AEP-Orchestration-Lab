@@ -284,6 +284,60 @@ test('Catalog supports Data Viewer envelopes with exact IDs and explicit paginat
   }
 });
 
+test('Catalog follows Adobe root next links and excludes pagination metadata from IDs', async () => {
+  const other = '69c38a17866d0ec0db681794';
+  const { service, calls } = fixture({
+    catalog: (url) => {
+      const start = url.searchParams.get('start');
+      if (start === '0') return {
+        [id]: dataset, _page: 1,
+        next: { href: 'https://platform.adobe.io/data/foundation/catalog/dataSets?start=1&limit=20' },
+      };
+      if (start === '1') return { [other]: { id: `@/dataSets/${other}` }, _page: 2 };
+      return { _page: 3 };
+    },
+  });
+  const inventory = await service.list(auth, { resource_type: 'dataset' });
+  assert.deepEqual(inventory.resources.map((row) => row.id), [id, other]);
+  assert.deepEqual(calls.filter((call) => call.path.endsWith('/dataSets'))
+    .map((call) => call.url.searchParams.get('start')), ['0', '1', '2']);
+});
+
+test('Catalog accepts exact IDs from documented record identifiers and blocks conflicts', async () => {
+  const secondId = '69c38a17866d0ec0db681794';
+  for (const key of [`@/dataSets/${id}`, `/data/foundation/catalog/dataSets/${id}`]) {
+    const { service } = fixture({
+      catalog: (url) => url.searchParams.get('start') === '0' ? { [key]: dataset } : {},
+    });
+    assert.deepEqual((await service.list(auth, { resource_type: 'dataset' })).resources.map((row) => row.id), [id]);
+  }
+  const { service } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0'
+      ? { record: { ...dataset, id: secondId } } : {},
+  });
+  assert.deepEqual((await service.list(auth, { resource_type: 'dataset' })).resources.map((row) => row.id), [secondId]);
+
+  const { service: conflicting } = fixture({
+    catalog: () => ({ [id]: { ...dataset, id: secondId } }),
+  });
+  await assert.rejects(conflicting.list(auth, { resource_type: 'dataset' }), { status: 502 });
+
+  const { service: malformed } = fixture({
+    catalog: () => ({ [id]: { ...dataset, id: 'not-a-catalog-id' } }),
+  });
+  await assert.rejects(malformed.list(auth, { resource_type: 'dataset' }), { status: 502 });
+});
+
+test('Catalog metadata-only records remain visible for dependency completeness checks', async () => {
+  const { service } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0' ? ({ [id]: {}, _page: 1 }) : { _page: 2 },
+  });
+  const inventory = await service.list(auth, { resource_type: 'dataset' });
+  assert.deepEqual(inventory.resources, [{
+    id, name: undefined, schemaId: null, profileEnabled: false, identityEnabled: false,
+  }]);
+});
+
 test('Catalog follows numeric offsets and stops only on verified completion', async () => {
   const { service } = fixture({
     catalog: (url) => url.searchParams.get('start') === '0'
@@ -335,10 +389,24 @@ test('Catalog diagnostics classify invalid keys without returning the key value'
   });
 });
 
+test('Catalog diagnostics classify common non-ID metadata keys', async () => {
+  const { service } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0' ? { unexpected: {} } : {},
+  });
+  await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
+    assert.equal(error.detail.reason, 'invalid_dataset_id');
+    assert.equal(error.detail.keyShape, 'name-like');
+    assert.equal(JSON.stringify(error.detail).includes('unexpected'), false);
+    return true;
+  });
+});
+
 test('Schema Registry accepts only same-resource service-relative continuation paths', async () => {
   for (const source of ['_links', '_page']) {
     for (const href of [
       '/tenant/schemas?orderby=title&start=Example',
+      '/tenant/schemas/?orderby=title&start=Example',
+      '/data/foundation/schemaregistry/tenant/schemas/?orderby=title&start=Example',
       '/data/foundation/schemaregistry/tenant/schemas?orderby=title&start=Example',
       'https://platform.adobe.io/tenant/schemas?orderby=title&start=Example',
     ]) {
@@ -443,9 +511,12 @@ test('pagination diagnostics distinguish unsafe and repeated pages without expos
 test('Catalog diagnostics identify repeated IDs and invalid metadata', async () => {
   for (const [row, reason, page] of [
     [dataset, 'repeated_dataset_id', 2],
-    [{ schemaRef: { id: schemaId } }, 'invalid_dataset_metadata', 1],
+    [null, 'invalid_dataset_metadata', 1],
   ]) {
-    const { service } = fixture({ catalog: () => ({ [id]: row }) });
+    const { service } = fixture({
+      catalog: (url) => url.searchParams.get('start') === '0' || reason === 'repeated_dataset_id'
+        ? ({ [id]: row }) : {},
+    });
     await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
       assert.equal(error.detail.reason, reason);
       assert.equal(error.detail.page, page);
