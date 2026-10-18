@@ -147,7 +147,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     return url;
   }
 
-  function continuation(data, { catalog = false } = {}) {
+  function continuation(data, { catalog = false, path, page, url, cursorPage }) {
     if (data._links != null && (typeof data._links !== 'object' || Array.isArray(data._links))) {
       throw failure(502, 'Invalid inventory pagination metadata; cleanup audit stopped.');
     }
@@ -169,8 +169,32 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       throw failure(502, 'Invalid inventory continuation; cleanup audit stopped.');
     }
     const candidates = [linkedHref, rootHref, cursor].filter((value) => value != null && value !== '');
-    if (new Set(candidates).size > 1) throw failure(502, 'Conflicting inventory continuations; cleanup audit stopped.');
-    const href = rootHref || linkedHref;
+    const conflictingTerminal = candidates.length > 0 && (link === null || rootNext === null || cursor === null);
+    const conflict = () => failure(502, 'Conflicting inventory continuations; cleanup audit stopped.', {
+      inventory: path, page: page + 1, reason: 'conflicting_continuations',
+      hasLinkedNext: linkedHref != null, hasRootNext: rootHref != null, hasCursor: cursor != null,
+    });
+    if (conflictingTerminal) throw conflict();
+    let resolvedHref;
+    if (candidates.length > 1) {
+      const destinations = candidates.map((value) => {
+        const destination = typeof value === 'string' && /^(?:https?:\/\/|\/|\?)/.test(value)
+          ? value : cursorPage(value);
+        const normalized = inventoryUrl(destination, path, page + 1, new Set());
+        // A next link may omit the current page's limit, ordering or filter.
+        for (const [key, value] of url.searchParams) {
+          if (key !== 'start' && !normalized.searchParams.has(key)) normalized.searchParams.append(key, value);
+        }
+        if ([...normalized.searchParams.keys()].some((key) => normalized.searchParams.getAll(key).length > 1)) {
+          throw failure(502, 'Invalid inventory continuation; cleanup audit stopped.');
+        }
+        normalized.searchParams.sort();
+        return normalized.href;
+      });
+      if (new Set(destinations).size > 1) throw conflict();
+      resolvedHref = destinations[0];
+    }
+    const href = resolvedHref || rootHref || linkedHref;
     return { link: link ?? rootNext, href, cursor: href ? null : cursor };
   }
 
@@ -259,13 +283,23 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
             ...(reason === 'invalid_dataset_id' ? {
               keyShape: catalogIdShape(key),
               recordIdShape: recordIdValues.length ? catalogIdShape(recordIdValues[0]) : 'missing',
+              keyLength: typeof key === 'string' ? key.length : null,
+              valueType: raw === null ? 'null' : Array.isArray(raw) ? 'array' : typeof raw,
+              hasName: typeof raw?.name === 'string',
+              hasSchemaRef: raw != null && Object.hasOwn(raw, 'schemaRef'),
             } : {}),
           });
         }
         seen.add(id);
         result.push({ ...raw, id });
       }
-      const { link, href, cursor } = continuation(data, { catalog: true });
+      const { link, href, cursor } = continuation(data, {
+        catalog: true, path: CATALOG, page, url,
+        cursorPage: (value) => {
+          if (!/^\d+$/.test(String(value))) throw failure(502, 'Unverifiable Catalog continuation; cleanup audit stopped.');
+          return catalogPage(value);
+        },
+      });
       if (href) next = href;
       else if (cursor != null && cursor !== '') {
         if (typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)) next = cursor;
@@ -306,7 +340,10 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       }
       if (!Array.isArray(items)) throw failure(502, `Unexpected ${path} inventory response.`);
       result.push(...items);
-      const { link, href, cursor } = continuation(data);
+      const { link, href, cursor } = continuation(data, {
+        path, page, url,
+        cursorPage: (value) => `${path}?limit=${PAGE_SIZE}${order}&start=${encodeURIComponent(value)}`,
+      });
       if (href) next = href;
       else if (cursor != null && cursor !== '') {
         next = typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)

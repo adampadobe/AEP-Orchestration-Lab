@@ -472,6 +472,10 @@ test('Catalog diagnostics classify invalid keys without returning the key value'
   await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
     assert.equal(error.detail.reason, 'invalid_dataset_id');
     assert.equal(error.detail.keyShape, 'hex-32');
+    assert.equal(error.detail.keyLength, 32);
+    assert.equal(error.detail.valueType, 'object');
+    assert.equal(error.detail.hasName, true);
+    assert.equal(error.detail.hasSchemaRef, true);
     assert.equal(JSON.stringify(error.detail).includes(invalidId), false);
     return true;
   });
@@ -534,6 +538,89 @@ test('follows descriptor cursors and finds incoming dependencies beyond the firs
   });
   const audit = await service.audit(auth, params);
   assert.equal(audit.deleteReviewReady, false);
+});
+
+test('Schema Registry reconciles equivalent next links and sort cursors', async () => {
+  const cursor = 'Example + & / caf\u00e9';
+  for (const href of [
+    `/tenant/schemas/?start=${encodeURIComponent(cursor)}`,
+    `/data/foundation/schemaregistry/tenant/schemas?start=${encodeURIComponent(cursor)}&limit=100&orderby=title`,
+    `https://platform.adobe.io/tenant/schemas?orderby=title&start=${encodeURIComponent(cursor)}`,
+  ]) {
+    const { service, calls } = fixture({
+      schemaPage: (url) => url.searchParams.has('start')
+        ? { results: [{ ...schema, $id: `${schemaId}99` }], _page: { next: null }, _links: { next: null } }
+        : { results: [schema], _page: { next: cursor }, _links: { next: { href } } },
+    });
+    assert.equal((await service.list(auth, { resource_type: 'schema' })).count, 2);
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].url.searchParams.get('start'), cursor);
+    assert.ok(calls.every((call) => call.method === 'GET'));
+  }
+});
+
+test('equivalent descriptor links and cursors retain later incoming relationships', async () => {
+  const { service, calls } = fixture({
+    descriptorPage: (url) => url.searchParams.has('start')
+      ? { results: [{ '@id': 'incoming', 'xdm:sourceSchema': `${schemaId}99`, 'xdm:destinationSchema': schemaId }], _page: { next: null } }
+      : { results: [], _page: { next: 'cursor' }, _links: { next: { href: '/tenant/descriptors?start=cursor' } } },
+  });
+  const audit = await service.audit(auth, params);
+  assert.equal(audit.deleteReviewReady, false);
+  assert.equal(audit.dependencies.incomingRelationships.length, 1);
+  assert.equal(calls.filter((call) => call.path.endsWith('/descriptors')).length, 2);
+  assert.ok(calls.every((call) => call.method === 'GET'));
+});
+
+test('Catalog reconciles root links, linked pages and numeric cursors without losing name filters', async () => {
+  const other = `${id.slice(0, -1)}4`;
+  const { service, calls } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0'
+      ? {
+        [id]: { ...dataset, name: 'frescopa' }, _page: { next: 1 },
+        next: '@/dataSets/?start=1&limit=100',
+        _links: { next: { href: '/data/foundation/catalog/dataSets?limit=100&start=1' } },
+      }
+      : { [other]: { ...dataset, name: 'frescopa' }, _page: { next: null } },
+  });
+  assert.equal((await service.list(auth, { resource_type: 'dataset', name: 'frescopa' })).count, 2);
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].url.searchParams.get('property'), calls[1].url.searchParams.get('property'));
+});
+
+test('conflicting, unsafe and ambiguous continuations stop before another request', async () => {
+  for (const metadata of [
+    { _page: { next: 'cursor-secret' }, _links: { next: { href: '/tenant/schemas?start=different-secret' } } },
+    { _page: { next: 'cursor-secret' }, _links: { next: { href: '/tenant/schemas?start=cursor-secret&orderby=-title' } } },
+    { _page: { next: 'cursor-secret' }, _links: { next: { href: '/tenant/schemas?start=cursor-secret&start=cursor-secret' } } },
+    { _page: { next: 'cursor-secret' }, _links: { next: { href: 'https://example.com/tenant/schemas?start=cursor-secret' } } },
+    { _page: { next: 'cursor-secret' }, _links: { next: { href: '/tenant/descriptors?start=cursor-secret' } } },
+    { _page: { next: null }, _links: { next: { href: '/tenant/schemas?start=cursor-secret' } } },
+    { _page: { next: 'cursor-secret' }, _links: { next: null } },
+  ]) {
+    const { service, calls } = fixture({ schemaPage: () => ({ results: [schema], ...metadata }) });
+    await assert.rejects(service.list(auth, { resource_type: 'schema' }), (error) => {
+      assert.equal(error.status, 502);
+      assert.equal(JSON.stringify(error.detail || {}).includes('secret'), false);
+      return true;
+    });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, 'GET');
+  }
+});
+
+test('equivalent continuations still reject repeated schema pages', async () => {
+  const { service, calls } = fixture({
+    schemaPage: () => ({
+      results: [], _page: { next: 'cursor' },
+      _links: { next: { href: '/tenant/schemas?start=cursor&limit=100&orderby=title' } },
+    }),
+  });
+  await assert.rejects(service.list(auth, { resource_type: 'schema' }), (error) => {
+    assert.equal(error.detail.reason, 'repeated_page');
+    return true;
+  });
+  assert.equal(calls.length, 2);
 });
 
 test('supports expanded descriptor arrays and type-grouped paginated inventories', async () => {
