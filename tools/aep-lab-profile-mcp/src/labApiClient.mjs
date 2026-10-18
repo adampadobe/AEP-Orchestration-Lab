@@ -839,6 +839,35 @@ export async function audienceDelete({ sandbox, audience_id, expected_name, conf
   });
 }
 
+export async function platformAssetList({ sandbox, resource_type, name }) {
+  return labApiRequest('/platformCleanupProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { sandbox, resource_type, name },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+export async function platformAssetAudit({ sandbox, resource_type, resource_id }) {
+  return labApiRequest('/platformCleanupProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { sandbox, resource_type, resource_id },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+export async function platformAssetDelete(params) {
+  return labApiRequest('/platformCleanupProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'DELETE',
+    headers: principalAuthHeaders(),
+    body: params,
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
 /** Read-only AJO journey or campaign inventory; scoped by user key or IMS enrollment. */
 export async function ajoAssetList({ sandbox, asset_type, name, start, limit }) {
   return labApiRequest('/api/ajo-cleanup', {

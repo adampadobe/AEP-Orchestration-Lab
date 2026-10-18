@@ -28,6 +28,14 @@ Configure in Codex or another API-key MCP client with a **single** header:
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
 
+## Governed dataset/schema cleanup
+
+Use the complete `/mcp` (`lab-all` in Coworker), not the read-only entry directory or a generic proxy. Compatible entry clients can load category `platform-cleanup`; Coworker requires the full endpoint and a new chat after release. Availability requires deploying both Firebase's cleanup function/rewrite and the MCP service through the normal ship workflow.
+
+Run `lab_platform_asset_list`, then `lab_platform_asset_audit` for one exact dataset ID or full tenant schema URI. Show the exact org, sandbox, ID/name, blockers, owned descriptors and irreversible/partial-failure warnings. Independently clear AJO/campaign/audience and external usage, obtain explicit confirmation, then call `lab_platform_asset_delete` with its fresh `audit_id`, exact `expected_name`, `confirmed true` and `usage_cleared true`.
+
+Receipts expire after 15 minutes and are single-use/principal-bound. The server re-audits; changed state, Profile/Identity enablement, remaining datasets, incoming relationships or source/target connections block deletion. Verify absence before continuing. Each dataset precedes its schema; dependent child dataset/schema pairs may need removal before parent datasets. Schema deletion includes only its audited owned descriptors and is not atomic. Stop on partial/pending/uncertain results and re-audit; never automatically retry or cascade. This capability neither changes Adobe entitlements nor authorizes unrelated cleanup. See the MCP README for API and authentication details.
+
 ## Framework knowledge (server-side — no manual retraining)
 
 ### Profile creation target (Snowflake-first)

@@ -381,6 +381,13 @@
         }
       },
       {
+        "source": "/api/platform-cleanup",
+        "function": {
+          "functionId": "platformCleanupProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo-cleanup",
         "function": {
           "functionId": "ajoCleanupProxy",
