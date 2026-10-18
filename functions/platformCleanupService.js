@@ -126,6 +126,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         : path === CATALOG ? '/dataSets' : null;
     // Adobe uses service-relative continuation paths; only the same exact resource is allowed.
     if (url.origin === BASE && url.pathname === relativePath) url.pathname = path;
+    if (url.origin === BASE && url.pathname === `${path}/`) url.pathname = path;
     url.searchParams.sort();
     const reason = url.origin !== BASE || url.username || url.password || url.hash ? 'unexpected_origin'
       : url.pathname !== path ? 'unexpected_path'
@@ -133,6 +134,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     if (reason) {
       throw failure(502, 'Unsafe or repeated pagination link; cleanup audit stopped.', {
         inventory: path, page: page + 1, reason,
+        ...(reason === 'unexpected_path' ? { receivedPath: url.pathname } : {}),
       });
     }
     seenPages.add(url.href);
@@ -174,7 +176,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       ))) throw failure(502, 'Ambiguous Catalog inventory envelope; cleanup audit stopped.');
       const entries = wrappers.length
         ? data[wrappers[0]].map((raw) => [raw?.id || raw?.['@id'], raw])
-        : Object.entries(data).filter(([key]) => !['_page', '_links'].includes(key));
+        : Object.entries(data).filter(([key]) => !key.startsWith('_'));
       for (const [id, raw] of entries) {
         const reason = seen.has(id) ? 'repeated_dataset_id'
           : typeof id !== 'string' || !/^[a-f0-9]{24}$/i.test(id) ? 'invalid_dataset_id'
@@ -183,6 +185,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         if (reason) {
           throw failure(502, 'Incomplete or repeated Catalog page; cleanup audit stopped.', {
             inventory: 'datasets', page: page + 1, reason,
+            ...(reason === 'invalid_dataset_id' ? {
+              keyShape: typeof id !== 'string' ? 'missing'
+                : id.startsWith('_') ? 'metadata'
+                  : /^[a-f0-9]+$/i.test(id) ? `hex-${id.length}` : 'other',
+            } : {}),
           });
         }
         seen.add(id);
