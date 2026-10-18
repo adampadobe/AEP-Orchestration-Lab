@@ -64,7 +64,12 @@ function registerPlatformCleanupRoutes(deps) {
       });
       return res.status(200).json({ ok: true, sandbox, orgId, ...payload });
     } catch (error) {
-      console.error('[platformCleanup] failed', { method: req.method, status: error.status || 500, message: error.message });
+      console.error('[platformCleanup] failed', {
+        method: req.method, status: error.status || 500, message: error.message,
+        ...(error.detail?.reason ? {
+          inventory: error.detail.inventory, page: error.detail.page, reason: error.detail.reason,
+        } : {}),
+      });
       const status = error.status >= 400 && error.status <= 599 ? error.status : 500;
       return res.status(status).json({ ok: false, error: error.message, detail: error.detail || null });
     }

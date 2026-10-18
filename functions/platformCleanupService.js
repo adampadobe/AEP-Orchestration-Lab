@@ -46,21 +46,32 @@ function references(value, ids) {
   return value && typeof value === 'object' && Object.values(value).some((item) => references(item, ids));
 }
 
+function enabledTag(value, key) {
+  const tags = value?.tags?.[key];
+  if (tags == null) return false;
+  if (!Array.isArray(tags) && typeof tags !== 'string') throw failure(502, 'Invalid Profile/Identity metadata; deletion is blocked.');
+  return (Array.isArray(tags) ? tags : [tags]).some((tag) => /^enabled(?::true)?$/i.test(String(tag)));
+}
+
 function profileEnabled(value) {
   const immutable = value?.['meta:immutableTags'] || [];
   return (Array.isArray(immutable) ? immutable : [immutable]).includes('union')
-    || ['unifiedProfile', 'unifiedIdentity'].some((key) => {
-      const tags = value?.tags?.[key];
-      if (tags == null) return false;
-      if (!Array.isArray(tags) && typeof tags !== 'string') throw failure(502, 'Invalid Profile/Identity metadata; deletion is blocked.');
-      return (Array.isArray(tags) ? tags : [tags]).some((tag) => /^enabled(?::true)?$/i.test(String(tag)));
-    });
+    || enabledTag(value, 'unifiedProfile');
+}
+
+function identityEnabled(value) {
+  return enabledTag(value, 'unifiedIdentity');
+}
+
+function cleanupEnabled(value) {
+  return profileEnabled(value) || identityEnabled(value);
 }
 
 function summary(type, raw, id = raw.$id) {
+  const status = { profileEnabled: profileEnabled(raw), identityEnabled: identityEnabled(raw) };
   return type === 'dataset'
-    ? { id, name: raw.name, schemaId: raw.schemaRef?.id || null, profileEnabled: profileEnabled(raw) }
-    : { id, name: raw.title, version: raw.version, profileEnabled: profileEnabled(raw) };
+    ? { id, name: raw.name, schemaId: typeof raw.schemaRef?.id === 'string' && raw.schemaRef.id ? raw.schemaRef.id : null, ...status }
+    : { id, name: raw.title, version: raw.version, ...status };
 }
 
 function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
@@ -117,9 +128,14 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       const entries = Object.entries(data);
       if (!entries.length) return result;
       for (const [id, raw] of entries) {
-        if (!/^[a-f0-9]{24}$/i.test(id) || !raw || typeof raw !== 'object' || Array.isArray(raw)
-            || typeof raw.name !== 'string' || typeof raw.schemaRef?.id !== 'string' || seen.has(id)) {
-          throw failure(502, 'Incomplete or repeated Catalog page; cleanup audit stopped.');
+        const reason = seen.has(id) ? 'repeated_dataset_id'
+          : !/^[a-f0-9]{24}$/i.test(id) ? 'invalid_dataset_id'
+            : !raw || typeof raw !== 'object' || Array.isArray(raw) || typeof raw.name !== 'string'
+              ? 'invalid_dataset_metadata' : null;
+        if (reason) {
+          throw failure(502, 'Incomplete or repeated Catalog page; cleanup audit stopped.', {
+            inventory: 'datasets', page: page + 1, reason,
+          });
         }
         seen.add(id);
         result.push({ ...raw, id });
@@ -138,8 +154,13 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     for (let page = 0; page < MAX_PAGES; page++) {
       const url = new URL(next, `${BASE}${path}`);
       if (path.startsWith(FLOW) && url.pathname === `/${path.split('/').pop()}`) url.pathname = path;
-      if (url.origin !== BASE || url.pathname !== path || seenPages.has(url.href)) {
-        throw failure(502, 'Unsafe or repeated pagination link; cleanup audit stopped.');
+      const reason = url.origin !== BASE ? 'unexpected_origin'
+        : url.pathname !== path ? 'unexpected_path'
+          : seenPages.has(url.href) ? 'repeated_page' : null;
+      if (reason) {
+        throw failure(502, 'Unsafe or repeated pagination link; cleanup audit stopped.', {
+          inventory: path, page: page + 1, reason,
+        });
       }
       seenPages.add(url.href);
       const { data } = await request(auth, url.href, { accept });
@@ -199,11 +220,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
   async function audit(auth, { resource_type: type, resource_id: id }) {
     const target = await get(auth, type, id);
     const blockers = [];
-    if (profileEnabled(target.raw)) blockers.push('Profile/Identity-enabled resources are not supported by this cleanup tool.');
+    if (cleanupEnabled(target.raw)) blockers.push('Profile/Identity-enabled resources are not supported by this cleanup tool.');
     const schemaId = type === 'schema' ? id : target.resource.schemaId;
     if (!schemaId) throw failure(409, 'Dataset schema reference is missing; dependency safety cannot be established.');
     const schema = type === 'schema' ? target : await get(auth, 'schema', schemaId);
-    if (type === 'dataset' && profileEnabled(schema.raw)) blockers.push('The dataset schema is enabled for Profile; deletion is blocked.');
+    if (type === 'dataset' && cleanupEnabled(schema.raw)) blockers.push('The dataset schema is enabled for Profile/Identity; deletion is blocked.');
     const schemaIdentifiers = new Set([schemaId, schema.raw['meta:altId']].filter(Boolean));
     const [datasets, links, sources, targets] = await Promise.all([
       listCatalog(auth),
@@ -212,6 +233,8 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       listPaged(auth, `${FLOW}/targetConnections`, 'application/json', 'items'),
     ]);
     const relatedDatasets = type === 'schema' ? datasets.filter((row) => schemaIdentifiers.has(row.schemaRef?.id)) : [];
+    const unresolvedDatasets = datasets.filter((row) => typeof row.schemaRef?.id !== 'string' || !row.schemaRef.id);
+    if (unresolvedDatasets.length) blockers.push('Dataset schema references are missing or invalid; dependency completeness cannot be established.');
     const incoming = links.filter((row) => !schemaIdentifiers.has(row['xdm:sourceSchema']) && references(row, schemaIdentifiers));
     const owned = type === 'schema' ? links.filter((row) => schemaIdentifiers.has(row['xdm:sourceSchema'])) : [];
     const identifiers = new Set([id, ...schemaIdentifiers]);
@@ -224,6 +247,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     }
     const dependencies = {
       datasets: relatedDatasets.map((row) => summary('dataset', row, row.id)),
+      unresolvedDatasets: unresolvedDatasets.map((row) => summary('dataset', row, row.id)),
       incomingRelationships: incoming,
       ownedDescriptors: owned,
       connections: connections.map((row) => ({ id: row.id, name: row.name || '', state: row.state || '' })),
@@ -235,6 +259,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         incomingRelationships: [...incoming].sort((a, b) => a['@id'].localeCompare(b['@id'])),
         ownedDescriptors: [...owned].sort((a, b) => a['@id'].localeCompare(b['@id'])),
         datasets: [...dependencies.datasets].sort((a, b) => a.id.localeCompare(b.id)),
+        unresolvedDatasets: [...dependencies.unresolvedDatasets].sort((a, b) => a.id.localeCompare(b.id)),
         connections: [...dependencies.connections].sort((a, b) => a.id.localeCompare(b.id)),
       },
     });

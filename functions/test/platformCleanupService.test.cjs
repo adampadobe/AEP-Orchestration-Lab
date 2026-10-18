@@ -117,6 +117,42 @@ test('blocks Profile/Identity-enabled dataset and union schema deletion', async 
   assert.equal((await service.audit(auth, params)).deleteReviewReady, false);
 });
 
+test('reports Profile and Identity independently while blocking either enablement', async () => {
+  for (const [profile, identity] of [[false, false], [true, false], [false, true], [true, true]]) {
+    const { service } = fixture({
+      dataset: { ...dataset, tags: {
+        unifiedProfile: [profile ? 'enabled:true' : 'disabled'],
+        unifiedIdentity: [identity ? 'enabled:true' : 'disabled'],
+      } },
+    });
+    const audit = await service.audit(auth, params);
+    assert.equal(audit.resource.profileEnabled, profile);
+    assert.equal(audit.resource.identityEnabled, identity);
+    assert.equal(audit.deleteReviewReady, !profile && !identity);
+  }
+});
+
+test('lists datasets without schema references but blocks dependency review explicitly', async () => {
+  const incompleteId = '69c38a17866d0ec0db681794';
+  for (const schemaRef of [undefined, {}, { id: '' }, { id: 42 }]) {
+    const { service, calls } = fixture({
+      datasets: { [id]: dataset, [incompleteId]: { name: 'Unrelated schemaless dataset', schemaRef } },
+    });
+    const inventory = await service.list(auth, { resource_type: 'dataset', name: 'Example' });
+    assert.equal(inventory.count, 1);
+    const all = await service.list(auth, { resource_type: 'dataset' });
+    assert.equal(all.resources.find((row) => row.id === incompleteId).schemaId, null);
+    for (const target of [params, { resource_type: 'schema', resource_id: schemaId, expected_name: schema.title }]) {
+      const audit = await service.audit(auth, target);
+      assert.equal(audit.deleteReviewReady, false);
+      assert.match(audit.blockers.join(' '), /dependency completeness/);
+      assert.equal(audit.dependencies.unresolvedDatasets[0].id, incompleteId);
+      await assert.rejects(service.remove(auth, target, audit), { status: 409 });
+    }
+    assert.equal(calls.some((call) => call.method === 'DELETE'), false);
+  }
+});
+
 test('matches schema alternate IDs for datasets and incoming relationships', async () => {
   const altId = '_example.schemas.abcdef1234';
   const { service } = fixture({
@@ -271,6 +307,39 @@ test('fails closed on unsafe, repeated, incomplete or failed inventory', async (
     await assert.rejects(service.audit(auth, params));
     assert.ok(calls.every((call) => call.url.origin === 'https://platform.adobe.io'));
     assert.equal(calls.some((call) => call.method === 'DELETE'), false);
+  }
+});
+
+test('pagination diagnostics distinguish unsafe and repeated pages without exposing links', async () => {
+  for (const [href, reason] of [
+    ['https://example.com/other?token=sensitive', 'unexpected_origin'],
+    ['/other?token=sensitive', 'unexpected_path'],
+    ['/data/foundation/flowservice/sourceConnections?limit=100', 'repeated_page'],
+  ]) {
+    const { service } = fixture({
+      connectionPage: () => ({ items: [], _links: { next: { href } } }),
+    });
+    await assert.rejects(service.audit(auth, params), (error) => {
+      assert.equal(error.status, 502);
+      assert.equal(error.detail.reason, reason);
+      assert.equal(error.detail.page, 2);
+      assert.equal(JSON.stringify(error.detail).includes('sensitive'), false);
+      return true;
+    });
+  }
+});
+
+test('Catalog diagnostics identify repeated IDs and invalid metadata', async () => {
+  for (const [row, reason, page] of [
+    [dataset, 'repeated_dataset_id', 2],
+    [{ schemaRef: { id: schemaId } }, 'invalid_dataset_metadata', 1],
+  ]) {
+    const { service } = fixture({ catalog: () => ({ [id]: row }) });
+    await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
+      assert.equal(error.detail.reason, reason);
+      assert.equal(error.detail.page, page);
+      return true;
+    });
   }
 });
 

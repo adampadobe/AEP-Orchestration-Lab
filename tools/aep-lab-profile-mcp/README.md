@@ -99,7 +99,9 @@ check the Portal enrollment's configured sandbox rather than bypassing the gate.
 
 Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
-**Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
+**Dynamic discovery requires notification delivery and a client refresh.** POST responses remain JSON; authenticated `GET` requests open the same session's SSE notification stream. Sessions are bound to their initializing principal and endpoint. Earlier server builds returned HTTP 405 for GET, so a successful `lab_load_toolset` changed the server catalog without delivering `notifications/tools/list_changed` to the client. Explicit protocol-level `tools/list` still returned the added tools. This transport failure does not establish that a host ignores delivered notifications.
+
+For clients that do not refresh their callable catalog, **directly connect the focused endpoint(s) for the domains you actually use**, or `/mcp` for the full catalog. This also avoids the dynamic-discovery dependency in Copilot. Reconnect after changing an endpoint or installing an updated plugin; a host's deferred-tool search is not necessarily a fresh protocol-level `tools/list`.
 
 | Entry-point tool / resource | Purpose |
 |---|---|
@@ -308,7 +310,7 @@ Adobe's current public Journey and Campaign references document retrieval but no
 
 ### Governed dataset and tenant schema cleanup
 
-Use the complete `/mcp` endpoint (`lab-all` in Coworker). Entry clients that support tool-list refresh can instead call `lab_load_toolset category platform-cleanup`. There is no new focused endpoint. After a release that adds these tools, start a new Coworker chat: its initialized tool catalog does not refresh dynamically.
+Use the complete `/mcp` endpoint (`lab-all` in Coworker). Entry clients that support tool-list refresh can instead call `lab_load_toolset category platform-cleanup`. There is no new focused endpoint. Reconnect or start a new chat after an endpoint change or a release that adds tools; do not assume an existing host session refreshes its callable catalog dynamically.
 
 1. Run `lab_platform_asset_list sandbox {sandbox} resource_type dataset|schema name {optional substring}`. Only metadata is returned, never customer records.
 2. Run `lab_platform_asset_audit` with the exact `resource_type` and `resource_id` (Catalog dataset ID or full tenant schema `$id`). Inspect blockers, dependencies, owned descriptors, warnings, and confirmation values.
@@ -317,6 +319,10 @@ Use the complete `/mcp` endpoint (`lab-all` in Coworker). Entry clients that sup
 5. Require `verifiedAbsent: true` before proceeding. Delete each dataset before its schema and child schemas before parents. Incoming relationships conservatively block dataset deletion too, so dependent groups may require child dataset -> child schema -> parent dataset -> parent schema, not deleting every dataset in one initial pass.
 
 Profile/Identity-enabled datasets and Profile-enabled schemas are blocked. Source/target connections block deletion even when disabled; this tool never disables or deletes flows or connections. Schemas must be tenant-owned by the configured Adobe org, with no remaining datasets or incoming links. Pagination is bounded, follows only the same allowlisted Adobe resource, and fails closed on malformed, incomplete or repeated inventories.
+
+Dataset summaries report `profileEnabled` and `identityEnabled` independently; either enablement blocks deletion. Catalog inventory permits missing schema references and reports `schemaId: null` rather than aborting an unrelated name search. Dependency audits still fail closed: `dependencies.unresolvedDatasets` identifies datasets whose schema reference is missing or invalid, and blocks deletion until completeness can be established. Name filters never limit the dependency scan.
+
+Cleanup list, audit and delete requests each make one attempt, including network failures and HTTP 429/502/503/504 responses. Do not automatically retry a pagination failure. Inventory errors include only the inventory identifier, one-based page and reason (`invalid_dataset_id`, `invalid_dataset_metadata`, `repeated_dataset_id`, `unexpected_origin`, `unexpected_path` or `repeated_page`); raw continuation URLs, query values and connection payloads are not logged.
 
 For schema cleanup, only its own audited descriptors are removed, each verified absent before schema deletion. This is **not atomic**: if a later step fails, already removed descriptors are reported and the schema may remain. Dataset deletion requires Catalog's exact ID acknowledgment; schema deletion requires HTTP 204. Both require a GET 404 readback. Pending, partial, network or verification failures never return success and are never automatically retried.
 

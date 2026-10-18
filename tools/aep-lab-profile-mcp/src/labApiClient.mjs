@@ -844,6 +844,7 @@ export async function platformAssetList({ sandbox, resource_type, name }) {
     origin: getLabFunctionsOrigin(),
     query: { sandbox, resource_type, name },
     headers: principalAuthHeaders(),
+    retries: 0,
     timeoutMs: 330_000,
   });
 }
@@ -853,6 +854,7 @@ export async function platformAssetAudit({ sandbox, resource_type, resource_id }
     origin: getLabFunctionsOrigin(),
     query: { sandbox, resource_type, resource_id },
     headers: principalAuthHeaders(),
+    retries: 0,
     timeoutMs: 330_000,
   });
 }
