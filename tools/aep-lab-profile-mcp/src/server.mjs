@@ -295,6 +295,10 @@ async function main() {
 
           const active = sessionId ? getSession(sessionId) : undefined;
           if (active) {
+            if (active.keyId !== auth.keyId) {
+              jsonRpcError(res, 403, 'MCP session belongs to another principal.');
+              return;
+            }
             if (active.endpoint !== endpoint.path) {
               jsonRpcError(res, 400, `MCP session belongs to ${active.endpoint}, not ${endpoint.path}.`);
               return;
@@ -306,7 +310,7 @@ async function main() {
               sessionIdGenerator: () => randomUUID(),
               enableJsonResponse: true,
               onsessioninitialized: (id) => {
-                registerSession(id, { transport, server, endpoint: endpoint.path, loadedCategories: new Set() });
+                registerSession(id, { transport, server, endpoint: endpoint.path, keyId: auth.keyId, loadedCategories: new Set() });
               },
             });
 
@@ -332,16 +336,32 @@ async function main() {
       });
     });
 
-    app.get(endpoint.path, (_req, res) => {
-      res.status(405).set('Allow', 'POST').json({
-        error: `Use POST ${endpoint.path} for Streamable HTTP (JSON mode).`,
-      });
+    app.get(endpoint.path, authenticate, async (req, res) => {
+      const active = getSession(req.headers['mcp-session-id']);
+      if (!active || active.endpoint !== endpoint.path) {
+        jsonRpcError(res, 404, 'Session not found for this endpoint.');
+        return;
+      }
+      if (active.keyId !== req.mcpAuth.auth.keyId) {
+        jsonRpcError(res, 403, 'MCP session belongs to another principal.');
+        return;
+      }
+      try {
+        await active.transport.handleRequest(req, res);
+      } catch (err) {
+        console.error('[aep-lab-profile-mcp] MCP notification stream error:', err);
+        if (!res.headersSent) jsonRpcError(res, 500, 'Internal server error');
+      }
     });
 
     app.delete(endpoint.path, authenticate, async (req, res) => {
       const sessionId = req.headers['mcp-session-id'];
       const active = sessionId ? getSession(sessionId) : undefined;
       if (active?.endpoint === endpoint.path) {
+        if (active.keyId !== req.mcpAuth.auth.keyId) {
+          jsonRpcError(res, 403, 'MCP session belongs to another principal.');
+          return;
+        }
         await active.transport.close();
         deleteSession(sessionId);
         res.status(200).json({ ok: true });
@@ -356,18 +376,19 @@ async function main() {
   const host = String(process.env.HOST || '0.0.0.0').trim();
   const port = Number(process.env.PORT || 8080);
 
-  app.listen(port, host, () => {
+  const listener = app.listen(port, host, () => {
+    const boundPort = listener.address().port;
     console.log(
       JSON.stringify({
         type: 'aep-lab-profile-mcp-start',
         version: MCP_VERSION,
         host,
-        port,
+        port: boundPort,
         labOrigin: getLabApiOrigin(),
         allowedSandboxes: cfg.allowedSandboxes,
         mcpEndpoints: ENDPOINTS.map(({ path, toolset }) => ({
           toolset,
-          url: `http://${host === '0.0.0.0' ? 'localhost' : host}:${port}${path}`,
+          url: `http://${host === '0.0.0.0' ? 'localhost' : host}:${boundPort}${path}`,
         })),
       }),
     );

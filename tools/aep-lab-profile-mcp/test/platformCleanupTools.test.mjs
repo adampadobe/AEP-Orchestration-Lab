@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as z from 'zod';
 import { registerPlatformCleanupTools } from '../src/tools/platformCleanupTools.mjs';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
-import { platformAssetDelete } from '../src/labApiClient.mjs';
+import { platformAssetList, platformAssetAudit, platformAssetDelete } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
 
 test('registers narrow inventory/audit/delete contracts and destructive annotations', () => {
@@ -25,7 +25,6 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
   assert.equal(schema.safeParse({ ...input, usage_cleared: false }).success, false);
   assert.equal(schema.safeParse({ ...input, resource_type: 'flow' }).success, false);
 });
-
 test('delete client sends scoped credentials and never retries mutations', async () => {
   const original = globalThis.fetch;
   let calls = 0;
@@ -42,7 +41,40 @@ test('delete client sends scoped credentials and never retries mutations', async
       assert.equal(result.ok, false);
       assert.equal(result.status, 503);
     });
+
     assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test('cleanup inventory and audit never retry pagination failures or transient errors', async () => {
+  const original = globalThis.fetch;
+  try {
+    for (const invoke of [platformAssetList, platformAssetAudit]) {
+      for (const [status, message] of [
+        [502, 'Incomplete or repeated Catalog page; cleanup audit stopped.'],
+        [502, 'Unsafe or repeated pagination link; cleanup audit stopped.'],
+        [503, 'unavailable'],
+        [429, 'rate limited'],
+      ]) {
+        let calls = 0;
+        globalThis.fetch = async () => {
+          calls++;
+          return new Response(JSON.stringify({ error: message }), {
+            status, headers: { 'Content-Type': 'application/json' },
+          });
+        };
+        const result = await invoke({ sandbox: 'apalmer', resource_type: 'dataset', resource_id: 'id' });
+        assert.equal(result.ok, false);
+        assert.equal(result.error, message);
+        assert.equal(calls, 1);
+      }
+      let calls = 0;
+      globalThis.fetch = async () => { calls++; throw new Error('network unavailable'); };
+      assert.equal((await invoke({ sandbox: 'apalmer', resource_type: 'dataset' })).ok, false);
+      assert.equal(calls, 1);
+    }
   } finally {
     globalThis.fetch = original;
   }

@@ -65,7 +65,7 @@ jobs:
         run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/requestLogging.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
 
       - name: Verify governed dataset and schema cleanup (offline)
-        run: node --test functions/test/platformCleanup*.test.cjs tools/aep-lab-profile-mcp/test/platformCleanupTools.test.mjs
+        run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/platformCleanup*.test.cjs tools/aep-lab-profile-mcp/test/platformCleanupTools.test.mjs tools/aep-lab-profile-mcp/test/serverDiscovery.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |

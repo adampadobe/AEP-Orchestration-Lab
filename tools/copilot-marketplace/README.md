@@ -37,6 +37,33 @@ API-key MCP clients. Its key is not embedded in the marketplace or plugin.
 The Adobe CX Coworker plugin continues to use its signed-in Adobe IMS
 passthrough; do not use that package or its auth configuration in Copilot.
 
+## Discovery and Keychain-backed installations
+
+Plugin enablement and MCP server enablement are separate. An enabled `aep-lab`
+plugin can still have every connection disabled in Copilot's MCP settings.
+Inspect `copilot plugin list` and `copilot mcp list` before reinstalling.
+Enable only the connection needed for the task; do not enable all endpoints
+to troubleshoot discovery.
+
+The packaged HTTP connections require `AEP_LAB_MCP_KEY` in Copilot's own launch
+environment. A Keychain-backed wrapper that exports the key only to its bridge
+child does not populate that environment for the plugin's other connections.
+Keep the credential in the existing secret store; do not copy it into MCP JSON.
+
+For an existing Keychain-to-stdio bridge, point its remote URL at `/mcp` when
+static discovery of the full catalog is needed, including platform cleanup.
+The `/mcp/entry` URL starts with five directory tools and depends on delivery of
+`notifications/tools/list_changed` plus the host refreshing its tool catalog
+after `lab_load_toolset`. The server supports a principal-bound authenticated
+GET notification stream while keeping POST responses in JSON.
+
+Reconnect the MCP server or start a new Copilot session after changing the
+wrapper URL. An already-running bridge retains its original endpoint. Confirm
+that `lab_platform_asset_list`, `lab_platform_asset_audit` and
+`lab_platform_asset_delete` appear in the initial tool inventory without
+invoking any asset operation. Presence of a delete tool is not authorization
+to use it.
+
 ## Package contents
 
 `aep-lab/` contains a portable Agent Plugins 1.0 plugin manifest, remote
