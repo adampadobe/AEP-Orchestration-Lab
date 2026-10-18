@@ -12,6 +12,7 @@ const schema = { $id: schemaId, title: 'example_table', version: '1.0', imsOrg: 
 const params = { resource_type: 'dataset', resource_id: id, expected_name: dataset.name };
 
 function fixture(options = {}) {
+  const datasetId = options.datasetId || id;
   const calls = [];
   const removed = new Set();
   const deletedDescriptors = new Set();
@@ -29,12 +30,12 @@ function fixture(options = {}) {
       }
       if (!options.pending) removed.add(path);
       return path.includes('/dataSets/')
-        ? reply(options.emptyAcknowledgment ? [] : [`@/dataSets/${id}`])
+        ? reply(options.emptyAcknowledgment ? [] : [`@/dataSets/${datasetId}`])
         : reply(null, 204);
     }
     if (removed.has(path)) return reply({ error: 'not found' }, 404);
     if (path.includes('/descriptors/')) return reply(null, !options.pendingDescriptors && deletedDescriptors.has(path.split('/').pop()) ? 404 : 200);
-    if (path.endsWith(`/dataSets/${id}`)) return reply({ [id]: { ...(options.dataset || dataset), ...(changed ? { name: 'Renamed' } : {}) } });
+    if (path.endsWith(`/dataSets/${datasetId}`)) return reply({ [datasetId]: { ...(options.dataset || dataset), ...(changed ? { name: 'Renamed' } : {}) } });
     if (path.includes('/schemas/')) return reply(options.schema || schema);
     if (path.endsWith('/dataSets')) {
       if (options.catalog) return reply(options.catalog(url));
@@ -328,6 +329,22 @@ test('Catalog accepts exact IDs from documented record identifiers and blocks co
   await assert.rejects(malformed.list(auth, { resource_type: 'dataset' }), { status: 502 });
 });
 
+test('Catalog supports exact UUID dataset IDs through inventory, audit, and delete validation', async () => {
+  const uuid = '123e4567-e89b-12d3-a456-426614174000';
+  const { service, calls } = fixture({
+    datasetId: uuid,
+    catalog: (url) => url.searchParams.get('start') === '0' ? { [uuid]: dataset } : {},
+  });
+  const target = { ...params, resource_id: uuid };
+  assert.doesNotThrow(() => validateTarget('dataset', uuid));
+  assert.equal((await service.list(auth, { resource_type: 'dataset' })).resources[0].id, uuid);
+  const audit = await service.audit(auth, target);
+  assert.equal(audit.resource.id, uuid);
+  const result = await service.remove(auth, target, audit);
+  assert.equal(result.deleted.id, uuid);
+  assert.ok(calls.some((call) => call.method === 'DELETE' && call.path.endsWith(`/dataSets/${uuid}`)));
+});
+
 test('Catalog metadata-only records remain visible for dependency completeness checks', async () => {
   const { service } = fixture({
     catalog: (url) => url.searchParams.get('start') === '0' ? ({ [id]: {}, _page: 1 }) : { _page: 2 },
@@ -526,7 +543,10 @@ test('Catalog diagnostics identify repeated IDs and invalid metadata', async () 
 });
 
 test('rejects path injection, unsupported resource types and non-owned schemas', async () => {
-  for (const [type, value] of [['dataset', '../../other'], ['schema', 'https://example.com/abc'], ['dataset', [id]], ['flow', id]]) {
+  for (const [type, value] of [
+    ['dataset', '../../other'], ['dataset', '123e4567-e89b-12d3-a456-42661417400z'],
+    ['schema', 'https://example.com/abc'], ['dataset', [id]], ['flow', id],
+  ]) {
     assert.throws(() => validateTarget(type, value), { status: 400 });
   }
   const { service } = fixture({ schema: { ...schema, imsOrg: 'other-org' } });
