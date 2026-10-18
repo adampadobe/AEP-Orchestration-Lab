@@ -34,6 +34,9 @@ function fixture(options = {}) {
         : reply(null, 204);
     }
     if (removed.has(path)) return reply({ error: 'not found' }, 404);
+    if (path.endsWith('/schemaregistry/stats')) {
+      return reply(options.stats || { imsOrg: auth.orgId, tenantId: 'example' }, options.statsStatus || 200);
+    }
     if (path.includes('/descriptors/')) return reply(null, !options.pendingDescriptors && deletedDescriptors.has(path.split('/').pop()) ? 404 : 200);
     if (path.endsWith(`/dataSets/${datasetId}`)) return reply({ [datasetId]: { ...(options.dataset || dataset), ...(changed ? { name: 'Renamed' } : {}) } });
     if (path.includes('/schemas/')) return reply(options.schema || schema);
@@ -70,6 +73,55 @@ test('audits metadata only, with exact scoped headers and warnings', async () =>
   assert.ok(calls.every((call) => call.headers['x-sandbox-name'] === auth.sandbox));
   assert.ok(calls.every((call) => call.headers['x-gw-ims-org-id'] === auth.orgId));
   assert.ok(calls.every((call) => !/samples|preview|query/.test(call.path)));
+});
+
+test('verifies relational schemas missing imsOrg against authenticated registry stats', async () => {
+  const relational = { ...schema, 'meta:extends': ['https://ns.adobe.com/xdm/data/adhoc-v2'] };
+  delete relational.imsOrg;
+  for (const target of [params, { resource_type: 'schema', resource_id: schemaId }]) {
+    const { service, calls } = fixture({ schema: relational });
+    assert.equal((await service.audit(auth, target)).deleteReviewReady, true);
+    const statsCalls = calls.filter((call) => call.path.endsWith('/schemaregistry/stats'));
+    assert.equal(statsCalls.length, 1);
+    assert.equal(statsCalls[0].headers['x-gw-ims-org-id'], auth.orgId);
+    assert.equal(statsCalls[0].headers['x-sandbox-name'], auth.sandbox);
+    assert.ok(calls.every((call) => call.method === 'GET'));
+  }
+});
+
+test('relational ownership fails closed on conflicting, absent or unverifiable metadata', async () => {
+  const relational = { ...schema, 'meta:extends': ['https://ns.adobe.com/xdm/data/adhoc-v2'] };
+  delete relational.imsOrg;
+  for (const options of [
+    { schema: { ...relational, imsOrg: 'other-org' } },
+    { schema: { ...relational, imsOrg: null } },
+    { schema: { ...relational, imsOrg: '' } },
+    { schema: { ...relational, 'meta:containerId': 'global' } },
+    { schema: { ...relational, 'meta:containerId': undefined } },
+    { schema: { ...relational, 'meta:extends': [] } },
+    { schema: relational, stats: { imsOrg: 'other-org', tenantId: 'example' } },
+    { schema: relational, stats: { imsOrg: auth.orgId, tenantId: 'other' } },
+    { schema: relational, stats: { imsOrg: auth.orgId, tenantId: 'example/schemas/..' } },
+    { schema: relational, stats: { imsOrg: auth.orgId } },
+    { schema: relational, stats: null, statsStatus: 403 },
+  ]) {
+    const { service, calls } = fixture(options);
+    await assert.rejects(service.audit(auth, params), { status: 403 });
+    assert.ok(calls.every((call) => call.method === 'GET'));
+    assert.ok(calls.filter((call) => call.path.endsWith('/schemaregistry/stats')).length <= 1);
+  }
+});
+
+test('fresh pre-delete audit revalidates relational registry ownership before mutation', async () => {
+  const relational = { ...schema, 'meta:extends': ['https://ns.adobe.com/xdm/data/adhoc-v2'] };
+  delete relational.imsOrg;
+  const stats = { imsOrg: auth.orgId, tenantId: 'example' };
+  const { service, calls } = fixture({ schema: relational, stats });
+  const audit = await service.audit(auth, params);
+  stats.imsOrg = 'other-org';
+  await assert.rejects(service.remove(auth, params, audit), { status: 403 });
+  assert.equal(calls.filter((call) => call.path.endsWith('/schemaregistry/stats')).length, 2);
+  assert.ok(calls.every((call) => call.method === 'GET'));
 });
 
 test('deletes a dataset once and verifies absence without deleting its schema', async () => {
