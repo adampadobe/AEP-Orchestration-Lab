@@ -8,6 +8,7 @@ const REGISTRY = '/data/foundation/schemaregistry/tenant';
 const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
+const CATALOG_DATASET_ID = /^(?:[a-f0-9]{24}|[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i;
 const WARNINGS = [
   'Deletion is irreversible and permanently removes dataset data or schema metadata.',
   'This metadata audit cannot prove that AJO campaigns, audiences, queries, destinations or external applications are unused. Independently clear their usage before confirming.',
@@ -19,10 +20,14 @@ function failure(status, message, detail) {
   return Object.assign(new Error(message), { status, detail });
 }
 
+function isCatalogDatasetId(value) {
+  return typeof value === 'string' && CATALOG_DATASET_ID.test(value);
+}
+
 function validateTarget(type, id) {
   if (!['dataset', 'schema'].includes(type)) throw failure(400, 'resource_type must be dataset or schema.');
   if (typeof id !== 'string') throw failure(400, 'An exact resource_id string is required.');
-  if (type === 'dataset' && !/^[a-f0-9]{24}$/i.test(id)) throw failure(400, 'An exact Catalog dataset ID is required.');
+  if (type === 'dataset' && !isCatalogDatasetId(id)) throw failure(400, 'An exact Catalog dataset ID is required.');
   if (type === 'schema' && !/^https:\/\/ns\.adobe\.com\/[A-Za-z0-9_-]+\/schemas\/[a-f0-9]+$/i.test(id)) {
     throw failure(400, 'An exact tenant schema $id URI is required.');
   }
@@ -171,9 +176,16 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
 
   function catalogId(value) {
     if (typeof value !== 'string') return null;
-    if (/^[a-f0-9]{24}$/i.test(value)) return value;
-    const match = value.match(/^(?:@\/dataSets\/|\/data\/foundation\/catalog\/dataSets\/|https:\/\/platform\.adobe\.io\/data\/foundation\/catalog\/dataSets\/)([a-f0-9]{24})$/i);
-    return match?.[1] || null;
+    if (isCatalogDatasetId(value)) return value;
+    const prefixes = [
+      '@/dataSets/',
+      '/data/foundation/catalog/dataSets/',
+      'https://platform.adobe.io/data/foundation/catalog/dataSets/',
+    ];
+    const prefix = prefixes.find((candidate) => value.toLowerCase().startsWith(candidate.toLowerCase()));
+    if (!prefix) return null;
+    const id = value.slice(prefix.length);
+    return isCatalogDatasetId(id) ? id : null;
   }
 
   function catalogIdShape(value) {
