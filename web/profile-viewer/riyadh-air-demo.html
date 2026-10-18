@@ -60,9 +60,6 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
         <label for="raCustomEventType">Event type</label>
         <input id="raCustomEventType" type="text" required maxlength="256" autocomplete="off" spellcheck="false" list="raEventTypeSuggestions" placeholder="e.g. flight.booked">
         <datalist id="raEventTypeSuggestions"><option value="flight.booked"></option><option value="travel.flight.delay"></option><option value="travel.flight.gateChange"></option><option value="travel.upgrade.intent"></option><option value="travel.ancillary.intent"></option></datalist>
-        <label for="raCustomEventId">AJO orchestration event ID (optional)</label>
-        <input id="raCustomEventId" type="text" maxlength="128" pattern="[a-zA-Z0-9_-]{1,128}" autocomplete="off" spellcheck="false" aria-describedby="raCustomEventHelp">
-        <p id="raCustomEventHelp">Event type and AJO event ID are different fields. Use your existing journey binding; sending does not configure a journey.</p>
         <label class="ra-presenter-check"><input id="raCustomIncludeTrip" type="checkbox">Include this tab's confirmed booking reference and airports</label>
         <details><summary>Event payload preview</summary><pre id="raCustomEventPreview">Enter an event type to preview the request.</pre></details>
         <button id="raSendCustomEvent" type="submit">Send event</button>
@@ -77,15 +74,13 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
       <input id="raDelayMinutes" type="number" min="15" max="720" step="15" value="90">
       <label for="raNewGate">New gate</label>
       <input id="raNewGate" type="text" maxlength="8" pattern="[A-Za-z0-9 -]{1,8}" value="B12">
-      <label for="raOrchestrationId">AJO disruption event ID (optional)</label>
-      <input id="raOrchestrationId" type="text" autocomplete="off" maxlength="128" placeholder="Use your existing AJO event binding">
       <button id="raTriggerDisruption" type="button" disabled>Send trip update</button>
       <button id="raRefreshProfile" type="button">Refresh profile activity</button>
       <button id="raResetJourney" type="button">Reset local trip</button>
       <p id="raPresenterStatus" role="status" aria-live="polite"></p>
       <details><summary>Last delivery attempt</summary><pre id="raLastAttempt">No event attempted in this tab.</pre></details>
       <div id="raUncertainDelivery" hidden>
-        <p>Delivery is uncertain. Check profile activity and AJO before trying again. Another attempt may create a duplicate; matching event IDs do not guarantee deduplication.</p>
+        <p>Delivery is uncertain. Check profile activity and AJO before trying again. Another attempt may create a duplicate; deduplication is not guaranteed.</p>
         <button id="raAllowRetry" type="button">I checked activity; allow another attempt</button>
       </div>
       <ol id="raEventLog" aria-label="Event delivery history"></ol>
@@ -229,11 +224,11 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="riyadh-air-events.js?v=20261017-presenter-events"></script>
+  <script src="riyadh-air-events.js?v=20261018-event-type-only"></script>
   <script src="riyadh-air-explore.js?v=20261015-customer-copy"></script>
-  <script src="riyadh-air-demo.js?v=20261017-presenter-events"></script>
+  <script src="riyadh-air-demo.js?v=20261018-event-type-only"></script>
   <script src="riyadh-air-booking.js?v=20261015-booking-identity"></script>
-  <script src="riyadh-air-site.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-site.js?v=20261018-event-type-only"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

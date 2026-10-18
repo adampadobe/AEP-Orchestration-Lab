@@ -557,9 +557,7 @@
       const gate = byId('raNewGate').value.trim().toUpperCase();
       if (kind === 'delay' && (!Number.isInteger(minutes) || minutes < 15 || minutes > 720)) throw new Error('Set a delay between 15 and 720 minutes.');
       if (kind === 'gate' && !/^[A-Z0-9 -]{1,8}$/.test(gate)) throw new Error('Enter a gate of 1-8 letters, digits, spaces or hyphens.');
-      const eventID = byId('raOrchestrationId').value.trim();
-      if (eventID && !/^[a-zA-Z0-9_-]{1,128}$/.test(eventID)) throw new Error('The AJO event ID must contain only letters, numbers, underscores or hyphens.');
-      await lab.send(kind, trip, { delayMinutes: minutes, gate, eventID });
+      await lab.send(kind, trip, { delayMinutes: minutes, gate });
       trip.disruption = { kind, delayMinutes: minutes, gate };
       navigate('trip');
     });

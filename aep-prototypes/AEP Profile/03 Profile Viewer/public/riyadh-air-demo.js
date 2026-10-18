@@ -238,7 +238,6 @@
       const ctx = context();
       const body = global.RiyadhAirEvents.build(byId('raDisruptionKind').value, previewTrip || {}, ctx, {
         delayMinutes: Number(byId('raDelayMinutes').value), gate: byId('raNewGate').value.trim().toUpperCase(),
-        eventID: byId('raOrchestrationId').value.trim(),
       });
       const { email, ecid, ...safeBody } = body;
       output.textContent = JSON.stringify({ ...safeBody, identity: { profile: email ? 'Verified email (hidden)' : 'Anonymous', ecid: ecid ? 'Resolved (hidden)' : 'Missing' }, datastreamId: ctx.target.dataStreamId }, null, 2);
@@ -248,7 +247,6 @@
   function customEventOptions() {
     return {
       eventType: byId('raCustomEventType').value.trim(),
-      eventID: byId('raCustomEventId').value.trim(),
       trip: byId('raCustomIncludeTrip').checked ? previewTrip || {} : null,
     };
   }

@@ -55,7 +55,7 @@ function contractTests() {
     assert.equal(xdm.identityMap.Email[0].id, profile.email);
     assert.equal(xdm.identityMap.Email[0].primary, false);
     assert.equal(xdm._demoemea.public.travel.confirmationNumber, trip.reference);
-    assert.equal(xdm._experience.campaign.orchestration.eventID, 'fixture-disruption-id');
+    assert.equal(body.eventID, undefined, 'Riyadh events do not forward orchestration IDs');
     for (const slice of ['travel', 'generic']) {
       const allowed = EVENT_INDUSTRY_FIELD_GROUP_SPECS.find((spec) => spec.industryId === slice).properties;
       assert(Object.keys(xdm._demoemea.public[slice]).every((key) => Object.hasOwn(allowed, key)), 'No undeclared schema leaves');
@@ -85,14 +85,14 @@ function contractTests() {
   assert.equal(custom.public, undefined, 'Simple manual events do not fabricate a booking');
   assert.equal(custom.email, profile.email);
   assert.equal(buildGeneratorEdgeInteractXdm(custom, target).eventType, 'my.journey.trigger');
+  assert.equal(buildGeneratorEdgeInteractXdm(custom, target)._experience, undefined, 'Minimal manual events have no orchestration context');
   const boundCustom = events.buildCustom('flight.delayed', context, { eventID: 'my-ajo-event', trip: { ...trip, booked: true } });
   const boundXdm = buildGeneratorEdgeInteractXdm(boundCustom, target);
-  assert.equal(boundXdm._experience.campaign.orchestration.eventID, 'my-ajo-event');
+  assert.equal(boundCustom.eventID, undefined, 'Manual events do not forward orchestration IDs');
   assert.equal(boundXdm._demoemea.public.travel.confirmationNumber, trip.reference);
   assert.throws(() => events.buildCustom(' ', context), /event type/);
   assert.throws(() => events.buildCustom('x'.repeat(257), context), /event type/);
   assert.throws(() => events.buildCustom('bad\nevent', context), /event type/);
-  assert.throws(() => events.buildCustom('my.event', context, { eventID: '<bad>' }), /AJO event ID/);
   assert.throws(() => events.buildCustom('my.event', context, { trip }), /Confirm a booking/);
   assert.throws(() => events.buildCustom('my.event', { ...context, ecid: '' }), /ECID/);
 }
@@ -753,7 +753,7 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Explore a cabin upgrade' }).waitFor();
     assert.equal(requests.filter((body) => body.eventType === 'travel.upgrade.abandon').length, 1);
     await page.locator('#raPresenterLauncher').click();
-    await page.locator('#raOrchestrationId').fill('fixture-disruption-id');
+    assert.equal(await page.locator('#raOrchestrationId, #raCustomEventId').count(), 0, 'Presenter has no orchestration ID fields');
     failNext = true;
     await page.getByRole('button', { name: 'Send trip update' }).click();
     await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
@@ -763,7 +763,7 @@ async function browserTests() {
     assert.equal(await page.getByRole('button', { name: 'Explore a cabin upgrade' }).count(), 0);
     const delay = requests.find((body) => body.eventType === 'travel.flight.delay');
     assert.equal(delay.public.travel.confirmationNumber, bookingRef);
-    assert.equal(delay.eventID, 'fixture-disruption-id');
+    assert.equal(delay.eventID, undefined);
     assert.equal(new URL(delay.viewUrl).searchParams.get('delayMinutes'), '90');
     await page.locator('#raDisruptionKind').selectOption('gate');
     await page.getByRole('button', { name: 'Send trip update' }).click();
@@ -1116,7 +1116,6 @@ async function browserTests() {
     assert.equal(requests.length, beforeUnavailable, 'Unsupported airport combinations give availability feedback, not invented flights');
     await page.locator('#raPresenterLauncher').click();
     await page.locator('#raCustomEventType').fill('my.journey.trigger');
-    await page.locator('#raCustomEventId').fill('my-ajo-binding');
     const beforeManual = requests.length;
     await page.locator('#raCustomIncludeTrip').check();
     await page.getByRole('button', { name: 'Send event', exact: true }).click();
@@ -1136,7 +1135,8 @@ async function browserTests() {
     await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
     assert.equal(requests.length, beforeManual + 2, 'Double manual submit records only one explicit request');
     assert.equal(requests.at(-1).eventType, 'my.journey.trigger');
-    assert.equal(requests.at(-1).eventID, 'my-ajo-binding');
+    assert.equal(requests.at(-1).eventID, undefined);
+    assert.equal(requests.at(-1).xdmStyle, 'minimal');
     assert.equal(requests.at(-1).email, profile.email);
     assert.equal(requests.at(-1).ecid, ecid);
     assert.equal(requests.at(-1).targetId, target.id);

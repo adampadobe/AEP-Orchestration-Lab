@@ -103,7 +103,7 @@ SDK acceptance is not proof of Profile ingestion or AJO execution.
 Business events also use natural labels such as **Flight search**, **Booking
 confirmed**, **Flight delayed** and **Gate changed** in existing `viewName` and
 generic CTA-label fields. Booking confirmation uses **`flight.booked`**; all other
-event types, travel fields, URL context, orchestration event ID and generator
+event types, travel fields, URL context and generator
 transport are unchanged.
 
 ## Presenter setup
@@ -161,15 +161,15 @@ are not shown on the customer surface or shared environment-strip message.
 Customer action errors remain visible; checkout retains the demo-payment disclosure.
 
 **Send an event** accepts a free-text event type, as the Lab Event tool does.
-Suggestions are conveniences, not an allowlist. An optional **AJO orchestration
-event ID** is separate from `eventType`. The request uses the selected sandbox,
+Suggestions are conveniences, not an allowlist. Rules-based unitary events use
+`eventType` only, without supplying an AJO orchestration event ID. The request uses the selected sandbox,
 Lab Event tool Edge target and independently resolved email/ECID (or an already
 resolved anonymous ECID); a merely typed profile is still rejected. **Look up
 selected profile** resolves the Lab bar selection without leaving the presenter
 panel. No booking or injected Tags is required for a known-profile generator send.
 
-Simple manual events use the Event tool's minimal payload; an explicit AJO event
-ID or checked **Include this tab's confirmed booking** opts into the existing full
+Simple manual events use the Event tool's minimal payload; checked
+**Include this tab's confirmed booking** opts into the existing full
 payload. Booking context includes only the existing reference/airport fields and
 requires a confirmed local trip. Preview/receipts mask identity values. Manual
 sends share the normal sender's target checks, rejection reporting, concurrent-send
@@ -223,8 +223,8 @@ retried. Profile refresh is a read, not proof of the exact event or AJO executio
    not presented as part of the customer's booking. Channel/verification caveats
    remain in the presenter panel.
 4. Open **Presenter controls** and send a delay or gate change for the confirmed
-   booking. Optional **AJO disruption event ID** uses the user's existing event
-   binding. After API acceptance, the website shows care instead of its local
+   booking. The presets use their event type without an orchestration ID.
+   After API acceptance, the website shows care instead of its local
    upgrade promotion and hides its three decisioning promotion mounts. This is a
    local customer-surface pivot, **not verified AJO promotional suppression**.
 
@@ -357,9 +357,12 @@ The existing Travel v1 schema has **no dedicated flight number, seat, upgrade,
 delay-minutes or gate leaves**. The URL representation deliberately avoids
 inventing unsupported XDM fields. Bind AJO disruption/filter logic to `eventType`
 and `public.travel.confirmationNumber`; richer variables must be parsed from the
-context URL or added later through a separately approved schema change. Supplying
-an orchestration ID alone does not prove that an AJO journey is bound or running;
-without an explicit ID the generator's existing default applies.
+context URL or added later through a separately approved schema change. Riyadh
+requests do not supply orchestration IDs; use `eventType` for rules-based unitary
+journey entry. Minimal manual events have no orchestration context. The shared
+full-payload generator retains its existing default orchestration metadata;
+that metadata is not the entry rule. Sending an event does not prove that the
+user's matching AJO rule is configured or running.
 
 These are append-only **ExperienceEvents**, not updates to profile travel
 reservations, loyalty, purchase status or suppression attributes. No
@@ -391,6 +394,6 @@ events or create resources. Test receipts are not proof of live ingestion.
 Before presenting, verify sandbox `apalmer` has the existing field groups and
 Profile-enabled event dataset/datastream, choose the intended customer, and inspect
 the exact event in the drawer after normal ingestion lag (30–60 seconds or more).
-Verify real AJO event ID/filter/booking correlation, channel execution and actual
+Verify real AJO event-type rules and booking correlation, channel execution and actual
 suppression separately in the user's journey. There is no live ingestion,
 WhatsApp-purchase reconciliation or AJO-suppression certification from local tests.
