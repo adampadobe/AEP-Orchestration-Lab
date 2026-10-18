@@ -777,19 +777,16 @@
   const SECTION_META = [
     {
       section: 'lab',
-      tbodyId: 'mcpTableBodyLab',
       cardsId: 'mcpCardsLab',
       emptyId: 'mcpEmptyLab',
     },
     {
       section: 'adobe',
-      tbodyId: 'mcpTableBodyAdobe',
       cardsId: 'mcpCardsAdobe',
       emptyId: 'mcpEmptyAdobe',
     },
     {
       section: 'thirdParty',
-      tbodyId: 'mcpTableBodyThirdParty',
       cardsId: 'mcpCardsThirdParty',
       emptyId: 'mcpEmptyThirdParty',
     },
@@ -842,9 +839,6 @@
       return (
         link +
         '<div class="mcp-url-actions">' +
-        '<button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="' +
-        escapeHtml(entry.id) +
-        '">Copy name</button>' +
         '<button type="button" class="mcp-copy-action" data-mcp-copy="url" data-server-id="' +
         escapeHtml(entry.id) +
         '">Copy URL</button>' +
@@ -952,36 +946,6 @@
       });
   }
 
-  function rowHtml(entry) {
-    return (
-      '<tr data-server-id="' +
-      escapeHtml(entry.id) +
-      '">' +
-      '<td><span class="mcp-server-name">' +
-      escapeHtml(entry.name) +
-      '</span><span class="mcp-server-id">' +
-      escapeHtml(entry.configName ? 'Coworker name: ' + entry.configName : entry.id) +
-      '</span></td>' +
-      '<td>' +
-      escapeHtml(entry.product) +
-      '</td>' +
-      '<td class="mcp-url-cell">' +
-      mcpUrlHtml(entry) +
-      '</td>' +
-      '<td>' +
-      escapeHtml(entry.summary) +
-      docLinkHtml(entry) +
-      '</td>' +
-      '<td>' +
-      useCasesHtml(entry.useCases) +
-      '</td>' +
-      '<td><div class="mcp-config-notes">' +
-      escapeHtml(entry.configNotes) +
-      '</div></td>' +
-      '</tr>'
-    );
-  }
-
   function cardHtml(entry) {
     return (
       '<article class="mcp-card" data-server-id="' +
@@ -991,43 +955,49 @@
       '<h4>' +
       escapeHtml(entry.name) +
       '</h4>' +
-      (entry.configName
-        ? '<span class="mcp-server-id">Coworker name: ' + escapeHtml(entry.configName) + '</span>'
-        : '') +
-      '</div>' +
-      '<dl class="mcp-card-dl">' +
-      '<div><dt>Product</dt><dd>' +
+      '<span class="mcp-card-product">' +
       escapeHtml(entry.product) +
-      '</dd></div>' +
-      '<div><dt>MCP server URL</dt><dd>' +
-      mcpUrlHtml(entry) +
-      '</dd></div>' +
-      '<div><dt>What it does</dt><dd>' +
+      '</span>' +
+      '</div>' +
+      '<p class="mcp-card-summary">' +
       escapeHtml(entry.summary) +
       ' ' +
       docLinkHtml(entry) +
+      '</p>' +
+      '<details class="mcp-card-details">' +
+      '<summary>Connection details</summary>' +
+      '<dl class="mcp-card-dl">' +
+      (entry.configName
+        ? '<div><dt>Connection name</dt><dd><code>' +
+          escapeHtml(entry.configName) +
+          '</code> <button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="' +
+          escapeHtml(entry.id) +
+          '">Copy name</button></dd></div>'
+        : '') +
+      '<div><dt>Server ID</dt><dd><code>' +
+      escapeHtml(entry.id) +
+      '</code></dd></div>' +
+      '<div><dt>MCP server URL</dt><dd>' +
+      mcpUrlHtml(entry) +
       '</dd></div>' +
-      '<div><dt>Use cases</dt><dd>' +
+      '<div><dt>Typical use</dt><dd>' +
       useCasesHtml(entry.useCases) +
       '</dd></div>' +
-      '<div><dt>Config notes</dt><dd class="mcp-config-notes">' +
+      '<div><dt>Setup notes</dt><dd class="mcp-config-notes">' +
       escapeHtml(entry.configNotes) +
       '</dd></div>' +
       '</dl>' +
+      '</details>' +
       '</article>'
     );
   }
 
   function renderSection(meta, entries) {
-    const tbody = document.getElementById(meta.tbodyId);
     const cards = document.getElementById(meta.cardsId);
     const emptyEl = document.getElementById(meta.emptyId);
-    if (!tbody || !cards) return;
+    if (!cards) return;
 
     const hasRows = entries.length > 0;
-    tbody.innerHTML = hasRows
-      ? entries.map(rowHtml).join('')
-      : '<tr><td colspan="6">No servers match your filter.</td></tr>';
     cards.innerHTML = hasRows
       ? entries.map(cardHtml).join('')
       : '<p class="mcp-status-text">No servers match your filter.</p>';
