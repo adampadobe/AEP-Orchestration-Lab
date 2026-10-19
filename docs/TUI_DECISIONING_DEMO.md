@@ -192,8 +192,17 @@ policy can be tested explicitly, separately from the local ranking.
 
 ## Interaction and checks
 
-Email desktop and mobile share the same table-based content. The web hero uses
-the same selected item. Suppression removes prior personalised images and CTAs.
+The desktop email, TUI mobile app concept and web hero use the same selected
+item with channel-specific presentation. Mobile is no longer a resized email:
+it has a TUI header, recipient greeting, native-style offer card, holiday tools,
+bottom navigation and home indicator. Its content scrolls inside the phone while
+navigation stays visible. Quick actions/navigation give simulation feedback;
+they do not open bookings or perform account actions. No real booking details,
+balances or app services are fabricated. Without a supplied app capture, this
+is explicitly an illustrative branded concept, not an exact production app
+replica. Existing conservative email/personalisation consent gates still hold
+all personalised slots; the app preview adds no new consent or messaging rights.
+Suppression removes prior personalised images and CTAs, retaining the app shell.
 Tabs support roving focus, Left/Right/Home/End, deep links and back/forward.
 The shell and iframe keep their channel state aligned. Theme follows `aepTheme`;
 pane proportions use `tuiDecisioningPaneRatios` and adapt to viewport width.
@@ -208,8 +217,8 @@ fallback tenant discovery.
 Resizable gutters support pointer and keyboard input. On narrower viewports
 panes stack without horizontal scrolling.
 The compact BA-style channel switcher sits beside the preview title: **Email ·
-Desktop**, **Email · Mobile**, **Web**. Only email is capped at 600px and the
-phone at 390px. Web fills the stage, with browser chrome, readable navigation
+Desktop**, **Mobile App**, **Web**. Only email is capped at 600px and the
+app phone at 390px. Existing `?channel=mobile` links still work. Web fills the stage, with browser chrome, readable navigation
 and search, a container-responsive hero, and destination sections. Its scroll
 area is independent of the channel header; stacked layouts have no 760px cap.
 The dashboard sidebar peeks from the left edge and opens on hover/focus; the

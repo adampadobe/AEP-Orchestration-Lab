@@ -79,7 +79,7 @@ async function main() {
         const objective = model.objectives.find(o => o.key === scenario.expectedObjective);
         const offer = objective.offers.find(o => o.key === scenario.expectedOffer);
         assert.equal(await page.locator('#email-preview .email-heading').textContent(), offer.content.title, scenario.name);
-        assert.equal(await page.locator('#mobile-preview .email-heading').textContent(), offer.content.title);
+        assert.equal(await page.locator('#mobile-preview .app-offer-title').textContent(), offer.content.title);
         assert.equal(await page.locator('#web-preview h3').textContent(), offer.content.title);
       } else {
         assert.equal(await page.locator('.objective[data-winner="true"]').count(), 0);
@@ -147,7 +147,21 @@ async function main() {
       await page.goto(url + '?channel=' + channel);
       assert.equal(await page.locator('#panel-' + channel).isVisible(), true);
     }
-    assert.deepEqual(await page.locator('.channel-tabs button').allTextContents(), ['Email · Desktop', 'Email · Mobile', 'Web']);
+    assert.deepEqual(await page.locator('.channel-tabs button').allTextContents(), ['Email · Desktop', 'Mobile App', 'Web']);
+    assert.equal(await page.locator('#panel-mobile .email-card,#panel-mobile .subject-line,#panel-mobile .recipient-label').count(), 0,
+      'Mobile is an app, not an email in a phone frame');
+    await page.locator('#tab-mobile').click();
+    assert.equal(await page.locator('#app-greeting').textContent(), 'Hi Alex');
+    await page.locator('.app-shortcuts [data-app-action="My trips"]').click();
+    assert.match(await page.locator('#preview-feedback').textContent(), /App simulation only: "My trips"/);
+    await page.locator('.app-nav [data-app-action="Account"]').click();
+    assert.match(await page.locator('#preview-feedback').textContent(), /No navigation, booking or account action/);
+    const navBefore = await page.locator('.app-nav').boundingBox();
+    await page.locator('.app-scroll').evaluate(node => { node.scrollTop = node.scrollHeight; });
+    assert((await page.locator('.app-scroll').evaluate(node => node.scrollTop)) > 0, 'App content scrolls independently');
+    assert.equal((await page.locator('.app-nav').boundingBox()).y, navBefore.y, 'App navigation remains in place');
+    await page.locator('.app-scroll').evaluate(node => { node.scrollTop = 0; });
+    await page.locator('#tab-web').click();
     if (screenshotDir) await fs.mkdir(screenshotDir, { recursive: true });
     for (const width of [1100, 3200]) {
       await page.setViewportSize({ width, height: 1000 });
@@ -437,13 +451,15 @@ async function main() {
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
     assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer');
-    assert.equal(await frame.locator('#mobile-preview .email-heading').textContent(), 'Fixture live offer');
+    assert.equal(await frame.locator('#mobile-preview .app-offer-title').textContent(), 'Fixture live offer');
     assert.equal(await frame.locator('#web-preview h3').textContent(), 'Fixture live offer');
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'One attributed display across three views');
     fixture.rows.find(row => row.path === 'consents.marketing.email.val').value = 'n';
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Actual loaded consent'));
     assert.equal(await frame.locator('#email-preview img').count(), 0, 'Missing consent removes stale live content');
+    assert.equal(await frame.locator('#mobile-preview img,#mobile-preview .preview-cta').count(), 0, 'Consent removes stale app offer imagery and CTA');
+    assert.equal(await frame.locator('.app-nav button').count(), 4, 'App shell survives the consent hold');
     assert.equal(await frame.locator('#eligible-items .nba-card').count(), 0, 'Actual consent hold clears stale eligible NBA cards');
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'Consent hold sends no display');
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());

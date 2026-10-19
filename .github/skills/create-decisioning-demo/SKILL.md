@@ -28,8 +28,9 @@ Example request:
   AEP decisioning, profile generation, email delivery or product eligibility.
 - Use the decisioning visualiser layout: three resizable panes for collapsible
   profile signals, ranked objectives/NBAs, and branded channel previews.
-- Default tabs are **Email · Desktop**, **Email · Mobile**, and **Web**.
-  Mobile means the same responsive email in a phone frame, not an app mockup.
+- Default tabs are **Email · Desktop**, **Mobile App**, and **Web**.
+  Mobile is a branded app experience in a phone frame, not an email resized
+  for a phone. Use a mobile email only when explicitly requested.
 - Include industry-specific attributes (also in the shared bottom profile drawer
   when live integration is requested), exactly seven scenario buttons (one per
   ranked objective), a seven-step ladder that stops at the first eligible
@@ -251,7 +252,7 @@ to fit profile fields.** Use a desktop height budget of roughly five recent even
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
 Use compact, visible Contact / industry-specific / Identity sections below the
 hero and KPIs, following the BA reference. Do not introduce NatWest-style profile
-section tabs unless explicitly requested. Keep the Email/Desktop, Email/Mobile,
+section tabs unless explicitly requested. Keep the Email/Desktop, Mobile App,
 and Web channel selector. Group holdings into a two-column tile grid rather than a long
 single label/value list. Keep all actual values accessible, including full long
 strings through panel scrolling. Scroll panel/event/audience overflow internally;
@@ -320,18 +321,37 @@ when nothing is eligible, and remove stale offer images and CTAs in every view.
 
 ### Channels
 
-All previews share one hero/copy and recipient: a table-based 600px email, the
-same responsive email in a 390px phone frame, and a recognisable reconstruction
-of the supplied website. Do not send any content. In a live demo, distinguish
+All previews share the selected offer/copy and recipient, adapted to each
+channel: a table-based 600px email, a branded mobile app in a 390px phone frame,
+and a recognisable reconstruction of the supplied website. Do not send any
+content. In a live demo, distinguish
 local objective ranking from live preview content: staged controls must not
 pretend to be an Edge decision. Replace live content only on a successful Run.
 
 Match BA's **compact segmented switcher**, not a full-width row of equally
 stretched buttons. Put the preview label on the left and the switcher on the
 right of the same header, wrapping only when necessary. Use the exact labels
-**Email · Desktop**, **Email · Mobile**, **Web**, a muted pill track, and a raised
+**Email · Desktop**, **Mobile App**, **Web**, a muted pill track, and a raised
 selected pill with the theme accent. Keep keyboard and selected-state semantics;
 do not remove channel tabs when removing unwanted profile-section tabs.
+
+The mobile app needs its own app shell: device status area, branded header,
+personalised greeting, in-app offer card, relevant quick actions, persistent
+bottom navigation and home indicator. Do not include email subjects, To/from
+metadata, email tables or inbox chrome. Keep the app content independently
+scrollable while its navigation remains visible. Adapt the current selected
+offer into a native-style image/title/copy/CTA card; scenario changes and genuine
+live Run results update that same slot without changing catalog selection.
+Keep the shell on consent/no-content holds but remove stale offer imagery and
+CTAs. Reuse the existing conservative consent gate; a mobile app preview does
+not establish app consent or authorise sending push/in-app messages.
+
+Use uploaded brand assets and supported product concepts. Without an actual
+app capture, label it a branded app **concept**, not an exact replica of the
+shipping app. Do not invent bookings, boarding passes, balances, unread counts,
+account details or working services. Quick actions and navigation must give
+explicit simulation feedback or be visibly non-interactive. Validate those
+actions and the offer slot, not just a phone border around another channel.
 
 Give each channel its own sizing rules. Centre the 600px desktop email and
 390px phone, but let Web use **all available stage width** without a 600/760px
@@ -358,7 +378,8 @@ an explicit simulated interaction or be visibly non-interactive; do not present
 broken or placeholder links as working product journeys.
 
 Verify the actual rendered result, not just that three buttons exist: compact
-switcher alignment and selected appearance; 600px email/390px phone sizing;
+switcher alignment and selected appearance; 600px email/390px app sizing;
+app-specific chrome, navigation and independent scrolling, with no email markup;
 Web wider than 760px when space permits; no horizontal overflow at narrow
 widths; readable, full-width web content after gutter dragging; independent
 stage scrolling with the header still accessible. Cover both themes, stacked

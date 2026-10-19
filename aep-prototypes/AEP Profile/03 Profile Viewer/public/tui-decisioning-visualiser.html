@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>TUI | Next holiday, best moment</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261016-ranked">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261019-app">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser">
@@ -44,13 +44,26 @@
         <h2 id="preview-title">03 / Customer preview</h2>
         <div class="channel-tabs" role="tablist" aria-label="Preview channel">
           <button id="tab-email" type="button" role="tab" aria-controls="panel-email" aria-selected="true" data-channel="email">Email · Desktop</button>
-          <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Email · Mobile</button>
+          <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Mobile App</button>
           <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
         </div>
       </div>
       <div class="preview-caption"><span id="preview-caption">Responsive email / 600px</span><span>Illustrative content</span></div>
       <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
-      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden><div class="phone-frame"><div class="phone-status">9:41 <span>PREVIEW</span></div><div class="phone-mail"><span class="recipient-label">To: Alex Morgan</span><br><span class="subject-line"></span></div><div id="mobile-preview"></div></div></div>
+      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden>
+        <div class="phone-frame tui-app" aria-label="TUI mobile app concept">
+          <div class="phone-status">9:41 <span>APP CONCEPT</span></div>
+          <header class="app-header"><img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="68" height="30"><span>Your holiday, in your pocket</span></header>
+          <div class="app-scroll">
+            <div class="app-welcome"><span class="eyebrow">A LITTLE MORE YOU</span><h3 id="app-greeting">Hi Alex</h3><p>Your next holiday moment starts here.</p></div>
+            <div id="mobile-preview"></div>
+            <section class="app-shortcuts" aria-label="Holiday tools"><h3>Everything for your getaway</h3><div><button type="button" data-app-action="My trips"><span aria-hidden="true">&#9992;</span>My trips</button><button type="button" data-app-action="Check-in"><span aria-hidden="true">&#10003;</span>Check-in</button><button type="button" data-app-action="Help Centre"><span aria-hidden="true">?</span>Help Centre</button></div></section>
+            <p class="app-disclaimer">Illustrative TUI app concept, not an exact app capture. No booking details or app services are connected.</p>
+          </div>
+          <nav class="app-nav" aria-label="App preview navigation"><button type="button" data-app-action="Home" aria-current="page"><span aria-hidden="true">&#8962;</span>Home</button><button type="button" data-app-action="Discover"><span aria-hidden="true">&#9906;</span>Discover</button><button type="button" data-app-action="My trips"><span aria-hidden="true">&#9992;</span>My trips</button><button type="button" data-app-action="Account"><span aria-hidden="true">&#9675;</span>Account</button></nav>
+          <div class="app-home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
       <div id="panel-web" role="tabpanel" aria-labelledby="tab-web" class="channel-panel" tabindex="0" hidden>
         <div class="website-preview">
           <div class="site-browser-bar" aria-label="Reconstructed website address"><span class="site-browser-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="site-browser-address">tui.co.uk</span></div>
@@ -67,6 +80,6 @@
   </main>
   <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
   <script src="tui-decisioning-model.js?v=20261016-ranked"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261016-ranked"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261019-app"></script>
 </body>
 </html>

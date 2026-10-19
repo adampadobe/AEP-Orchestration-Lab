@@ -201,6 +201,14 @@
     card.append(el('span', 'A MOMENT OF PAUSE', 'eyebrow'), el('h3', 'No content selected'), el('p', reason));
     return card;
   }
+  function mobileApp(offer) {
+    const card = el('article', undefined, 'app-offer');
+    const copy = el('div', undefined, 'app-offer-copy');
+    copy.append(el('span', live ? 'SELECTED FOR YOU / LIVE POLICY' : 'YOUR NEXT BEST MOMENT / DEMO', 'eyebrow'),
+      el('h3', offer.content.title, 'app-offer-title'), el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
+    card.append(image(offer.image, offer.imageAlt, 'app-offer-image'), copy);
+    return card;
+  }
   function renderPreview(result) {
     const objective = model.objectives.find(o => o.key === result.objective);
     let offer = objective && objective.offers.find(item => item.key === result.offer);
@@ -212,12 +220,13 @@
     document.querySelectorAll('.subject-line').forEach(node => {
       node.textContent = offer ? 'Subject: ' + offer.content.title : 'Content held / no email';
     });
+    $('app-greeting').textContent = 'Hi ' + recipient;
     if (!offer) {
       for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(held || result.reason));
       return;
     }
     $('email-preview').replaceChildren(email(offer));
-    $('mobile-preview').replaceChildren(email(offer));
+    $('mobile-preview').replaceChildren(mobileApp(offer));
     const hero = el('div', undefined, 'web-hero');
     const copy = el('div', undefined, 'web-hero-copy');
     copy.append(el('span', 'A LITTLE MORE YOU / DEMO', 'eyebrow'), el('h3', offer.content.title),
@@ -259,7 +268,7 @@
       tab.tabIndex = active ? 0 : -1;
       $('panel-' + tab.dataset.channel).hidden = !active;
     });
-    $('preview-caption').textContent = { email: 'Responsive email / 600px', mobile: 'Same email / 390px phone frame', web: 'Reconstructed TUI website' }[channel];
+    $('preview-caption').textContent = { email: 'Responsive email / 600px', mobile: 'TUI mobile app concept / 390px', web: 'Reconstructed TUI website' }[channel];
     if (push || parent !== window) {
       const url = new URL(location.href);
       url.searchParams.set('channel', channel);
@@ -381,6 +390,12 @@
     model.scenarios.length + ' regression cases cover all items and consent holds. Priorities run from 730 to 110.';
   buildSignals();
   buildScenarios();
+  document.querySelectorAll('[data-app-action]').forEach(button => {
+    button.setAttribute('aria-label', button.dataset.appAction + ' (simulated app interaction)');
+    button.addEventListener('click', () => {
+      $('preview-feedback').textContent = 'App simulation only: "' + button.dataset.appAction + '". No navigation, booking or account action was performed.';
+    });
+  });
   setupTabs();
   resizePanes();
   window.TuiDecisioningVisualiser = {
