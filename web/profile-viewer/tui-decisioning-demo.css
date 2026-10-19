@@ -42,10 +42,7 @@ body.tui-visualiser { margin: 0; background: var(--dash-bg); color: var(--dash-t
 .tui-visualiser h1, .tui-visualiser h2, .tui-visualiser h3, .tui-visualiser p { margin: 0; }
 .tui-lab-header { padding: 18px 24px 12px; display: flex; gap: 22px; align-items: center; background: var(--dash-info-bg); border-bottom: 1px solid var(--dash-info-border); }
 .tui-lab-header h1 { font-size: 26px; font-weight: 750; letter-spacing: -.7px; }
-.tui-lab-header .simulation-badge { margin-left: auto; }
 .eyebrow { display: block; color: var(--dash-text-secondary); font-size: 9px; font-weight: 750; letter-spacing: 1.5px; }
-.simulation-badge { padding: 6px 10px; border: 1px solid var(--dash-info-border); color: var(--dash-info-text); background: var(--dash-surface); border-radius: 30px; font-size: 11px; }
-.boundary-note { padding: 9px 24px; color: var(--dash-text-secondary); font-size: 11px; background: var(--dash-surface); }
 .tui-workspace { --signals-width: 22%; --preview-width: 36%; display: grid; grid-template-columns: var(--signals-width) 10px minmax(0, 1fr) 10px var(--preview-width); min-height: calc(100dvh - 160px); padding: 14px 16px 55px; align-items: start; }
 .pane { min-width: 0; padding: 16px; border: 1px solid var(--dash-border); border-radius: var(--dash-radius); background: var(--dash-surface); }
 .pane-heading { display: flex; justify-content: space-between; align-items: center; gap: 5px; margin-bottom: 14px; }
@@ -146,7 +143,6 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 .email-card .email-logo { width: 68px; height: 30px; }
 .email-card .email-heading { font-size: 26px; line-height: 1.1; font-weight: 750; letter-spacing: -.7px; padding-bottom: 12px; }
 .email-card .email-copy { font-size: 13px; line-height: 1.65; }
-.email-card .email-footer { border-top: 1px solid var(--dash-border); font-size: 10px; color: var(--dash-muted); }
 .preview-cta { background: var(--dash-info-bg) !important; color: var(--dash-info-text) !important; border: 1px solid var(--dash-info-border) !important; border-radius: 24px !important; padding: 11px 18px !important; font-weight: 700 !important; text-align: center; }
 .phone-frame { max-width: 390px; margin: auto; border: 7px solid var(--dash-text-secondary); border-radius: 30px; overflow: hidden; background: var(--dash-surface); }
 .phone-status { padding: 12px 15px; color: var(--dash-text-secondary); font-size: 10px; }
@@ -171,7 +167,6 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 .app-shortcuts > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .app-shortcuts button { display: grid; justify-items: center; gap: 8px; padding: 12px 4px; font-size: 11px; }
 .app-shortcuts button > span { font-size: 21px; color: var(--dash-blue); }
-.app-disclaimer { padding: 0 16px 20px; font-size: 10px; color: var(--dash-muted); }
 .app-nav { flex: none; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--dash-border); padding: 8px 4px 2px; background: var(--dash-surface); }
 .app-nav button { display: grid; justify-items: center; gap: 2px; border: 0; padding: 4px 2px; font-size: 10px; color: var(--dash-text-secondary); }
 .app-nav button > span { font-size: 21px; line-height: 1.2; }
@@ -200,7 +195,6 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 .destination-grid figure { margin: 0; min-width: 0; }
 .destination-grid img { width: 100%; height: auto; aspect-ratio: 1.7; object-fit: cover; border-radius: 7px; }
 .destination-grid figcaption { font-size: 14px; margin-top: 10px; }
-.site-disclaimer { font-size: 12px; color: var(--dash-muted); padding: 20px 24px; }
 @container tui-site (max-width: 600px) {
   .site-nav { font-size: 13px; gap: 16px; padding: 14px; }
   .site-utility, .site-search { padding: 14px; }
@@ -215,6 +209,7 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 .hold-card h3 { font-size: 24px; margin-bottom: 15px; }
 .hold-card p { color: var(--dash-text-secondary); font-size: 12px; }
 .preview-feedback { flex: none; min-height: 20px; font-size: 10px; color: var(--dash-muted); padding: 8px 16px; }
+.preview-feedback:empty { display: none; }
 .fictional-drawer { position: fixed; bottom: 0; left: 0; right: 0; max-height: min(35rem, 55dvh); overflow: auto; z-index: 4; border-top: 1px solid var(--dash-border); background: var(--dash-surface); box-shadow: var(--dash-shadow); }
 .fictional-drawer summary { padding: 10px 24px; font-size: 11px; }
 .fictional-drawer > div { padding: 10px 24px 25px; font-size: 12px; }
@@ -227,8 +222,6 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 @media (max-width: 620px) {
   .tui-lab-header { padding: 14px; gap: 12px; flex-wrap: wrap; }
   .tui-lab-header h1 { font-size: 23px; }
-  .tui-lab-header .simulation-badge { margin-left: 0; flex-basis: 100%; }
-  .boundary-note { padding: 10px 14px; }
   .tui-workspace { display: flex; flex-direction: column; padding: 10px 10px 65px; gap: 12px; }
   .pane { width: 100%; padding: 12px; }
   .gutter { display: none; }

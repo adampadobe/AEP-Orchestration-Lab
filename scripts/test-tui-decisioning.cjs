@@ -53,6 +53,12 @@ async function main() {
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
     assert.equal(await page.locator('#scenario-select').count(), 0, 'No duplicate scenario dropdown');
     assert.equal(await page.locator('#scenario-pills button').count(), 7);
+    assert.equal(await page.locator('.boundary-note,.simulation-badge,.app-disclaimer,.site-disclaimer,.email-footer').count(), 0,
+      'Removed notices have no remaining elements or reserved rows');
+    assert(await page.evaluate(() => {
+      const header = document.querySelector('.tui-lab-header'), workspace = document.getElementById('workspace');
+      return header.nextElementSibling === workspace && Math.abs(header.getBoundingClientRect().bottom - workspace.getBoundingClientRect().top) < 1;
+    }), 'Workspace follows the header directly without the removed explanatory row');
     for (const [index, scenario] of model.demoScenarios.entries()) {
       await page.locator('#scenario-pills button').nth(index).click();
       assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
@@ -74,6 +80,9 @@ async function main() {
     for (const [index, scenario] of model.scenarios.entries()) {
       await page.evaluate(state => window.TuiDecisioningVisualiser.setProfile({ state, firstName: 'Alex' }),
         { ...model.defaults, ...scenario.preset });
+      const presentation = await page.locator('body').innerText();
+      assert.doesNotMatch(presentation, /simulat|app concept|illustrat/i,
+        'No presentation caveats in scenario content: ' + presentation.match(/.{0,50}(?:simulat|app concept|illustrat).{0,100}/i)?.[0]);
       if (scenario.expectedObjective) {
         assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective, scenario.name);
         const objective = model.objectives.find(o => o.key === scenario.expectedObjective);
@@ -95,7 +104,7 @@ async function main() {
     await page.locator('#signal-emailConsent').selectOption('y');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1, 'Held content restores');
     await page.locator('#email-preview .preview-cta').click();
-    assert.match(await page.locator('#preview-feedback').textContent(), /Simulation only/);
+    assert.match(await page.locator('#preview-feedback').textContent(), /not connected to a booking service/);
     const count = await page.locator('.signal-field').count();
     assert.equal(count, model.fields.length);
     await page.locator('#signal-days').fill('-1');
@@ -153,9 +162,9 @@ async function main() {
     await page.locator('#tab-mobile').click();
     assert.equal(await page.locator('#app-greeting').textContent(), 'Hi Alex');
     await page.locator('.app-shortcuts [data-app-action="My trips"]').click();
-    assert.match(await page.locator('#preview-feedback').textContent(), /App simulation only: "My trips"/);
+    assert.match(await page.locator('#preview-feedback').textContent(), /"My trips" is not connected to an app service/);
     await page.locator('.app-nav [data-app-action="Account"]').click();
-    assert.match(await page.locator('#preview-feedback').textContent(), /No navigation, booking or account action/);
+    assert.match(await page.locator('#preview-feedback').textContent(), /"Account" is not connected to an app service/);
     const navBefore = await page.locator('.app-nav').boundingBox();
     await page.locator('.app-scroll').evaluate(node => { node.scrollTop = node.scrollHeight; });
     assert((await page.locator('.app-scroll').evaluate(node => node.scrollTop)) > 0, 'App content scrolls independently');
@@ -326,13 +335,15 @@ async function main() {
     await frame.locator('#panel-web').waitFor({ state: 'visible' });
     const mountLayout = await shell.evaluate(() => {
       const doc = document.getElementById('tui-visualiser').contentDocument;
-      const before = doc.querySelector('.boundary-note').getBoundingClientRect().top;
+      const before = doc.querySelector('#workspace').getBoundingClientRect().top;
       window.DecisioningEdgeInject.ensureDecisioningMounts(doc, 'generic');
-      return { before, after: doc.querySelector('.boundary-note').getBoundingClientRect().top,
+      return { before, after: doc.querySelector('#workspace').getBoundingClientRect().top,
         mounts: ['TopRibbon', 'hero-banner', 'ContentCardContainer'].map(id => doc.defaultView.getComputedStyle(doc.getElementById(id)).display) };
     });
     assert.equal(mountLayout.after, mountLayout.before, 'Runtime mounts add no grey spacer above content');
     assert.deepEqual(mountLayout.mounts, ['none', 'none', 'none']);
+    assert.equal(await frame.locator('.boundary-note').count(), 0, 'Shared initialization does not recreate the removed row');
+    assert.doesNotMatch(await frame.locator('body').innerText(), /simulat|app concept|illustrat/i);
     await shell.mouse.move(1000, 500);
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await frame.locator('#tab-mobile').click();
@@ -452,6 +463,8 @@ async function main() {
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
     assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer');
     assert.equal(await frame.locator('#mobile-preview .app-offer-title').textContent(), 'Fixture live offer');
+    assert.doesNotMatch(await shell.locator('#tuiLiveStatus').textContent(), /simulat|app concept|illustrat/i);
+    assert.doesNotMatch(await frame.locator('body').innerText(), /simulat|app concept|illustrat/i);
     assert.equal(await frame.locator('#web-preview h3').textContent(), 'Fixture live offer');
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'One attributed display across three views');
     fixture.rows.find(row => row.path === 'consents.marketing.email.val').value = 'n';

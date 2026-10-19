@@ -168,9 +168,9 @@
   function cta(text) {
     const button = el('button', text, 'preview-cta');
     button.type = 'button';
-    button.setAttribute('aria-label', text + ' (simulated interaction)');
+    button.setAttribute('aria-label', text);
     button.addEventListener('click', () => {
-      $('preview-feedback').textContent = 'Simulation only: "' + text + '". No booking, navigation or message send was performed.';
+      $('preview-feedback').textContent = '"' + text + '" is not connected to a booking service.';
     });
     return button;
   }
@@ -192,7 +192,6 @@
     row(el('div', offer.content.title), 'email-heading');
     row(el('div', offer.content.fullDescription), 'email-copy');
     row(cta(offer.content.fullCTA));
-    row(el('p', 'Illustrative personalised preview. Generated from the supplied TUI capture; current terms and availability must be checked with TUI. Nothing has been sent.'), 'email-footer');
     table.append(tbody);
     return table;
   }
@@ -204,7 +203,7 @@
   function mobileApp(offer) {
     const card = el('article', undefined, 'app-offer');
     const copy = el('div', undefined, 'app-offer-copy');
-    copy.append(el('span', live ? 'SELECTED FOR YOU / LIVE POLICY' : 'YOUR NEXT BEST MOMENT / DEMO', 'eyebrow'),
+    copy.append(el('span', 'YOUR NEXT BEST MOMENT', 'eyebrow'),
       el('h3', offer.content.title, 'app-offer-title'), el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
     card.append(image(offer.image, offer.imageAlt, 'app-offer-image'), copy);
     return card;
@@ -229,7 +228,7 @@
     $('mobile-preview').replaceChildren(mobileApp(offer));
     const hero = el('div', undefined, 'web-hero');
     const copy = el('div', undefined, 'web-hero-copy');
-    copy.append(el('span', 'A LITTLE MORE YOU / DEMO', 'eyebrow'), el('h3', offer.content.title),
+    copy.append(el('span', 'A LITTLE MORE YOU', 'eyebrow'), el('h3', offer.content.title),
       el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
     hero.append(image(offer.image, offer.imageAlt), copy);
     $('web-preview').replaceChildren(hero);
@@ -251,14 +250,13 @@
     renderPreview(result);
     const objective = model.objectives.find(o => o.key === result.objective);
     const offer = objective?.offers.find(item => item.key === result.offer);
-    $('decision-status').textContent = held || (live ? 'Live policy preview / local objective ladder below is illustrative. ' : '') + (offer
+    $('decision-status').textContent = held || (live ? 'Live policy content / local objective ranking. ' : '') + (offer
       ? objective.label + ' / ' + offer.name + '. ' + result.reason
       : result.reason);
     $('fixture-summary').textContent = 'Holiday stage: ' + state.booking + '. Documents: ' + state.documents +
       '. Email consent: ' + state.emailConsent + '. Personalisation: ' + state.personalize +
       (embedded ? '. Staged signals, not confirmed profile facts.' : '. No data was loaded from AEP.');
-    $('preview-feedback').textContent = live ? 'Live policy content. Objective ranking is still simulated.' :
-      embedded ? 'Local simulation / staged signals. Run explicitly to request the configured live policy.' : '';
+    $('preview-feedback').textContent = '';
   }
   function setChannel(channel, push) {
     if (!['email', 'mobile', 'web'].includes(channel)) channel = 'email';
@@ -268,7 +266,7 @@
       tab.tabIndex = active ? 0 : -1;
       $('panel-' + tab.dataset.channel).hidden = !active;
     });
-    $('preview-caption').textContent = { email: 'Responsive email / 600px', mobile: 'TUI mobile app concept / 390px', web: 'Reconstructed TUI website' }[channel];
+    $('preview-caption').textContent = { email: 'Responsive email / 600px', mobile: 'TUI mobile app / 390px', web: 'TUI website' }[channel];
     if (push || parent !== window) {
       const url = new URL(location.href);
       url.searchParams.set('channel', channel);
@@ -380,7 +378,7 @@
     document.querySelectorAll('.objective').forEach(detail => { detail.open = false; });
     document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
     $('eligible-details').open = false;
-    $('scenario-label').textContent = 'Illustrative starting profile';
+    $('scenario-label').textContent = 'Starting profile';
     render();
   });
   $('expand').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = true; }));
@@ -391,9 +389,9 @@
   buildSignals();
   buildScenarios();
   document.querySelectorAll('[data-app-action]').forEach(button => {
-    button.setAttribute('aria-label', button.dataset.appAction + ' (simulated app interaction)');
+    button.setAttribute('aria-label', button.dataset.appAction);
     button.addEventListener('click', () => {
-      $('preview-feedback').textContent = 'App simulation only: "' + button.dataset.appAction + '". No navigation, booking or account action was performed.';
+      $('preview-feedback').textContent = '"' + button.dataset.appAction + '" is not connected to an app service.';
     });
   });
   setupTabs();
@@ -418,12 +416,10 @@
       generation++; live = null; held = ''; state = { ...model.defaults, ...data?.state };
       recipient = data?.firstName || 'traveller';
       document.querySelector('.avatar').textContent = data ? recipient.slice(0, 2).toUpperCase() : '--';
-      document.querySelectorAll('.recipient-label').forEach(node => { node.textContent = data ? 'To: ' + recipient + (data.email ? ' <' + data.email + '>' : '') : 'Illustrative preview / no recipient selected'; });
+      document.querySelectorAll('.recipient-label').forEach(node => { node.textContent = data ? 'To: ' + recipient + (data.email ? ' <' + data.email + '>' : '') : 'No recipient selected'; });
       document.querySelector('.fictional-person strong').textContent = data ? recipient : 'No profile loaded';
-      document.querySelector('.fictional-person small').textContent = data ? 'Loaded signals / missing values simulate defaults' : 'Local simulation only';
+      document.querySelector('.fictional-person small').textContent = data ? 'Loaded signals / defaults for missing values' : 'No profile selected';
       document.querySelector('.fictional-person small + small').textContent = data ? 'See actual identity and consent in the shared drawer' : 'No live profile selected';
-      document.querySelector('.simulation-badge').textContent = data ? 'Loaded profile / local ranking' : 'Local simulation';
-      document.querySelector('.boundary-note').textContent = 'Local signals are staged. Apply validates test-profile updates; Run separately requests the configured live policy. No messages are sent.';
       for (const [key, input] of controls) {
         if (input.tagName === 'SELECT' && ![...input.options].some(option => option.value === String(state[key]))) {
           const option = el('option', String(state[key])); option.value = String(state[key]); input.append(option);

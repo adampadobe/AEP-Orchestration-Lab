@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261019-app">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261019-clean">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell">
@@ -26,17 +26,17 @@
         data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-message-id="tuiDecisioningMessage"
         data-demo-env-strip-bc-bottom="1"
-        data-demo-env-strip-disclaimer="Internal test-profile demo. Local ranking is a simulation; Run uses the configured live policy, not automatically the TUI drafts. No messages are delivered.">
+        data-demo-env-strip-disclaimer="Apply updates the selected test profile. Run requests the configured live policy.">
       </div>
     </section>
   </div>
   <div class="tui-live-actions" aria-label="Decision controls">
     <button id="tuiApplyProfile" type="button" disabled>Apply profile changes</button>
     <button id="tuiRunDecision" type="button">Run live decision</button>
-    <span id="tuiLiveStatus" role="status" aria-live="polite">Local simulation. Look up a test profile to stage changes.</span>
+    <span id="tuiLiveStatus" role="status" aria-live="polite">Look up a test profile to stage changes.</span>
   </div>
-  <iframe id="tui-visualiser" class="mod-demo-site-frame" title="TUI holiday decisioning simulator"
-    src="tui-decisioning-visualiser.html?v=20261019-app" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+  <iframe id="tui-visualiser" class="mod-demo-site-frame" title="TUI holiday decisioning"
+    src="tui-decisioning-visualiser.html?v=20261019-clean" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
     <div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div>
@@ -53,7 +53,7 @@
   <script src="shared/profile-viewer-modal.js"></script>
   <script src="aep-profile-drawer.js?v=20261016-decisioning"></script>
   <script src="aep-demo-generator-targets.js"></script>
-  <script src="tui-decisioning-model.js?v=20261016-ranked"></script>
+  <script src="tui-decisioning-model.js?v=20261019-clean"></script>
   <script src="tui-decisioning-profile.js?v=20261016-ranked"></script>
   <script src="tui-profile-hero.js?v=20261016-layout"></script>
   <script>
@@ -77,7 +77,7 @@
       iframeIds: ['tui-visualiser'],
       decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
         autoRunDecisioning: false, viewName: 'TUI Decisioning' },
-      labCoreScript: 'tui-decisioning-demo.js?v=20261016-ranked'
+      labCoreScript: 'tui-decisioning-demo.js?v=20261019-clean'
     };
     if (!window.AepGlobalSandbox.getSelected()) {
       window.AepGlobalSandbox.setSelected('kirkham', { source: 'tui-demo-default' });

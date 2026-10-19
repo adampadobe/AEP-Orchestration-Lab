@@ -199,8 +199,15 @@ bottom navigation and home indicator. Its content scrolls inside the phone while
 navigation stays visible. Quick actions/navigation give simulation feedback;
 they do not open bookings or perform account actions. No real booking details,
 balances or app services are fabricated. Without a supplied app capture, this
-is explicitly an illustrative branded concept, not an exact production app
-replica. Existing conservative email/personalisation consent gates still hold
+is a branded reconstruction, not an exact production app replica. At the user's
+request, the customer-facing surfaces omit simulation/app-concept/illustrative
+labels, the email/app/web disclaimer blocks and the full explanatory boundary
+row. The workspace follows the header directly; profile lookup cannot recreate
+that row. These presentation changes do not connect app/booking services or
+activate delivery. Unconnected actions still report that fact when clicked.
+The Smiles information copy no longer includes the illustrative-points caveat;
+this updates website copy only, not the already-created AJO draft items.
+Existing conservative email/personalisation consent gates still hold
 all personalised slots; the app preview adds no new consent or messaging rights.
 Suppression removes prior personalised images and CTAs, retaining the app shell.
 Tabs support roving focus, Left/Right/Home/End, deep links and back/forward.

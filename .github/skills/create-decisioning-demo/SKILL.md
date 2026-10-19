@@ -346,12 +346,26 @@ Keep the shell on consent/no-content holds but remove stale offer imagery and
 CTAs. Reuse the existing conservative consent gate; a mobile app preview does
 not establish app consent or authorise sending push/in-app messages.
 
-Use uploaded brand assets and supported product concepts. Without an actual
-app capture, label it a branded app **concept**, not an exact replica of the
-shipping app. Do not invent bookings, boarding passes, balances, unread counts,
-account details or working services. Quick actions and navigation must give
-explicit simulation feedback or be visibly non-interactive. Validate those
-actions and the offer slot, not just a phone border around another channel.
+Use uploaded brand assets and supported product concepts. Do not claim an exact
+replica of the shipping app without an actual app capture. Do not invent bookings,
+boarding passes, balances, unread counts, account details or working services.
+Quick actions and navigation must give accurate feedback when a service is not
+connected or be visibly non-interactive. Validate those actions and the offer
+slot, not just a phone border around another channel.
+
+When a presentation-clean experience is explicitly requested (as for TUI), remove
+simulation, app-concept and illustrative-content badges, repeated disclaimers
+and their empty containers from the email/app/web surfaces. Remove the entire
+explanatory boundary row, including its spacing and initialization references,
+not just its text. Do not reintroduce these labels through reset, profile lookup,
+scenario selection, live results or accessibility labels. Keep factual source/
+implementation limitations in documentation and configuration details instead.
+Preserve explicit Apply/Run behavior, test-profile and consent checks, truthful
+local-versus-live ranking descriptions and actionable errors. Removing labels
+does not connect booking/account services, send messages or activate AJO assets;
+never report an unperformed action as successful. Verify the row is absent from
+the DOM, the workspace directly follows its header, and all scenario/live paths
+remain free of the removed presentation copy.
 
 Give each channel its own sizing rules. Centre the 600px desktop email and
 390px phone, but let Web use **all available stage width** without a 600/760px

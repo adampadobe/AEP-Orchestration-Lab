@@ -157,7 +157,7 @@
       if (!isTest(data)) throw new Error('Only test profiles can run this demo.');
       if (values.emailConsent !== 'y' || values.personalize !== 'y') {
         api().hold('Live content held: loaded email and personalisation consent must both be y.');
-        throw new Error('Actual loaded consent must be y; illustrative defaults do not grant permission.');
+        throw new Error('Actual loaded consent must be y; defaults do not grant permission.');
       }
       const runtime = global.DecisioningProfileRuntime;
       if (!runtime?.supportsManualDisplay) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
@@ -191,7 +191,7 @@
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,
             items: p.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}), ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
             propositionEventType: { display: 1 } } } } });
-      same(ctx, token); message('Live hero displayed across all three views. Objective ladder remains a local simulation.');
+      same(ctx, token); message('Live hero displayed across all three views.');
     } catch (error) { if (token === version) message(error.message + ' No automatic retry.', true); }
     finally { busy = false; message($('tuiLiveStatus').textContent, $('tuiLiveStatus').dataset.error === 'true'); }
   }

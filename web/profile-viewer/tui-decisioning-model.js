@@ -14,7 +14,7 @@
     { key: 'availability', label: 'Searched fare availability', path: airline + 'fareAvailability', type: 'string', group: 'Shopping', values: ['Available', 'Limited', 'Sold Out'] },
     { key: 'score', label: 'Ancillary fit (demo score)', path: tenant + '.scoring.core.propensityScore', type: 'number', group: 'Preferences', min: 0, max: 5, step: 'any' },
     { key: 'engagement', label: 'Customer engagement', path: airline + 'engagementStatus', type: 'string', group: 'Preferences', values: ['New', 'Active', 'Lapsing', 'Dormant', 'Re-engaged'] },
-    { key: 'points', label: 'Illustrative loyalty points', path: tenant + '.loyaltyDetails.points', type: 'number', group: 'Preferences', min: 0, max: 100000, step: 'any' },
+    { key: 'points', label: 'Loyalty points', path: tenant + '.loyaltyDetails.points', type: 'number', group: 'Preferences', min: 0, max: 100000, step: 'any' },
     { key: 'app', label: 'Mobile app user', path: airline + 'mobileAppUser', type: 'boolean', group: 'Preferences' },
     { key: 'emailConsent', label: 'Email marketing consent', path: 'consents.marketing.email.val', type: 'string', group: 'Consent', values: ['y', 'n', 'u'] },
     { key: 'personalize', label: 'Content personalisation', path: 'consents.personalize.content.val', type: 'string', group: 'Consent', values: ['y', 'n', 'u'] },
@@ -76,7 +76,7 @@
     { key: 'engage', label: 'Keep the smiles coming', subtitle: 'Inspiration for the next chapter', source: 'Holiday Inspiration / TUI Smiles Rewards Club / My booking',
       rule: rule(eq('booking', 'Dreaming'), eq('intent', 'None')), offers: [
         offer('inspiration', 'Holiday inspiration', 'So many ways to find your happy', 'From Crete to Gran Canaria, explore destinations and holidays designed by TUI.', 'Find your inspiration', 'crete.jpg', rule(condition('engagement', 'in', ['New', 'Active', 'Re-engaged']))),
-        offer('smiles', 'TUI Smiles Rewards Club information', 'Discover the TUI Smiles Rewards Club', 'Explore information about the TUI Smiles Rewards Club. Membership, benefits and terms must be checked with TUI; illustrative points here are not a TUI balance.', 'Explore rewards information', 'mexico.jpg', rule(condition('points', 'gt', 0))),
+        offer('smiles', 'TUI Smiles Rewards Club information', 'Discover the TUI Smiles Rewards Club', 'Explore information about the TUI Smiles Rewards Club. Membership, benefits and terms must be checked with TUI.', 'Explore rewards information', 'mexico.jpg', rule(condition('points', 'gt', 0))),
         offer('booking-tools', 'Digital booking tools', 'Your holiday details, close at hand', 'Explore Manage My Booking and the digital tools available for your holiday. No app download is performed by this demo.', 'Explore booking tools', 'gran-canaria.jpg', rule(eq('app', false))),
       ] },
   ];
