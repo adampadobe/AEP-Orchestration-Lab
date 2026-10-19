@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 212-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 215-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -56,6 +56,8 @@ for identity attribution, outcome semantics, reporting limits and release gates.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
+**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus seventeen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
+
 ### Troubleshooting Coworker HTTP 403
 
 Search Cloud Run logs for `ims-auth-rejected`. An `enrollment-rejected` event
@@ -95,16 +97,18 @@ check the Portal enrollment's configured sandbox rather than bypassing the gate.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
-**Known limitation — Adobe Coworker:** `lab_load_toolset` correctly registers the new tools and sends the standard MCP `notifications/tools/list_changed` signal, but as tested, Adobe Coworker's tool-discovery layer only reflects the tool inventory captured at session `initialize` and does not re-run `tools/list` in response to that notification mid-session. Newly loaded tools register successfully server-side but never become callable in Coworker. Until Coworker's client adds `list_changed` support, **directly connect the focused endpoint(s) for the domains you actually use** (e.g. `aep-lab-profiles` for profile/event work, `aep-lab-demo-prep` for brand scrape and customer prep) alongside `aep-lab-entry`, rather than relying on `lab_load_toolset` alone in that host. `lab_load_toolset` still works correctly over the raw Streamable HTTP protocol and in any MCP client that honors `list_changed`.
+**Dynamic discovery requires notification delivery and a client refresh.** POST responses remain JSON; authenticated `GET` requests open the same session's SSE notification stream. Sessions are bound to their initializing principal and endpoint. Earlier server builds returned HTTP 405 for GET, so a successful `lab_load_toolset` changed the server catalog without delivering `notifications/tools/list_changed` to the client. Explicit protocol-level `tools/list` still returned the added tools. This transport failure does not establish that a host ignores delivered notifications.
+
+For clients that do not refresh their callable catalog, **directly connect the focused endpoint(s) for the domains you actually use**, or `/mcp` for the full catalog. This also avoids the dynamic-discovery dependency in Copilot. Reconnect after changing an endpoint or installing an updated plugin; a host's deferred-tool search is not necessarily a fresh protocol-level `tools/list`.
 
 | Entry-point tool / resource | Purpose |
 |---|---|
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed on clients that refresh tools. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -215,6 +219,9 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_ajo_campaign_list` | `GET /api/ajo-cleanup?asset_type=campaign` | Read-only campaign inventory/search with exact sandbox scope |
 | `lab_ajo_campaign_audit` | `GET /api/ajo-cleanup?asset_type=campaign&asset_id=…` | Exact-ID lifecycle, audience/message, and metadata review |
 | `lab_ajo_campaign_delete` | `DELETE /api/ajo-cleanup` | One Draft campaign only; exact ID/name/status confirmation and immediate re-read |
+| `lab_platform_asset_list` | `GET /api/platform-cleanup` | Metadata-only dataset or tenant schema inventory; optional name filter |
+| `lab_platform_asset_audit` | `GET /api/platform-cleanup?resource_type=…&resource_id=…` | Exact-ID dependency review and expiring single-use confirmation receipt |
+| `lab_platform_asset_delete` | `DELETE /api/platform-cleanup` | One confirmed dataset or tenant schema; re-audit, dependency guards, verified absence |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -300,6 +307,38 @@ Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cle
 5. The Firebase proxy re-fetches immediately, blocks identity/lifecycle changes, and permits only Draft or Finished journeys and Draft campaigns. There is no batch delete tool.
 
 Adobe's current public Journey and Campaign references document retrieval but not deletion. These delete calls use the allowlisted AJO authoring operations used by product lifecycle management; availability still depends on the integration's Journey/Campaign permissions and Adobe may reject unsupported dependencies.
+
+### Governed dataset and tenant schema cleanup
+
+Use the complete `/mcp` endpoint (`lab-all` in Coworker). Entry clients that support tool-list refresh can instead call `lab_load_toolset category platform-cleanup`. There is no new focused endpoint. Reconnect or start a new chat after an endpoint change or a release that adds tools; do not assume an existing host session refreshes its callable catalog dynamically.
+
+1. Run `lab_platform_asset_list sandbox {sandbox} resource_type dataset|schema name {optional substring}`. Only metadata is returned, never customer records.
+2. Run `lab_platform_asset_audit` with the exact `resource_type` and `resource_id` (Catalog dataset ID or full tenant schema `$id`). Inspect blockers, dependencies, owned descriptors, warnings, and confirmation values.
+3. Independently clear AJO campaign, audience, query, destination and external usage; these cannot be proven unused by this audit. Show the exact org, sandbox, ID and name and obtain explicit confirmation. Schema cleanup includes the explicitly audited owned descriptors.
+4. Run `lab_platform_asset_delete` with that exact scope, `expected_name`, `audit_id`, `confirmed true`, and `usage_cleared true`. The principal/org/sandbox/resource-bound receipt expires after 15 minutes and is consumed transactionally once, before a fresh audit. Changed resource/dependency state requires a new audit and confirmation.
+5. Require `verifiedAbsent: true` before proceeding. Delete each dataset before its schema and child schemas before parents. Incoming relationships conservatively block dataset deletion too, so dependent groups may require child dataset -> child schema -> parent dataset -> parent schema, not deleting every dataset in one initial pass.
+
+Profile/Identity-enabled datasets and Profile-enabled schemas are blocked. Source/target connections block deletion even when disabled; this tool never disables or deletes flows or connections. Schemas must be tenant-owned by the configured Adobe org, with no remaining datasets or incoming links. Pagination is bounded, follows only the same allowlisted Adobe resource, and fails closed on malformed, incomplete or repeated inventories.
+
+Schema ownership requires `meta:containerId: tenant` and a matching `imsOrg`. Adobe's documented relational-schema response can omit `imsOrg`: only for an `adhoc-v2` relational schema with that field absent, cleanup verifies the authenticated Schema Registry `/stats` org and requires the schema URI to use its exact tenant namespace. Explicitly conflicting, null or empty org metadata, mismatched namespaces and unavailable ownership evidence remain blocked. Ownership errors expose only presence/match flags, not raw response metadata.
+
+Dataset summaries report `profileEnabled` and `identityEnabled` independently; either enablement blocks deletion. Catalog inventory permits missing schema references and reports `schemaId: null` rather than aborting an unrelated name search. Dependency audits still fail closed: `dependencies.unresolvedDatasets` identifies datasets whose schema reference is missing or invalid, and blocks deletion until completeness can be established. Name filters never limit the dependency scan.
+
+Dataset name searches use Catalog's server-side `property=name~…` filter with an escaped, case-insensitive literal substring pattern. The filter is preserved on every continuation page; conflicting filters stop the search. This avoids scanning unrelated datasets just to discover candidate IDs. Duplicate names remain separate results: names are never deletion selectors. Exact-ID audits and the fresh pre-delete audit still scan the unfiltered Catalog inventory, so successful name lookup alone does not establish deletion readiness. Schema name searches still filter the Schema Registry inventory locally. See Adobe's [Catalog filtering reference](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/filter-data#using-the-property-parameter).
+
+Inventory uses the Data Viewer's Catalog response patterns without its permissive skipping or partial-results behavior: underscore-prefixed keys, `_page`, `_links`, and Catalog's top-level `next` continuation are metadata, while dataset records must resolve to an exact supported Catalog ID (24-hex or UUID form) from the key or record `id`/`@id`. Catalog may cap service-token pages at 20 even when a larger `limit` is requested, so offset paging continues until an explicit terminal marker or an empty page. Missing record properties remain visible; dependency audits block when a dataset's schema reference cannot be resolved. Unknown or conflicting record identities and mixed envelopes fail closed. Schema Registry `/tenant/schemas` and `/tenant/descriptors` continuation paths are resolved against the fixed service prefix. Service-relative and trailing-slash variants are normalized only for the same resource. Every continuation must stay on the same Adobe origin and exact resource; reordered query parameters do not evade repeated-page detection.
+
+When a response supplies both a next link and `_page.next`, cleanup compares their normalized destinations rather than comparing a URL with a bare cursor. Missing limit, ordering and filter parameters are accounted for when comparing destinations. Equivalent same-resource links and cursors are accepted; different cursors, conflicting query parameters, duplicate parameters and contradictory terminal markers fail closed. Incoming relationships on later descriptor pages still block deletion.
+
+Cleanup list, audit and delete requests each make one attempt, including network failures and HTTP 429/502/503/504 responses. Do not automatically retry a pagination failure. Inventory errors include the inventory identifier, one-based page and reason (`invalid_dataset_id`, `invalid_dataset_metadata`, `repeated_dataset_id`, `unexpected_origin`, `unexpected_path`, `repeated_page` or `conflicting_continuations`). Invalid-ID diagnostics include only structural key/value information and field-presence flags; continuation conflicts include only source-presence flags. Raw keys, continuation URLs, query values and connection payloads are not logged.
+
+For schema cleanup, only its own audited descriptors are removed, each verified absent before schema deletion. This is **not atomic**: if a later step fails, already removed descriptors are reported and the schema may remain. Dataset deletion requires Catalog's exact ID acknowledgment; schema deletion requires HTTP 204. Both require a GET 404 readback. Pending, partial, network or verification failures never return success and are never automatically retried.
+
+The Firebase `platformCleanupProxy` is wired through `/api/platform-cleanup`. MCP calls the function directly using the existing `AEP_LAB_FUNCTIONS_ORIGIN` setting, avoiding Hosting's shorter request timeout during paginated audits; the function allows 300 seconds and the client 330 seconds. It accepts only a sandbox-scoped user key or independently validated Adobe IMS Portal enrollment, never the shared ops key or a caller-asserted UID. Its server-only `platformCleanupAudits` collection holds fingerprints and scope, not customer data or credentials. Expiry is enforced in code; optional Firestore TTL on `expiresAt` is storage housekeeping, not an authorization prerequisite. Operations use fixed Catalog/Schema Registry/Flow Service endpoints and existing Adobe secrets, not an arbitrary DELETE proxy.
+
+Initial tool availability requires both the Firebase function/Hosting rewrite and the Cloud Run MCP release through the repository's normal validated main-branch workflow. Backend-only parser changes require deploying `platformCleanupProxy`, not a new MCP service or marketplace release. Local implementation does not make changes live, and does not grant Adobe API permissions or delete any live assets.
+
+API contracts: [Catalog deletion](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/delete-object), [Schema Registry schemas](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas), [descriptors](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/descriptors), and [pagination](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/appendix).
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 

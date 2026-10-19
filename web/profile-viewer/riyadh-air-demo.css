@@ -15,6 +15,10 @@
 .ra-presenter-heading button { background: var(--dash-surface-alt); color: var(--dash-text); border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); padding: .5rem; cursor: pointer; }
 .ra-presenter summary { cursor: pointer; font-weight: 600; }
 .ra-presenter-body { display: grid; gap: .65rem; margin: 1rem 0 0; }
+.ra-presenter-event-form { display: grid; gap: .65rem; padding-bottom: 1rem; border-bottom: 1px solid var(--dash-border); }
+.ra-presenter-body h3 { margin: .5rem 0 0; font-size: 1rem; color: var(--dash-text); }
+.ra-presenter-body .ra-presenter-check { display: flex; align-items: flex-start; gap: .5rem; }
+.ra-presenter-body .ra-presenter-check input { width: auto; flex: 0 0 auto; margin-top: .2rem; }
 .ra-presenter-body p, #raEventLog { margin: .25rem 0; overflow-wrap: anywhere; }
 .ra-presenter-body pre { font-size: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 .ra-presenter-body input, .ra-presenter-body select { box-sizing: border-box; width: 100%; min-width: 0; padding: .5rem; font-size: 1rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm); }

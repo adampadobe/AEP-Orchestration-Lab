@@ -19,7 +19,7 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261015-manage">
+  <link rel="stylesheet" href="riyadh-air-demo.css?v=20261017-presenter-events">
   <link rel="stylesheet" href="riyadh-air-booking.css?v=20261014-search-placement">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
@@ -53,6 +53,20 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
     <header class="ra-presenter-heading"><h2 id="raPresenterTitle">Presenter controls</h2><button id="raPresenterClose" type="button" aria-label="Close presenter controls">Close</button></header>
     <div class="ra-presenter-body">
       <p id="raIdentityStatus">Connect an identity using the Lab environment bar.</p>
+      <button id="raResolvePresenterProfile" type="button">Look up selected profile</button>
+      <form id="raCustomEventForm" class="ra-presenter-event-form">
+        <h3>Send an event</h3>
+        <p>Enter any event type, as in the Lab Event tool. Uses the selected profile, sandbox and Lab Event tool Edge target; no booking is required.</p>
+        <label for="raCustomEventType">Event type</label>
+        <input id="raCustomEventType" type="text" required maxlength="256" autocomplete="off" spellcheck="false" list="raEventTypeSuggestions" placeholder="e.g. flight.booked">
+        <datalist id="raEventTypeSuggestions"><option value="flight.booked"></option><option value="travel.flight.delay"></option><option value="travel.flight.gateChange"></option><option value="travel.upgrade.intent"></option><option value="travel.ancillary.intent"></option></datalist>
+        <label class="ra-presenter-check"><input id="raCustomIncludeTrip" type="checkbox">Include this tab's confirmed booking reference and airports</label>
+        <details><summary>Event payload preview</summary><pre id="raCustomEventPreview">Enter an event type to preview the request.</pre></details>
+        <button id="raSendCustomEvent" type="submit">Send event</button>
+        <p>Manual sends record an event only. They do not confirm a booking, purchase an upgrade or change the customer-care display.</p>
+      </form>
+      <h3>Booking-linked trip update</h3>
+      <p>These presets require a confirmed booking and switch its website display to customer care after acceptance.</p>
       <details><summary>Trip update payload preview</summary><pre id="raPayloadPreview">Confirm a booking to preview a trip update.</pre></details>
       <label for="raDisruptionKind">Trip update</label>
       <select id="raDisruptionKind"><option value="delay">Departure delay</option><option value="gate">Gate change</option></select>
@@ -60,15 +74,13 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
       <input id="raDelayMinutes" type="number" min="15" max="720" step="15" value="90">
       <label for="raNewGate">New gate</label>
       <input id="raNewGate" type="text" maxlength="8" pattern="[A-Za-z0-9 -]{1,8}" value="B12">
-      <label for="raOrchestrationId">AJO disruption event ID (optional)</label>
-      <input id="raOrchestrationId" type="text" autocomplete="off" maxlength="128" placeholder="Use your existing AJO event binding">
       <button id="raTriggerDisruption" type="button" disabled>Send trip update</button>
       <button id="raRefreshProfile" type="button">Refresh profile activity</button>
       <button id="raResetJourney" type="button">Reset local trip</button>
       <p id="raPresenterStatus" role="status" aria-live="polite"></p>
       <details><summary>Last delivery attempt</summary><pre id="raLastAttempt">No event attempted in this tab.</pre></details>
       <div id="raUncertainDelivery" hidden>
-        <p>Delivery is uncertain. Check profile activity and AJO before trying again. Another attempt may create a duplicate; matching event IDs do not guarantee deduplication.</p>
+        <p>Delivery is uncertain. Check profile activity and AJO before trying again. Another attempt may create a duplicate; deduplication is not guaranteed.</p>
         <button id="raAllowRetry" type="button">I checked activity; allow another attempt</button>
       </div>
       <ol id="raEventLog" aria-label="Event delivery history"></ol>
@@ -212,11 +224,11 @@ FORM: Reference-pinned section sequence; original markup, shared Lab controls ou
   <script src="aep-demo-generator-targets.js?v=20260720-gen-target-fix"></script>
   <script src="brand-concierge-styles-bundle.js?v=20260520-bc-bundle"></script>
   <script src="brand-concierge-toggle.js?v=20260526-bc-prefs-flush"></script>
-  <script src="riyadh-air-events.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-events.js?v=20261018-event-type-only"></script>
   <script src="riyadh-air-explore.js?v=20261015-customer-copy"></script>
-  <script src="riyadh-air-demo.js?v=20261015-booking-stitch-context"></script>
+  <script src="riyadh-air-demo.js?v=20261018-event-type-only"></script>
   <script src="riyadh-air-booking.js?v=20261015-booking-identity"></script>
-  <script src="riyadh-air-site.js?v=20261015-booking-identity"></script>
+  <script src="riyadh-air-site.js?v=20261018-event-type-only"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

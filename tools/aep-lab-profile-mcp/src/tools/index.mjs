@@ -38,6 +38,7 @@ import { registerSnowflakeTools } from './snowflakeTools.mjs';
 import { registerLiveActivityTools } from './liveActivityTools.mjs';
 import { registerDemoConfigTools } from './demoConfig.mjs';
 import { registerAudienceTools } from './audienceTools.mjs';
+import { registerPlatformCleanupTools } from './platformCleanupTools.mjs';
 import { registerDemoAssetTools } from './demoAssets.mjs';
 import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 import { registerMcpGuideTools } from './mcpGuideTools.mjs';
@@ -91,6 +92,7 @@ export function registerProfileTools(mcpServer) {
   registerEventConfigTools(mcpServer);
   registerDecisioningTools(mcpServer);
   registerAudienceTools(mcpServer);
+  registerPlatformCleanupTools(mcpServer);
   registerAjoCleanupTools(mcpServer);
   registerSnowflakeTools(mcpServer);
   registerLiveActivityTools(mcpServer);
@@ -201,6 +203,7 @@ const LOADABLE_TOOLSETS = {
   profile: registerProfileDomainTools,
   audiences: registerAudienceTools,
   'ajo-cleanup': registerAjoCleanupTools,
+  'platform-cleanup': registerPlatformCleanupTools,
   decisioning: registerDecisioningDomainTools,
   'demo-prep': registerDemoPrepDomainTools,
   pdf: registerPdfTools,

@@ -17,9 +17,7 @@
     ancillaryAbandon: 'Seats and extras left without purchase',
   });
 
-  function build(action, trip, context, options) {
-    const eventType = TYPES[action];
-    if (!eventType) throw new Error('Unknown Riyadh Air event action.');
+  function validateContext(context) {
     if (!context.sandbox) throw new Error('Select a sandbox in the Lab environment bar.');
     if (!context.target || context.target.id !== 'lab-event-tool-edge' || !context.target.dataStreamId) {
       throw new Error('Select the configured Lab Event tool Edge target. Other target schemas have not been verified for this travel contract.');
@@ -28,6 +26,35 @@
     if (context.known && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(context.email || '')) {
       throw new Error('The selected profile needs a resolved email and ECID. Look up the profile again.');
     }
+  }
+
+  function buildCustom(value, context, options) {
+    validateContext(context);
+    const eventType = String(value || '').trim();
+    if (!eventType || eventType.length > 256 || /[\u0000-\u001f\u007f]/.test(eventType)) {
+      throw new Error('Enter an event type of 1-256 characters without control characters.');
+    }
+    const extra = options || {};
+    const body = {
+      targetId: context.target.id, sandbox: context.sandbox, eventType,
+      channel: 'Web', ecid: context.ecid, identityMapEcidKey: 'ECID',
+      xdmStyle: extra.trip ? 'full' : 'minimal',
+    };
+    if (context.known) body.email = context.email;
+    if (extra.trip) {
+      if (!extra.trip.booked || !extra.trip.reference) throw new Error('Confirm a booking before including trip context.');
+      body.public = { travel: {
+        departureAirport: extra.trip.origin, arrivalAirport: extra.trip.destination,
+        confirmationNumber: extra.trip.reference,
+      } };
+    }
+    return body;
+  }
+
+  function build(action, trip, context, options) {
+    const eventType = TYPES[action];
+    if (!eventType) throw new Error('Unknown Riyadh Air event action.');
+    validateContext(context);
     if (action === 'booking' && !context.known) throw new Error('Resolve and stitch the booking email before confirming the booking.');
     if (action !== 'search' && !trip.reference) throw new Error('Select a flight before sending a booking event.');
     const url = new URL(context.url);
@@ -40,7 +67,6 @@
     if (action === 'gate' && !/^[A-Z0-9 -]{1,8}$/.test(extra.gate || '')) {
       throw new Error('A gate change requires a valid gate.');
     }
-    if (extra.eventID && !/^[a-zA-Z0-9_-]{1,128}$/.test(extra.eventID)) throw new Error('Invalid AJO event ID.');
     url.searchParams.set('journey', 'riyadh-air-v1');
     url.searchParams.set('action', action);
     if (trip.reference) url.searchParams.set('booking', trip.reference);
@@ -70,10 +96,9 @@
       public: { travel, generic: { ctaLabel: LABELS[action], linkUrl: url.href } },
     };
     if (context.known) body.email = context.email;
-    if (extra.eventID) body.eventID = extra.eventID;
     return body;
   }
-  const api = Object.freeze({ TYPES, build });
+  const api = Object.freeze({ TYPES, build, buildCustom });
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.RiyadhAirEvents = api;
 })(typeof window !== 'undefined' ? window : globalThis);

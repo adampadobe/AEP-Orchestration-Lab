@@ -10,6 +10,7 @@
  * @property {import('@modelcontextprotocol/sdk/server/streamableHttp.js').StreamableHTTPServerTransport} transport
  * @property {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} server
  * @property {string} endpoint
+ * @property {string} keyId - authenticated principal that owns this session.
  * @property {Set<string>} loadedCategories - toolset categories already merged in via lab_load_toolset.
  */
 

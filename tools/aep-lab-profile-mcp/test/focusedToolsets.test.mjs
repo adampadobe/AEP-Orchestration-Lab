@@ -43,7 +43,10 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
       ['aep-lab-profiles', registerFocusedProfileTools, ['lab_generate_profile', 'lab_generate_profiles_batch', 'lab_batch_job_status']],
       ['aep-lab-decisioning', registerFocusedDecisioningTools, [eligibility, 'lab_batch_job_status']],
       ['aep-lab-commerce-optimizer', registerFocusedCommerceOptimizerTools, optimizerChanges],
-      ['aep-lab-general', registerProfileTools, [eligibility, 'lab_batch_job_status', ...optimizerChanges]],
+      ['aep-lab-general', registerProfileTools, [
+        eligibility, 'lab_batch_job_status', ...optimizerChanges,
+        'lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete',
+      ]],
     ]) {
       await requestContext.run({ authSource, principalUid: 'test-principal' }, async () => {
         const server = new McpServer({ name: 'registration-test', version: '1.0.0' });
@@ -166,8 +169,38 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 212);
+  assert.equal(full.names.length, 215);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
+});
+
+test('entry loader adds platform cleanup once without broadening other focused endpoints', async () => {
+  const tools = new Map();
+  const server = {
+    registerTool(name, config, callback) {
+      assert.equal(tools.has(name), false);
+      tools.set(name, { config, callback });
+    },
+    sendToolListChanged() {},
+  };
+  registerFocusedMcpGuideTools(server);
+  const sessionId = 'test-platform-cleanup-loader';
+  registerSession(sessionId, { server, loadedCategories: new Set(), endpoint: '/mcp/entry' });
+  try {
+    await requestContext.run({ sessionId, keyId: 'offline-test' }, async () => {
+      const load = tools.get('lab_load_toolset').callback;
+      const result = await load({ category: 'platform-cleanup' });
+      assert.equal(JSON.parse(result.content[0].text).ok, true);
+      const again = await load({ category: 'platform-cleanup' });
+      assert.equal(JSON.parse(again.content[0].text).alreadyLoaded, true);
+    });
+    assert.equal(tools.size, 8);
+    assert.ok(tools.has('lab_platform_asset_delete'));
+    const focused = registrationRecorder();
+    registerFocusedAjoCleanupTools(focused.server);
+    assert.equal(focused.names.includes('lab_platform_asset_delete'), false);
+  } finally {
+    deleteSession(sessionId);
+  }
 });
 
 test('focused PDF endpoint contains access plus the complete PDF preparation lifecycle', () => {

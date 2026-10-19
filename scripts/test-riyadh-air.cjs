@@ -55,7 +55,7 @@ function contractTests() {
     assert.equal(xdm.identityMap.Email[0].id, profile.email);
     assert.equal(xdm.identityMap.Email[0].primary, false);
     assert.equal(xdm._demoemea.public.travel.confirmationNumber, trip.reference);
-    assert.equal(xdm._experience.campaign.orchestration.eventID, 'fixture-disruption-id');
+    assert.equal(body.eventID, undefined, 'Riyadh events do not forward orchestration IDs');
     for (const slice of ['travel', 'generic']) {
       const allowed = EVENT_INDUSTRY_FIELD_GROUP_SPECS.find((spec) => spec.industryId === slice).properties;
       assert(Object.keys(xdm._demoemea.public[slice]).every((key) => Object.hasOwn(allowed, key)), 'No undeclared schema leaves');
@@ -79,6 +79,22 @@ function contractTests() {
   assert.throws(() => events.build('gate', trip, context, { gate: '<invalid>' }), /valid gate/);
   assert.equal(events.TYPES.booking, 'flight.booked', 'Booking confirmation matches the requested AJO rule contract');
   assert.throws(() => events.build('booking', trip, { ...context, known: false }), /booking email/);
+  const custom = events.buildCustom('  my.journey.trigger  ', context);
+  assert.equal(custom.eventType, 'my.journey.trigger');
+  assert.equal(custom.xdmStyle, 'minimal');
+  assert.equal(custom.public, undefined, 'Simple manual events do not fabricate a booking');
+  assert.equal(custom.email, profile.email);
+  assert.equal(buildGeneratorEdgeInteractXdm(custom, target).eventType, 'my.journey.trigger');
+  assert.equal(buildGeneratorEdgeInteractXdm(custom, target)._experience, undefined, 'Minimal manual events have no orchestration context');
+  const boundCustom = events.buildCustom('flight.delayed', context, { eventID: 'my-ajo-event', trip: { ...trip, booked: true } });
+  const boundXdm = buildGeneratorEdgeInteractXdm(boundCustom, target);
+  assert.equal(boundCustom.eventID, undefined, 'Manual events do not forward orchestration IDs');
+  assert.equal(boundXdm._demoemea.public.travel.confirmationNumber, trip.reference);
+  assert.throws(() => events.buildCustom(' ', context), /event type/);
+  assert.throws(() => events.buildCustom('x'.repeat(257), context), /event type/);
+  assert.throws(() => events.buildCustom('bad\nevent', context), /event type/);
+  assert.throws(() => events.buildCustom('my.event', context, { trip }), /Confirm a booking/);
+  assert.throws(() => events.buildCustom('my.event', { ...context, ecid: '' }), /ECID/);
 }
 
 async function browserTests() {
@@ -737,7 +753,7 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Explore a cabin upgrade' }).waitFor();
     assert.equal(requests.filter((body) => body.eventType === 'travel.upgrade.abandon').length, 1);
     await page.locator('#raPresenterLauncher').click();
-    await page.locator('#raOrchestrationId').fill('fixture-disruption-id');
+    assert.equal(await page.locator('#raOrchestrationId, #raCustomEventId').count(), 0, 'Presenter has no orchestration ID fields');
     failNext = true;
     await page.getByRole('button', { name: 'Send trip update' }).click();
     await page.waitForFunction(() => !document.getElementById('raCustomerSite').hasAttribute('aria-busy'));
@@ -747,7 +763,7 @@ async function browserTests() {
     assert.equal(await page.getByRole('button', { name: 'Explore a cabin upgrade' }).count(), 0);
     const delay = requests.find((body) => body.eventType === 'travel.flight.delay');
     assert.equal(delay.public.travel.confirmationNumber, bookingRef);
-    assert.equal(delay.eventID, 'fixture-disruption-id');
+    assert.equal(delay.eventID, undefined);
     assert.equal(new URL(delay.viewUrl).searchParams.get('delayMinutes'), '90');
     await page.locator('#raDisruptionKind').selectOption('gate');
     await page.getByRole('button', { name: 'Send trip update' }).click();
@@ -1082,6 +1098,8 @@ async function browserTests() {
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await page.evaluate((fixture) => window.RiyadhAirLab.send('gate', fixture, { gate: 'C4' }).catch(() => {}), trip);
     assert.equal(requests.length, afterAmbiguous, 'Uncertain attempt survives reload without resend');
+    await page.evaluate(() => window.RiyadhAirLab.send('custom', null, { eventType: 'blocked.manual' }).catch(() => {}));
+    assert.equal(requests.length, afterAmbiguous, 'Manual events share the uncertain-delivery block');
     await page.locator('#raPresenterLauncher').click();
     await page.locator('#raAllowRetry').click();
     await page.locator('#raPresenterClose').click();
@@ -1096,6 +1114,50 @@ async function browserTests() {
     await page.getByRole('button', { name: 'Search flights' }).click();
     await page.waitForFunction(() => document.getElementById('raDeliveryStatus').textContent.includes('Flights are available between Riyadh'));
     assert.equal(requests.length, beforeUnavailable, 'Unsupported airport combinations give availability feedback, not invented flights');
+    await page.locator('#raPresenterLauncher').click();
+    await page.locator('#raCustomEventType').fill('my.journey.trigger');
+    const beforeManual = requests.length;
+    await page.locator('#raCustomIncludeTrip').check();
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual, 'Including trip context fails explicitly without a booking');
+    await page.locator('#raCustomIncludeTrip').uncheck();
+    assert(!(await page.locator('#raCustomEventPreview').textContent()).includes(profile.email), 'Manual preview masks profile email');
+    failNext = true;
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.match(await page.locator('#raPresenterStatus').textContent(), /Fixture ingestion rejection/);
+    assert.equal(requests.length, beforeManual + 1, 'Rejected manual send is not retried automatically');
+    await page.locator('#raCustomEventForm').evaluate((form) => {
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual + 2, 'Double manual submit records only one explicit request');
+    assert.equal(requests.at(-1).eventType, 'my.journey.trigger');
+    assert.equal(requests.at(-1).eventID, undefined);
+    assert.equal(requests.at(-1).xdmStyle, 'minimal');
+    assert.equal(requests.at(-1).email, profile.email);
+    assert.equal(requests.at(-1).ecid, ecid);
+    assert.equal(requests.at(-1).targetId, target.id);
+    assert.equal(requests.at(-1).public, undefined);
+    assert.equal(await page.evaluate(() => JSON.parse(sessionStorage.getItem('riyadhAirJourneyV1')).trip), null, 'Manual sends never manufacture a local booking');
+    await page.evaluate(() => {
+      const input = document.getElementById('customerEmail');
+      input.value = 'unverified@example.test';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.getByRole('button', { name: 'Send event', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raCustomEventForm').hasAttribute('aria-busy'));
+    assert.equal(requests.length, beforeManual + 2, 'Typed but unverified profile cannot receive manual events');
+    await page.evaluate((email) => {
+      document.getElementById('customerEmail').value = email;
+      window.alloy = async () => ({});
+    }, profile.email);
+    await page.getByRole('button', { name: 'Look up selected profile', exact: true }).click();
+    await page.waitForFunction(() => !document.getElementById('raResolvePresenterProfile').disabled);
+    assert.equal(await page.evaluate(() => window.RiyadhAirLab.context().email), profile.email, 'Presenter can resolve the selected profile without leaving controls');
+    await page.locator('#raPresenterClose').click();
     assert.deepEqual(errors, [], 'No uncaught browser errors');
     await page.goto(origin + '/profile-viewer/etihad-demo.html');
     await page.waitForFunction(() => !!window.DemoTagsInjection && !!window.SiteCloneBc);

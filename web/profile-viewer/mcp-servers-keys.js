@@ -799,9 +799,7 @@
     if (!panel) return;
     panel.innerHTML =
       '<h3 class="mcp-key-panel-title">Your MCP API key</h3>' +
-      '<p class="mcp-key-lead">Sign in to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for the lab MCP (<code>' +
-      escapeHtml(MCP_SERVER_ID) +
-      '</code>). You can keep separate named keys for ChatGPT, Adobe Coworker, and other clients.</p>' +
+      '<p class="mcp-key-lead">Sign in to generate a personal <code>X-AEP-Lab-Mcp-Key</code> for your selected sandbox. You can keep separate named keys for ChatGPT, Adobe Coworker, and other clients.</p>' +
       '<button type="button" class="dashboard-btn-primary" id="mcpLabKeySignInBtn">Sign in to lab</button>';
     var btn = document.getElementById('mcpLabKeySignInBtn');
     if (btn) {
