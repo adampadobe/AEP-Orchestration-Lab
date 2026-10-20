@@ -10,6 +10,7 @@ import {
   previewDemoConfig,
   previewDemoAssets,
   previewDemoAssetsRestore,
+  demoCustomerRequest,
 } from '../labApiClient.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 import { buildDemoConfigChangesFromScrape } from './demoConfig.mjs';
@@ -23,6 +24,50 @@ function checkAllowed(sandbox) {
 
 /** @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer */
 export function registerDemoAssetTools(mcpServer) {
+  const scopeSchema = {
+    customer_paths: z.array(z.string()).max(200).optional().describe('Exact customer-specific paths; classify every existing file on first save'),
+    shared_paths: z.array(z.string()).max(200).optional().describe('Exact shared paths excluded from all customer backups and restores'),
+  };
+  const brandChanges = z.array(z.object({
+    path: z.string(),
+    value: z.union([z.string(), z.number(), z.boolean(), z.null()]),
+  })).max(9).optional().describe('Explicit branding fields to keep, replace or clear; never retain outgoing brand text silently');
+  async function customerCall(sandbox, action, input) {
+    const access = checkAllowed(sandbox);
+    if (access.error) return access.error;
+    const result = await demoCustomerRequest({ sandbox: access.sandbox, action, ...input });
+    if (action === 'customer-apply' && result.ok && result.data?.ok === false) {
+      return toolError(result.data.error?.message || result.data.error || `Customer operation ${result.data.status}; not ready to present.`, result.data);
+    }
+    writeAuditLog({ keyId: getRequestKeyId(), tool: action, sandbox: access.sandbox, result: result.ok ? 'ok' : 'error' });
+    return fromLabApi(result, { sandbox: access.sandbox });
+  }
+  mcpServer.registerTool('lab_demo_customer_save', {
+    title: 'Save current customer in the cloud',
+    description: 'Preview a complete named customer snapshot of selected Image Hosting files plus approved RTDB branding. Inspect assets first and classify customer versus shared files. No local ZIP is needed. After explicit confirmation, apply the returned preflight with one request-bound idempotency key. Live files and RTDB remain unchanged by a save.',
+    inputSchema: {
+      sandbox: z.string(), customer_name: z.string().max(160).optional(), ...scopeSchema,
+      preflight_id: z.string().optional(), confirmed: z.boolean().optional(),
+      idempotency_key: z.string().min(8).max(120).optional(),
+    },
+  }, async ({ sandbox, confirmed, ...input }) => customerCall(sandbox,
+    confirmed === true ? 'customer-apply' : 'customer-save-preview', { ...input, confirmed }));
+
+  mcpServer.registerTool('lab_demo_customer_upload', {
+    title: 'Stage a customer image for exact-path replacement',
+    description: 'Uploads a PNG/JPEG/WebP/GIF/AVIF image up to 8 MiB to private staging for 15 minutes; validates decoded format and returns a stage ID and visual preview, not image bytes. Does not replace active images. Requires a client capable of transferring attachment bytes as base64; the remote server cannot read local attachment paths. Map the stage ID to an exact existing or new customer path in lab_demo_customer_switch. Animation is preserved; the target extension must match the actual format.',
+    inputSchema: { sandbox: z.string(), file_name: z.string().max(240), content_type: z.string(), base64: z.string().max(12 * 1024 * 1024) },
+  }, async ({ sandbox, ...input }) => customerCall(sandbox, 'customer-stage', input));
+
+  mcpServer.registerTool('lab_demo_customer_operation', {
+    title: 'Inspect or recover a customer operation',
+    description: 'Read durable customer save/switch status after a timeout instead of automatically retrying. Supply operation_id or the original idempotency_key. Recovery requires an operation ID, explicit confirmation, and a five-minute safety delay; it restores the outgoing customer and never replays a rolled-back operation as success. Historical success is distinguished from isCurrentlyActive/verified.',
+    inputSchema: {
+      sandbox: z.string(), operation_id: z.string().optional(), idempotency_key: z.string().optional(),
+      recover: z.boolean().optional(), confirmed: z.boolean().optional(),
+    },
+  }, async ({ sandbox, recover, ...input }) => customerCall(sandbox, recover === true ? 'customer-recover' : 'customer-status', input));
+
   mcpServer.registerTool(
     'lab_brand_scrape_classify_images',
     {
@@ -77,26 +122,38 @@ export function registerDemoAssetTools(mcpServer) {
     {
       title: 'Preview or apply a complete customer demo switch',
       description:
-        'Preferred customer-change workflow for demo prep. With confirmed=false, creates one combined preview from a completed brand scrape for RTDB plus all five managed image slots. ' +
-        'After the colleague reviews it, call again with confirmed=true and both returned preflight IDs. The server backs up the prior named customer, publishes and hash-verifies images first, applies RTDB last, verifies alignment, and restores the prior images if the switch fails.',
+        'Preferred complete customer-package switch. Inspect first; preview from revision_id to restore a saved customer including branding, or customer_name plus staged replacements and explicit changes, or scrape_id. Classify customer_paths/shared_paths on first use. Confirm backup_customer_name when unknown or disputed. Review images, exact target paths, deletions and RTDB diff; then confirmed=true with the single returned preflight_id and idempotency_key. Saves the outgoing customer privately, preserves stable CDN URLs, excludes shared assets, and verifies or rolls back. No local ZIP. Original five-slot preflight apply remains available for compatibility but is image-pack scoped.',
       inputSchema: {
         sandbox: z.string(),
-        scrape_id: z.string().optional().describe('Required for preview mode'),
-        asset_preflight_id: z.string().optional().describe('Returned by preview; required for apply mode'),
-        config_preflight_id: z.string().optional().describe('Returned by preview; required for apply mode'),
+        scrape_id: z.string().optional().describe('Optional scrape source instead of a saved revision or staged files'),
+        asset_preflight_id: z.string().optional().describe('Legacy five-slot apply only'),
+        config_preflight_id: z.string().optional().describe('Legacy five-slot apply only'),
         confirmed: z.boolean().optional().describe('False/omitted previews; true applies after review'),
         idempotency_key: z.string().min(8).max(120).optional().describe('Required for confirmed apply'),
+        preflight_id: z.string().optional().describe('Single complete-customer preview returned by preview mode'),
+        revision_id: z.string().optional().describe('Saved complete-customer revision from inspect.customerLibrary'),
+        customer_name: z.string().max(160).optional(),
+        backup_customer_name: z.string().max(160).optional(),
+        ...scopeSchema,
+        replacements: z.array(z.object({ rel_path: z.string(), stage_id: z.string() })).max(200).optional(),
+        changes: brandChanges,
         auto_classify_images: z.boolean().optional().describe('Preview mode default true; automatically classify when usable categories are missing'),
         force_reclassify: z.boolean().optional().describe('Preview mode only; refresh all image classifications with Gemini vision'),
         logo_image_index: z.number().int().min(0).optional(),
         hero_image_index: z.number().int().min(0).optional(),
       },
     },
-    async ({ sandbox, scrape_id, asset_preflight_id, config_preflight_id, confirmed, idempotency_key, auto_classify_images, force_reclassify, logo_image_index, hero_image_index }) => {
+    async ({ sandbox, scrape_id, asset_preflight_id, config_preflight_id, confirmed, idempotency_key, auto_classify_images, force_reclassify, logo_image_index, hero_image_index, ...packageInput }) => {
       const access = checkAllowed(sandbox);
       if (access.error) return access.error;
       const started = Date.now();
       let result;
+      if (confirmed === true && packageInput.preflight_id) {
+        return customerCall(sandbox, 'customer-apply', { ...packageInput, confirmed, idempotency_key });
+      }
+      if (confirmed !== true && !scrape_id) {
+        return customerCall(sandbox, 'customer-switch-preview', packageInput);
+      }
       if (confirmed === true) {
         if (!asset_preflight_id || !config_preflight_id || !idempotency_key) {
           return toolError('asset_preflight_id, config_preflight_id and idempotency_key are required for a confirmed customer switch.');
@@ -143,25 +200,15 @@ export function registerDemoAssetTools(mcpServer) {
           sandbox: access.sandbox,
           changes,
           source: `customer-switch:${scrape_id}`,
+          allow_no_changes: true,
         });
         if (!config.ok) return fromLabApi(config, { sandbox: access.sandbox, scrapeId: scrape_id });
-        result = {
-          ok: true,
-          data: {
-            sandbox: access.sandbox,
-            scrapeId: scrape_id,
-            customerName: assets.data?.customerName || scrapeRecord?.brandName || null,
-            imageClassification: classification,
-            assetPreflightId: assets.data?.preflightId,
-            configPreflightId: config.data?.preflightId,
-            assets: assets.data,
-            configuration: config.data,
-            confirmation: {
-              required: true,
-              message: 'Review the RTDB diff and all five image previews, then call this tool again with confirmed=true and both preflight IDs.',
-            },
-          },
-        };
+        const complete = await demoCustomerRequest({
+          sandbox: access.sandbox, action: 'customer-switch-preview', ...packageInput,
+          asset_preflight_id: assets.data?.preflightId, config_preflight_id: config.data?.preflightId,
+        });
+        if (!complete.ok) return fromLabApi(complete, { sandbox: access.sandbox, scrapeId: scrape_id });
+        result = { ok: true, data: { ...complete.data, imageClassification: classification, scrapeId: scrape_id } };
       }
       writeAuditLog({
         keyId: getRequestKeyId(),
@@ -180,15 +227,25 @@ export function registerDemoAssetTools(mcpServer) {
     {
       title: 'Inspect active customer demo assets and saved customers',
       description:
-        'Read-only inventory of the customer-swappable stable Image Hosting slots, their permanent CDN URLs, hashes, active customer, and named backup revisions. ' +
-        'Shared decisioning, loyalty, carousel, and technical library files are deliberately excluded.',
-      inputSchema: { sandbox: z.string().describe('AEP sandbox scoped to the MCP key or Adobe IMS Portal enrollment') },
+        'Read-only inventory. customerLibrary includes all visible library paths, current customer/shared/unassigned classification, approved RTDB branding, saved complete-customer revisions with pagination and operation recovery state. Classify shared technical assets explicitly; they are excluded from package writes. Legacy five-slot data is also returned separately.',
+      inputSchema: {
+        sandbox: z.string().describe('AEP sandbox scoped to the MCP key or Adobe IMS Portal enrollment'),
+        cursor: z.string().optional().describe('customerLibrary.nextCursor for more saved customer revisions'),
+      },
     },
-    async ({ sandbox }) => {
+    async ({ sandbox, cursor }) => {
       const access = checkAllowed(sandbox);
       if (access.error) return access.error;
       writeAuditLog({ keyId: getRequestKeyId(), tool: 'lab_demo_assets_inspect', sandbox: access.sandbox });
-      return fromLabApi(await inspectDemoAssets({ sandbox: access.sandbox }), { sandbox: access.sandbox });
+      const packages = await demoCustomerRequest({ sandbox: access.sandbox, action: 'customer-inspect', cursor });
+      if (!packages.ok) return fromLabApi(packages, { sandbox: access.sandbox });
+      const legacy = await inspectDemoAssets({ sandbox: access.sandbox });
+      if (!legacy.ok) return fromLabApi(legacy, { sandbox: access.sandbox });
+      return fromLabApi({ ok: true, data: {
+        ...legacy.data, legacyActiveCustomer: legacy.data?.activeCustomer,
+        activeCustomer: packages.data?.activeCustomer || legacy.data?.activeCustomer,
+        legacyImageRevisionsOnly: true, customerLibrary: packages.data,
+      } }, { sandbox: access.sandbox });
     },
   );
 
@@ -197,7 +254,7 @@ export function registerDemoAssetTools(mcpServer) {
     {
       title: 'Preview stable customer images from a brand scrape',
       description:
-        'Creates a 15-minute, read-only before/after asset preflight from one completed brand scrape. ' +
+        'Creates a 15-minute, preview-only before/after asset preflight from one completed brand scrape. ' +
         'Prefers the persisted customer logo and the highest-confidence hero image, transforms them into fixed PNG slots, and returns signed previews plus permanent target URLs. ' +
         'No public image is replaced until lab_demo_assets_apply is explicitly confirmed.',
       inputSchema: {

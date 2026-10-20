@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 215-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 218-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -15,7 +15,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
-| `/mcp/demo-prep` | 21 | Brand scrape, Gemini image classification, governed all-in-one customer switching, stable asset restore, RTDB, and one-shot demo preparation |
+| `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
@@ -182,13 +182,16 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_config_preview` | `POST /api/lab/demo-config` (`action=preview`) | Before/after diff for allowlisted manual changes or evidence-backed mappings from a completed brand scrape |
 | `lab_demo_config_apply` | `POST /api/lab/demo-config` (`action=apply`) | Confirmed, conflict-checked, idempotent atomic RTDB update with readback and revision |
 | `lab_demo_config_restore` | `POST /api/lab/demo-config` (`action=restore-preview/apply`) | Preview-first rollback of a prior revision |
-| `lab_demo_assets_inspect` | `GET /api/lab/demo-assets` | Active stable image slots, permanent URLs, hashes, and saved customer revisions |
+| `lab_demo_assets_inspect` | `POST /api/lab/demo-assets` (`customer-inspect`) + legacy GET | `customerLibrary`: full customer/shared inventory, branding, paginated complete revisions, drift and operation state; legacy slots also returned |
 | `lab_brand_scrape_classify_images` | `POST brandScraperClassify` | Auto-classify up to 20 scrape images with Gemini vision; skip when usable saved categories already exist unless forced |
 | `lab_demo_assets_preview_from_scrape` | `POST /api/lab/demo-assets` (`action=preview`) | Transform a completed scrape into preview-only fixed logo/hero/mobile PNG slots |
 
 | `lab_demo_assets_apply` | `POST /api/lab/demo-assets` (`action=apply`) | Confirmed activation with current-customer backup, conflict detection, verification, idempotency, and rollback |
 | `lab_demo_assets_restore` | `POST /api/lab/demo-assets` (`action=restore-preview/apply`) | Preview-first restoration of a named customer revision to the same stable CDN paths |
-| `lab_demo_customer_switch` | `POST /api/lab/demo-assets` (`action=switch-apply`) | Preferred two-phase switch: preview RTDB plus all five image slots, then one confirmed apply with verification and cross-system rollback |
+| `lab_demo_customer_switch` | `POST /api/lab/demo-assets` (`customer-switch-preview/customer-apply`) | Complete customer restore or switch from saved revision, staged files or scrape; one combined preflight, outgoing backup, verification and recovery |
+| `lab_demo_customer_save` | Same API (`customer-save-preview/customer-apply`) | Preview and save a named complete cloud snapshot without changing live assets or RTDB |
+| `lab_demo_customer_upload` | Same API (`customer-stage`) | Validate and privately stage attachment bytes, returning stage ID and signed preview; no active write |
+| `lab_demo_customer_operation` | Same API (`customer-status/customer-recover`) | Query durable status after timeouts; explicit, delayed recovery restores outgoing files/config |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
 | `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |

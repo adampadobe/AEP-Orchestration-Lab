@@ -6,6 +6,17 @@
 (function () {
   'use strict';
 
+  async function fetch(url, options) {
+    var opts = Object.assign({}, options || {});
+    if (typeof url === 'string' && url.indexOf('/api/image-hosting/library') === 0
+      && opts.method && opts.method !== 'GET') {
+      var auth = window.AepLabSandboxSync && await window.AepLabSandboxSync.getAuthHeaders();
+      if (!auth || !auth.Authorization) throw new Error('Sign in to the lab before modifying images.');
+      opts.headers = Object.assign({}, opts.headers || {}, auth);
+    }
+    return window.fetch(url, opts);
+  }
+
   var listEl = document.getElementById('imageHostingList');
   var statusEl = document.getElementById('imageHostingStatus');
   var libraryGridEl = document.getElementById('imageHostingLibraryGrid');

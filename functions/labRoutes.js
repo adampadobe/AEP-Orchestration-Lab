@@ -9,6 +9,7 @@ const { normalizeLdapSlug, ldapSlugFromEmail } = require('./labRtdbSlug');
  * @returns {Record<string, import('firebase-functions/v2/https').HttpsFunction>}
  */
 function registerLabRoutes(deps) {
+  const customerService = deps.labDemoCustomerService || require('./labDemoCustomerService');
   const {
     onRequest,
     profileFnOpts,
@@ -365,13 +366,13 @@ function registerLabRoutes(deps) {
         ldapSlug = provisioned.ldapSlug;
       }
 
-      const result = await labRtdbProvisionService.saveDemoSection(
+      const result = await customerService.withResourceLocks({ uid, workspaceSlug: ldapSlug, sandbox: sandboxSlug }, () => labRtdbProvisionService.saveDemoSection(
         null,
         ldapSlug,
         sandboxSlug,
         section,
         partial,
-      );
+      ));
       res.status(200).json({ ok: true, ...result });
     } catch (e) {
       const status = e && e.code === 'slug_taken' ? 409 : 500;
@@ -464,14 +465,15 @@ function registerLabRoutes(deps) {
           ...context,
           changes: body.changes,
           source: body.source || 'manual',
+          allowNoChanges: body.allow_no_changes === true,
         });
       } else if (action === 'apply') {
-        result = await labDemoConfigService.applyPreview({
+        result = await customerService.withResourceLocks(context, () => labDemoConfigService.applyPreview({
           ...context,
           preflightId: body.preflight_id || body.preflightId,
           confirmed: body.confirmed,
           idempotencyKey: body.idempotency_key || body.idempotencyKey,
-        });
+        }));
       } else if (action === 'restore-preview') {
         result = await labDemoConfigService.createRestorePreview({
           ...context,
@@ -549,12 +551,33 @@ function registerLabRoutes(deps) {
         return;
       }
 
-      const config = await labDemoConfigService.inspect({ uid: principal.uid, workspaceSlug, sandbox });
+      const context = { uid: principal.uid, workspaceSlug, sandbox };
+      if (req.method === 'POST' && String(body.action || '').startsWith('customer-')) {
+        const result = await customerService.handle(context, body, {
+          async verifyPublicFile(path, expected) {
+            const response = await fetch(new URL(path, labHostingOriginForFunctionConfig()), {
+              headers: { 'Cache-Control': 'no-cache' },
+              redirect: 'error',
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (!expected) {
+              if (response.status !== 404) throw new customerService.CustomerError(`Deleted public URL still resolves: ${path}`, 502);
+              return;
+            }
+            if (!response.ok || customerService.digest(Buffer.from(await response.arrayBuffer())) !== expected.sha256) {
+              throw new customerService.CustomerError(`Public CDN verification failed: ${path}`, 502);
+            }
+          },
+        });
+        res.set('Cache-Control', 'private, no-store');
+        res.status(200).json({ ...result, authSource: principal.authSource });
+        return;
+      }
+
+      const config = await labDemoConfigService.inspect(context);
       const core = (config.sections || []).find((section) => section.name === 'CoreDemoData');
       const nameField = core && (core.fields || []).find((field) => field.field === 'name');
       const currentCustomerName = nameField && typeof nameField.value === 'string' ? nameField.value : '';
-      const context = { uid: principal.uid, workspaceSlug, sandbox };
-
       if (req.method === 'GET') {
         const result = await labDemoAssetService.inspect(context);
         res.status(200).json({ ...result, authSource: principal.authSource, rtdbCustomerName: currentCustomerName || null });
@@ -584,14 +607,14 @@ function registerLabRoutes(deps) {
           currentCustomerName: inventory.activeCustomer || currentCustomerName,
         });
       } else if (action === 'apply') {
-        result = await labDemoAssetService.applyPreview({
+        result = await customerService.withResourceLocks(context, () => labDemoAssetService.applyPreview({
           ...context,
           preflightId: body.preflight_id || body.preflightId,
           confirmed: body.confirmed,
           idempotencyKey: body.idempotency_key || body.idempotencyKey,
           backupCustomerName: body.backup_customer_name || body.backupCustomerName,
           imageHostingLibrary,
-        });
+        }));
       } else if (action === 'restore-preview') {
         result = await labDemoAssetService.createRestorePreview({
           ...context,
@@ -612,6 +635,7 @@ function registerLabRoutes(deps) {
         }
         let assetResult = null;
         let configResult = null;
+        result = await customerService.withResourceLocks(context, async () => {
         try {
           assetResult = await labDemoAssetService.applyPreview({
             ...context,
@@ -638,7 +662,8 @@ function registerLabRoutes(deps) {
           const expectedLogo = labDemoAssetService.publicCdnUrl(sandbox, 'logo/logo.png');
           const allSlotsReady = Object.keys(labDemoAssetService.SLOT_CATALOG).every((slot) => {
             const item = (assetInspection.slots || []).find((candidate) => candidate.slot === slot);
-            return item && item.exists;
+            const expected = (assetResult.published || []).find((candidate) => candidate.slot === slot);
+            return item && item.exists && expected && !expected.deleted && item.sha256 === expected.sha256;
           });
           const readyToPresent = Boolean(
             assetResult.verified && configResult.verified && allSlotsReady
@@ -651,7 +676,7 @@ function registerLabRoutes(deps) {
             mismatch.code = 'DEMO_CUSTOMER_SWITCH_VERIFY_FAILED';
             throw mismatch;
           }
-          result = {
+          return {
             ok: true,
             sandbox,
             customerName: assetResult.customerName,
@@ -671,7 +696,7 @@ function registerLabRoutes(deps) {
         } catch (switchError) {
           let switchRollback = null;
           let configRollback = null;
-          if (configResult && configResult.revisionId) {
+          if (configResult && configResult.revisionId && !configResult.idempotentReplay) {
             try {
               configRollback = await labDemoConfigService.restoreRevisionDirect({
                 ...context,
@@ -681,7 +706,7 @@ function registerLabRoutes(deps) {
               configRollback = { ok: false, error: String(rollbackError && rollbackError.message || rollbackError) };
             }
           }
-          if (assetResult && assetResult.backupRevisionId) {
+          if (assetResult && assetResult.backupRevisionId && !assetResult.idempotentReplay) {
             try {
               switchRollback = await labDemoAssetService.restoreRevisionDirect({
                 ...context,
@@ -703,6 +728,7 @@ function registerLabRoutes(deps) {
           };
           throw wrapped;
         }
+        });
       } else {
         res.status(400).json({ ok: false, error: `Unknown demo-assets action: ${action}` });
         return;
@@ -715,6 +741,7 @@ function registerLabRoutes(deps) {
         error: String(e && e.message ? e.message : e),
         code: e && e.code ? String(e.code) : 'DEMO_ASSET_ERROR',
         ...(e && e.rollback ? { rollback: e.rollback } : {}),
+        ...(e && e.operationId ? { operationId: e.operationId } : {}),
         sandbox,
       });
     }

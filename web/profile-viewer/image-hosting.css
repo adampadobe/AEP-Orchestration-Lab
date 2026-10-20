@@ -1,5 +1,52 @@
 /* Image hosting page — grid of images per brand scrape. */
 
+.image-hosting-customers { padding: 1rem 1.1rem; color: var(--dash-text); }
+.image-hosting-customers h2 { margin-top: 0; }
+.image-hosting-customers fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.image-hosting-customer-legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.image-hosting-customers details { margin: 1rem 0; }
+.image-hosting-customers summary { cursor: pointer; font-weight: 600; }
+.image-hosting-customer-fields { margin: 1rem 0; }
+.image-hosting-customers label:not(.image-hosting-customer-check) { display: flex; flex-direction: column; gap: .35rem; }
+.image-hosting-customers input:not([type="checkbox"]),
+.image-hosting-customers select {
+  box-sizing: border-box; width: 100%; max-width: 42rem; min-height: 2.5rem;
+  background: var(--dash-input-bg); color: var(--dash-text);
+  border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm);
+  padding: .5rem .65rem; font: inherit;
+}
+.image-hosting-customers input[type="checkbox"],
+.image-hosting-customer-dialog input[type="checkbox"] { accent-color: var(--dash-blue); }
+.image-hosting-customer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; margin: .9rem 0; }
+.image-hosting-customer-check { display: flex; align-items: start; gap: .55rem; margin: .85rem 0; }
+.image-hosting-customer-inventory { max-height: 24rem; overflow: auto; margin: .75rem 0; }
+.image-hosting-customer-inventory .image-hosting-customer-check { padding: .65rem 0; border-bottom: 1px solid var(--dash-border); margin: 0; }
+.image-hosting-customer-path { overflow-wrap: anywhere; min-width: 0; }
+.image-hosting-customer-meta { display: block; color: var(--dash-text-secondary); font-size: .85rem; }
+.image-hosting-customer-revision { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .7rem; padding: .8rem 0; border-bottom: 1px solid var(--dash-border); }
+.image-hosting-customer-config { display: grid; gap: .65rem; margin: .75rem 0; }
+.image-hosting-customer-replacement { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: .65rem; align-items: end; margin: .8rem 0; }
+.image-hosting-restore-dialog.image-hosting-customer-dialog { width: calc(100% - 2rem); max-width: 54rem; max-height: 85vh; overflow-y: auto; background: var(--dash-surface); color: var(--dash-text); border: 1px solid var(--dash-border); }
+.image-hosting-customers button,
+.image-hosting-customer-dialog button { white-space: normal; max-width: 100%; }
+.image-hosting-customer-diff { border-top: 1px solid var(--dash-border); padding: .8rem 0; overflow-wrap: anywhere; }
+.image-hosting-customer-images { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.image-hosting-customer-images figure { margin: .5rem 0; min-width: 0; }
+.image-hosting-customer-images img { display: block; max-width: 100%; height: 9rem; object-fit: contain; background: var(--dash-surface-alt); }
+.image-hosting-customer-dialog pre { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--dash-surface-alt); padding: .65rem; }
+.image-hosting-customers [data-error="true"],
+.image-hosting-customer-dialog [data-error="true"] { color: var(--dash-error, var(--dash-text)); }
+.image-hosting-customers :focus-visible,
+.image-hosting-customer-dialog :focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 3px; }
+.image-hosting-customers button:disabled,
+.image-hosting-customer-dialog button:disabled { opacity: .55; cursor: not-allowed; }
+.image-hosting-customers [hidden],
+.image-hosting-customer-dialog [hidden] { display: none !important; }
+@media (max-width: 700px) {
+  .image-hosting-customer-replacement { grid-template-columns: 1fr; }
+  .image-hosting-customer-images { grid-template-columns: 1fr; }
+}
+
 .image-hosting-main { display: flex; flex-direction: column; gap: 1rem; }
 
 .image-hosting-controls { padding: 1rem 1.1rem; }
@@ -180,9 +227,10 @@
   font-size: 0.76rem;
   color: var(--dash-text-secondary, var(--dash-muted));
 }
-.image-hosting-drop-option { display: inline-flex; align-items: center; gap: 0.4rem; }
+.image-hosting-drop-option { display: inline-flex; align-items: center; gap: 0.4rem; min-width: 0; max-width: 100%; }
 .image-hosting-drop-option > span { white-space: nowrap; }
 .image-hosting-drop-option select {
+  min-width: 0;
   font-size: 0.76rem; padding: 0.22rem 0.55rem;
   border: 1px solid var(--dash-input-border, var(--dash-border));
   border-radius: 8px;
