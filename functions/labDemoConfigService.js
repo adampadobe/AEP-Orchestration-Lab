@@ -314,13 +314,13 @@ async function inspect({ workspaceSlug, sandbox }, deps = {}) {
   return buildInspection(await readWorkspace(workspaceSlug, deps), workspaceSlug, sandbox);
 }
 
-async function createPreview({ uid, workspaceSlug, sandbox, changes, source = 'manual', allowNull = false }, deps = {}) {
+async function createPreview({ uid, workspaceSlug, sandbox, changes, source = 'manual', allowNull = false, allowNoChanges = false }, deps = {}) {
   const firestore = deps.firestore || getFirestore();
   const now = deps.now ? deps.now() : new Date();
   const root = await readWorkspace(workspaceSlug, deps);
   const normalized = normalizeChanges(changes, { allowNull });
   const diff = buildDiff(root, normalized);
-  if (!diff.length) throw new DemoConfigError('The proposed values already match the current demo configuration.', 409, 'DEMO_CONFIG_NO_CHANGES');
+  if (!diff.length && !allowNoChanges) throw new DemoConfigError('The proposed values already match the current demo configuration.', 409, 'DEMO_CONFIG_NO_CHANGES');
   const paths = diff.map((item) => item.path);
   const beforeHash = hashValue(valuesForPaths(root, paths));
   const id = deps.randomId ? deps.randomId() : randomUUID();
@@ -331,6 +331,7 @@ async function createPreview({ uid, workspaceSlug, sandbox, changes, source = 'm
     sandbox,
     source: String(source || 'manual').slice(0, 120),
     status: 'pending',
+    proposedChanges: normalized,
     diff,
     paths,
     beforeHash,
@@ -371,12 +372,19 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
   const existingIdempotency = await firestore.collection(IDEMPOTENCY_COLLECTION).doc(idempotencyId).get();
   if (existingIdempotency.exists) {
     const prior = existingIdempotency.data() || {};
+    if (prior.workspaceSlug !== workspaceSlug) {
+      throw new DemoConfigError('Idempotency result belongs to a different workspace.', 403, 'DEMO_CONFIG_PREFLIGHT_FORBIDDEN');
+    }
     if (prior.preflightId !== String(preflightId || '').trim()) {
       throw new DemoConfigError(
         'idempotency_key was already used for a different preview.',
         409,
         'DEMO_CONFIG_IDEMPOTENCY_CONFLICT',
       );
+    }
+    const activeRoot = await readWorkspace(workspaceSlug, { ...deps, database });
+    if (!(prior.changes || []).every((item) => JSON.stringify(getPath(activeRoot, item.path) ?? null) === JSON.stringify(item.value))) {
+      throw new DemoConfigError('This configuration was rolled back or superseded; create a fresh preview.', 409, 'DEMO_CONFIG_REPLAY_NOT_ACTIVE');
     }
     return { ...prior, idempotentReplay: true };
   }
@@ -389,6 +397,10 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
     throw new DemoConfigError('Preflight does not belong to this user and sandbox.', 403, 'DEMO_CONFIG_PREFLIGHT_FORBIDDEN');
   }
   if (preflight.status === 'applied' && preflight.result) {
+    const activeRoot = await readWorkspace(workspaceSlug, { ...deps, database });
+    if (!(preflight.result.changes || []).every((item) => JSON.stringify(getPath(activeRoot, item.path) ?? null) === JSON.stringify(item.value))) {
+      throw new DemoConfigError('This configuration was rolled back or superseded; create a fresh preview.', 409, 'DEMO_CONFIG_REPLAY_NOT_ACTIVE');
+    }
     return { ...preflight.result, idempotentReplay: true };
   }
   if (Date.parse(preflight.expiresAt || '') <= now.getTime()) {
@@ -411,17 +423,6 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
     beforeChanges.push({ path: item.path, value: item.before ?? null });
     afterChanges.push({ path: item.path, value: normalized });
   }
-  await database.ref(`ajoLookups/${workspaceSlug}`).update(update);
-
-  const verifiedRoot = await readWorkspace(workspaceSlug, { ...deps, database });
-  const verified = afterChanges.every((item) => JSON.stringify(getPath(verifiedRoot, item.path) ?? null) === JSON.stringify(item.value));
-  if (!verified) {
-    const rollback = {};
-    for (const item of beforeChanges) rollback[item.path.replace('.', '/')] = item.value;
-    await database.ref(`ajoLookups/${workspaceSlug}`).update(rollback);
-    throw new DemoConfigError('RTDB readback did not match the applied values; the prior values were restored.', 500, 'DEMO_CONFIG_VERIFY_FAILED');
-  }
-
   const revisionRef = firestore.collection(REVISION_COLLECTION).doc();
   const revision = {
     uid,
@@ -435,21 +436,37 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
   };
   await revisionRef.set(revision);
 
-  const result = {
-    ok: true,
-    sandbox,
-    workspaceSlug,
-    storagePath: `ajoLookups/${workspaceSlug}`,
-    preflightId: ref.id,
-    revisionId: revisionRef.id,
-    appliedAt: now.toISOString(),
-    verified: true,
-    changes: afterChanges,
-    nextStep: 'Call lab_demo_config_inspect to show the verified current structure, or lab_demo_config_restore to roll back this revision.',
-  };
-  await ref.set({ status: 'applied', appliedAt: now.toISOString(), result }, { merge: true });
-  await firestore.collection(IDEMPOTENCY_COLLECTION).doc(idempotencyId).set(result);
-  return result;
+  try {
+    await database.ref(`ajoLookups/${workspaceSlug}`).update(update);
+    const verifiedRoot = await readWorkspace(workspaceSlug, { ...deps, database });
+    const verified = afterChanges.every((item) => JSON.stringify(getPath(verifiedRoot, item.path) ?? null) === JSON.stringify(item.value));
+    if (!verified) throw new DemoConfigError('RTDB readback did not match the applied values.', 500, 'DEMO_CONFIG_VERIFY_FAILED');
+
+    const result = {
+      ok: true,
+      sandbox,
+      workspaceSlug,
+      storagePath: `ajoLookups/${workspaceSlug}`,
+      preflightId: ref.id,
+      revisionId: revisionRef.id,
+      appliedAt: now.toISOString(),
+      verified: true,
+      changes: afterChanges,
+      nextStep: 'Call lab_demo_config_inspect to show the verified current structure, or lab_demo_config_restore to roll back this revision.',
+    };
+    await ref.set({ status: 'applied', appliedAt: now.toISOString(), result }, { merge: true });
+    await firestore.collection(IDEMPOTENCY_COLLECTION).doc(idempotencyId).set(result);
+    return result;
+  } catch (error) {
+    try {
+      await restoreRevisionDirect({ uid, workspaceSlug, sandbox, revisionId: revisionRef.id }, { ...deps, database, firestore });
+    } catch (rollbackError) {
+      const failure = new DemoConfigError(`Configuration failed and rollback needs attention: ${rollbackError.message}`, 500, 'DEMO_CONFIG_RECOVERY_REQUIRED');
+      failure.revisionId = revisionRef.id;
+      throw failure;
+    }
+    throw error;
+  }
 }
 
 async function createRestorePreview({ uid, workspaceSlug, sandbox, revisionId }, deps = {}) {

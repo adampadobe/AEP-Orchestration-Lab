@@ -1108,7 +1108,9 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     );
     const delErrs = delResults.filter((r) => r.status === 'rejected');
     if (delErrs.length) {
-      console.warn('[imageHostingLibrary.restore] some pre-restore deletes failed', delErrs.length, 'of', existing.length);
+      const error = new Error(`ZIP restore stopped: ${delErrs.length} of ${existing.length} pre-restore deletes failed. Library may be partially changed; inspect before retrying.`);
+      error.name = 'PartialRestoreError';
+      throw error;
     }
   }
 
@@ -1137,11 +1139,9 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     }
   }
 
-  // Hard-fail when EVERY entry failed — the caller would otherwise see a
-  // 200 OK with restored:0 and think the restore completed silently.
-  if (out.length === 0 && failures.length > 0) {
-    const err = new Error('all ' + failures.length + ' entries failed to restore — first error: ' + failures[0].error);
-    err.name = 'AllEntriesFailedError';
+  if (failures.length > 0) {
+    const err = new Error(`ZIP restore incomplete: ${failures.length} entries failed, ${out.length} restored. Library may be partially changed — first error: ${failures[0].error}`);
+    err.name = out.length ? 'PartialRestoreError' : 'AllEntriesFailedError';
     err.failures = failures;
     throw err;
   }

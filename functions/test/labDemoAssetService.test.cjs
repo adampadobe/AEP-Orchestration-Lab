@@ -188,6 +188,17 @@ test('preview, apply, inspect and restore preserve stable slots and named revisi
   assert.deepEqual((await activeBucket.file('apalmer/library/mobile/location_exit.png').download())[0], oldMobileExit);
   assert.deepEqual((await activeBucket.file('apalmer/library/mobile/push-inapp.png').download())[0], oldPush);
 
+  await assert.rejects(service.applyPreview({
+    uid: 'user-1', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    preflightId: preview.preflightId, confirmed: true,
+    idempotencyKey: 'activate-new-brand', imageHostingLibrary,
+  }, d), (error) => error.code === 'DEMO_ASSET_REPLAY_NOT_ACTIVE');
+  await assert.rejects(service.applyPreview({
+    uid: 'user-1', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    preflightId: restore.preflightId, confirmed: true,
+    idempotencyKey: 'activate-new-brand', imageHostingLibrary,
+  }, d), (error) => error.code === 'DEMO_ASSET_IDEMPOTENCY_CONFLICT');
+
   const direct = await service.restoreRevisionDirect({
     uid: 'user-1', workspaceSlug: 'apalmer', sandbox: 'apalmer',
     revisionId: 'revision-new', imageHostingLibrary,

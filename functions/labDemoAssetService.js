@@ -265,10 +265,8 @@ async function saveStageObject(path, bytes, metadata, deps = {}) {
       metadata,
     },
   });
-  let previewUrl = '';
-  try {
-    [previewUrl] = await file.getSignedUrl({ action: 'read', version: 'v4', expires: Date.now() + PREFLIGHT_TTL_MS });
-  } catch (_e) {}
+  const [previewUrl] = await file.getSignedUrl({ action: 'read', version: 'v4', expires: Date.now() + PREFLIGHT_TTL_MS });
+  if (!previewUrl) throw new DemoAssetError('Image preview signing failed.', 503, 'DEMO_ASSET_PREVIEW_UNAVAILABLE');
   return previewUrl;
 }
 
@@ -475,13 +473,24 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
 
   const loaded = await loadOwnedDoc(PREFLIGHT_COLLECTION, preflightId, uid, sandbox, deps);
   const { firestore, ref, data } = loaded;
+  if (data.workspaceSlug !== workspaceSlug) throw new DemoAssetError('Workspace changed after preview.', 409, 'DEMO_ASSET_WORKSPACE_CHANGED');
   const idemRef = firestore.collection(IDEMPOTENCY_COLLECTION).doc(idempotencyId(uid, sandbox, idempotencyKey));
   const idemSnap = await idemRef.get();
-  if (idemSnap.exists) return { ...idemSnap.data().result, idempotentReplay: true };
-  if (data.status === 'applied' && data.result) return { ...data.result, idempotentReplay: true };
+  if (idemSnap.exists && idemSnap.data().result?.preflightId !== preflightId) {
+    throw new DemoAssetError('idempotency_key belongs to a different preview.', 409, 'DEMO_ASSET_IDEMPOTENCY_CONFLICT');
+  }
+  if (idemSnap.exists || data.status === 'applied' && data.result) {
+    const result = idemSnap.exists ? idemSnap.data().result : data.result;
+    const active = await firestore.collection(ACTIVE_COLLECTION).doc(scopeId(uid, sandbox)).get();
+    const actual = await Promise.all((data.proposed || []).map((item) => readActiveSlot(sandbox, item.slot, deps)));
+    const stillActive = active.exists && active.data().preflightId === preflightId && actual.every((item, index) => {
+      const expected = data.proposed[index];
+      return expected.exists === false ? !item.exists : item.sha256 === expected.sha256;
+    });
+    if (!stillActive) throw new DemoAssetError('This operation was rolled back or superseded. Create a fresh preview instead of replaying success.', 409, 'DEMO_ASSET_REPLAY_NOT_ACTIVE');
+    return { ...result, idempotentReplay: true };
+  }
   if (Date.parse(data.expiresAt) <= Date.now()) throw new DemoAssetError('Asset preview expired; create a new preview.', 409, 'DEMO_ASSET_PREVIEW_EXPIRED');
-  if (data.workspaceSlug !== workspaceSlug) throw new DemoAssetError('Workspace changed after preview.', 409, 'DEMO_ASSET_WORKSPACE_CHANGED');
-
   const current = await assertNoActiveConflict(sandbox, data.current || [], deps);
   const priorCustomer = String(backupCustomerName || data.currentCustomerName || '').trim() || 'Unlabelled current customer';
   const revision = await createRevision({
@@ -531,6 +540,7 @@ async function applyPreview({ uid, workspaceSlug, sandbox, preflightId, confirme
       sandbox,
       customerName: data.customerName,
       scrapeId: data.scrapeId || null,
+      preflightId,
       updatedAt: now.toISOString(),
       slots: published,
     });
@@ -559,9 +569,8 @@ async function createRestorePreview({ uid, workspaceSlug, sandbox, revisionId, c
   for (const asset of revision.assets || []) {
     let previewUrl = '';
     if (asset.exists && asset.backupPath) {
-      try {
-        [previewUrl] = await getBackupBucket(deps).file(asset.backupPath).getSignedUrl({ action: 'read', version: 'v4', expires: now.getTime() + PREFLIGHT_TTL_MS });
-      } catch (_e) {}
+      [previewUrl] = await getBackupBucket(deps).file(asset.backupPath).getSignedUrl({ action: 'read', version: 'v4', expires: now.getTime() + PREFLIGHT_TTL_MS });
+      if (!previewUrl) throw new DemoAssetError('Image preview signing failed.', 503, 'DEMO_ASSET_PREVIEW_UNAVAILABLE');
     }
     proposed.push({
       slot: asset.slot,

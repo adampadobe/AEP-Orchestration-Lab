@@ -8,7 +8,30 @@ This bucket holds two kinds of content with different lifecycles:
 | `scrape-cache-images/<sandbox>/<scrapeId>/…` | Classified crawl images (Gemini vision step) | Live versions deleted after **3 days** (not extended — publish to Image hosting for long-lived URLs). |
 | `scrapes/…/images/…` | **Legacy** classified image path (older uploads) | Purged by scheduled function after ~3 days; new uploads use `scrape-cache-images/`. |
 | `<sandbox>/library/**` | Curated per-sandbox assets served at `/cdn/<sandbox>/<path>` | **Never expires.** Only deleted by explicit user actions (Delete button, ZIP restore with replace, or in-place card replacement). |
-| `<sandbox>/library_backups/**` | Reserved for future preset snapshots | Never expires. |
+| `<sandbox>/library_backups/**` | Legacy/reserved public backup prefix; not used for customer packages | Never expires. Not private. |
+
+## Cloud customer packages
+
+Image Hosting's **Cloud customer packages** panel and `/mcp/demo-prep` use the same authenticated `/api/lab/demo-assets` coordinator. They preserve exact `/cdn/<sandbox>/<path>` URLs; no folder rename or local ZIP is required. On first use, inspect and explicitly classify every visible file as customer-specific or shared. A saved package covers all selected paths, not just the five legacy logo/hero/mobile slots. Empty-folder markers and hidden bookkeeping are retained in place, not customer assets.
+
+**Save customer** previews a named snapshot without changing live files or RTDB. **Prepare new customer** previews staged replacements (including new paths) and branding. **Preview restore** restores a saved complete revision and removes customer paths absent from it, never shared paths. Each switch first saves the outgoing files and branding. Confirm the outgoing name when unknown or disputed; review before/after previews, deletions and configuration before applying. Manual replacements retain unreplaced customer files, explicitly shown as **keep** in the preview.
+
+Snapshots are immutable, scoped by principal/workspace/sandbox and stored in the **private** default Firebase Storage bucket, or `LAB_DEMO_ASSET_BACKUP_BUCKET`:
+
+| Prefix | Contents | Retention |
+| --- | --- | --- |
+| `demo-customer-backups/<scope>/<revision>/<exact-path>` | Complete, checksum-verified customer snapshots | Permanent; no automatic deletion |
+| `demo-customer-staging/<scope>/…` | Upload and preview bytes | Previews/stage IDs expire after 15 minutes; daily `labDemoCustomerStagingCleanup` deletes blobs older than 24 hours |
+
+**Deployment prerequisite:** verify this backup bucket has no public IAM binding and no client rule granting reads of these prefixes. The coordinator rejects using the public Image Hosting bucket as its backup bucket. Cache-Control is not an access-control mechanism. Signed image previews expire; never put them into email templates or RTDB. Firestore `labDemoCustomerScopes` (revisions/preflights/staging), `labDemoCustomerOperations` and `labDemoCustomerLocks` hold server-only metadata and recovery journals. Expired Firestore preview metadata is retained; blob cleanup does not delete saved revisions.
+
+The nine snapshotted fields are `CoreDemoData.{name,shortName,slogan,url,customerLogo}`, `StaffPortal.Colour`, `CallCentre.industryId`, and `ExpAccelerator.{displayNameOverride,opportunityIndustry}`. Protected workspace ownership, credentials, profile IDs, endpoints and other sections are never included. New-customer preparation requires explicit keep/replace/clear for every existing nonempty branding field, so stale brand text is not silently carried over. A backup label does not rewrite the RTDB name; review both values if they disagree.
+
+Limits: 200 visible library files / 100 MiB total; each staged PNG/JPEG/WebP/GIF/AVIF is at most 8 MiB, 40 million decoded pixels and 200 frames. Animation/original bytes are preserved. The target extension must match the actual format; convert explicitly if necessary. SVG uploads are not supported by the staging tool, but existing SVGs are backed up and restored unchanged. Chat transfer requires a client able to pass attachment bytes as base64; the remote MCP cannot read a local path.
+
+Mutations require a verified lab principal and owned workspace; public image reads remain anonymous. Shared locks cover package operations, legacy Image Hosting mutations, MCP config writes and the Portal config-save route. RTDB compare-and-set and Storage generation preconditions reject stale changes. File publication is **not globally atomic**: downstream readers can briefly see a mixed set while files are replaced. Failures trigger rollback from the durable outgoing snapshot; ambiguous timeouts must be checked with `lab_demo_customer_operation`, not retried automatically. Explicit recovery has a five-minute safety delay and refuses to overwrite unknown external edits. Production applies verify Storage hashes, RTDB and public CDN bytes/deletions. A historical success may no longer be active: check `verified` / `isCurrentlyActive`. Email image proxies can still cache earlier images.
+
+ZIP download/restore remains a separate, image-only compatibility workflow, not a customer package or branding restore. It now fails on partial restore errors, but is not transactionally recoverable; prefer cloud packages.
 
 ## Bucket settings
 

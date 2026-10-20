@@ -59,9 +59,7 @@ const READ_ONLY_TOOLS = new Set([
   'lab_decisioning_schema_extend_preview',
   'lab_decisioning_tag_bulk_preview',
   'lab_demo_config_inspect',
-  'lab_demo_config_preview',
   'lab_demo_assets_inspect',
-  'lab_demo_assets_preview_from_scrape',
   'lab_explain_decision_response',
   'lab_get_brand_scrape',
   'lab_get_event_config',
@@ -164,6 +162,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'lab_demo_assets_apply',
   'lab_demo_assets_restore',
   'lab_demo_customer_switch',
+  'lab_demo_customer_operation',
   'lab_firefly_job_cancel',
 ]);
 
@@ -174,6 +173,7 @@ const IDEMPOTENT_WRITE_TOOLS = new Set([
   'lab_demo_assets_apply',
   'lab_demo_assets_restore',
   'lab_demo_customer_switch',
+  'lab_demo_customer_save',
   'lab_enable_event_profile',
   'lab_enable_profile',
   'lab_live_activity_save_execution_state',

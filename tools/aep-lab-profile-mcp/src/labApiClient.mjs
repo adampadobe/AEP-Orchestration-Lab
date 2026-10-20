@@ -1238,7 +1238,7 @@ export async function inspectDemoConfig({ sandbox }) {
   });
 }
 
-export async function previewDemoConfig({ sandbox, changes, source }) {
+export async function previewDemoConfig({ sandbox, changes, source, allow_no_changes }) {
   return labApiRequest('/api/lab/demo-config', {
     method: 'POST',
     headers: demoAuthHeaders(),
@@ -1247,6 +1247,7 @@ export async function previewDemoConfig({ sandbox, changes, source }) {
       sandbox,
       changes,
       source,
+      ...(allow_no_changes === true ? { allow_no_changes: true } : {}),
     },
     timeoutMs: 30_000,
   });
@@ -1285,6 +1286,15 @@ export async function inspectDemoAssets({ sandbox }) {
     query: { sandbox },
     headers: demoAuthHeaders(),
     timeoutMs: 60_000,
+  });
+}
+
+export async function demoCustomerRequest({ sandbox, action, ...input }) {
+  return labApiRequest('/api/lab/demo-assets', {
+    method: 'POST',
+    headers: demoAuthHeaders(),
+    body: { sandbox, action, ...input },
+    timeoutMs: 120_000,
   });
 }
 

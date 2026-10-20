@@ -174,6 +174,23 @@ test('preview and apply update only requested fields, verify readback and suppor
   }, deps);
   assert.equal(replay.idempotentReplay, true);
   assert.equal(replay.revisionId, applied.revisionId);
+  core.name = 'Another customer';
+  await assert.rejects(service.applyPreview({
+    uid: 'uid-apalmer', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    preflightId: preview.preflightId, confirmed: true, idempotencyKey: 'demo-qia-20260804',
+  }, deps), (error) => error.code === 'DEMO_CONFIG_REPLAY_NOT_ACTIVE');
+});
+
+test('combined preview explicitly supports unchanged evidenced fields without weakening ordinary no-op validation', async () => {
+  const { deps, firestore } = fixture();
+  const request = {
+    uid: 'user', workspaceSlug: 'apalmer', sandbox: 'apalmer',
+    changes: [{ path: 'CoreDemoData.name', value: 'Jet2' }],
+  };
+  await assert.rejects(service.createPreview(request, deps), (error) => error.code === 'DEMO_CONFIG_NO_CHANGES');
+  const preview = await service.createPreview({ ...request, allowNoChanges: true }, deps);
+  assert.deepEqual(preview.diff, []);
+  assert.deepEqual(firestore.collections.get(service.PREFLIGHT_COLLECTION).get(preview.preflightId).proposedChanges, request.changes);
 });
 
 test('apply rejects a stale preview instead of overwriting a newer value', async () => {

@@ -153,6 +153,8 @@ const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
 const labDemoConfigService = lazyRequireMod('./labDemoConfigService');
 const labDemoAssetService = lazyRequireMod('./labDemoAssetService');
+const labDemoCustomerService = lazyRequireMod('./labDemoCustomerService');
+const { normalizeLdapSlug } = require('./labRtdbSlug');
 const pdfPersonalisationService = require('./pdfPersonalisationService');
 const pdfJourneyActionService = require('./pdfJourneyActionService');
 const pdfPersonalisationStore = lazyRequireMod('./pdfPersonalisationStore');
@@ -4192,6 +4194,14 @@ exports.brandScraperStaleCleanup = onSchedule(
   },
 );
 
+exports.labDemoCustomerStagingCleanup = onSchedule(
+  { schedule: 'every 24 hours', region: REGION, timeoutSeconds: 240, memory: '256MiB' },
+  async () => {
+    const result = await labDemoCustomerService.cleanTemporaryObjects();
+    console.log('[labDemoCustomerStagingCleanup]', result);
+  },
+);
+
 /** GET/POST/DELETE /api/brand-scraper/scrapes… — list, get, delete, POST …/extend retention. */
 exports.brandScraperScrapes = onRequest(
   {
@@ -4468,10 +4478,24 @@ exports.imageHostingLibrary = onRequest(
   async (req, res) => {
     setCors(res, 'GET, POST, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    let releaseWrite = null;
     try {
       const path = String(req.path || '').replace(/\/+$/, '');
       const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim();
       if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+      if (req.method === 'POST' || req.method === 'DELETE') {
+        const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, { labWorkspaceAuthService });
+        if (!principal.ok) { res.status(principal.status).json(principal.body); return; }
+        if (principal.keySandbox && principal.keySandbox !== sandbox) {
+          res.status(403).json({ error: 'MCP sandbox scope does not match.' }); return;
+        }
+        const profile = await labUserSandboxStore.getWorkspaceProfile(principal.uid);
+        const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
+        if (!workspaceSlug || !await labRtdbProvisionService.userOwnsWorkspace(null, principal.uid, workspaceSlug)) {
+          res.status(403).json({ error: 'An owned lab workspace is required before modifying Image Hosting.' }); return;
+        }
+        releaseWrite = await labDemoCustomerService.acquireLegacyWrite({ uid: principal.uid, workspaceSlug, sandbox });
+      }
 
       // Must run before the generic GET list handler — otherwise download
       // requests return JSON and the browser saves a non-ZIP as .zip.
@@ -4791,7 +4815,9 @@ exports.imageHostingLibrary = onRequest(
       res.status(405).json({ error: 'Method not allowed' });
     } catch (e) {
       console.error('[imageHostingLibrary]', String(e && e.message || e));
-      res.status(500).json({ error: String((e && e.message) || e) });
+      res.status(Number(e && e.status) || 500).json({ error: String((e && e.message) || e) });
+    } finally {
+      if (releaseWrite) await releaseWrite();
     }
   }
 );
