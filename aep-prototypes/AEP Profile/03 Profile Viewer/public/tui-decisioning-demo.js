@@ -42,7 +42,8 @@
     loaded = data;
     const values = profile.signals(data.rows, true);
     for (const key of edited) values[key] = staged[key];
-    api().setProfile({ state: values, firstName: data.rows.find(row => profile.relative(row.path) === 'person.name.firstName')?.value,
+    api().setProfile({ contextKey: JSON.stringify(ctx), state: values,
+      firstName: data.rows.find(row => profile.relative(row.path) === 'person.name.firstName')?.value,
       email: data.profileEmail || ctx.identifier });
     const ok = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false });
     same(ctx, token);
@@ -183,14 +184,30 @@
       }
       if (matches.length !== 1) throw new Error('Expected one hero image decision; got ' + matches.length + '. Previous preview retained.');
       if (typeof result.manualDisplay?.alloy !== 'function') throw new Error('Decision display attribution missing.');
+      const identityMap = result.manualDisplay.identityMap;
+      const ecids = Array.isArray(identityMap?.ECID) ? identityMap.ECID.filter(identity =>
+        typeof identity.id === 'string' && /^\d{10,}$/.test(identity.id)) : [];
+      const ecid = (ecids.find(identity => identity.primary === true) || (ecids.length === 1 ? ecids[0] : null))?.id;
+      const configuredTenant = data.industries?.generic?.xdmKey;
+      const tenant = typeof configuredTenant === 'string' && /^_?[a-zA-Z][a-zA-Z0-9]*$/.test(configuredTenant)
+        ? '_' + configuredTenant.replace(/^_/, '') : null;
+      if (!ecid || !tenant ||
+        ['_id', '_repo', '_experience', '_links'].includes(tenant)) {
+        throw new Error('Display tracking requires the original decision ECID and configured tenant namespace.');
+      }
       await api().setDecision(matches[0]); same(ctx, token);
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
       await result.manualDisplay.alloy('sendEvent', { renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
-        xdm: { eventType: 'decisioning.propositionDisplay', identityMap: result.manualDisplay.identityMap,
+        xdm: { eventType: 'decisioning.propositionDisplay', identityMap,
+          [tenant]: { identification: { core: { ecid } } },
+          web: { webPageDetails: { URL: result.personalizationPageUrl || location.origin + location.pathname,
+            name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,
             items: p.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}), ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
             propositionEventType: { display: 1 } } } } });
+      same(ctx, token);
+      await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
       same(ctx, token); message('Live hero displayed across all three views.');
     } catch (error) { if (token === version) message(error.message + ' No automatic retry.', true); }
     finally { busy = false; message($('tuiLiveStatus').textContent, $('tuiLiveStatus').dataset.error === 'true'); }

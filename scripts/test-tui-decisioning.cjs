@@ -36,6 +36,7 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
     const page = await context.newPage();
+    page.setDefaultTimeout(15000);
     const errors = [];
     const unexpected = [];
     page.on('pageerror', error => errors.push(error.message));
@@ -53,21 +54,35 @@ async function main() {
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
     assert.equal(await page.locator('#scenario-select').count(), 0, 'No duplicate scenario dropdown');
     assert.equal(await page.locator('#scenario-pills button').count(), 7);
+    assert.deepEqual(await page.locator('#scenario-pills button').evaluateAll(buttons => buttons.map(b => b.textContent.split(' / ')[0])),
+      ['7', '6', '5', '4', '3', '2', '1']);
+    assert.equal(await page.locator('#ranking-title').textContent(), 'Selection Strategies');
+    assert.equal(await page.locator('.fictional-person,.signals-pane > .microcopy').count(), 0,
+      'No redundant profile or instruction block above the signal groups');
+    assert.equal(await page.locator('.preview-caption,#preview-caption,.site-search,.search-label').count(), 0,
+      'Channel description and Web search rows are removed from the DOM');
+    assert(await page.locator('.preview-header').evaluate(header =>
+      header.nextElementSibling.id === 'panel-email'), 'Channel content immediately follows the switcher');
+    assert(await page.locator('.site-nav').evaluate(nav =>
+      nav.nextElementSibling.id === 'web-preview'), 'Web hero immediately follows navigation');
     assert.equal(await page.locator('.boundary-note,.simulation-badge,.app-disclaimer,.site-disclaimer,.email-footer').count(), 0,
       'Removed notices have no remaining elements or reserved rows');
     assert(await page.evaluate(() => {
       const header = document.querySelector('.tui-lab-header'), workspace = document.getElementById('workspace');
       return header.nextElementSibling === workspace && Math.abs(header.getBoundingClientRect().bottom - workspace.getBoundingClientRect().top) < 1;
     }), 'Workspace follows the header directly without the removed explanatory row');
+    let previousScenario = model.defaults;
     for (const [index, scenario] of model.demoScenarios.entries()) {
       await page.locator('#scenario-pills button').nth(index).click();
       assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
       assert.equal(await page.locator('#eligible-details').getAttribute('open'), '');
       assert.equal(await page.locator('#eligible-items .nba-card--winner').getAttribute('data-offer'), scenario.expectedOffer);
       assert.deepEqual((await page.locator('.signal-group[open]').evaluateAll(nodes => nodes.map(n => n.dataset.group))).sort(),
-        [...new Set(Object.keys(scenario.preset).map(key => model.fields.find(f => f.key === key).group))].sort());
-      const objective = model.objectives[index], result = model.evaluate(scenario.preset);
-      const expected = result.ladder[index].offers.filter(item => item.eligible).sort((a, b) => b.priority - a.priority);
+        [...new Set([...scenario.signalKeys, ...model.fields.filter(f => previousScenario[f.key] !== scenario.preset[f.key]).map(f => f.key)]
+          .map(key => model.fields.find(f => f.key === key).group))].sort(), 'Only groups participating in this update expand');
+      previousScenario = scenario.preset;
+      const objective = model.objectives.find(o => o.key === scenario.expectedObjective), result = model.evaluate(scenario.preset);
+      const expected = result.ladder.find(o => o.key === scenario.expectedObjective).offers.filter(item => item.eligible).sort((a, b) => b.priority - a.priority);
       assert.deepEqual(await page.locator('#eligible-items .nba-card:not(.nba-card--off)').evaluateAll(cards => cards.map(card => card.dataset.offer)),
         expected.map(item => item.key), 'NBA panel ranks only the selected objective');
       assert.equal(await page.locator('#eligible-items .nba-card--off').count(), objective.offers.length - expected.length);
@@ -107,10 +122,12 @@ async function main() {
     assert.match(await page.locator('#preview-feedback').textContent(), /not connected to a booking service/);
     const count = await page.locator('.signal-field').count();
     assert.equal(count, model.fields.length);
+    await page.locator('details[data-group="Holiday"] summary').click();
     await page.locator('#signal-days').fill('-1');
     assert.equal(await page.locator('#email-preview .email-card').count(), 0, 'Invalid number removes stale content');
     await page.locator('#signal-days').fill('30');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1);
+    await page.locator('details[data-group="Preferences"] summary').click();
     await page.locator('#signal-score').fill('5.1');
     for (const id of ['email-preview', 'mobile-preview', 'web-preview']) {
       assert.equal(await page.locator('#' + id + ' img').count(), 0);
@@ -279,7 +296,7 @@ async function main() {
       }
       if (parsed.pathname.startsWith('/api/')) {
         const body = request.postDataJSON();
-        shellCalls.push({ path: parsed.pathname, method: request.method(), body });
+        shellCalls.push({ path: parsed.pathname, method: request.method(), body, query: Object.fromEntries(parsed.searchParams) });
         let json = { ok: true, enabled: false, found: false, targets: [], sandboxes: [], companies: [] };
         if (parsed.pathname === '/api/profile/table') {
           if (delayNextLookup) { delayNextLookup = false; await new Promise(resolve => setTimeout(resolve, 500)); }
@@ -325,6 +342,7 @@ async function main() {
       } else await route.continue();
     });
     const shell = await shellContext.newPage();
+    shell.setDefaultTimeout(15000);
     shell.on('pageerror', error => errors.push(error.message));
     await shell.goto(origin + '/profile-viewer/tui-decisioning-demo.html?channel=web');
     await shell.waitForFunction(() => !!window.TuiDecisioningDrawer, null, { timeout: 30000 });
@@ -333,6 +351,8 @@ async function main() {
     if (await minimize.isVisible()) await minimize.click();
     const frame = shell.frameLocator('#tui-visualiser');
     await frame.locator('#panel-web').waitFor({ state: 'visible' });
+    assert.equal(await frame.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0,
+      'Embedded channels show no local offer imagery before the first live Run');
     const mountLayout = await shell.evaluate(() => {
       const doc = document.getElementById('tui-visualiser').contentDocument;
       const before = doc.querySelector('#workspace').getBoundingClientRect().top;
@@ -343,6 +363,13 @@ async function main() {
     assert.equal(mountLayout.after, mountLayout.before, 'Runtime mounts add no grey spacer above content');
     assert.deepEqual(mountLayout.mounts, ['none', 'none', 'none']);
     assert.equal(await frame.locator('.boundary-note').count(), 0, 'Shared initialization does not recreate the removed row');
+    assert.equal(await frame.locator('.tui-lab-header').isVisible(), false, 'Embedded page has no duplicate brand row');
+    assert(await shell.locator('#tuiApplyProfile').evaluate(button => {
+      const brand = document.querySelector('.tui-live-actions .tui-lab-brand').getBoundingClientRect();
+      const actions = button.getBoundingClientRect();
+      return actions.x > brand.right && actions.y < brand.bottom + 10;
+    }), 'Apply and Run sit to the right of the branded title');
+    assert.equal(await frame.locator('.signal-group[open]').count(), 0, 'Embedded signals start collapsed after profile initialization');
     assert.doesNotMatch(await frame.locator('body').innerText(), /simulat|app concept|illustrat/i);
     await shell.mouse.move(1000, 500);
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
@@ -368,9 +395,20 @@ async function main() {
     assert.match(await shell.locator('#profileDrawerAudiences').textContent(), /Fixture holiday audience/);
     assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5);
     assert.equal(shellCalls.some(call => call.path === '/api/events/generator'), false, 'Read-only lookup sends no event');
+    await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await shell.mouse.move(700, 500);
     await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
-    assert.equal(await shell.locator('#tuiProfileHero [role="tab"]').count(), 0, 'Profile sections have no tabs');
-    for (const index of [0, 1, 2]) assert.equal(await shell.locator('#tuiPhPanel-' + index).isVisible(), true);
+    assert.equal(await shell.locator('#tuiProfileHero [role="tab"]').count(), 7, 'Compact profile tabs split attributes into readable groups');
+    assert.equal(await shell.locator('#tuiProfileHero [role="tabpanel"]:visible').count(), 1);
+    await shell.getByRole('tab', { name: 'Identity', exact: true }).click();
+    await shellContext.grantPermissions(['clipboard-read', 'clipboard-write']);
+    assert.equal(await shell.locator('#tuiCopyEcid').innerText(), '', 'Copy ECID uses an icon only');
+    assert((await shell.locator('#tuiCopyEcid').boundingBox()).width <= 26);
+    await shell.locator('#tuiCopyEcid').click();
+    assert.equal(await shell.evaluate(() => navigator.clipboard.readText()), fixture.ecid);
+    assert.equal(await shell.locator('.tui-copy-feedback').textContent(), 'ECID copied');
+    await shell.getByRole('tab', { name: 'Identity', exact: true }).press('Home');
+    assert.equal(await shell.getByRole('tab', { name: 'Contact', exact: true }).getAttribute('aria-selected'), 'true');
     assert.equal(await shell.locator('#profileDrawerEcidResetWrap').count(), 1, 'Anonymous control moved, not cloned');
     assert.equal(await shell.locator('#tuiPhSignal-score').textContent(), '2.99');
     for (const dark of [false, true]) {
@@ -383,8 +421,17 @@ async function main() {
         assert.equal(await shell.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
         await shell.mouse.move(width / 2, 550);
         await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
-        await shell.locator('#tuiPhSignal-booking').scrollIntoViewIfNeeded();
-        assert.equal(await shell.locator('#tuiPhSignal-booking').isVisible(), true, 'Travel values remain accessible without tabs');
+        for (const label of ['Contact', 'Holiday', 'Support', 'Shopping', 'Preferences', 'Consent', 'Identity']) {
+          await shell.getByRole('tab', { name: label, exact: true }).click();
+          const panel = shell.locator('#tuiProfileHero [role="tabpanel"]:visible');
+          assert(await panel.evaluate(node => node.scrollHeight <= node.clientHeight + 1), 'All attributes in each tab fit without panel scrolling');
+          assert(await panel.evaluate(node => {
+            const hero = document.getElementById('tuiProfileHero').getBoundingClientRect(), box = node.getBoundingClientRect();
+            return box.top >= hero.top && box.bottom <= hero.bottom + 1;
+          }), 'Selected attribute panel fits inside the compact hero without clipping');
+        }
+        await shell.getByRole('tab', { name: 'Holiday', exact: true }).click();
+        assert.equal(await shell.locator('#tuiPhSignal-booking').isVisible(), true, 'Travel values remain accessible via tabs');
         if (screenshotDir) await shell.screenshot({ path: path.join(screenshotDir, `shell-${dark ? 'dark' : 'light'}-${width}.png`) });
       }
     }
@@ -447,12 +494,21 @@ async function main() {
         supportsManualDisplay: true, runProfileLookup: async () => true,
         runContentDecision: async options => {
           if (!options.manualDisplay) throw new Error('Manual display is required');
+          if (window.fixtureDecisionMode === 'empty') return { propositions: [] };
+          if (window.fixtureDecisionMode === 'wait') {
+            await new Promise(resolve => { window.releaseFixtureDecision = resolve; });
+          }
+          const next = window.fixtureDecisionMode === 'wait';
           return {
             propositions: [{ id: 'fixture-proposition', scope: location.origin + '/#hero-banner',
               scopeDetails: { activity: { id: 'fixture-policy' } },
-              items: [{ id: 'fixture-item', schema: 'https://ns.adobe.com/personalization/json-content-item',
-                data: { imageURL: location.origin + '/profile-viewer/tui-decisioning-assets/crete.jpg',
-                  title: 'Fixture live offer', fullDescription: 'Actual returned fixture copy' } }] }],
+              items: [{ id: 'fixture-item', name: 'Returned fixture offer',
+                itemSelection: { selectionDetail: { strategyName: 'Returned fixture strategy' } },
+                schema: 'https://ns.adobe.com/personalization/json-content-item',
+                data: { imageURL: location.origin + '/profile-viewer/tui-decisioning-assets/' +
+                  (window.fixtureDecisionMode === 'broken' ? 'missing.jpg' : next ? 'mexico.jpg?next-image=1' : 'crete.jpg'),
+                  title: next ? 'Next live offer' : 'Fixture live offer',
+                  fullDescription: next ? 'Next returned copy' : 'Actual returned fixture copy' } }] }],
             manualDisplay: { identityMap: { ECID: [{ id: '12345678901234567890', primary: true }] },
               alloy: async (command, options) => window.fixtureDisplayEvents.push({ command, options }) },
           };
@@ -467,6 +523,102 @@ async function main() {
     assert.doesNotMatch(await frame.locator('body').innerText(), /simulat|app concept|illustrat/i);
     assert.equal(await frame.locator('#web-preview h3').textContent(), 'Fixture live offer');
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'One attributed display across three views');
+    const display = await shell.evaluate(() => window.fixtureDisplayEvents[0].options.xdm);
+    assert.equal(display._demoemea.identification.core.ecid, display.identityMap.ECID[0].id,
+      'Tenant event identity matches the original decision request, not a newly read browser identity');
+    assert.equal(display.web.webPageDetails.viewName, 'TUI Decisioning');
+    assert.equal(display._experience.decisioning.propositions[0].items[0].name, 'Returned fixture offer');
+    const readOnlyBeforePoll = shellCalls.filter(call => call.path === '/api/profile/consent').length;
+    const eventReadsBeforePoll = shellCalls.filter(call => call.path === '/api/profile/events').length;
+    await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().events.length === 5);
+    await new Promise(resolve => setTimeout(resolve, 1100));
+    events.unshift({ id: 'ingested-live-display', timestamp: Date.now(), eventType: 'decisioning.propositionDisplay',
+      rows: [
+        { path: '_experience.decisioning.propositions.0.items.0.name', value: 'Returned fixture offer' },
+        { path: '_experience.decisioning.propositions.0.items.0.itemSelection.selectionDetail.strategyName', value: 'Returned fixture strategy' },
+        { path: 'web.webPageDetails.name', value: display.web.webPageDetails.name },
+      ] });
+    await shell.waitForFunction(() => document.getElementById('profileDrawerEvents').textContent.includes('Returned fixture offer'));
+    assert.match(await shell.locator('#profileDrawerEvents').innerText(), /Returned fixture strategy/);
+    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().eventsStory[0].id), 'ingested-live-display');
+    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 0,
+      'A decision display does not increment Messages Sent');
+    assert(shellCalls.filter(call => call.path === '/api/profile/events').length > eventReadsBeforePoll,
+      'Shared polling discovers delayed decision ingestion without clicking refresh');
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/consent').length, readOnlyBeforePoll,
+      'Events update without a slow full profile lookup');
+    assert(shellCalls.filter(call => call.path === '/api/profile/events').slice(-2).every(call =>
+      call.query.identifier === fixture.profileEmail && call.query.namespace === 'email' && call.query.sandbox === 'kirkham'),
+      'Polling retains the loaded namespace, identifier and sandbox');
+    const contentSnapshot = () => shell.evaluate(() => {
+      const doc = document.getElementById('tui-visualiser').contentDocument;
+      return ['email-preview', 'mobile-preview', 'web-preview'].map(id => doc.getElementById(id).innerHTML);
+    });
+    const firstContent = await contentSnapshot();
+    await shell.evaluate(() => {
+      const doc = document.getElementById('tui-visualiser').contentDocument;
+      window.fixtureContentChanges = 0;
+      window.fixtureContentObserver = new MutationObserver(() => window.fixtureContentChanges++);
+      for (const id of ['email-preview', 'mobile-preview', 'web-preview']) {
+        window.fixtureContentObserver.observe(doc.getElementById(id), { childList: true, subtree: true, attributes: true, characterData: true });
+      }
+    });
+    for (let index = 0; index < 7; index++) {
+      await frame.locator('#scenario-pills button').nth(index).click();
+      assert.deepEqual(await contentSnapshot(), firstContent, 'Scenario preserves the displayed AEP image and text');
+    }
+    if (!await frame.locator('details[data-group="Holiday"]').evaluate(details => details.open)) {
+      await frame.locator('details[data-group="Holiday"] summary').click();
+    }
+    await frame.locator('#signal-days').fill('');
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Invalid staged signals do not replace the last decision');
+    await frame.locator('#signal-days').fill('30');
+    await frame.locator('#reset').click();
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Reset only stages signals');
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Apply/readback preserves the last AEP content');
+    for (const channel of ['email', 'mobile', 'web']) {
+      await frame.locator('#tab-' + channel).click();
+      assert.deepEqual(await contentSnapshot(), firstContent, 'Switching channels retains the same returned content');
+    }
+    await shell.evaluate(() => window.EnvBarCompact.openOverlay());
+    await shell.locator('#queryProfileBtn').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Test profile loaded.'));
+    await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
+    await shell.mouse.move(700, 100);
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Same-context lookup retains the displayed result');
+    for (const mode of ['empty', 'broken']) {
+      await shell.evaluate(mode => { window.fixtureDecisionMode = mode; }, mode);
+      await shell.locator('#tuiRunDecision').click();
+      await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('No automatic retry.'));
+      assert.deepEqual(await contentSnapshot(), firstContent, 'Failed or empty Run retains the last AEP result');
+      assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'Failed Run sends no display');
+    }
+    let releaseImage;
+    const imageReady = new Promise(resolve => { releaseImage = resolve; });
+    await shellContext.route('**/*next-image=1', async route => {
+      await imageReady;
+      await route.fulfill({ contentType: 'image/jpeg',
+        body: await fs.readFile(path.join(root, 'profile-viewer', 'tui-decisioning-assets', 'mexico.jpg')) });
+    });
+    await shell.evaluate(() => { window.fixtureDecisionMode = 'wait'; });
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => !!window.releaseFixtureDecision);
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Run preserves content while waiting for AEP');
+    const imageRequest = shell.waitForRequest('**/*next-image=1');
+    await shell.evaluate(() => window.releaseFixtureDecision());
+    await imageRequest;
+    assert.deepEqual(await contentSnapshot(), firstContent, 'Returned content is not mounted until its image loads');
+    assert.equal(await shell.evaluate(() => window.fixtureContentChanges), 0, 'No intermediate fallback or DOM replacement during staging, Apply or pending Run');
+    releaseImage();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
+    assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Next live offer');
+    assert.equal(await frame.locator('#mobile-preview .app-offer-title').textContent(), 'Next live offer');
+    assert.equal(await frame.locator('#web-preview h3').textContent(), 'Next live offer');
+    assert.equal(await frame.locator('.app-offer-copy p').textContent(), 'Next returned copy');
+    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 2, 'Successful new result sends one new display');
+    await shell.evaluate(() => window.fixtureContentObserver.disconnect());
     fixture.rows.find(row => row.path === 'consents.marketing.email.val').value = 'n';
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Actual loaded consent'));
@@ -474,10 +626,46 @@ async function main() {
     assert.equal(await frame.locator('#mobile-preview img,#mobile-preview .preview-cta').count(), 0, 'Consent removes stale app offer imagery and CTA');
     assert.equal(await frame.locator('.app-nav button').count(), 4, 'App shell survives the consent hold');
     assert.equal(await frame.locator('#eligible-items .nba-card').count(), 0, 'Actual consent hold clears stale eligible NBA cards');
-    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 1, 'Consent hold sends no display');
+    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 2, 'Consent hold sends no display');
+    await frame.locator('#scenario-pills button').nth(6).click();
+    assert.equal(await frame.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0,
+      'Staging a scenario cannot resurrect content after an actual consent hold');
+    if (!await frame.locator('details[data-group="Consent"]').evaluate(details => details.open)) {
+      await frame.locator('details[data-group="Consent"] summary').click();
+    }
+    await frame.locator('#signal-emailConsent').selectOption('y');
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
+    await shell.evaluate(() => { window.fixtureDecisionMode = ''; });
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
+    assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer',
+      'A successful fresh Run restores content after consent is confirmed again');
+    let releaseStaleImage;
+    const staleImageReady = new Promise(resolve => { releaseStaleImage = resolve; });
+    await shellContext.route('**/*stale-image=1', async route => {
+      await staleImageReady;
+      await route.fulfill({ contentType: 'image/jpeg',
+        body: await fs.readFile(path.join(root, 'profile-viewer', 'tui-decisioning-assets', 'crete.jpg')) });
+    });
+    const staleRequest = shell.waitForRequest('**/*stale-image=1');
+    await shell.evaluate(() => {
+      document.getElementById('tui-visualiser').contentWindow.TuiDecisioningVisualiser.setDecision({
+        url: location.origin + '/profile-viewer/tui-decisioning-assets/crete.jpg?stale-image=1',
+        title: 'Stale result', description: 'Must never appear',
+      }).then(() => { window.fixtureStaleResult = 'accepted'; }, error => { window.fixtureStaleResult = error.message; });
+    });
+    await staleRequest;
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     await shell.locator('#customerEmail').fill('another@example.invalid');
     await shell.waitForFunction(() => document.getElementById('tuiPhSignal-booking').textContent === 'Not loaded');
+    assert.equal(await frame.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0,
+      'Identity changes clear the previous recipient content without a local fallback');
+    releaseStaleImage();
+    await shell.waitForFunction(() => !!window.fixtureStaleResult);
+    assert.match(await shell.evaluate(() => window.fixtureStaleResult), /context changed/);
+    assert.equal(await frame.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0,
+      'Late image load cannot restore a previous identity decision');
     assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 0);
     delayNextLookup = true;
     const requested = shell.waitForRequest('**/api/profile/table?**');
@@ -489,15 +677,17 @@ async function main() {
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Select kirkham before Run'));
-    await shell.evaluate(() => {
-      window.AepGlobalSandbox.setSelected('kirkham');
-      window.EnvBarCompact.openOverlay();
-    });
+    await shell.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    await shell.waitForTimeout(200);
+    await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     fixture.rows = fixture.rows.filter(row => !/^_demoemea\.(airlineCustomer|travelReservations)\./.test(row.path));
     await shell.locator('#queryProfileBtn').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Test profile loaded.'));
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await shell.mouse.move(700, 100);
+    if (!await frame.locator('details[data-group="Holiday"]').evaluate(details => details.open)) {
+      await frame.locator('details[data-group="Holiday"] summary').click();
+    }
     await frame.locator('#signal-booking').selectOption('Booked');
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
@@ -516,7 +706,10 @@ async function main() {
     console.log(`TUI browser checks passed: 7 scenario buttons, ${model.scenarios.length} regression cases, ranked NBA cards, 3 channels, 2 themes; legacy ownership and first-time snapshots verified; no live requests.`);
   } finally {
     if (browser) await browser.close();
-    await new Promise(resolve => server.close(resolve));
+    await new Promise(resolve => {
+      server.close(resolve);
+      server.closeAllConnections();
+    });
   }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

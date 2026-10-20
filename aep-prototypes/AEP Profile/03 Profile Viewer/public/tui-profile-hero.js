@@ -44,6 +44,12 @@
         ? values.emailConsent === undefined ? 'Not set' : values.emailConsent
         : state === undefined || state === null ? 'Not set / not granted' : String(state) : 'Not loaded');
     }
+    const copy = $('tuiCopyEcid');
+    copy.disabled = ['Not loaded', 'Not set'].includes(text('profileDrawerDesktopId'));
+    if (!values) {
+      $('tuiPhTab-0').click();
+      doc.querySelector('.tui-copy-feedback').textContent = '';
+    }
   }
   function mount() {
     const inner = doc.querySelector('#profileDrawer .aep-profile-drawer-inner');
@@ -61,37 +67,69 @@
       const card = el('div', undefined, 'dph-card dph-kpi'), value = el('b', 'Unavailable');
       value.id = 'tuiPhKpi-' + key; card.append(el('small', label), value); kpis.append(card);
     }
-    const details = el('div', undefined, 'tui-profile-sections');
-    ['Contact', 'Travel', 'Identity'].forEach((label, index) => {
+    const details = el('div', undefined, 'dph-details tui-profile-sections');
+    const tabs = el('div', undefined, 'dph-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Traveller attributes');
+    details.append(tabs);
+    const labels = ['Contact', ...new Set(global.TuiDecisioning.fields.map(f => f.group)), 'Identity'];
+    const panels = [], buttons = [];
+    function select(index, focus) {
+      buttons.forEach((button, i) => {
+        button.setAttribute('aria-selected', String(i === index)); button.tabIndex = i === index ? 0 : -1;
+        panels[i].hidden = i !== index;
+      });
+      if (focus) buttons[index].focus();
+    }
+    labels.forEach((label, index) => {
+      const button = el('button', label); button.id = 'tuiPhTab-' + index; button.type = 'button';
+      button.setAttribute('role', 'tab'); button.setAttribute('aria-controls', 'tuiPhPanel-' + index);
+      button.addEventListener('click', () => select(index));
+      button.addEventListener('keydown', event => {
+        const next = { ArrowRight: (index + 1) % labels.length, ArrowLeft: (index + labels.length - 1) % labels.length,
+          Home: 0, End: labels.length - 1 }[event.key];
+        if (next !== undefined) { event.preventDefault(); select(next, true); }
+      });
+      tabs.append(button); buttons.push(button);
       const panel = el('section', undefined, 'dph-card tui-profile-section'); panel.id = 'tuiPhPanel-' + index; panel.tabIndex = 0;
-      const heading = el('h3', label); heading.id = 'tuiPhHeading-' + index;
-      panel.setAttribute('aria-labelledby', heading.id); panel.append(heading);
-      const list = el('dl', undefined, index === 1 ? 'dph-signals' : '');
+      panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', button.id); panels.push(panel);
+      const isSignals = index > 0 && index < labels.length - 1;
+      const list = el('dl', undefined, isSignals ? 'dph-signals' : '');
       const fields = index === 0 ? [['Email', 'Email'], ['Phone', 'Phone'], ['City', 'City']]
-        : index === 1 ? global.TuiDecisioning.fields.map(f => [f.key, f.label]) : [['DesktopId', 'ECID']];
+        : isSignals ? global.TuiDecisioning.fields.filter(f => f.group === label).map(f => [f.key, f.label]) : [['DesktopId', 'ECID']];
       for (const [key, title] of fields) {
-        const value = el('dd', 'Not loaded'); value.id = index === 1 ? 'tuiPhSignal-' + key : 'tuiPh' + key;
-        const pair = el(index === 1 ? 'div' : 'span', undefined, index === 1 ? 'dph-signal' : '');
+        const value = el('dd', 'Not loaded'); value.id = isSignals ? 'tuiPhSignal-' + key : 'tuiPh' + key;
+        const pair = el(isSignals ? 'div' : 'span', undefined, isSignals ? 'dph-signal' : '');
         pair.append(el('dt', title), value);
-        if (index === 1) list.append(pair); else list.append(...pair.childNodes);
+        if (isSignals) list.append(pair); else list.append(...pair.childNodes);
       }
       panel.append(list);
       if (index === 0) for (const channel of ['Email', 'Sms', 'Push']) {
         const consent = el('span', channel + ': Not loaded', 'dph-tog'); consent.id = 'tuiPhConsent-' + channel; panel.append(consent);
       }
-      if (index === 2) {
-        const copy = el('button', 'Copy ECID'); copy.type = 'button';
+      if (label === 'Identity') {
+        const line = list.querySelector('dd'), ecid = el('span', line.textContent);
+        ecid.id = line.id; line.removeAttribute('id'); line.className = 'tui-ecid-line';
+        line.replaceChildren(ecid);
+        const copy = el('button', undefined, 'dph-copy'); copy.id = 'tuiCopyEcid'; copy.type = 'button';
+        copy.setAttribute('aria-label', 'Copy ECID'); copy.title = 'Copy ECID';
+        const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        icon.setAttribute('viewBox', '0 0 16 16'); icon.setAttribute('width', '14'); icon.setAttribute('height', '14');
+        icon.setAttribute('aria-hidden', 'true');
+        const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('fill', 'currentColor'); path.setAttribute('d', 'M5 1h9v11h-3v3H1V4h4V1zm1 3h5v7h2V2H6v2zM2 5v9h8V5H2z');
+        icon.append(path); copy.append(icon);
+        const feedback = el('span', undefined, 'tui-copy-feedback'); feedback.setAttribute('role', 'status');
         copy.addEventListener('click', async () => {
           const id = text('profileDrawerDesktopId');
-          if (['Not loaded', 'Not set'].includes(id)) { copy.textContent = 'No ECID loaded'; return; }
-          try { await navigator.clipboard.writeText(id); copy.textContent = 'Copied'; }
-          catch (error) { console.warn('ECID copy failed', error); copy.textContent = 'Copy unavailable'; }
+          if (['Not loaded', 'Not set'].includes(id)) { feedback.textContent = 'No ECID loaded'; return; }
+          try { await navigator.clipboard.writeText(id); feedback.textContent = 'ECID copied'; }
+          catch (error) { console.warn('ECID copy failed', error); feedback.textContent = 'Copy unavailable'; }
         });
-        panel.append(copy);
+        line.append(copy); panel.append(feedback);
         const reset = $('profileDrawerEcidResetWrap'); if (reset) panel.append(reset);
       }
       details.append(panel);
     });
+    select(0);
     hero.append(head, kpis, details); inner.prepend(hero); doc.body.classList.add('decisioning-profile-hero');
     let scheduled = false;
     const schedule = () => {

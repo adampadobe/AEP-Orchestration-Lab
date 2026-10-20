@@ -5,9 +5,10 @@
   const $ = id => document.getElementById(id);
   const controls = new Map();
   const groups = new Map();
-  let recipient = 'Alex', live = null, held = '', embedded = false, generation = 0;
+  let recipient = 'Alex', live = null, displayed = null, profileIdentity = null, held = '',
+    embedded = parent !== window, generation = 0;
   function changed(keys) {
-    generation++; live = null; held = '';
+    generation++; held = '';
     window.dispatchEvent(new CustomEvent('tui-signals-changed', { detail: { keys } }));
   }
   function el(tag, text, className) {
@@ -75,13 +76,14 @@
     const scenario = model.demoScenarios[index];
     const previous = state;
     state = { ...model.defaults, ...scenario.preset };
-    changed([...new Set([...Object.keys(scenario.preset), ...model.fields.filter(f => previous[f.key] !== state[f.key]).map(f => f.key)])]);
+    const updates = [...new Set([...scenario.signalKeys, ...model.fields.filter(f => previous[f.key] !== state[f.key]).map(f => f.key)])];
+    changed(updates);
     for (const [key, input] of controls) {
       input.value = String(state[key]);
       input.removeAttribute('aria-invalid');
     }
     groups.forEach(detail => { detail.open = false; });
-    for (const key of Object.keys(scenario.preset)) {
+    for (const key of updates) {
       const field = model.fields.find(f => f.key === key);
       groups.get(field.group).open = true;
     }
@@ -93,10 +95,10 @@
   }
   function buildScenarios() {
     model.demoScenarios.forEach((scenario, index) => {
-      const button = el('button', scenario.name);
+      const button = el('button', scenario.rank + ' / ' + scenario.name);
       button.type = 'button';
       button.dataset.scenario = index;
-      button.title = model.objectives[index].label;
+      button.title = model.objectives.find(o => o.key === scenario.expectedObjective).label;
       button.setAttribute('aria-pressed', 'false');
       button.addEventListener('click', () => useScenario(index));
       $('scenario-pills').append(button);
@@ -209,8 +211,10 @@
     return card;
   }
   function renderPreview(result) {
+    $('app-greeting').textContent = 'Hi ' + recipient;
+    if (live && displayed === live && !held) return;
     const objective = model.objectives.find(o => o.key === result.objective);
-    let offer = objective && objective.offers.find(item => item.key === result.offer);
+    let offer = !embedded && objective && objective.offers.find(item => item.key === result.offer);
     if (live) offer = { image: live.url, imageAlt: 'Image returned by the configured live decision',
       content: { title: live.title || 'Live decision image', fullDescription: live.description || 'No copy was returned by the live decision.',
         fullCTA: 'Preview interaction' } };
@@ -219,9 +223,10 @@
     document.querySelectorAll('.subject-line').forEach(node => {
       node.textContent = offer ? 'Subject: ' + offer.content.title : 'Content held / no email';
     });
-    $('app-greeting').textContent = 'Hi ' + recipient;
+    displayed = live;
     if (!offer) {
-      for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(held || result.reason));
+      const reason = held || (embedded ? 'Run live decision to retrieve content for the selected profile.' : result.reason);
+      for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(reason));
       return;
     }
     $('email-preview').replaceChildren(email(offer));
@@ -237,10 +242,12 @@
     const result = model.evaluate(state);
     const invalid = Array.from(controls.values()).some(input => input.getAttribute('aria-invalid') === 'true');
     if (invalid || held) {
-      live = null;
+      if (held || !embedded) live = null;
       result.objective = null;
       result.offer = null;
-      result.reason = held || 'Content held: enter valid values for the highlighted signals. Previous content has been removed.';
+      result.reason = held || (embedded && live
+        ? 'Enter valid staged signals before Apply. The last AEP decision remains displayed.'
+        : 'Content held: enter valid values for the highlighted signals. Previous content has been removed.');
       result.ladder.forEach(row => {
         row.eligible = false;
         row.offers.forEach(item => { item.eligible = false; });
@@ -266,7 +273,6 @@
       tab.tabIndex = active ? 0 : -1;
       $('panel-' + tab.dataset.channel).hidden = !active;
     });
-    $('preview-caption').textContent = { email: 'Responsive email / 600px', mobile: 'TUI mobile app / 390px', web: 'TUI website' }[channel];
     if (push || parent !== window) {
       const url = new URL(location.href);
       url.searchParams.set('channel', channel);
@@ -406,20 +412,18 @@
     },
     setEmbedded() {
       embedded = true; document.querySelector('.fictional-drawer').hidden = true;
-      document.querySelector('.signals-pane > .microcopy').textContent = 'Local ranking uses staged signals. Only Apply writes profile changes; Run requests live content.';
       for (const input of controls.values()) if (input.type === 'number') {
         input.removeAttribute('min'); input.removeAttribute('max'); input.step = 'any';
       }
       this.setProfile(null);
     },
     setProfile(data) {
-      generation++; live = null; held = ''; state = { ...model.defaults, ...data?.state };
+      generation++;
+      if (!data?.contextKey || data.contextKey !== profileIdentity) live = null;
+      profileIdentity = data?.contextKey || null;
+      held = ''; state = { ...model.defaults, ...data?.state };
       recipient = data?.firstName || 'traveller';
-      document.querySelector('.avatar').textContent = data ? recipient.slice(0, 2).toUpperCase() : '--';
       document.querySelectorAll('.recipient-label').forEach(node => { node.textContent = data ? 'To: ' + recipient + (data.email ? ' <' + data.email + '>' : '') : 'No recipient selected'; });
-      document.querySelector('.fictional-person strong').textContent = data ? recipient : 'No profile loaded';
-      document.querySelector('.fictional-person small').textContent = data ? 'Loaded signals / defaults for missing values' : 'No profile selected';
-      document.querySelector('.fictional-person small + small').textContent = data ? 'See actual identity and consent in the shared drawer' : 'No live profile selected';
       for (const [key, input] of controls) {
         if (input.tagName === 'SELECT' && ![...input.options].some(option => option.value === String(state[key]))) {
           const option = el('option', String(state[key])); option.value = String(state[key]); input.append(option);

@@ -144,6 +144,13 @@ name a reference customer, or replace this layout with a generic dashboard.
 
 Use a full-bleed visualiser iframe with a peek sidebar and, for live demos, the
 canonical shared Spectrum environment strip plus explicit Apply / Run actions.
+Place Apply and Run to the right of the brand logo/tagline in a single branded
+header, with a compact status message in that same header. Do not reserve a
+separate action toolbar above a second branded row. In iframe demos the parent
+owns this combined header; hide the iframe's duplicate brand header before
+first paint and calculate its offset from the actual combined header height.
+Allow actions to wrap within that header on phones. Keep the shared configuration
+strip, button IDs, disabled states, live status and explicit-action behavior.
 For live demos, include the complete drawer design specified below, not only
 the classic shared drawer or a few additional attribute rows.
 Keep `home-dashboard-concierge`, the early-paint theme IIFE and shared navigation.
@@ -157,17 +164,26 @@ and the dark branded seven-row objective ladder in the middle, and the channel
 preview on the right. Use keyboard/pointer-resizable gutters with saved proportions
 that adapt to viewport width; avoid tiny fixed maxima that force the preview to
 take most of an ultrawide screen. Provide a double-click reset.
-Signal groups, ranked objectives and Eligible NBAs start collapsed. Provide
+Signal groups, selection strategies and Eligible NBAs start collapsed. Provide
 Expand all / Collapse all for objectives and keep rank numbers visible when
 compressed. Choosing a scenario first collapses every signal group, then opens
-every group containing any field in the scenario's full preset, even if that
-value did not change. Expand the selected objective and the Eligible NBAs only
-after a scenario is chosen. Present exactly seven scenario buttons in objective
-order, each with a complete deterministic preset that reaches its intended
+only groups participating in that profile update: the chosen scenario's
+rule-relevant fields plus prior scenario values that must be reset. Keep
+explicit scenario fields staged even when their value is unchanged, so missing
+profile fields can be populated. Separate these focused update keys from the
+complete deterministic preset; otherwise a full preset expands every group.
+Collapse unrelated groups on every selection, and remove the repeated customer/
+instruction text above the attributes so groups follow their heading directly.
+Expand the selected strategy and the Eligible NBAs only
+after a scenario is chosen. Present exactly seven scenario buttons in reverse
+rank order, **7 to 1**, each with a complete deterministic preset that reaches its intended
 objective from any previous state. Do not add a scenario dropdown, duplicate
 selector or extra reset/consent scenario buttons. Keep manual signal controls
 and the separate Reset action. Retain exhaustive item, negative, boundary and
-consent cases in the model/test matrix, not the presentation selector.
+consent cases in the model/test matrix, not the presentation selector. Label the
+ladder **Selection Strategies**. Keep its actual priority and stop-first
+evaluation in rank order 1 to 7; reversing scenario presentation must not reverse
+catalog priorities, rule precedence or the strategy ladder.
 On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
 
@@ -196,8 +212,9 @@ max-width to the Web panel or shrink it into a miniature offer card.
 
 ### Customer, identity and events drawer
 
-Reuse the shared drawer capabilities from NatWest/TUI, with BA-style visible
-profile sections rather than NatWest's optional section tabs. Preserve the
+Reuse the shared drawer capabilities from NatWest/TUI, with compact attribute
+tabs so the loaded profile can be read without scrolling down through one long
+attribute list. Preserve the
 complete experience without requiring the user to request it separately:
 
 - **Customer hero:** avatar, customer name, demographic/location summary,
@@ -209,7 +226,9 @@ complete experience without requiring the user to request it separately:
   complaint status, eligible offer count and content-personalisation consent.
   Substitute only fields present in the supplied industry schema; do not retain
   unsupported application, account-restriction or shopping-activity labels.
-- **Identity:** ECID with copy feedback and the shared New anonymous visitor
+- **Identity:** ECID with a small, icon-only copy button immediately beside the
+  identifier, accessible label, disabled unloaded state and copy feedback (not a
+  full-width text button), plus the shared New anonymous visitor
   control. Preserve its existing explicit-action behavior; never reset identity
   during initialization or profile lookup.
 - **Linked identities:** retain the shared identity graph, clickable heading/count,
@@ -250,12 +269,17 @@ vertical page scrolling; use columns, bounded internal areas and fit-to-height
 zoom rather than an indefinitely tall canvas. **Do not grow the entire drawer
 to fit profile fields.** Use a desktop height budget of roughly five recent event
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
-Use compact, visible Contact / industry-specific / Identity sections below the
-hero and KPIs, following the BA reference. Do not introduce NatWest-style profile
-section tabs unless explicitly requested. Keep the Email/Desktop, Mobile App,
-and Web channel selector. Group holdings into a two-column tile grid rather than a long
+Use compact Contact / industry-attribute-group / Identity tabs below the
+hero and KPIs. Split a large industry panel by its meaningful groups (TUI:
+Holiday, Support, Shopping, Preferences, Consent), rather than packing every
+attribute into one scrolling Travel panel. Only the selected panel is visible;
+support roving focus, arrow/Home/End navigation and preserve the active tab on
+unchanged polling refreshes. Clear it on identity/sandbox changes. Keep the
+Email/Desktop, Mobile App, and Web channel selector. Group holdings into a two-column tile grid rather than a long
 single label/value list. Keep all actual values accessible, including full long
-strings through panel scrolling. Scroll panel/event/audience overflow internally;
+strings through wrapping (with internal overflow only for exceptional long data).
+Verify each normal attribute tab fits without vertical panel scrolling. Scroll
+event/audience overflow internally;
 on narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
 stacked sections. Verify exact loaded/unloaded height limits with five fixture
 events, all sections, both themes, and desktop/narrow viewports. Move, rather than clone, the
@@ -270,6 +294,22 @@ or decisioning events merely to populate the drawer.
 Refresh **Messages Sent** in the same event-poll update as the drawer's events
 and journey data, using the same identity and time window, not a separate slow
 profile lookup.
+Follow BA's event attribution and shared polling, not just its static drawer
+markup. The manual PropositionDisplay must carry the original request
+`identityMap`, matching ECID at `<resolvedTenant>.identification.core.ecid`, and
+the original proposition scope/metadata; keep `_experience.decisioning.*` and
+`web.webPageDetails.*` at root. Resolve the tenant from the selected configured
+schema/dataflow instead of copying BA's namespace. Include the configured page/
+view name so actual ingested events can be identified. Send exactly once after
+the returned image is loaded, then call
+`DemoProfileDrawer.refreshDrawerEventsForLoadedProfile()`. Retain the shared
+one-second poll started by a successful drawer lookup to catch delayed Hub
+ingestion. Do not run another full lookup, switch to a different/browser
+identity, fabricate event cards or resend display events to force the box to
+update. Verify with an intercepted delayed event response that the actual
+event card, details, count and journey update without clicking refresh, while
+identity/sandbox changes discard late responses. Display events are not
+messages sent; never increment message totals for a content decision.
 
 Retain a per-demo classic-layout escape hatch, following NatWest's
 `?nwDrawer=classic` / `?nwDrawer=hero`, plus `?journey=classic` /
@@ -326,7 +366,19 @@ channel: a table-based 600px email, a branded mobile app in a 390px phone frame,
 and a recognisable reconstruction of the supplied website. Do not send any
 content. In a live demo, distinguish
 local objective ranking from live preview content: staged controls must not
-pretend to be an Edge decision. Replace live content only on a successful Run.
+pretend to be an Edge decision. Latch the last successfully returned image and
+offer text across scenario selection, manual edits, Reset, channel switching,
+same-context lookup and Apply/readback. These actions can update the local
+ranking, but must not replace or rebuild the displayed offer with local imagery
+or copy, including during invalid or no-content staged states. Keep the old
+content while Run is pending and when a response is empty, ambiguous, fails or
+its image cannot load. Replace all channel slots only after a fresh, valid Run
+result and successful image load; reject responses made stale by intervening
+edits or context changes. In embedded live mode show a neutral Run-to-load state
+before the first result, never a locally predicted offer. Clear returned content
+on identity/namespace/sandbox changes and actual consent holds; those safety
+boundaries take precedence over retention. Key same-context refreshes by the
+complete sandbox/namespace/identifier tuple, not the recipient email alone.
 
 Match BA's **compact segmented switcher**, not a full-width row of equally
 stretched buttons. Put the preview label on the left and the switcher on the
@@ -334,14 +386,19 @@ right of the same header, wrapping only when necessary. Use the exact labels
 **Email · Desktop**, **Mobile App**, **Web**, a muted pill track, and a raised
 selected pill with the theme accent. Keep keyboard and selected-state semantics;
 do not remove channel tabs when removing unwanted profile-section tabs.
+Do not add a separate channel-description/dimensions row beneath that header;
+channel content should follow the switcher directly. Omit a decorative Search
+Preview bar or non-working search strip when it wastes the reconstructed Web
+stage's vertical space.
 
 The mobile app needs its own app shell: device status area, branded header,
 personalised greeting, in-app offer card, relevant quick actions, persistent
 bottom navigation and home indicator. Do not include email subjects, To/from
 metadata, email tables or inbox chrome. Keep the app content independently
 scrollable while its navigation remains visible. Adapt the current selected
-offer into a native-style image/title/copy/CTA card; scenario changes and genuine
-live Run results update that same slot without changing catalog selection.
+offer into a native-style image/title/copy/CTA card. Standalone scenarios may
+update the local slot, but embedded live scenarios only stage signals: a
+successful live Run is what replaces the displayed offer in that same slot.
 Keep the shell on consent/no-content holds but remove stale offer imagery and
 CTAs. Reuse the existing conservative consent gate; a mobile app preview does
 not establish app consent or authorise sending push/in-app messages.

@@ -34,8 +34,12 @@ consent, travel attributes, linked identities, audiences and five recent events
 are separate from staged simulator values. Missing values show Not set,
 unloaded values Not loaded, and unavailable KPIs Unavailable.
 
-The compact traveller hero has visible Contact / Travel / Identity sections,
-without profile tabs. Overflow scrolls inside the existing bounded drawer.
+The compact traveller hero uses Contact / Holiday / Support / Shopping /
+Preferences / Consent / Identity tabs, replacing the long stacked attribute
+list. Only one panel is shown; ordinary attributes fit without vertical panel
+scrolling. Keyboard arrows/Home/End switch tabs, and event polling preserves the
+selected tab. The ECID has a 24px icon-only copy button immediately beside its
+digits, with accessible labelling and success/failure feedback.
 The shared anonymous-visitor control is moved, not cloned; reset remains
 an explicit action. Drawer height is capped at 560px and available viewport,
 or 55dvh on narrow screens, with internal scrolling. The event count opens
@@ -74,6 +78,15 @@ performed while implementing this correction.
 then requests the explicitly configured live policy through the shared runtime.
 A genuine hero image/copy replaces all three channel previews only after a
 successful response and image load, followed by one attributed display event.
+Following the BA reference, that event includes the original request identity
+map, its matching ECID at the configured tenant's `identification.core.ecid`,
+the returned item/selection metadata, and root web page/view details. Missing
+request ECID or tenant configuration explicitly blocks display tracking rather
+than inventing an identity. After delivery the shell refreshes the loaded
+profile's events; the shared drawer's one-second poll then catches delayed Hub
+ingestion without another full profile lookup. Actual ingested events update the
+five-card box and journey, not optimistic local cards. Content displays do not
+increment Messages Sent. Context changes invalidate old event responses.
 It does not send messages or activate the TUI drafts. The objective ladder
 remains an explicitly labelled local simulation, not an explanation of a
 different live policy's result.
@@ -83,10 +96,16 @@ different live policy's result.
 `web/profile-viewer/tui-decisioning-model.js` is the source for all seven
 objectives, 21 items, typed controls, rule conditions and scenario assertions.
 The website tests eligibility before item priority and stops at the first
-qualifying objective. Exactly seven scenario buttons map to the seven objectives
-in order; there is no scenario dropdown or duplicate selector. Each button stages
+qualifying objective. The panel is labelled **Selection Strategies**.
+Exactly seven scenario buttons are presented in reverse rank order **7 to 1**;
+the strategy ladder still evaluates in unchanged priority order **1 to 7**.
+There is no scenario dropdown or duplicate selector. Each button stages
 a complete preset, so its intended objective wins regardless of the previous
-scenario. Twenty-five regression cases remain in the model for all 21 winning
+scenario. Only rule-relevant scenario keys and keys being reset from the
+previous state are marked for updates and expand their signal groups; all
+unrelated groups collapse on each selection. Initial signal groups are closed.
+The duplicate customer/instruction block above the attributes is removed.
+Twenty-five regression cases remain in the model for all 21 winning
 items, negative/consent holds and boundaries; they are not extra UI buttons.
 
 The TUI-branded dark objective panel follows BA's numbered chevrons and status
@@ -192,11 +211,11 @@ policy can be tested explicitly, separately from the local ranking.
 
 ## Interaction and checks
 
-The desktop email, TUI mobile app concept and web hero use the same selected
+The desktop email, TUI mobile app and web hero use the same selected
 item with channel-specific presentation. Mobile is no longer a resized email:
 it has a TUI header, recipient greeting, native-style offer card, holiday tools,
 bottom navigation and home indicator. Its content scrolls inside the phone while
-navigation stays visible. Quick actions/navigation give simulation feedback;
+navigation stays visible. Unconnected quick actions/navigation report that fact;
 they do not open bookings or perform account actions. No real booking details,
 balances or app services are fabricated. Without a supplied app capture, this
 is a branded reconstruction, not an exact production app replica. At the user's
@@ -209,10 +228,25 @@ The Smiles information copy no longer includes the illustrative-points caveat;
 this updates website copy only, not the already-created AJO draft items.
 Existing conservative email/personalisation consent gates still hold
 all personalised slots; the app preview adds no new consent or messaging rights.
-Suppression removes prior personalised images and CTAs, retaining the app shell.
+The live shell starts with a neutral Run-to-load state, not local offer imagery.
+After a successful Run, its returned image/title/copy remain mounted across
+scenario changes, manual edits (including temporarily invalid signals), Reset,
+channel switches and same-context profile lookup or Apply/readback. Only the
+local ranked objectives and eligibility change while signals are staged.
+Pending, failed, empty/ambiguous or broken-image Runs retain that last result;
+a fresh successful response replaces all three slots only after its image loads.
+Intervening signal/context changes invalidate pending image loads. Same-context
+refreshes use the complete sandbox/namespace/identifier tuple. Identity/sandbox
+changes and actual readback consent holds clear prior personalised images and
+CTAs, retaining the app shell without reverting to a local offer. Standalone
+visualiser scenarios still render their local model content.
 Tabs support roving focus, Left/Right/Home/End, deep links and back/forward.
-The shell and iframe keep their channel state aligned. Theme follows `aepTheme`;
-pane proportions use `tuiDecisioningPaneRatios` and adapt to viewport width.
+The shell and iframe keep their channel state aligned. Theme follows `aepTheme`.
+Apply/Run and their status now sit to the right of the logo and **A little more
+you.** in a single branded parent header. There is no separate action toolbar
+or repeated brand header inside the live iframe. Narrow layouts wrap the
+controls within that same header; its measured height sets the iframe offset.
+Pane proportions use `tuiDecisioningPaneRatios` and adapt to viewport width.
 The default split is approximately 22% signals, 42% objectives and 36% preview;
 drag either divider, use arrow keys (Shift for larger steps), or double-click
 to reset that pane. Old fixed-pixel preferences are ignored.
@@ -225,8 +259,11 @@ Resizable gutters support pointer and keyboard input. On narrower viewports
 panes stack without horizontal scrolling.
 The compact BA-style channel switcher sits beside the preview title: **Email ·
 Desktop**, **Mobile App**, **Web**. Only email is capped at 600px and the
-app phone at 390px. Existing `?channel=mobile` links still work. Web fills the stage, with browser chrome, readable navigation
-and search, a container-responsive hero, and destination sections. Its scroll
+app phone at 390px. Existing `?channel=mobile` links still work. There is no
+channel-description/dimensions row below the switcher. Web fills the stage,
+with browser chrome, readable navigation, a container-responsive hero and
+destination sections. The non-working Search Preview strip is removed so the
+hero follows site navigation directly. Its scroll
 area is independent of the channel header; stacked layouts have no 760px cap.
 The dashboard sidebar peeks from the left edge and opens on hover/focus; the
 shared configuration bar retains its Lab menu controls.

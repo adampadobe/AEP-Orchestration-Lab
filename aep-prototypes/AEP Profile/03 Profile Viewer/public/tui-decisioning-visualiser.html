@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>if(parent!==window)document.documentElement.setAttribute('data-tui-embedded','');</script>
   <title>TUI | Next holiday, best moment</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261019-clean">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261020-header">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser">
@@ -17,8 +18,6 @@
   <main id="workspace" class="tui-workspace">
     <section class="signals-pane pane" aria-labelledby="signals-title">
       <div class="pane-heading"><div><span class="eyebrow">01 / THE TRAVELLER</span><h2 id="signals-title">Holiday signals</h2></div><button id="reset" type="button">Reset</button></div>
-      <div class="fictional-person"><span class="avatar" aria-hidden="true">AM</span><div><strong>Alex Morgan</strong><small>Fictional traveller / Manchester</small><small>alex.morgan@example.invalid</small></div></div>
-      <p class="microcopy">Change a signal to see its actual effect. Nothing leaves this browser.</p>
       <div id="signals"></div>
       <details class="mapping-details"><summary>Schema &amp; catalog boundary</summary><p>Existing Operational Profile fields, tenant <code>_demoemea</code>. The schema paths are shown on every control. No new TUI subtree.</p><p>Consent is an explicit local hold. The draft catalog does not encode this consent gate; a reviewed policy gate is required before live use.</p><p>Seven reused objective tags also include existing BA items. They are not TUI-exclusive. New tags and media hosting are not provisioned.</p></details>
     </section>
@@ -29,7 +28,7 @@
       <div id="scenario-pills" class="scenario-pills" role="group" aria-label="Seven holiday scenarios"></div>
       <p id="scenario-label" class="microcopy" role="status">Starting profile</p>
       <section class="ranking-panel" aria-labelledby="ranking-title">
-        <div class="ranking-heading"><h3 id="ranking-title">Ranked objectives</h3><span>Stop at the first eligible</span><div class="ladder-toolbar"><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button></div></div>
+        <div class="ranking-heading"><h3 id="ranking-title">Selection Strategies</h3><span>Stop at the first eligible</span><div class="ladder-toolbar"><button id="expand" type="button">Expand all</button><button id="collapse" type="button">Collapse all</button></div></div>
         <div id="objectives" class="objective-ladder"></div>
       </section>
       <div id="decision-status" class="decision-status" role="status" aria-live="polite"></div>
@@ -46,7 +45,6 @@
           <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
         </div>
       </div>
-      <div class="preview-caption"><span id="preview-caption">Responsive email / 600px</span></div>
       <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
       <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden>
         <div class="phone-frame tui-app" aria-label="TUI mobile app">
@@ -66,7 +64,6 @@
           <div class="site-browser-bar" aria-label="Reconstructed website address"><span class="site-browser-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="site-browser-address">tui.co.uk</span></div>
           <div class="site-utility">Travel information <span>Help Centre / My booking</span></div>
           <div class="site-nav"><img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="64" height="29"><span>Holidays &nbsp; Cruises &nbsp; Flights &nbsp; Hotels &nbsp; Deals</span></div>
-          <div class="site-search"><strong>Package Holidays</strong><span>Manchester</span><span>Your next destination</span><span>Choose dates</span><span>2 adults</span><span class="search-label">Search preview</span></div>
           <div id="web-preview"></div>
           <div class="site-inspiration"><span class="eyebrow">HOLIDAYS DESIGNED BY TUI</span><h3>Find your kind of happy.</h3><div class="destination-grid"><figure><img src="tui-decisioning-assets/crete.jpg" alt="Crete coastline" width="220" height="130"><figcaption>Crete / Beach holidays</figcaption></figure><figure><img src="tui-decisioning-assets/gran-canaria.jpg" alt="Gran Canaria coast" width="220" height="130"><figcaption>Gran Canaria / A sunny escape</figcaption></figure><figure><img src="tui-decisioning-assets/mexico.jpg" alt="Holiday in Mexico" width="220" height="130"><figcaption>Mexico / Something special</figcaption></figure></div></div>
         </div>
@@ -75,7 +72,7 @@
     </section>
   </main>
   <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
-  <script src="tui-decisioning-model.js?v=20261019-clean"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261019-clean"></script>
+  <script src="tui-decisioning-model.js?v=20261020-header"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261020-header"></script>
 </body>
 </html>

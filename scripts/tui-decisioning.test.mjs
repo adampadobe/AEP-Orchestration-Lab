@@ -50,10 +50,13 @@ test('every TUI scenario selects its expected objective and offer, including con
 });
 test('exactly seven visible scenario presets independently select each ranked objective', () => {
   assert.equal(model.demoScenarios.length, 7);
-  assert.deepEqual(model.demoScenarios.map(s => s.expectedObjective), model.objectives.map(o => o.key));
+  assert.deepEqual(model.demoScenarios.map(s => s.expectedObjective), model.objectives.map(o => o.key).reverse());
+  assert.deepEqual(model.demoScenarios.map(s => s.rank), [7, 6, 5, 4, 3, 2, 1]);
   for (const scenario of model.demoScenarios) {
     assert.deepEqual(Object.keys(scenario.preset).sort(), model.fields.map(field => field.key).sort());
     assert.equal(model.evaluate(scenario.preset).objective, scenario.expectedObjective);
+    assert(scenario.signalKeys.length > 0 && scenario.signalKeys.length < model.fields.length);
+    assert(scenario.signalKeys.every(key => model.fields.some(field => field.key === key)));
   }
 });
 
