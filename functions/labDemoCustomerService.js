@@ -3,6 +3,7 @@
 const { createHash, randomUUID } = require('node:crypto');
 const admin = require('firebase-admin');
 const configService = require('./labDemoConfigService');
+const { getBackupBucket } = require('./labDemoAssetService');
 const { sandboxPrefix } = require('./imageHostingLibrary');
 
 const SCOPES = 'labDemoCustomerScopes';
@@ -37,8 +38,7 @@ function services(deps = {}) {
     firestore: deps.firestore || admin.firestore(),
     database: deps.database || admin.database(),
     activeBucket: deps.activeBucket || admin.storage().bucket(process.env.BRAND_SCRAPER_BUCKET || 'aep-orchestration-lab-brand-scrapes'),
-    backupBucket: deps.backupBucket || (process.env.LAB_DEMO_ASSET_BACKUP_BUCKET
-      ? admin.storage().bucket(process.env.LAB_DEMO_ASSET_BACKUP_BUCKET) : admin.storage().bucket()),
+    backupBucket: getBackupBucket(deps),
     ...deps,
   };
 }

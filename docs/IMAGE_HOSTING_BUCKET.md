@@ -16,7 +16,7 @@ Image Hosting's **Cloud customer packages** panel and `/mcp/demo-prep` use the s
 
 **Save customer** previews a named snapshot without changing live files or RTDB. **Prepare new customer** previews staged replacements (including new paths) and branding. **Preview restore** restores a saved complete revision and removes customer paths absent from it, never shared paths. Each switch first saves the outgoing files and branding. Confirm the outgoing name when unknown or disputed; review before/after previews, deletions and configuration before applying. Manual replacements retain unreplaced customer files, explicitly shown as **keep** in the preview.
 
-Snapshots are immutable, scoped by principal/workspace/sandbox and stored in the **private** default Firebase Storage bucket, or `LAB_DEMO_ASSET_BACKUP_BUCKET`:
+Snapshots are immutable, scoped by principal/workspace/sandbox and stored in the **private** Demo Asset Library bucket `aep-orchestration-lab-demo-assets`, or `LAB_DEMO_ASSET_BACKUP_BUCKET`. Both legacy image revisions and customer packages use this same resolver. The project's advertised default Firebase Storage bucket does not exist and is not used:
 
 | Prefix | Contents | Retention |
 | --- | --- | --- |

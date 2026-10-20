@@ -3,8 +3,8 @@
  *
  * Active assets remain at the existing public, stable Image Hosting paths.
  * Preflights, immutable customer revisions, and idempotency records are
- * user+sandbox scoped. Backup bytes live in the Firebase project's private
- * default Storage bucket (or LAB_DEMO_ASSET_BACKUP_BUCKET when configured).
+ * user+sandbox scoped. Backup bytes live in the private Demo Asset Library
+ * bucket (or LAB_DEMO_ASSET_BACKUP_BUCKET when configured).
  */
 'use strict';
 
@@ -60,7 +60,7 @@ function getBackupBucket(deps = {}) {
   if (deps.backupBucket) return deps.backupBucket;
   ensureAdmin();
   const configured = String(process.env.LAB_DEMO_ASSET_BACKUP_BUCKET || '').trim();
-  return configured ? admin.storage().bucket(configured) : admin.storage().bucket();
+  return admin.storage().bucket(configured || 'aep-orchestration-lab-demo-assets');
 }
 
 function safeSlug(value, fallback = 'customer') {
@@ -622,6 +622,7 @@ module.exports = {
   applyPreview,
   createPreview,
   createRestorePreview,
+  getBackupBucket,
   inspect,
   publicCdnUrl,
   restoreRevisionDirect,

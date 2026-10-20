@@ -5,6 +5,22 @@ const assert = require('node:assert/strict');
 const sharp = require('sharp');
 const service = require('../labDemoAssetService');
 
+test('backup storage uses the private asset bucket rather than the nonexistent Firebase default', (t) => {
+  const admin = require('firebase-admin');
+  if (!admin.apps.length) admin.initializeApp({ projectId: 'offline', storageBucket: 'nonexistent-default' });
+  const original = process.env.LAB_DEMO_ASSET_BACKUP_BUCKET;
+  t.after(() => {
+    if (original === undefined) delete process.env.LAB_DEMO_ASSET_BACKUP_BUCKET;
+    else process.env.LAB_DEMO_ASSET_BACKUP_BUCKET = original;
+  });
+  delete process.env.LAB_DEMO_ASSET_BACKUP_BUCKET;
+  assert.equal(service.getBackupBucket().name, 'aep-orchestration-lab-demo-assets');
+  process.env.LAB_DEMO_ASSET_BACKUP_BUCKET = 'custom-private-bucket';
+  assert.equal(service.getBackupBucket().name, 'custom-private-bucket');
+  const injected = {};
+  assert.equal(service.getBackupBucket({ backupBucket: injected }), injected);
+});
+
 class FakeFile {
   constructor(bucket, name) {
     this.bucket = bucket;
