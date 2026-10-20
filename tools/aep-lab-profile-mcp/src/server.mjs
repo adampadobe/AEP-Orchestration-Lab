@@ -59,6 +59,7 @@ const ENDPOINTS = [
   {
     path: '/mcp/entry',
     toolset: 'entry',
+    bodyLimit: '24mb',
     register: registerFocusedMcpGuideTools,
     instructions:
       'Read-only AEP Lab MCP capability directory. Recommend the smallest configured context and cross-context workflow; never claim to connect, switch, proxy, or execute another MCP server.',
@@ -98,6 +99,7 @@ const ENDPOINTS = [
   {
     path: '/mcp/demo-prep',
     toolset: 'demo-prep',
+    bodyLimit: '24mb',
     register: registerFocusedDemoPrepTools,
     instructions:
       'Focused customer demo preparation: resolve or run one brand scrape, preview stable image-hosting slots and governed RTDB changes, obtain explicit confirmation, activate with automatic customer backup, and restore named customers.',

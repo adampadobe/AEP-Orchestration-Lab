@@ -24,21 +24,25 @@ Some advanced workflows use tools available only on the installed General integr
 
 ## Workflow 0d — Prepare stable customer images and saved-customer restore
 
-1. **Inspect active slots and saved customers**
+1. **Inspect and classify**
 
-   > **lab_demo_assets_inspect** sandbox apalmer — report the active customer, permanent CDN URLs, slot hashes, and named revisions.
+   > **lab_demo_assets_inspect** sandbox apalmer — review `customerLibrary` inventory, RTDB branding, drift and saved revisions. Classify all visible files with `customer_paths` / `shared_paths`. Ask the colleague for the outgoing customer name if unknown or disputed.
 
-2. **Preview from a completed scrape**
+2. **Save the current customer in the cloud**
 
-   > **lab_demo_customer_switch** sandbox apalmer scrape_id `{id}` confirmed `false`, auto_classify_images `true`. If classification runs, summarize categories and confidence; then show the RTDB diff and every signed preview for logo, hero, mobile entry, mobile exit, and push/in-app. Do not apply yet. Use force_reclassify only when the saved classifications are stale or wrong.
+   > **lab_demo_customer_save** sandbox apalmer customer_name `{name}`, scope arrays, confirmed `false`. Show the preview; after confirmation call it with returned `preflight_id`, `confirmed:true` and an idempotency key. Active URLs/config remain unchanged.
 
-3. **Confirm and activate**
+3. **Prepare the next customer**
 
-   > After explicit colleague confirmation, call **lab_demo_customer_switch** with the returned `asset_preflight_id` and `config_preflight_id`, `confirmed:true`, and one stable `idempotency_key`. Only report ready when `verification.readyToPresent` is true.
+   > Stage supported attachment bytes with **lab_demo_customer_upload** (8 MiB maximum); do not send local paths. Use **lab_demo_customer_switch** with `customer_name`, `backup_customer_name`, scope arrays, `replacements:[{rel_path,stage_id}]` and explicit brand `changes`. Alternatively supply `scrape_id` for classified five-slot images plus the full-library package; resolve missing brand fields explicitly. Show all signed previews, kept/deleted paths and RTDB diffs. After confirmation apply the single `preflight_id` with `confirmed:true` and a new idempotency key. Do not report ready without `verified:true`; check `publicDeliveryVerified` separately and warn about downstream image caches.
 
 4. **Restore a previous customer**
 
-   > Take `revisionId` from **lab_demo_assets_inspect**. Call **lab_demo_assets_restore** with `revision_id` and `confirmed:false`; show the preview. After confirmation call it again with returned `preflight_id`, `confirmed:true`, and a new idempotency key.
+   > Take `revisionId` from `customerLibrary.revisions` (follow `nextCursor` for more). Call **lab_demo_customer_switch** with `revision_id`, confirmed `false`, scope arrays and outgoing `backup_customer_name`; review images, deletions and branding, then confirm the single preflight. The outgoing customer is backed up automatically. Do not confuse these revisions with legacy five-slot image revisions.
+
+5. **Handle an interrupted request**
+
+   > **lab_demo_customer_operation** with the original `operation_id` or `idempotency_key`. Historical success can be superseded (`verified:false`). Recovery requires an operation ID, explicit confirmation and five-minute safety delay; unknown external edits require manual reconciliation. Never retry mutations automatically.
 
 **Focused Coworker config:** connection `aep-lab-demo-prep`, URL ending `/mcp/demo-prep`, using the plugin's Adobe IMS passthrough provider.
 

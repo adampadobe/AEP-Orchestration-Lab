@@ -150,7 +150,7 @@ test('loading profile and decisioning in either order registers shared batch pol
 test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orchestration only', () => {
   const focused = registrationRecorder();
   registerFocusedDemoPrepTools(focused.server);
-  assert.equal(focused.names.length, 21);
+  assert.equal(focused.names.length, 24);
   assert.deepEqual(focused.names.slice(-11), [
     'lab_brand_scrape_classify_images',
     'lab_demo_customer_switch',
@@ -169,7 +169,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 215);
+  assert.equal(full.names.length, 218);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 

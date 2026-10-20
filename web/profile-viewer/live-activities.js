@@ -1778,14 +1778,14 @@
     }
     laShowTravelBrandMsg('Uploading to library…', false);
     return laFileToBase64Data(file)
-      .then(function (b64) {
+      .then(async function (b64) {
         var m = /\.([a-z0-9]+)$/i.exec(file.name || '');
         var ext = m && m[1] ? '.' + String(m[1]).toLowerCase() : '.png';
         if (!/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/.test(ext)) ext = '.png';
         var uploadName = 'live-activity-logo' + ext;
         return fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: Object.assign({ 'Content-Type': 'application/json' }, await laAuthHeaders()),
           body: JSON.stringify({
             sandbox: sb,
             files: [{ name: uploadName, base64: b64, contentType: file.type || '' }],

@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 215 tools',
+      product: 'Complete Lab MCP · 218 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -42,7 +42,7 @@
       configNotes:
         'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all seventeen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 215,
+      toolCount: 218,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -76,7 +76,7 @@
       section: 'lab',
       dropdownLabel: 'Focused demo prep',
       name: 'AEP Lab — Customer demo preparation',
-      product: 'Focused Lab MCP · 21 tools',
+      product: 'Focused Lab MCP · 24 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep',
       summary:
         'A focused customer-preparation context for research, stable hosted imagery, governed demo configuration, and end-to-end orchestration.',
@@ -87,9 +87,9 @@
         'Preview allowlisted RTDB customer values before applying them',
       ],
       configNotes:
-        'Choose this for repeatable customer swaps. Image and RTDB writes are separately previewed and confirmation-gated. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+        'Choose this for cloud customer snapshots, exact-path image replacements and approved RTDB branding. Review one combined preview before confirming; shared assets stay untouched. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
       connectionKind: 'Focused',
-      toolCount: 21,
+      toolCount: 24,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Demo preparation tools reference',
