@@ -185,22 +185,24 @@
       if (matches.length !== 1) throw new Error('Expected one hero image decision; got ' + matches.length + '. Previous preview retained.');
       if (typeof result.manualDisplay?.alloy !== 'function') throw new Error('Decision display attribution missing.');
       const identityMap = result.manualDisplay.identityMap;
+      if (!identityMap || typeof identityMap !== 'object' || !Object.values(identityMap).some(identities =>
+        Array.isArray(identities) && identities.some(identity => typeof identity?.id === 'string' && identity.id.trim()))) {
+        throw new Error('Decision display attribution is missing the original request identity map.');
+      }
       const ecids = Array.isArray(identityMap?.ECID) ? identityMap.ECID.filter(identity =>
         typeof identity.id === 'string' && /^\d{10,}$/.test(identity.id)) : [];
       const ecid = (ecids.find(identity => identity.primary === true) || (ecids.length === 1 ? ecids[0] : null))?.id;
       const configuredTenant = data.industries?.generic?.xdmKey;
       const tenant = typeof configuredTenant === 'string' && /^_?[a-zA-Z][a-zA-Z0-9]*$/.test(configuredTenant)
         ? '_' + configuredTenant.replace(/^_/, '') : null;
-      if (!ecid || !tenant ||
-        ['_id', '_repo', '_experience', '_links'].includes(tenant)) {
-        throw new Error('Display tracking requires the original decision ECID and configured tenant namespace.');
-      }
+      const tenantIdentity = ecid && tenant && !['_id', '_repo', '_experience', '_links'].includes(tenant)
+        ? { [tenant]: { identification: { core: { ecid } } } } : {};
       await api().setDecision(matches[0]); same(ctx, token);
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
       await result.manualDisplay.alloy('sendEvent', { renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
         xdm: { eventType: 'decisioning.propositionDisplay', identityMap,
-          [tenant]: { identification: { core: { ecid } } },
+          ...tenantIdentity,
           web: { webPageDetails: { URL: result.personalizationPageUrl || location.origin + location.pathname,
             name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,

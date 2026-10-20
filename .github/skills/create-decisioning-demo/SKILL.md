@@ -296,8 +296,16 @@ and journey data, using the same identity and time window, not a separate slow
 profile lookup.
 Follow BA's event attribution and shared polling, not just its static drawer
 markup. The manual PropositionDisplay must carry the original request
-`identityMap`, matching ECID at `<resolvedTenant>.identification.core.ecid`, and
-the original proposition scope/metadata; keep `_experience.decisioning.*` and
+`identityMap` and original proposition scope/metadata. An email-only request is
+valid: do not require an explicit ECID or Generic profile-dataflow `xdmKey` to
+display its result or send its standard display notification. Add matching ECID
+at `<resolvedTenant>.identification.core.ecid` only when both an unambiguous
+ECID from that captured request and the configured tenant are available; never
+invent either or substitute the browser/drawer identity. Missing optional tenant
+enrichment is not missing attribution. A genuinely missing original identity
+map or Alloy callback remains an explicit attribution failure. Test email-only
+identity maps, absent/null/invalid/reserved tenant keys, and the fully enriched
+case using the actual runtime return shape. Keep `_experience.decisioning.*` and
 `web.webPageDetails.*` at root. Resolve the tenant from the selected configured
 schema/dataflow instead of copying BA's namespace. Include the configured page/
 view name so actual ingested events can be identified. Send exactly once after

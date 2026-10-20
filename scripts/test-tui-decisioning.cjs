@@ -509,7 +509,9 @@ async function main() {
                   (window.fixtureDecisionMode === 'broken' ? 'missing.jpg' : next ? 'mexico.jpg?next-image=1' : 'crete.jpg'),
                   title: next ? 'Next live offer' : 'Fixture live offer',
                   fullDescription: next ? 'Next returned copy' : 'Actual returned fixture copy' } }] }],
-            manualDisplay: { identityMap: { ECID: [{ id: '12345678901234567890', primary: true }] },
+            manualDisplay: { identityMap: window.fixtureIdentityMode === 'missing' ? null :
+              window.fixtureIdentityMode === 'email' ? { Email: [{ id: 'traveller@example.invalid', primary: true }] } :
+                { ECID: [{ id: '12345678901234567890', primary: true }] },
               alloy: async (command, options) => window.fixtureDisplayEvents.push({ command, options }) },
           };
         },
@@ -694,6 +696,30 @@ async function main() {
     assert.deepEqual(shellCalls.filter(call => call.path === '/api/profile/update').at(-1).body.updates,
       [{ path: 'airlineCustomer.journeyStage', value: 'Booked', valueType: 'string' }],
       'Configured writable dataflow allows first-time Travel population with no existing rows');
+    const configuredTenant = fixture.industries.generic.xdmKey;
+    for (const [identityMode, tenant] of [['email', configuredTenant], ['', null], ['email', null],
+      ['', '_repo'], ['', 'invalid tenant']]) {
+      fixture.industries.generic.xdmKey = tenant;
+      await shell.evaluate(mode => { window.fixtureIdentityMode = mode; }, identityMode);
+      const before = await shell.evaluate(() => window.fixtureDisplayEvents.length);
+      await shell.locator('#tuiRunDecision').click();
+      await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
+      assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), before + 1,
+        'Optional ECID/tenant enrichment cannot block a valid returned decision');
+      const xdm = await shell.evaluate(() => window.fixtureDisplayEvents.at(-1).options.xdm);
+      assert.equal(Object.hasOwn(xdm, '_demoemea'), false, 'Unavailable enrichment is omitted, never fabricated');
+      assert.equal(Object.hasOwn(xdm, '_repo'), false, 'Reserved XDM roots cannot receive tenant enrichment');
+      assert.deepEqual(Object.keys(xdm.identityMap), [identityMode === 'email' ? 'Email' : 'ECID'],
+        'Display preserves exactly the request identity namespace');
+      assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer');
+    }
+    fixture.industries.generic.xdmKey = configuredTenant;
+    await shell.evaluate(() => { window.fixtureIdentityMode = 'missing'; });
+    const beforeMissingIdentity = await shell.evaluate(() => window.fixtureDisplayEvents.length);
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('missing the original request identity map'));
+    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), beforeMissingIdentity,
+      'Genuinely missing attribution still blocks a display notification');
     await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     await shell.locator('#tui-visualiser').contentFrame().locator('html[data-aep-theme="dark"]').waitFor();
     assert.equal(await frame.locator('html').getAttribute('data-aep-theme'), 'dark');

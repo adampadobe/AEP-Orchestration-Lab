@@ -79,10 +79,13 @@ then requests the explicitly configured live policy through the shared runtime.
 A genuine hero image/copy replaces all three channel previews only after a
 successful response and image load, followed by one attributed display event.
 Following the BA reference, that event includes the original request identity
-map, its matching ECID at the configured tenant's `identification.core.ecid`,
-the returned item/selection metadata, and root web page/view details. Missing
-request ECID or tenant configuration explicitly blocks display tracking rather
-than inventing an identity. After delivery the shell refreshes the loaded
+map, the returned item/selection metadata, and root web page/view details.
+When an unambiguous ECID exists in that captured request and a valid configured
+tenant is available, the event also includes `identification.core.ecid` under
+that tenant. This enrichment is optional: email-only request maps and missing
+Generic `xdmKey` still support standard attributed display notifications.
+Missing original identity map or Alloy callback is a separate explicit error;
+the browser/drawer identity is never substituted. After delivery the shell refreshes the loaded
 profile's events; the shared drawer's one-second poll then catches delayed Hub
 ingestion without another full profile lookup. Actual ingested events update the
 five-card box and journey, not optimistic local cards. Content displays do not
