@@ -64,6 +64,10 @@ async function main() {
     assert.deepEqual(await page.locator('#scenario-pills button').evaluateAll(buttons => buttons.map(b => b.textContent.split(' / ')[0])),
       ['7', '6', '5', '4', '3', '2', '1']);
     assert.equal(await page.locator('#ranking-title').textContent(), 'Selection Strategies');
+    assert(await page.locator('#eligible-details').evaluate(panel => {
+      const previous = panel.previousElementSibling.getBoundingClientRect();
+      return panel.getBoundingClientRect().top - previous.bottom >= 18;
+    }), 'Eligible NBAs has a visible gap below Selection Strategies');
     assert.equal(await page.locator('#scenario-label,#decision-status,.decision-pane > .microcopy,.ranking-heading > span').count(), 0,
       'Removed scenario instructions and live/local summary leave no empty rows');
     assert.equal(await page.locator('.signal-group > summary .signal-icon,.signal-group > summary .signal-chevron').count(), 10);
@@ -380,6 +384,12 @@ async function main() {
         await route.fulfill({ json });
       } else await route.continue();
     });
+    await shellContext.addInitScript(() => {
+      window.alloy = async command => {
+        if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890' } };
+        throw new Error('Unexpected SDK command before explicit Run: ' + command);
+      };
+    });
     const shell = await shellContext.newPage();
     shell.setDefaultTimeout(15000);
     shell.on('pageerror', error => errors.push(error.message));
@@ -448,6 +458,8 @@ async function main() {
     assert.equal(await shell.locator('#customerEmail').count(), 1);
     assert.equal(await shell.locator('#tuiProfileHero').count(), 1);
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());
+    await shell.waitForFunction(() => document.getElementById('infoEcid').textContent === '12345678901234567890');
+    await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     await shell.locator('#customerEmail').fill(fixture.profileEmail);
     await shell.locator('#queryProfileBtn').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Test profile loaded.'));
@@ -480,6 +492,18 @@ async function main() {
         const height = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(n => n.getBoundingClientRect().height);
         assert(height <= Math.min(560, width < 1100 ? 844 * .55 : 844) + 1, 'Drawer obeys bounded five-card budget');
         assert.equal(await shell.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        if (width > 1100) {
+          const columns = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(inner => {
+            const visible = [...inner.children].filter(child => getComputedStyle(child).display !== 'none');
+            return { widths: visible.map(child => child.getBoundingClientRect().width),
+              span: getComputedStyle(document.getElementById('tuiProfileHero')).gridColumn };
+          });
+          assert.equal(columns.widths.length, 4, 'Profile plus three supporting columns');
+          assert.equal(columns.span, 'auto', 'Profile no longer spans two equal tracks');
+          assert(Math.abs(columns.widths[0] / columns.widths[1] - 1.5) < .02, 'Narrow profile gets one third of available track width');
+          assert(Math.max(...columns.widths.slice(1)) - Math.min(...columns.widths.slice(1)) <= 1,
+            'All three supporting columns share recovered width equally');
+        }
         await shell.mouse.move(width / 2, 550);
         await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
         for (const label of ['Contact', 'Holiday', 'Support', 'Shopping', 'Preferences', 'Consent', 'Identity']) {
@@ -571,6 +595,8 @@ async function main() {
       window.fixtureDisplayEvents = [];
       window.fixtureDecisionRequests = [];
       window.fixtureIdentityReads = 0;
+      window.fixtureIdentityReadsAtRequest = 0;
+      window.fixtureIdentityReadsAtDisplay = 0;
       const enabled = document.getElementById('siteCloneDecisioningEnabledToggle');
       enabled.checked = true;
       enabled.dispatchEvent(new Event('change', { bubbles: true }));
@@ -584,6 +610,7 @@ async function main() {
         }
         if (command !== 'sendEvent') throw new Error('Unexpected SDK command: ' + command);
         if (options.xdm.eventType === 'decisioning.propositionDisplay') {
+          window.fixtureIdentityReadsAtDisplay = window.fixtureIdentityReads;
           const request = window.fixtureDecisionRequests.at(-1);
           if (JSON.stringify(options.xdm.identityMap) !== JSON.stringify(request.xdm.identityMap) ||
             options.xdm._demoemea?.identification?.core?.ecid !== request.xdm.identityMap.ECID[0].id ||
@@ -600,6 +627,7 @@ async function main() {
           }
           if (!options.xdm._demoemea?.identification?.core?.ecid) throw new Error('Required event schema ECID missing');
           window.fixtureDecisionRequests.push(options);
+          window.fixtureIdentityReadsAtRequest = window.fixtureIdentityReads;
           if (window.fixtureDecisionMode === 'empty') return { propositions: [] };
           if (window.fixtureDecisionMode === 'wait') {
             await new Promise(resolve => { window.releaseFixtureDecision = resolve; });
@@ -619,6 +647,7 @@ async function main() {
         }
       };
     });
+    const tableReadsBeforeRun = shellCalls.filter(call => call.path === '/api/profile/table').length;
     await shell.locator('#tuiRunDecision').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'))
       .catch(async error => { throw new Error('Live status: ' + await shell.locator('#tuiLiveStatus').textContent(), { cause: error }); });
@@ -637,7 +666,11 @@ async function main() {
     assert.deepEqual(display.identityMap, decisionRequest.xdm.identityMap);
     assert.equal(display.identityMap.Email[0].id, fixture.profileEmail, 'The selected profile remains linked to the active visitor');
     assert.equal(decisionRequest.xdm._demoemea.identification.core.ecid, display.identityMap.ECID[0].id);
-    assert.equal(await shell.evaluate(() => window.fixtureIdentityReads), 1, 'Only the request resolves ECID; display reuses it');
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/table').length - tableReadsBeforeRun, 1,
+      'One fresh runtime profile read covers consent and identity without a duplicate serial table request');
+    assert(await shell.evaluate(() => window.fixtureIdentityReadsAtRequest >= 1), 'Decision resolves the SDK identity');
+    assert.equal(await shell.evaluate(() => window.fixtureIdentityReadsAtDisplay),
+      await shell.evaluate(() => window.fixtureIdentityReadsAtRequest), 'Display reuses the captured identity without another SDK read');
     const readOnlyBeforePoll = shellCalls.filter(call => call.path === '/api/profile/consent').length;
     const eventReadsBeforePoll = shellCalls.filter(call => call.path === '/api/profile/events').length;
     await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().events.length === 5);
@@ -652,7 +685,8 @@ async function main() {
       'Events update without a slow full profile lookup');
     assert(shellCalls.filter(call => call.path === '/api/profile/events').slice(-2).every(call =>
       call.query.identifier === fixture.profileEmail && call.query.namespace === 'email' && call.query.sandbox === 'kirkham'),
-      'Polling retains the loaded namespace, identifier and sandbox');
+      'Polling retains the loaded namespace, identifier and sandbox: ' +
+      JSON.stringify(shellCalls.filter(call => call.path === '/api/profile/events').slice(-2).map(call => call.query)));
     const contentSnapshot = () => shell.evaluate(() => {
       const doc = document.getElementById('tui-visualiser').contentDocument;
       return ['email-preview', 'mobile-preview', 'web-preview'].map(id => doc.getElementById(id).innerHTML);

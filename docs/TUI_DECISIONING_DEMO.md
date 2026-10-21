@@ -19,6 +19,10 @@ live status immediately left of Apply on desktop. Selection Strategies has
 icon-only expand/collapse controls; repeated scenario instructions and the blue
 local/live policy summary are removed, without changing strategy evaluation,
 explicit Apply/Run, error feedback or returned-content retention.
+Eligible NBAs is separated from Selection Strategies by 18px. The desktop drawer
+uses a narrower one-third profile hero with the remaining space shared equally
+by identity graph, audience/messages and events; classic and mobile layouts
+retain their existing behaviour and height limits.
 
 ## Source and limits
 
@@ -86,6 +90,12 @@ performed while implementing this correction.
 
 **Run** checks actual test-profile and email/personalisation consent readback,
 then requests the explicitly configured live policy through the shared runtime.
+One fresh runtime profile lookup now supplies both those checks and the runtime
+identity context, replacing two serial reads of the same profile. It does not
+reuse stale loaded values or bypass pending Apply confirmation. Console
+`[tui-decisioning-timing]` entries separate profile-readback, Edge-decision,
+image-ready and display-tracking durations; AEP Hub-to-Edge propagation is still
+upstream and is not accelerated by this client-side round-trip reduction.
 A genuine hero image/copy replaces all three channel previews only after a
 successful response and image load, followed by one attributed display event.
 Following the BA reference, Run first captures the active SDK ECID using

@@ -11,6 +11,58 @@ const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decision
 const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
 const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
 const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
+test('Run uses one fresh runtime profile read and retains actual consent, test-profile and context gates', async () => {
+  const source = await readFile(new URL('../web/profile-viewer/tui-decisioning-demo.js', import.meta.url), 'utf8');
+  const runSource = source.slice(source.indexOf('  async function run()'), source.indexOf('  global.TuiDecisioningDrawer'));
+  for (const scenario of ['valid', 'not-found', 'malformed', 'not-test', 'consent-held', 'context-changed', 'lookup-failed']) {
+    const fresh = { found: true, rows: [
+      ...model.fields.map(field => ({ path: field.path, value: model.defaults[field.key] })),
+      { path: 'testProfile', value: scenario !== 'not-test' },
+    ] };
+    if (scenario === 'not-found') fresh.found = false;
+    if (scenario === 'malformed') fresh.rows = null;
+    if (scenario === 'consent-held') fresh.rows.find(row => row.path === 'consents.marketing.email.val').value = 'n';
+    let lookups = 0, decisions = 0;
+    const statuses = [], timings = [], holds = [];
+    const ctx = { sandbox: 'kirkham', namespace: 'email', identifier: 'fixture@example.invalid' };
+    const environment = {
+      profile, loaded: { found: true, rows: [] }, version: 0, revision: 0, busy: false, pending: null, edited: new Set(),
+      context: () => ctx,
+      same: (_ctx, token) => { if (token !== environment.version) throw new Error('Identity or sandbox changed.'); },
+      message: (text, error) => statuses.push({ text, error }),
+      $: () => ({ textContent: statuses.at(-1).text, dataset: { error: String(!!statuses.at(-1).error) } }),
+      table: () => { throw new Error('Redundant table lookup must not run.'); },
+      isTest: data => data.rows.some(row => row.path === 'testProfile' && row.value === true),
+      api: () => ({ hold: reason => holds.push(reason) }),
+      console: { info: (...args) => timings.push(args) }, performance,
+      global: { envBarConfig: { decisioning: { eventTenantNamespace: '_demoemea' } },
+        DecisioningProfileRuntime: {
+          supportsManualDisplay: true, supportsCapturedEventContext: true,
+          runProfileLookup: async options => {
+            assert.equal(options.skipHydrate, true); lookups++;
+            if (scenario === 'context-changed') environment.version++;
+            return scenario !== 'lookup-failed';
+          },
+          getApi: () => ({ getLastUpsClientData: () => fresh }),
+          runContentDecision: async options => {
+            decisions++;
+            assert.equal(options.useBrowserEcid, true);
+            assert.equal(options.manualDisplay, true);
+            return { propositions: [] };
+          },
+        } },
+    };
+    await vm.runInNewContext(runSource + '; run;', environment)();
+    assert.equal(lookups, 1, scenario + ': exactly one fresh profile lookup');
+    assert.equal(decisions, scenario === 'valid' ? 1 : 0, scenario + ': unsafe/missing readback never requests content');
+    assert.equal(holds.length, scenario === 'consent-held' ? 1 : 0);
+    if (scenario === 'valid') {
+      assert.deepEqual(timings.map(entry => entry[1].phase), ['profile-readback', 'edge-decision']);
+      assert.match(statuses.at(-1).text, /Expected one hero image decision/);
+    }
+    assert.equal(environment.busy, false);
+  }
+});
 test('runtime captures the SDK event identity and datastream without changing legacy callers', async () => {
   const source = await readFile(new URL('../web/profile-viewer/decisioning-profile-module/decisioning-profile-runtime.js', import.meta.url), 'utf8');
   let namespace = 'email', identifier = 'traveller@example.invalid', ecid = '12345678901234567890';

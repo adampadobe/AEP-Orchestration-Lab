@@ -149,24 +149,35 @@
     if (busy) return;
     const ctx = context(), token = version, changedAt = revision; busy = true;
     message('Checking profile and consent before live decision...');
+    const started = performance.now();
+    let phaseStarted = started;
+    const mark = phase => {
+      const now = performance.now();
+      console.info('[tui-decisioning-timing]', { phase, durationMs: Math.round(now - phaseStarted), totalMs: Math.round(now - started) });
+      phaseStarted = now;
+    };
     try {
       if (ctx.sandbox !== 'kirkham') throw new Error('This TUI catalog targets kirkham. Select kirkham before Run.');
       if (pending) await confirm(ctx, token);
       if (edited.size) throw new Error('Apply staged changes before Run.');
       if (!loaded) throw new Error('Look up the current test profile before Run.');
-      const data = await table(ctx, token), values = profile.signals(data.rows);
+      const runtime = global.DecisioningProfileRuntime;
+      if (!runtime?.supportsManualDisplay || !runtime.supportsCapturedEventContext) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
+      if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime lookup failed.');
+      same(ctx, token);
+      const data = runtime.getApi().getLastUpsClientData();
+      if (data?.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
+      const values = profile.signals(data.rows);
       if (!isTest(data)) throw new Error('Only test profiles can run this demo.');
       if (values.emailConsent !== 'y' || values.personalize !== 'y') {
         api().hold('Live content held: loaded email and personalisation consent must both be y.');
         throw new Error('Actual loaded consent must be y; defaults do not grant permission.');
       }
-      const runtime = global.DecisioningProfileRuntime;
-      if (!runtime?.supportsManualDisplay || !runtime.supportsCapturedEventContext) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
-      if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime lookup failed.');
-      same(ctx, token);
+      mark('profile-readback');
       message('Evaluating the configured policy. TUI draft catalog is not automatically activated.');
       const result = await runtime.runContentDecision({ manualDisplay: true, useBrowserEcid: true,
         eventTenantNamespace: global.envBarConfig.decisioning.eventTenantNamespace }); same(ctx, token);
+      mark('edge-decision');
       if (revision !== changedAt) throw new Error('Signals changed during Run. Apply and run again.');
       const matches = [];
       for (const proposition of result.propositions || []) {
@@ -191,6 +202,7 @@
         throw new Error('Decision display attribution is missing the original request identity map.');
       }
       await api().setDecision(matches[0]); same(ctx, token);
+      mark('image-ready');
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
       const displayPayload = { ...result.manualDisplay.edgeOptions,
@@ -204,6 +216,7 @@
             propositionEventType: { display: 1 } } } } };
       console.info('[tui-decisioning-display] Sending original decision attribution', displayPayload);
       const displayResponse = await result.manualDisplay.alloy('sendEvent', displayPayload);
+      mark('display-tracking');
       console.info('[tui-decisioning-display] Edge response', displayResponse);
       same(ctx, token);
       await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();

@@ -18,7 +18,8 @@
 .tui-demo-shell.mod-demo-page--profile-open #profileDrawer { transform: translateY(0); }
 .tui-demo-shell #profileDrawer .aep-profile-drawer-inner { padding-top: 1.9rem; max-height: calc(100dvh - var(--tui-content-top, 100px)); overflow-y: auto; }
 .tui-demo-shell:not(.mod-demo-page--profile-open):not(.aep-profile-drawer-open) #profileDrawer:not(:focus-within) .aep-profile-drawer-inner { opacity: 0; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.tui-demo-shell.decisioning-profile-hero #tuiProfileHero { grid-column: auto; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-events,
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-audiences { overflow-y: auto; overscroll-behavior: contain; }
 .tui-profile-sections { min-height: 0; }
@@ -132,7 +133,7 @@ html[data-aep-theme="dark"] .ranking-panel { --tui-rank-bg: color-mix(in srgb, v
 .nba-card--off .nba-rank { border: 1px solid currentColor; background: transparent; }
 .nba-off-label { text-transform: uppercase; letter-spacing: .06em; font: 11px ui-monospace, monospace; opacity: .65; margin-top: 14px !important; }
 .nba-ranking-note { font-size: 10px; opacity: .7; margin: 5px 0 10px !important; }
-#eligible-details { margin-top: 10px; }
+#eligible-details { margin-top: 18px; }
 #eligible-details > summary { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; list-style: none; }
 #eligible-details > summary::-webkit-details-marker { display: none; }
 #eligible-details > summary::after { content: "+"; margin-left: auto; }

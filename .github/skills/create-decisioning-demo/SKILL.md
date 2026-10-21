@@ -215,6 +215,9 @@ horizontal coloured breakdown bars with a component legend, and a prominent
 right-aligned total. Separate excluded items under **Not eligible right now**
 using muted dashed cards and their actual rule conditions. Clear cards when
 no objective qualifies or consent holds content.
+Keep an explicit gap between Selection Strategies and Eligible NBAs (TUI uses
+18px), including when both blocks are collapsed; removing the policy summary
+must not leave the two dark panels touching.
 
 The card design does not authorise copying BA's scoring model. If the customer
 catalog uses static item priority, label it as local catalog priority and show
@@ -297,8 +300,14 @@ Email/Desktop, Mobile App, and Web channel selector. Group holdings into a two-c
 single label/value list. Keep all actual values accessible, including full long
 strings through wrapping (with internal overflow only for exceptional long data).
 Verify each normal attribute tab fits without vertical panel scrolling. Scroll
-event/audience overflow internally;
-on narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
+event/audience overflow internally.
+On desktop, give the tabbed profile hero approximately one third of the drawer
+width and distribute the remaining width evenly across the identity graph,
+audience/messages and recent-events columns (TUI uses 1.5fr / 1fr / 1fr / 1fr).
+Do not leave the hero spanning two of five equal tracks. Scope the change to
+the demo so classic-layout rollback and other demos are unchanged. Recheck every
+attribute tab for clipping/scrolling and preserve the capped drawer height.
+On narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
 stacked sections. Verify exact loaded/unloaded height limits with five fixture
 events, all sections, both themes, and desktop/narrow viewports. Move, rather than clone, the
 shared anonymous-visitor control into the hero identity card.
@@ -617,6 +626,17 @@ is the field template, not permission to reuse BA copy for another customer.
 - The Edge decision request carries no profile attributes; it relies on the
   Edge profile. Confirm Hub readback first, but do not claim it guarantees Edge
   propagation or that local simulator controls were sent with the decision.
+- Avoid duplicate serial profile reads before Run. When the shared runtime's
+  explicit `runProfileLookup({ skipHydrate: true })` has just fetched the selected
+  context, validate that same response through
+  `getApi().getLastUpsClientData()` for found/rows, testProfile and actual consent,
+  rather than first making a separate `/api/profile/table` call. Keep the context
+  check after the await, and never replace this fresh read with cached loaded
+  state. Preserve pending Apply confirmation, original SDK identity capture and
+  successful image-load-before-display. Record console phase timings for profile
+  readback, Edge decision, image readiness and display tracking to distinguish
+  client overhead from upstream latency; do not bypass gates, resend decisions
+  or show locally predicted content to hide AEP propagation delay.
 - If operational/intent transitions trigger Apply events (e.g.
   `flight.disruption`, `flight.search`, `flight.abandoned`), send only on a state
   transition, at most once, using the same captured Alloy instance and browser
