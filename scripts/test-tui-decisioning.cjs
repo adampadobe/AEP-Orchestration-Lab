@@ -326,6 +326,7 @@ async function main() {
     const events = Array.from({ length: 5 }, (_, i) => ({ id: 'fixture-' + i, timestamp: Date.now() - i * 60000,
       eventType: i === 0 ? 'decisioning.propositionDisplay' : 'web.webPageDetails.pageViews', channel: 'web',
       rows: [{ path: 'web.webPageDetails.name', value: 'TUI Decisioning' }] }));
+    const pendingAbandonments = [];
     await shellContext.route('**/*', async route => {
       const request = route.request();
       const parsed = new URL(request.url());
@@ -349,7 +350,12 @@ async function main() {
           email: fixture.profileEmail, phone: '+440000000000', city: 'Manchester', gender: 'female', age: 38, ecid: fixture.ecid,
           channels: { email: 'in', sms: 'out', push: 'not_provided' }, customerLifetimeValue: 12000,
           identities: [{ namespace: 'Email', value: fixture.profileEmail }, { namespace: 'ECID', value: fixture.ecid }] };
-        if (parsed.pathname === '/api/profile/events') json = { events };
+        if (parsed.pathname === '/api/profile/events') {
+          for (let i = pendingAbandonments.length - 1; i >= 0; i--) {
+            if (pendingAbandonments[i].availableAt <= Date.now()) events.unshift(pendingAbandonments.splice(i, 1)[0].event);
+          }
+          json = { events };
+        }
         if (parsed.pathname === '/api/profile/audiences') json = { realized: [{ id: 'test-audience', name: 'Fixture holiday audience' }], exited: [] };
         if (parsed.pathname === '/api/aep' && body?.path?.includes('schemaregistry')) {
           const schema = { version: '1.11', 'meta:tenantNamespace': mismatchTenant ? 'different' : 'demoemea',
@@ -573,6 +579,82 @@ async function main() {
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     assert.deepEqual(shellCalls.filter(call => call.path === '/api/profile/update').map(call => call.body.industry),
       ['travel', 'travel', 'generic', 'generic'], 'Partial failure never resends the accepted travel snapshot');
+    await shell.exposeFunction('ingestFixtureAbandonment', payload => {
+      assert.equal(payload.renderDecisions, false);
+      assert.equal(payload.personalization.defaultPersonalizationEnabled, false);
+      const xdm = payload.xdm;
+      assert.equal(xdm.eventType, 'abandoned.search');
+      assert.equal(xdm.identityMap.Email[0].id, fixture.profileEmail);
+      assert.equal(xdm.identityMap.ECID[0].id, '12345678901234567890');
+      assert.equal(xdm._demoemea.identification.core.ecid, xdm.identityMap.ECID[0].id);
+      assert.equal(xdm._demoemea.identification.core.email, fixture.profileEmail);
+      assert.equal(xdm.web.webPageDetails.viewName, 'TUI Decisioning');
+      assert.equal(xdm._demoemea.airlineCustomer, undefined, 'Profile flag is not sent as an event field');
+      assert.equal(payload.edgeConfigOverrides.datastreamId, 'abandonment-datastream');
+      const rows = (value, prefix = '') => Object.entries(value).flatMap(([key, child]) => {
+        const path = prefix ? prefix + '.' + key : key;
+        return child && typeof child === 'object' ? rows(child, path) : [{ path, value: child }];
+      });
+      pendingAbandonments.push({ availableAt: Date.now() + 1500, event: {
+        id: 'ingested-abandonment-' + Date.now(), timestamp: Date.now(), eventType: xdm.eventType, rows: rows(xdm),
+      } });
+    });
+    await shell.evaluate(() => {
+      window.fixtureAbandonments = [];
+      window.DemoTagsInjection.ensureAlloyReady = async () => window.alloy;
+      window.DemoTagsInjection.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'abandonment-datastream' } });
+      window.sendFixtureAbandonment = async options => {
+        window.fixtureAbandonments.push(options);
+        if (window.fixtureAbandonmentFailure) throw new Error('Fixture abandonment transport failed');
+        await window.ingestFixtureAbandonment(options);
+        return {};
+      };
+      window.alloy = async (command, options) => {
+        if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890' } };
+        if (command === 'sendEvent' && options.xdm.eventType === 'abandoned.search') return window.sendFixtureAbandonment(options);
+        throw new Error('Unexpected SDK command before explicit Run: ' + command);
+      };
+    });
+    const applyScenario = async index => {
+      await frame.locator('#scenario-pills button').nth(index).click();
+      await shell.locator('#tuiApplyProfile').click();
+      await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
+    };
+    await frame.locator('#scenario-pills button').nth(2).click();
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 0, 'Scenario selection alone never sends an event');
+    rejectGeneric = true;
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Fixture rejected generic dataflow'));
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 0, 'Partial snapshot acceptance defers tracking');
+    rejectGeneric = false;
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Apply staged changes before Run.'));
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 1, 'Resuming partial Apply sends exactly one captured abandonment');
+    await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().events.some(event => event.eventType === 'abandoned.search'));
+    assert.match(await shell.locator('#profileDrawerEvents').innerText(), /abandon/i, 'Delayed ingestion appears in the actual events list without refresh');
+    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 0);
+    await applyScenario(2);
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 1, 'Applying unchanged Yes does not duplicate the event');
+    await applyScenario(0);
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 1, 'Resetting abandoned search sends no event');
+    await shell.evaluate(() => { window.fixtureAbandonmentFailure = true; });
+    await frame.locator('#scenario-pills button').nth(2).click();
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('abandoned.search tracking failed'));
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 2);
+    await shell.waitForTimeout(1800);
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 2, 'Uncertain send failure is never automatically retried');
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('No automatic retry.'));
+    await shell.evaluate(() => { window.fixtureAbandonmentFailure = false; });
+    await applyScenario(2);
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 2, 'Explicit reapply of unchanged Yes does not retry an uncertain send');
+    await applyScenario(0);
+    await applyScenario(2);
+    assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 3, 'A new No-to-Yes transition can send a new event');
+    await applyScenario(0);
     let receivedDisplay = 0;
     const pendingDisplays = [];
     await shell.exposeFunction('ingestFixtureDisplay', xdm => {
@@ -609,6 +691,7 @@ async function main() {
           return { identity: { ECID: window.fixtureIdentityMode === 'missing' ? '' : '12345678901234567890' } };
         }
         if (command !== 'sendEvent') throw new Error('Unexpected SDK command: ' + command);
+        if (options.xdm.eventType === 'abandoned.search') return window.sendFixtureAbandonment(options);
         if (options.xdm.eventType === 'decisioning.propositionDisplay') {
           window.fixtureIdentityReadsAtDisplay = window.fixtureIdentityReads;
           const request = window.fixtureDecisionRequests.at(-1);
@@ -870,7 +953,7 @@ async function main() {
       'Only explicit Apply writes a profile');
     assert.deepEqual(errors, []);
     await shellContext.close();
-    console.log(`TUI browser checks passed: 7 scenario buttons, ${model.scenarios.length} regression cases, ranked NBA cards, 3 channels, 2 themes; legacy ownership and first-time snapshots verified; no live requests.`);
+    console.log(`TUI browser checks passed: 7 scenario buttons, ${model.scenarios.length} regression cases, ranked NBA cards, 3 channels, 2 themes; abandonment Apply/event polling, legacy ownership and first-time snapshots verified; no live requests.`);
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => {

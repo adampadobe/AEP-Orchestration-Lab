@@ -644,6 +644,33 @@ is the field template, not permission to reuse BA copy for another customer.
   and log outbound payload, response and skip reasons. Do not start the
   confirmation watcher if such tracking failed. Do not invent an event pipeline
   in demos that do not require it.
+- For TUI's explicitly requested abandoned-search activity, Scenario 5 stages
+  `_demoemea.airlineCustomer.abandonedSearchFlag = true`; only explicit Apply
+  sends `abandoned.search`, after all profile snapshots are accepted. Scenario
+  selection, Reset, read-only lookup, Run and unchanged Yes never send it. A
+  missing/false-to-true transition is eligible; an accepted false resets the
+  transition for a later Yes. The user-requested event name is not a profile
+  field and is not an alias for BA's `flight.abandoned`. The inspected NatWest
+  preview did not contain this Apply event; BA's transition implementation is
+  the verified prior art. Check actual source/deployed assets rather than
+  attributing a remembered event contract to a reference page.
+  Capture the Alloy callback, browser ECID, selected identity and datastream
+  override before any writes, retaining the reviewed event-schema tenant.
+  Send only root `eventType`, `identityMap` and `web.webPageDetails`, plus
+  `<eventTenant>.identification.core.ecid/email`. Never put the profile-only
+  `airlineCustomer.abandonedSearchFlag` in event XDM, invent flight/search
+  attributes, or generate a decision/display as part of the scenario event.
+  Retain a prepared event through a partial multi-dataflow Apply, but defer its
+  send until remaining snapshots succeed. Reserve before send and keep that
+  attempt reserved even after an uncertain failure; do not auto-confirm after a
+  failed event or resend it on a later Run/reapply. Clear deferred state on
+  identity/sandbox changes. Refresh the loaded drawer's events after an
+  acknowledged send and keep its existing polling for delayed ingestion.
+  Exercise the actual Apply handler with intercepted SDK and API fixtures,
+  deriving delayed event rows from the outbound payload; cover partial writes,
+  unchanged/rearmed transitions and failed sends. A fixture-passing deployment
+  does not prove live ingestion until the real event is read back for the
+  authorised test identity.
 - Test stale Apply readback/progress, disabled waiting Run, eventual continuation,
   timeout/retry, shared promises, context cancellation, partial writes, rule-field
   filtering and field-specific aliases. VM-sliced `save()` harnesses must include

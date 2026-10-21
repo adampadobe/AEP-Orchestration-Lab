@@ -4,6 +4,7 @@
   const frame = $('tui-visualiser'), model = global.TuiDecisioning, profile = global.TuiDecisioningProfile;
   const edited = new Set();
   let loaded = null, version = 0, revision = 0, busy = false, pending = null, targets = [], tags;
+  let appliedAbandoned, abandonmentEvent = null;
   const api = () => frame.contentWindow?.TuiDecisioningVisualiser;
   const context = () => ({ sandbox: global.AepGlobalSandbox.getSandboxName(),
     namespace: $(prefix + 'Ns').value.toLowerCase(), identifier: $('customerEmail').value.trim() });
@@ -19,6 +20,7 @@
   function publish() { global.dispatchEvent(new CustomEvent('tui-profile-changed')); }
   function invalidate() {
     version++; revision++; loaded = null; pending = null; edited.clear();
+    appliedAbandoned = undefined; abandonmentEvent = null;
     global.DemoProfileDrawer.clearDrawerVisitorState();
     api()?.setProfile(null); publish();
     message('Context changed. Look up the selected test profile.');
@@ -107,6 +109,59 @@
     if (pending) throw new Error('AEP is still processing accepted changes. Run again to check readback; do not resend.');
     return true;
   }
+  async function prepareAbandonment(data, batch, ctx, token) {
+    const path = 'airlineCustomer.abandonedSearchFlag';
+    const previous = appliedAbandoned ?? profile.signals(data.rows).abandoned;
+    if (batch.expected[path] !== true || previous === true) {
+      console.info('[tui-abandoned-search] Skipped: no transition to abandoned search Yes.');
+      return null;
+    }
+    const tenant = global.envBarConfig.decisioning.eventTenantNamespace;
+    if (typeof tenant !== 'string' || !/^_[A-Za-z][A-Za-z0-9]*$/.test(tenant) ||
+      ['_id', '_repo', '_experience', '_links'].includes(tenant)) throw new Error('Configure the reviewed event schema tenant before Apply.');
+    if (!global.DemoTagsInjection?.ensureAlloyReady || !global.CdEdgeMounts?.buildIdentityMap) {
+      throw new Error('Inject Tags with Web SDK before applying abandoned search.');
+    }
+    const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
+    same(ctx, token);
+    const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
+    same(ctx, token);
+    const ecid = identity?.identity?.ECID;
+    if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned; no profile changes sent.');
+    if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) throw new Error('The selected ECID differs from the active Web SDK visitor. No profile changes sent.');
+    return { alloy, attempted: false, payload: {
+      ...global.DemoTagsInjection.edgeConfigOverrides(),
+      renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+      xdm: {
+        eventType: 'abandoned.search',
+        identityMap: global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace),
+        [tenant]: { identification: { core: { ecid, email: data.profileEmail } } },
+        web: { webPageDetails: { URL: location.origin + location.pathname, name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
+      },
+    } };
+  }
+  async function trackAbandonment(ctx, token) {
+    if (!abandonmentEvent) return;
+    if (abandonmentEvent.attempted) {
+      console.info('[tui-abandoned-search] Skipped: this transition was already attempted; no automatic retry.');
+      return;
+    }
+    same(ctx, token);
+    const event = abandonmentEvent;
+    // Reserve before sending: a failed response does not prove the event was not ingested.
+    event.attempted = true;
+    console.info('[tui-abandoned-search] Outbound payload', event.payload);
+    try {
+      const response = await event.alloy('sendEvent', event.payload);
+      console.info('[tui-abandoned-search] Edge response', response);
+      same(ctx, token);
+    } catch (error) {
+      console.error('[tui-abandoned-search] Tracking failed', error);
+      throw new Error('Profile snapshots accepted, but abandoned.search tracking failed: ' + error.message + '. No automatic retry.');
+    }
+    await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+    same(ctx, token);
+  }
   async function apply() {
     if (busy || !edited.size) return;
     const ctx = context(), token = version; busy = true;
@@ -120,6 +175,7 @@
       const batch = profile.snapshots(latest, api().getState(), [...edited]);
       await preflight(latest, batch, ctx, token);
       if (!latest.profileEmail?.includes('@')) throw new Error('Profile has no email identity for streaming.');
+      const abandonment = await prepareAbandonment(latest, batch, ctx, token);
       for (const group of batch.snapshots) {
         same(ctx, token);
         const previousPending = pending;
@@ -134,11 +190,16 @@
           throw new Error(global.formatProfileUpdateError(response.data));
         }
         accepted++;
+        if (Object.hasOwn(expected, 'airlineCustomer.abandonedSearchFlag')) {
+          appliedAbandoned = expected['airlineCustomer.abandonedSearchFlag'];
+          if (abandonment || appliedAbandoned === false) abandonmentEvent = abandonment;
+        }
         for (const key of edited) {
           const field = model.fields.find(field => field.key === key);
           if (Object.hasOwn(expected, profile.relative(field.path))) edited.delete(key);
         }
       }
+      await trackAbandonment(ctx, token);
       await confirm(ctx, token); message('Profile changes confirmed. Run requests the configured live policy.');
     } catch (error) {
       if (token === version) message((accepted ? accepted + ' dataflow(s) accepted; ' : '') +

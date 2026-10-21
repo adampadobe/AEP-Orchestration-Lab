@@ -88,6 +88,31 @@ reconciled by readback without automatic resending. A partial multi-dataflow
 update preserves the remaining staged fields. No live profile writes were
 performed while implementing this correction.
 
+**Abandoned-search activity:** Scenario 5 stages the Boolean profile flag;
+choosing it does not itself send an event. Once explicit Apply accepts all
+snapshots for a missing/false-to-true transition, Web SDK sends one
+`abandoned.search` event. Reapplying unchanged Yes, Run and lookup do not resend
+it. Applying No rearms a subsequent Yes transition. The matching Apply-event
+pattern was verified in BA; the inspected NatWest preview only contained its
+decision display event, not this transition event.
+
+The event captures Alloy, active SDK ECID, selected identity and datastream
+override before writes, rejects a different selected ECID, and uses root
+`eventType`, `identityMap` and `web.webPageDetails`, with the reviewed event
+tenant's `identification.core.ecid/email`. It does not send the profile flag as
+an event field or fabricate flight/search details. Partial snapshot acceptance
+retains the prepared event until the remaining snapshots succeed. Each send is
+reserved before dispatch; uncertain tracking failures are explicit and never
+retried automatically or on Run/reapply. Failed tracking does not start profile
+confirmation; a later explicit Run may reconcile the accepted snapshots without
+resending the event. Context changes discard deferred state.
+
+After an acknowledged send the loaded drawer's events are refreshed; its shared
+poll retrieves delayed ingested activity without fabricating a card or counting
+it as a message sent. Intercepted-SDK fixtures cover the full Apply-to-events
+flow; no real abandonment event/profile write was sent during implementation,
+so live dataset ingestion still requires readback of a real authorised test run.
+
 **Run** checks actual test-profile and email/personalisation consent readback,
 then requests the explicitly configured live policy through the shared runtime.
 One fresh runtime profile lookup now supplies both those checks and the runtime

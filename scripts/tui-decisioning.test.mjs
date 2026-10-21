@@ -11,6 +11,68 @@ const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decision
 const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
 const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
 const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
+test('abandoned search prepares only a typed transition and captures event identity before writes', async () => {
+  const source = await readFile(new URL('../web/profile-viewer/tui-decisioning-demo.js', import.meta.url), 'utf8');
+  const helpers = source.slice(source.indexOf('  async function prepareAbandonment'), source.indexOf('  async function apply()'));
+  const mountsSource = await readFile(new URL('../web/profile-viewer/content-decision-edge-mounts.js', import.meta.url), 'utf8');
+  const mounts = { console, URL, URLSearchParams, document: {} };
+  vm.runInNewContext(mountsSource, mounts);
+  for (const mode of ['valid', 'unchanged', 'reset', 'missing-field', 'invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale', 'send-failure']) {
+    const commands = [], refreshes = [];
+    const ctx = { sandbox: 'kirkham', namespace: mode === 'mismatched-ecid' ? 'ecid' : 'email',
+      identifier: mode === 'mismatched-ecid' ? '99999999999999999999' : 'fixture@example.invalid' };
+    let datastream = 'captured-datastream';
+    const environment = {
+      profile, prefix: 'tuiDecisioning', appliedAbandoned: undefined, abandonmentEvent: null,
+      location: { origin: 'https://example.invalid', pathname: '/tui' },
+      console: { info() {}, error() {} },
+      same: () => { if (mode === 'stale') throw new Error('Identity or sandbox changed.'); },
+      global: {
+        envBarConfig: { decisioning: { eventTenantNamespace: mode === 'invalid-tenant' ? '_repo' : '_demoemea' } },
+        CdEdgeMounts: mounts.CdEdgeMounts,
+        DemoTagsInjection: {
+          edgeConfigOverrides: () => ({ edgeConfigOverrides: { datastreamId: datastream } }),
+          ensureAlloyReady: async () => async (command, options) => {
+            commands.push({ command, options });
+            if (command === 'getIdentity') return { identity: { ECID: mode === 'missing-ecid' ? '' : '12345678901234567890' } };
+            if (mode === 'send-failure') throw new Error('Uncertain transport failure');
+            return {};
+          },
+        },
+        DemoProfileDrawer: { refreshDrawerEventsForLoadedProfile: async () => refreshes.push(true) },
+      },
+    };
+    const { prepareAbandonment, trackAbandonment } = vm.runInNewContext(helpers + '; ({ prepareAbandonment, trackAbandonment });', environment);
+    const data = { profileEmail: 'fixture@example.invalid', rows: [
+      { path: '_demoemea.airlineCustomer.abandonedSearchFlag', value: mode === 'unchanged', valueType: 'boolean' },
+    ] };
+    const batch = { expected: mode === 'missing-field' ? {} : { 'airlineCustomer.abandonedSearchFlag': mode !== 'reset' } };
+    if (['invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale'].includes(mode)) {
+      await assert.rejects(prepareAbandonment(data, batch, ctx, 0), /tenant|ECID|context|Identity/);
+      assert.equal(commands.filter(call => call.command === 'sendEvent').length, 0);
+      continue;
+    }
+    const event = await prepareAbandonment(data, batch, ctx, 0);
+    if (['unchanged', 'reset', 'missing-field'].includes(mode)) {
+      assert.equal(event, null);
+      assert.equal(commands.length, 0, 'No SDK calls without an explicit No/missing-to-Yes transition');
+      continue;
+    }
+    environment.abandonmentEvent = event;
+    datastream = 'changed-after-apply';
+    if (mode === 'send-failure') await assert.rejects(trackAbandonment(ctx, 0), /No automatic retry/);
+    else await trackAbandonment(ctx, 0);
+    await trackAbandonment(ctx, 0);
+    assert.equal(commands.filter(call => call.command === 'sendEvent').length, 1, 'At most one send even after a failed response');
+    assert.equal(commands.filter(call => call.command === 'getIdentity').length, 1, 'Send reuses captured identity');
+    assert.equal(event.payload.edgeConfigOverrides.datastreamId, 'captured-datastream');
+    assert.equal(event.payload.xdm.identityMap.Email[0].id, ctx.identifier);
+    assert.equal(event.payload.xdm.identityMap.ECID[0].id, event.payload.xdm._demoemea.identification.core.ecid);
+    assert.equal(event.payload.xdm.eventType, 'abandoned.search');
+    assert.equal(event.payload.xdm._demoemea.airlineCustomer, undefined);
+    assert.equal(refreshes.length, mode === 'send-failure' ? 0 : 1, 'Refresh follows acknowledged sends only');
+  }
+});
 test('Run uses one fresh runtime profile read and retains actual consent, test-profile and context gates', async () => {
   const source = await readFile(new URL('../web/profile-viewer/tui-decisioning-demo.js', import.meta.url), 'utf8');
   const runSource = source.slice(source.indexOf('  async function run()'), source.indexOf('  global.TuiDecisioningDrawer'));
