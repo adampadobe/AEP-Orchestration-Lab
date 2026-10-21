@@ -331,6 +331,23 @@ event card, details, count and journey update without clicking refresh, while
 identity/sandbox changes discard late responses. Display events are not
 messages sent; never increment message totals for a content decision.
 
+When events remain absent, trace the complete pipeline before changing polling:
+the decision request's captured identity/datastream, the outbound display's
+schema fields and returned metadata, ingestion into the configured
+profile-enabled event dataset, and `/api/profile/events` for the loaded identity.
+Compare the reference demo's actually deployed runtime and Tags assets, not
+only its page code: preview releases can have different runtime contracts.
+An Edge response or a rendered image does not prove dataset ingestion. Inspect
+available ingestion failures and event-schema identity requirements through
+authorised read-only diagnostics; do not infer the active datastream's schema
+from a profile schema, sample payload or another demo. If the selected
+datastream/schema cannot be verified, record that limitation explicitly.
+Distinguish fixture-verified client delivery/retrieval from live-ingestion
+verification in the handoff. Do not create synthetic mirror events, reset
+identity, run real decisions or change shared infrastructure merely to make
+the drawer appear populated. Live verification requires an authorised selected
+test profile and the actual ingested item/strategy rows, not a local winner.
+
 Retain a per-demo classic-layout escape hatch, following NatWest's
 `?nwDrawer=classic` / `?nwDrawer=hero`, plus `?journey=classic` /
 `?journey=concepts`. Use a brand-specific preference key for the customer adapter;
