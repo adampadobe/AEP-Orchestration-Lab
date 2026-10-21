@@ -10,6 +10,16 @@ Feature preview:
 `https://aep-orchestration-lab--tui-decisioning-jc5oi5wy.web.app/profile-viewer/tui-decisioning-demo.html`.
 This is an expiring Hosting preview, not a production release or Functions deploy.
 
+Signals use BA-style rounded accordion cards with category icons, compact
+field labels/schema keys and segmented choices. Exact numeric inputs are
+preserved alongside the departure-day slider; profile readback can add arbitrary
+schema-valid string choices. Scenario/Reset/lookup keep selected pills in sync,
+and Apply/Run disables every signal control. The compact branded header places
+live status immediately left of Apply on desktop. Selection Strategies has
+icon-only expand/collapse controls; repeated scenario instructions and the blue
+local/live policy summary are removed, without changing strategy evaluation,
+explicit Apply/Run, error feedback or returned-content retention.
+
 ## Source and limits
 
 Built from the owner-supplied **TUI.co.uk | Holidays, Flights & Cruises

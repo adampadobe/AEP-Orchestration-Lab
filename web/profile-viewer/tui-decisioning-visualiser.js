@@ -5,6 +5,7 @@
   const $ = id => document.getElementById(id);
   const controls = new Map();
   const groups = new Map();
+  const signalWidgets = new Map();
   let recipient = 'Alex', live = null, displayed = null, profileIdentity = null, held = '',
     embedded = parent !== window, generation = 0;
   function changed(keys) {
@@ -24,18 +25,28 @@
     return img;
   }
   function buildSignals() {
+    const icons = { Holiday: '\u2708', Support: '\u260e', Shopping: '\u2315', Preferences: '\u263a', Consent: '\u26e8' };
     for (const field of model.fields) {
       if (!groups.has(field.group)) {
         const detail = el('details', undefined, 'signal-group');
         detail.dataset.group = field.group;
-        detail.append(el('summary', field.group));
+        const summary = el('summary');
+        const icon = el('span', icons[field.group], 'signal-icon');
+        icon.setAttribute('aria-hidden', 'true');
+        summary.append(icon, el('span', field.group), el('span', undefined, 'signal-chevron'));
+        detail.append(summary);
         groups.set(field.group, detail);
         $('signals').append(detail);
       }
-      const label = el('label', undefined, 'signal-field');
+      const label = el('div', undefined, 'signal-field');
       const id = 'signal-' + field.key;
-      label.htmlFor = id;
-      label.append(el('span', field.label));
+      const heading = el('div', undefined, 'signal-field-heading');
+      const caption = el('label', field.label);
+      caption.htmlFor = id;
+      const path = el('code', field.path.split('.').at(-1));
+      path.title = field.path;
+      heading.append(caption, path);
+      label.append(heading);
       const input = el(field.type === 'number' ? 'input' : 'select');
       input.id = id;
       if (field.type === 'number') {
@@ -63,12 +74,51 @@
         state[field.key] = field.type === 'boolean' ? input.value === 'true' :
           field.type === 'number' ? Number(input.value) : input.value;
         changed([field.key]);
-        $('scenario-label').textContent = 'Custom holiday signals';
         document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
         render();
       });
       controls.set(field.key, input);
-      label.append(input, el('code', field.path));
+      label.append(input);
+      if (field.type !== 'number') {
+        input.hidden = true;
+        const segments = el('div', undefined, 'signal-segments');
+        segments.setAttribute('role', 'group');
+        segments.setAttribute('aria-label', field.label);
+        label.append(segments);
+        signalWidgets.set(field.key, () => {
+          const values = [...input.options].map(option => option.value);
+          if (segments.childElementCount !== values.length) {
+            segments.replaceChildren();
+            for (const value of values) {
+              const button = el('button', field.type === 'boolean' ? (value === 'true' ? 'Yes' : 'No') : value);
+              button.type = 'button';
+              button.dataset.value = value;
+              button.addEventListener('click', () => {
+                input.value = value;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+              });
+              segments.append(button);
+            }
+          }
+          for (const button of segments.children) {
+            button.setAttribute('aria-pressed', String(button.dataset.value === input.value));
+            button.disabled = input.disabled;
+          }
+        });
+      } else if (field.key === 'days') {
+        const range = el('input', undefined, 'signal-range');
+        range.type = 'range'; range.min = field.min; range.max = field.max; range.step = 1;
+        range.setAttribute('aria-label', field.label + ' slider');
+        range.addEventListener('input', () => {
+          input.value = range.value; input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        label.append(range);
+        signalWidgets.set(field.key, () => {
+          range.max = Math.max(field.max, Number(input.value) || 0);
+          range.value = input.value;
+          range.disabled = input.disabled;
+        });
+      }
       groups.get(field.group).append(label);
     }
   }
@@ -87,7 +137,6 @@
       const field = model.fields.find(f => f.key === key);
       groups.get(field.group).open = true;
     }
-    $('scenario-label').textContent = scenario.name;
     document.querySelectorAll('#scenario-pills button').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.scenario === String(index)));
     });
@@ -239,6 +288,7 @@
     $('web-preview').replaceChildren(hero);
   }
   function render(scenarioChosen) {
+    signalWidgets.forEach(sync => sync());
     const result = model.evaluate(state);
     const invalid = Array.from(controls.values()).some(input => input.getAttribute('aria-invalid') === 'true');
     if (invalid || held) {
@@ -255,11 +305,6 @@
     }
     renderLadder(result, scenarioChosen);
     renderPreview(result);
-    const objective = model.objectives.find(o => o.key === result.objective);
-    const offer = objective?.offers.find(item => item.key === result.offer);
-    $('decision-status').textContent = held || (live ? 'Live policy content / local objective ranking. ' : '') + (offer
-      ? objective.label + ' / ' + offer.name + '. ' + result.reason
-      : result.reason);
     $('fixture-summary').textContent = 'Holiday stage: ' + state.booking + '. Documents: ' + state.documents +
       '. Email consent: ' + state.emailConsent + '. Personalisation: ' + state.personalize +
       (embedded ? '. Staged signals, not confirmed profile facts.' : '. No data was loaded from AEP.');
@@ -384,7 +429,6 @@
     document.querySelectorAll('.objective').forEach(detail => { detail.open = false; });
     document.querySelectorAll('#scenario-pills button').forEach(button => button.setAttribute('aria-pressed', 'false'));
     $('eligible-details').open = false;
-    $('scenario-label').textContent = 'Starting profile';
     render();
   });
   $('expand').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = true; }));
@@ -404,7 +448,7 @@
   resizePanes();
   window.TuiDecisioningVisualiser = {
     setBusy(busy) {
-      document.querySelectorAll('#signals input,#signals select,#scenario-pills button,#reset').forEach(input => { input.disabled = busy; });
+      document.querySelectorAll('#signals input,#signals select,#signals button,#scenario-pills button,#reset').forEach(input => { input.disabled = busy; });
     },
     getState() {
       if ([...controls.values()].some(input => input.value === '' || !input.checkValidity())) throw new Error('Enter valid profile signals before Apply.');

@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261020-header">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261021-signals">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell">
@@ -36,13 +36,13 @@
       <div><span class="eyebrow">NEXT HOLIDAY. BEST MOMENT.</span><h1>A little more you.</h1></div>
     </div>
     <div class="tui-action-controls">
+      <span id="tuiLiveStatus" role="status" aria-live="polite">Look up a test profile to stage changes.</span>
       <button id="tuiApplyProfile" type="button" disabled>Apply profile changes</button>
       <button id="tuiRunDecision" type="button">Run live decision</button>
-      <span id="tuiLiveStatus" role="status" aria-live="polite">Look up a test profile to stage changes.</span>
     </div>
   </header>
   <iframe id="tui-visualiser" class="mod-demo-site-frame" title="TUI holiday decisioning"
-    src="tui-decisioning-visualiser.html?v=20261021-abandoned-search" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+    src="tui-decisioning-visualiser.html?v=20261021-signals" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
   <div class="dashboard-shell">
     <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
     <div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div>

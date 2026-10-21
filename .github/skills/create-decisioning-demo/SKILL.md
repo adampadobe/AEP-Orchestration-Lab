@@ -147,7 +147,10 @@ canonical shared Spectrum environment strip plus explicit Apply / Run actions.
 Place Apply and Run to the right of the brand logo/tagline in a single branded
 header, with a compact status message in that same header. Do not reserve a
 separate action toolbar above a second branded row. In iframe demos the parent
-owns this combined header; hide the iframe's duplicate brand header before
+places status immediately before Apply on desktop, not on a second full-width
+line below the buttons. Use compact vertical padding and let long statuses wrap
+without truncating errors; keep the normal desktop header near 60px high.
+The parent owns this combined header; hide the iframe's duplicate brand header before
 first paint and calculate its offset from the actual combined header height.
 Allow actions to wrap within that header on phones. Keep the shared configuration
 strip, button IDs, disabled states, live status and explicit-action behavior.
@@ -186,6 +189,21 @@ evaluation in rank order 1 to 7; reversing scenario presentation must not revers
 catalog priorities, rule precedence or the strategy ladder.
 On narrow screens stack panes.
 Use labelled controls, accessible tabs, useful image alternatives and clear status.
+
+Match BA's signal controls: rounded bordered accordion cards, a small category
+icon, bold title and right-aligned chevron. Expanded fields pair a label with a
+short schema key (retain the full path in a tooltip/configuration detail), with
+rounded segmented choices and an obvious selected state. Preserve exact numeric
+inputs alongside any slider and retain arbitrary schema-valid strings as
+selectable choices after profile readback. Synchronise choices after scenario,
+Reset and lookup; disable them during Apply/Run. Do not change primitive types,
+rules or which groups expand to achieve the design.
+For presentation-clean live demos, omit the changing scenario-description row,
+first-eligible instructional paragraph, stop-first caption and entire blue
+local/live policy summary beneath the strategies. Keep ranking implementation
+details in configuration/docs, and actionable errors in the live header and
+no-content state. Use small, accessible icon-only Expand/Collapse controls at
+the top right of Selection Strategies instead of text buttons.
 
 Match BA's ranked-objective and Eligible NBA design, adapted to the new brand:
 dark branded panels, coloured numbered chevrons, a selected pill and explicit

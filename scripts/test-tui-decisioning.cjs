@@ -8,6 +8,13 @@ const model = require('../web/profile-viewer/tui-decisioning-model.js');
 const profile = require('../web/profile-viewer/tui-decisioning-profile.js');
 const root = path.resolve(__dirname, '..', 'web');
 
+async function chooseSignal(surface, key, value) {
+  const field = surface.locator('.signal-field').filter({ has: surface.locator('#signal-' + key) });
+  const group = surface.locator('.signal-group').filter({ has: field });
+  if (!await group.evaluate(node => node.open)) await group.locator('summary').click();
+  await field.locator('.signal-segments button').filter({ hasText: new RegExp('^' + value + '$') }).click();
+}
+
 async function main() {
   const server = http.createServer(async (req, res) => {
     const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
@@ -57,6 +64,13 @@ async function main() {
     assert.deepEqual(await page.locator('#scenario-pills button').evaluateAll(buttons => buttons.map(b => b.textContent.split(' / ')[0])),
       ['7', '6', '5', '4', '3', '2', '1']);
     assert.equal(await page.locator('#ranking-title').textContent(), 'Selection Strategies');
+    assert.equal(await page.locator('#scenario-label,#decision-status,.decision-pane > .microcopy,.ranking-heading > span').count(), 0,
+      'Removed scenario instructions and live/local summary leave no empty rows');
+    assert.equal(await page.locator('.signal-group > summary .signal-icon,.signal-group > summary .signal-chevron').count(), 10);
+    for (const id of ['expand', 'collapse']) {
+      assert.equal(await page.locator('#' + id + ' svg').count(), 1);
+      assert(await page.locator('#' + id).getAttribute('aria-label'));
+    }
     assert.equal(await page.locator('.fictional-person,.signals-pane > .microcopy').count(), 0,
       'No redundant profile or instruction block above the signal groups');
     assert.equal(await page.locator('.preview-caption,#preview-caption,.site-search,.search-label').count(), 0,
@@ -71,6 +85,26 @@ async function main() {
       const header = document.querySelector('.tui-lab-header'), workspace = document.getElementById('workspace');
       return header.nextElementSibling === workspace && Math.abs(header.getBoundingClientRect().bottom - workspace.getBoundingClientRect().top) < 1;
     }), 'Workspace follows the header directly without the removed explanatory row');
+    await page.evaluate(defaults => window.TuiDecisioningVisualiser.setProfile({
+      state: { ...defaults, booking: 'Custom journey stage', score: 3.125, points: 1234.56 },
+    }), model.defaults);
+    assert.equal(await page.locator('.signal-field:has(#signal-booking) button[aria-pressed="true"]').textContent(), 'Custom journey stage',
+      'Arbitrary schema-valid strings remain available after readback');
+    assert.equal(await page.locator('#signal-score').inputValue(), '3.125');
+    assert.equal(await page.locator('#signal-points').inputValue(), '1234.56', 'Numeric precision is not quantised by presentation');
+    await page.evaluate(() => window.TuiDecisioningVisualiser.setBusy(true));
+    assert.equal(await page.locator('#signals button:not(:disabled),#signals input:not(:disabled)').count(), 0,
+      'Every segmented/numeric/slider control is disabled while busy');
+    await page.evaluate(() => window.TuiDecisioningVisualiser.setBusy(false));
+    await page.locator('#reset').click();
+    await chooseSignal(page, 'abandoned', 'Yes');
+    assert.equal(await page.evaluate(() => window.TuiDecisioningVisualiser.getState().abandoned), true,
+      'Segmented Yes stages a Boolean, not a string');
+    await page.locator('.signal-field:has(#signal-abandoned) button[data-value="false"]').focus();
+    await page.keyboard.press('Space');
+    assert.equal(await page.evaluate(() => window.TuiDecisioningVisualiser.getState().abandoned), false,
+      'Keyboard activation stages Boolean No');
+    await page.locator('#reset').click();
     let previousScenario = model.defaults;
     for (const [index, scenario] of model.demoScenarios.entries()) {
       await page.locator('#scenario-pills button').nth(index).click();
@@ -81,6 +115,10 @@ async function main() {
         [...new Set([...scenario.signalKeys, ...model.fields.filter(f => previousScenario[f.key] !== scenario.preset[f.key]).map(f => f.key)]
           .map(key => model.fields.find(f => f.key === key).group))].sort(), 'Only groups participating in this update expand');
       previousScenario = scenario.preset;
+      for (const field of model.fields.filter(field => field.type !== 'number')) {
+        assert.equal(await page.locator('.signal-field:has(#signal-' + field.key + ') button[aria-pressed="true"]').getAttribute('data-value'),
+          String(scenario.preset[field.key]), 'Scenario synchronises segmented choice: ' + field.key);
+      }
       const objective = model.objectives.find(o => o.key === scenario.expectedObjective), result = model.evaluate(scenario.preset);
       const expected = result.ladder.find(o => o.key === scenario.expectedObjective).offers.filter(item => item.eligible).sort((a, b) => b.priority - a.priority);
       assert.deepEqual(await page.locator('#eligible-items .nba-card:not(.nba-card--off)').evaluateAll(cards => cards.map(card => card.dataset.offer)),
@@ -114,9 +152,9 @@ async function main() {
       }
     }
     await page.locator('#scenario-pills button').last().click();
-    await page.locator('#signal-emailConsent').selectOption('n');
+    await chooseSignal(page, 'emailConsent', 'n');
     assert.equal(await page.locator('#eligible-items .nba-card').count(), 0, 'Consent hold clears ranked NBA cards');
-    await page.locator('#signal-emailConsent').selectOption('y');
+    await chooseSignal(page, 'emailConsent', 'y');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1, 'Held content restores');
     await page.locator('#email-preview .preview-cta').click();
     assert.match(await page.locator('#preview-feedback').textContent(), /not connected to a booking service/);
@@ -127,6 +165,7 @@ async function main() {
     assert.equal(await page.locator('#email-preview .email-card').count(), 0, 'Invalid number removes stale content');
     await page.locator('#signal-days').fill('30');
     assert.equal(await page.locator('#email-preview .email-card').count(), 1);
+    assert.equal(await page.getByRole('slider', { name: 'Days until departure slider' }).inputValue(), '30');
     await page.locator('details[data-group="Preferences"] summary').click();
     await page.locator('#signal-score').fill('5.1');
     for (const id of ['email-preview', 'mobile-preview', 'web-preview']) {
@@ -369,8 +408,30 @@ async function main() {
       const actions = button.getBoundingClientRect();
       return actions.x > brand.right && actions.y < brand.bottom + 10;
     }), 'Apply and Run sit to the right of the branded title');
+    assert(await shell.locator('#tuiLiveStatus').evaluate(status => {
+      const apply = document.getElementById('tuiApplyProfile');
+      return status.nextElementSibling === apply && status.getBoundingClientRect().right <= apply.getBoundingClientRect().left;
+    }), 'Status sits immediately to the left of Apply, not in a row below');
+    assert((await shell.locator('.tui-live-actions').boundingBox()).height <= 65, 'Normal desktop action header is compact');
     assert.equal(await frame.locator('.signal-group[open]').count(), 0, 'Embedded signals start collapsed after profile initialization');
     assert.doesNotMatch(await frame.locator('body').innerText(), /simulat|app concept|illustrat/i);
+    if (process.argv.includes('--layout-only')) {
+      for (const dark of [false, true]) {
+        await shell.evaluate(dark => {
+          if (dark) document.documentElement.setAttribute('data-aep-theme', 'dark');
+          else document.documentElement.removeAttribute('data-aep-theme');
+        }, dark);
+        for (const width of [1600, 390]) {
+          await shell.setViewportSize({ width, height: 1000 });
+          assert.equal(await shell.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true,
+            'Compact action header fits desktop and phone in both themes');
+        }
+      }
+      assert.deepEqual(errors, []);
+      await shellContext.close();
+      console.log('TUI layout checks passed: typed segmented signals, all scenarios, channels, themes and viewport sizes; compact shell actions.');
+      return;
+    }
     await shell.mouse.move(1000, 500);
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await frame.locator('#tab-mobile').click();
@@ -451,7 +512,7 @@ async function main() {
     await shell.evaluate(() => document.body.classList.remove('mod-demo-page--profile-open'));
     await shell.mouse.move(700, 100);
     await frame.locator('details[data-group="Holiday"] summary').click();
-    await frame.locator('#signal-booking').selectOption('Booked');
+    await chooseSignal(frame, 'booking', 'Booked');
     mismatchTenant = true;
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('does not match'));
@@ -476,7 +537,7 @@ async function main() {
     assert.equal(updates[0].body.updates.find(row => row.path.endsWith('preservedSibling')).value, 'Keep exact value');
     assert.equal(await shell.locator('#tuiPhSignal-booking').textContent(), 'Booked');
     await frame.locator('details[data-group="Preferences"] summary').click();
-    await frame.locator('#signal-booking').selectOption('Dreaming');
+    await chooseSignal(frame, 'booking', 'Dreaming');
     await frame.locator('#signal-score').fill('3.5');
     rejectGeneric = true;
     await shell.locator('#tuiApplyProfile').click();
@@ -675,7 +736,7 @@ async function main() {
     if (!await frame.locator('details[data-group="Consent"]').evaluate(details => details.open)) {
       await frame.locator('details[data-group="Consent"] summary').click();
     }
-    await frame.locator('#signal-emailConsent').selectOption('y');
+    await chooseSignal(frame, 'emailConsent', 'y');
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     await shell.evaluate(() => { window.fixtureDecisionMode = ''; });
@@ -730,7 +791,7 @@ async function main() {
     if (!await frame.locator('details[data-group="Holiday"]').evaluate(details => details.open)) {
       await frame.locator('details[data-group="Holiday"] summary').click();
     }
-    await frame.locator('#signal-booking').selectOption('Booked');
+    await chooseSignal(frame, 'booking', 'Booked');
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     assert.deepEqual(shellCalls.filter(call => call.path === '/api/profile/update').at(-1).body.updates,
