@@ -113,6 +113,11 @@ The website tests eligibility before item priority and stops at the first
 qualifying objective. The panel is labelled **Selection Strategies**.
 Exactly seven scenario buttons are presented in reverse rank order **7 to 1**;
 the strategy ladder still evaluates in unchanged priority order **1 to 7**.
+Scenario **5 - Abandoned search** uses scenario 7's baseline with
+`_demoemea.airlineCustomer.abandonedSearchFlag` set to boolean `true` (Yes),
+selecting **Find your getaway** and the **Return to holiday search** item in
+the local model. Scenario 7 resets this flag to `false` (No). The flag remains
+staged until Apply; changing the preset does not modify AJO rules or run a decision.
 There is no scenario dropdown or duplicate selector. Each button stages
 a complete preset, so its intended objective wins regardless of the previous
 scenario. Only rule-relevant scenario keys and keys being reset from the

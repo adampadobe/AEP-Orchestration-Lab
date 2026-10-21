@@ -117,6 +117,26 @@ test('exactly seven visible scenario presets independently select each ranked ob
   }
 });
 
+test('scenario 5 stages abandoned search Yes from the scenario 7 baseline', () => {
+  const abandoned = model.demoScenarios.find(s => s.rank === 5);
+  const inspiration = model.demoScenarios.find(s => s.rank === 7);
+  assert.equal(abandoned.name, 'Abandoned search');
+  assert.deepEqual(abandoned.preset, { ...inspiration.preset, abandoned: true });
+  assert(abandoned.signalKeys.includes('abandoned'));
+  assert.equal(model.fields.find(f => f.key === 'abandoned').path, '_demoemea.airlineCustomer.abandonedSearchFlag');
+  assert.equal(model.fields.find(f => f.key === 'abandoned').type, 'boolean');
+  assert.equal(model.evaluate(abandoned.preset).objective, 'convert');
+  assert.equal(model.evaluate(abandoned.preset).offer, 'return-search');
+  assert.equal(inspiration.preset.abandoned, false, 'Scenario 7 clears the abandoned-search flag');
+  const data = { industries: { travel: { writable: true, schemaId: 'travel-schema', xdmKey: '_demoemea' } },
+    rows: [{ path: '_demoemea.airlineCustomer.abandonedSearchFlag', value: false, valueType: 'boolean',
+      industry: 'travel', writable: true }] };
+  const batch = profile.snapshots(data, abandoned.preset, new Set(['abandoned']));
+  assert.deepEqual(batch.snapshots[0].updates, [
+    { path: 'airlineCustomer.abandonedSearchFlag', value: true, valueType: 'boolean' },
+  ]);
+});
+
 test('website and compiled catalog agree on all non-consent scenarios', () => {
   const plan = buildTuiPlan(raw);
   const bundle = compilePlan(plan);

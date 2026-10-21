@@ -114,12 +114,13 @@
   scenario('No email consent', { emailConsent: 'n' }, null, null, true);
   scenario('Unknown personalisation', { personalize: 'u' }, null, null);
   const demoScenarios = ['protect', 'travel', 'prepare', 'posttrip', 'convert', 'grow', 'engage'].map(key => {
-    const example = scenarios.find(s => s.expectedObjective === key);
+    const example = scenarios.find(s => s.expectedObjective === key && (key !== 'convert' || s.expectedOffer === 'return-search'));
     const objective = objectives.find(o => o.key === key);
     const item = objective.offers.find(o => o.key === example.expectedOffer);
     const paths = [...objective.rule.conditions, ...(item.rule?.conditions || [])].map(c => c.path);
     const signalKeys = [...new Set([...Object.keys(example.preset), ...fields.filter(f => paths.includes(f.path)).map(f => f.key)])];
-    return { ...example, rank: objectives.indexOf(objective) + 1, signalKeys, preset: { ...defaults, ...example.preset } };
+    return { ...example, name: key === 'convert' ? 'Abandoned search' : example.name,
+      rank: objectives.indexOf(objective) + 1, signalKeys, preset: { ...defaults, ...example.preset } };
   }).reverse();
 
   function attributes(state) {
