@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
+import vm from 'node:vm';
 import { compilePlan, evaluateScenario } from './provision-decisioning-catalog.mjs';
 import { buildTuiPlan } from './tui-decisioning-catalog-plan.mjs';
 import { ruleModelRepair } from './repair-decisioning-rule-models.mjs';
@@ -10,6 +11,62 @@ const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decision
 const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
 const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
 const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
+test('runtime captures the SDK event identity and datastream without changing legacy callers', async () => {
+  const source = await readFile(new URL('../web/profile-viewer/decisioning-profile-module/decisioning-profile-runtime.js', import.meta.url), 'utf8');
+  let namespace = 'email', identifier = 'traveller@example.invalid', ecid = '12345678901234567890';
+  let datastream = 'original-datastream';
+  const commands = [];
+  const alloy = async (command, options) => {
+    commands.push({ command, options });
+    return command === 'getIdentity' ? { identity: { ECID: ecid } } : { propositions: [] };
+  };
+  const global = {
+    console: { log() {} }, URL, URLSearchParams, location: { href: 'https://example.invalid/demo' },
+    document: { title: 'TUI Decisioning', readyState: 'loading', addEventListener() {} },
+    addEventListener() {}, dispatchEvent() {}, CustomEvent: class {},
+    fetch: async () => ({ ok: true, json: async () => ({ found: true }) }),
+    DemoTagsInjection: { ensureAlloyReady: async () => alloy,
+      edgeConfigOverrides: () => ({ edgeConfigOverrides: { datastreamId: datastream } }) },
+    DecisioningProfileModule: { extractEntityFromUps: () => ({ identityMap: { ECID: [{ id: '99999999999999999999' }] } }) },
+    CdEdgeMounts: { buildIdentityMap: profile => ({
+      ...(namespace === 'email' ? { Email: [{ id: identifier, primary: true }] } : {}),
+      ECID: [{ id: profile.ecid, primary: namespace === 'ecid' }],
+    }) },
+  };
+  global.window = global;
+  vm.runInNewContext(source, global);
+  const runtime = global.DecisioningProfileRuntime;
+  runtime.init({ useParentDocument: true, enabled: () => true, autoRunDecisioning: false,
+    getIdentifierValue: () => identifier, getNamespace: () => namespace, getSandboxName: () => 'kirkham' });
+  await runtime.runProfileLookup();
+  const legacy = await runtime.runContentDecision({ manualDisplay: true });
+  assert.equal(commands.some(call => call.command === 'getIdentity'), false);
+  assert.equal(legacy.manualDisplay.identityMap.ECID[0].id, '99999999999999999999');
+  assert.deepEqual(Object.keys(legacy.manualDisplay.eventXdm), []);
+  const options = { manualDisplay: true, useBrowserEcid: true, eventTenantNamespace: '_demoemea' };
+  const result = await runtime.runContentDecision(options);
+  const request = commands.at(-1).options;
+  assert.equal(request.xdm.identityMap.ECID[0].id, ecid);
+  assert.equal(request.xdm.identityMap.Email[0].id, identifier);
+  assert.equal(request.xdm._demoemea.identification.core.ecid, ecid);
+  assert.equal(request.personalization.sendDisplayEvent, false);
+  assert.equal(request.renderDecisions, false);
+  assert.equal(result.manualDisplay.alloy, alloy);
+  assert.equal(result.manualDisplay.identityMap, request.xdm.identityMap);
+  assert.equal(result.manualDisplay.eventXdm._demoemea, request.xdm._demoemea);
+  datastream = 'changed-during-image-load';
+  assert.equal(result.manualDisplay.edgeOptions.edgeConfigOverrides.datastreamId, 'original-datastream');
+  const before = commands.filter(call => call.command === 'sendEvent').length;
+  for (const eventTenantNamespace of [null, '_repo', '_experience', 'invalid tenant']) {
+    await assert.rejects(runtime.runContentDecision({ ...options, eventTenantNamespace }), /event schema tenant/);
+  }
+  ecid = '';
+  await assert.rejects(runtime.runContentDecision(options), /browser ECID was not returned/);
+  ecid = '12345678901234567890';
+  namespace = 'ecid'; identifier = '99999999999999999999';
+  await assert.rejects(runtime.runContentDecision(options), /selected ECID differs/);
+  assert.equal(commands.filter(call => call.command === 'sendEvent').length, before, 'Failed preflight sends no decisions');
+});
 test('schema preflight distinguishes tenant fields from reserved XDM roots and fails closed on disagreement', () => {
   const tenant = { type: 'object', properties: { airlineCustomer: { properties: { journeyStage: { type: 'string' } } } } };
   const schema = { 'meta:tenantNamespace': 'demoemea', properties: {

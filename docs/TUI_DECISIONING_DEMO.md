@@ -78,18 +78,29 @@ performed while implementing this correction.
 then requests the explicitly configured live policy through the shared runtime.
 A genuine hero image/copy replaces all three channel previews only after a
 successful response and image load, followed by one attributed display event.
-Following the BA reference, that event includes the original request identity
-map, the returned item/selection metadata, and root web page/view details.
-When an unambiguous ECID exists in that captured request and a valid configured
-tenant is available, the event also includes `identification.core.ecid` under
-that tenant. This enrichment is optional: email-only request maps and missing
-Generic `xdmKey` still support standard attributed display notifications.
-Missing original identity map or Alloy callback is a separate explicit error;
-the browser/drawer identity is never substituted. After delivery the shell refreshes the loaded
+Following the BA reference, Run first captures the active SDK ECID using
+`getIdentity`, retaining the selected email in the request identity map. Both
+request and display carry that same ECID in `identityMap.ECID` and
+`_demoemea.identification.core.ecid`. The configured event tenant comes from
+the reviewed kirkham Operational Event / Demo Website schema contract, not
+Generic's profile-write `xdmKey`. That event schema requires the tenant ECID;
+omitting it can prevent ingestion even when Edge returns a decision. A selected
+ECID different from the active visitor is rejected before the decision request.
+Only the parent loads Tags, avoiding a second SDK identity inside the visualiser.
+Run captures the environment strip's datastream override once and reuses it for
+display, along with the original Alloy callback, identity map, returned
+item/selection metadata and root web page/view details. Missing SDK identity or
+invalid event tenant fails before requesting content, never after replacing it.
+There is no additional stitch event on read-only lookup. The decision request
+itself carries the selected email and active ECID. After delivery the shell refreshes the loaded
 profile's events; the shared drawer's one-second poll then catches delayed Hub
 ingestion without another full profile lookup. Actual ingested events update the
 five-card box and journey, not optimistic local cards. Content displays do not
 increment Messages Sent. Context changes invalidate old event responses.
+The browser regression uses the real shared runtime with an intercepted SDK:
+only schema-valid outbound displays become delayed fixture API events, preserving
+their actual returned item and strategy fields. This verifies the client
+request/display/retrieval contract, not live datastream ingestion.
 It does not send messages or activate the TUI drafts. The objective ladder
 remains an explicitly labelled local simulation, not an explanation of a
 different live policy's result.

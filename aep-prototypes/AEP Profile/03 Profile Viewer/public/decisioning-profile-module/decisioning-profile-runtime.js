@@ -494,6 +494,30 @@
       typeof global.CdEdgeMounts !== 'undefined' && typeof global.CdEdgeMounts.buildIdentityMap === 'function'
         ? global.CdEdgeMounts.buildIdentityMap(profile, idVal, ns)
         : {};
+    var eventXdm = {};
+    var edgeOptions = {};
+    if (options.useBrowserEcid === true) {
+      var tenant = options.eventTenantNamespace;
+      if (typeof tenant !== 'string' || !/^_[A-Za-z][A-Za-z0-9]*$/.test(tenant) ||
+        ['_id', '_repo', '_experience', '_links'].indexOf(tenant) !== -1) {
+        throw new Error('Configure the reviewed event schema tenant before requesting a decision.');
+      }
+      var identityResult = await alloyFn('getIdentity', { namespaces: ['ECID'] });
+      var browserEcid = identityResult && identityResult.identity && identityResult.identity.ECID;
+      if (typeof browserEcid !== 'string' || !/^\d{10,}$/.test(browserEcid)) {
+        throw new Error('Active Web SDK browser ECID was not returned; decision request was not sent.');
+      }
+      var hasOtherIdentity = Object.keys(identityMap).some(function (namespace) { return namespace !== 'ECID'; });
+      identityMap.ECID = [{ id: browserEcid, authenticatedState: 'ambiguous', primary: !hasOtherIdentity }];
+      // A selected ECID must be the SDK visitor; combining two ECIDs can attribute a different profile.
+      if (ns === 'ecid' && idVal !== browserEcid) {
+        throw new Error('The selected ECID differs from the active Web SDK visitor. Use the linked email or active visitor.');
+      }
+      eventXdm[tenant] = { identification: { core: { ecid: browserEcid } } };
+      if (global.DemoTagsInjection && typeof global.DemoTagsInjection.edgeConfigOverrides === 'function') {
+        edgeOptions = global.DemoTagsInjection.edgeConfigOverrides();
+      }
+    }
     var surfaces = buildSurfacesForPage();
     var href = resolvePersonalizationPageUrl();
     if (!href && global.location) href = stripUrlQueryHash(global.location.href);
@@ -511,9 +535,11 @@
             'https://ns.adobe.com/personalization/dom-action',
           ];
     var sendOpts = {
+      ...edgeOptions,
       renderDecisions: !manualDisplay,
-      personalization: { surfaces: surfaces, schemas: schemas },
+      personalization: { surfaces: surfaces, schemas: schemas, ...(manualDisplay ? { sendDisplayEvent: false } : {}) },
       xdm: {
+        ...eventXdm,
         identityMap: identityMap,
         web: {
           webPageDetails: {
@@ -556,7 +582,7 @@
       });
     }
     return Object.assign({}, result || {}, {
-      manualDisplay: manualDisplay ? { alloy: alloyFn, identityMap: identityMap } : null,
+      manualDisplay: manualDisplay ? { alloy: alloyFn, identityMap: identityMap, eventXdm: eventXdm, edgeOptions: edgeOptions } : null,
       propositions: propositions,
       appliedMounts: appliedMounts,
       autoRestored: autoRestored,
@@ -647,6 +673,7 @@
 
   global.DecisioningProfileRuntime = {
     supportsManualDisplay: true,
+    supportsCapturedEventContext: true,
     CACHE_BUST: CACHE_BUST,
     init: init,
     getApi: getApi,

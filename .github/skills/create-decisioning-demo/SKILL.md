@@ -296,25 +296,37 @@ and journey data, using the same identity and time window, not a separate slow
 profile lookup.
 Follow BA's event attribution and shared polling, not just its static drawer
 markup. The manual PropositionDisplay must carry the original request
-`identityMap` and original proposition scope/metadata. An email-only request is
-valid: do not require an explicit ECID or Generic profile-dataflow `xdmKey` to
-display its result or send its standard display notification. Add matching ECID
-at `<resolvedTenant>.identification.core.ecid` only when both an unambiguous
-ECID from that captured request and the configured tenant are available; never
-invent either or substitute the browser/drawer identity. Missing optional tenant
-enrichment is not missing attribution. A genuinely missing original identity
-map or Alloy callback remains an explicit attribution failure. Test email-only
-identity maps, absent/null/invalid/reserved tenant keys, and the fully enriched
-case using the actual runtime return shape. Keep `_experience.decisioning.*` and
-`web.webPageDetails.*` at root. Resolve the tenant from the selected configured
-schema/dataflow instead of copying BA's namespace. Include the configured page/
+`identityMap` and original proposition scope/metadata. Inspect the **event**
+schema, not Generic's profile-write `xdmKey`, to determine required identity
+fields. Standard display XDM supports email-only maps, but that does not prove
+the configured datastream will ingest them: the Demo Website event schema needs
+`<eventTenant>.identification.core.ecid` matching `identityMap.ECID`.
+For that pipeline capture `getIdentity` from the original SDK **before the
+decision request**, retain the selected email, and use the same active ECID and
+reviewed event-schema tenant for request and display. Reject a selected ECID
+that differs from the SDK visitor before sending. Never choose an arbitrary ECID
+from UPS or substitute another identity after the decision. Do not add another
+stitch event to a read-only lookup. Parent-driven demos should load Tags only
+in the parent (`iframeIds: []` on Tags injection), not create a second SDK
+visitor inside the preview iframe. Capture the environment strip's datastream
+override with the request and reuse it on display even if configuration changes
+while the image loads. Validate required SDK identity and event tenant before
+requesting content; do not introduce a new late guard after displaying it.
+A genuinely missing original identity map or Alloy callback remains an explicit
+attribution failure. Keep `_experience.decisioning.*` and
+`web.webPageDetails.*` at root. Resolve the tenant from the reviewed event
+schema/configuration instead of copying BA's namespace. Include the configured page/
 view name so actual ingested events can be identified. Send exactly once after
 the returned image is loaded, then call
 `DemoProfileDrawer.refreshDrawerEventsForLoadedProfile()`. Retain the shared
 one-second poll started by a successful drawer lookup to catch delayed Hub
 ingestion. Do not run another full lookup, switch to a different/browser
 identity, fabricate event cards or resend display events to force the box to
-update. Verify with an intercepted delayed event response that the actual
+update. Test with the **real runtime** and intercepted SDK: validate outbound
+request/display schema identities and metadata, then derive delayed fixture
+API events from that outbound payload. Inserting unrelated hardcoded fixture
+events proves only polling/rendering, not that delivery can populate the drawer.
+Verify that the actual
 event card, details, count and journey update without clicking refresh, while
 identity/sandbox changes discard late responses. Display events are not
 messages sent; never increment message totals for a content decision.

@@ -161,11 +161,12 @@
         throw new Error('Actual loaded consent must be y; defaults do not grant permission.');
       }
       const runtime = global.DecisioningProfileRuntime;
-      if (!runtime?.supportsManualDisplay) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
+      if (!runtime?.supportsManualDisplay || !runtime.supportsCapturedEventContext) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
       if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime lookup failed.');
       same(ctx, token);
       message('Evaluating the configured policy. TUI draft catalog is not automatically activated.');
-      const result = await runtime.runContentDecision({ manualDisplay: true }); same(ctx, token);
+      const result = await runtime.runContentDecision({ manualDisplay: true, useBrowserEcid: true,
+        eventTenantNamespace: global.envBarConfig.decisioning.eventTenantNamespace }); same(ctx, token);
       if (revision !== changedAt) throw new Error('Signals changed during Run. Apply and run again.');
       const matches = [];
       for (const proposition of result.propositions || []) {
@@ -189,25 +190,21 @@
         Array.isArray(identities) && identities.some(identity => typeof identity?.id === 'string' && identity.id.trim()))) {
         throw new Error('Decision display attribution is missing the original request identity map.');
       }
-      const ecids = Array.isArray(identityMap?.ECID) ? identityMap.ECID.filter(identity =>
-        typeof identity.id === 'string' && /^\d{10,}$/.test(identity.id)) : [];
-      const ecid = (ecids.find(identity => identity.primary === true) || (ecids.length === 1 ? ecids[0] : null))?.id;
-      const configuredTenant = data.industries?.generic?.xdmKey;
-      const tenant = typeof configuredTenant === 'string' && /^_?[a-zA-Z][a-zA-Z0-9]*$/.test(configuredTenant)
-        ? '_' + configuredTenant.replace(/^_/, '') : null;
-      const tenantIdentity = ecid && tenant && !['_id', '_repo', '_experience', '_links'].includes(tenant)
-        ? { [tenant]: { identification: { core: { ecid } } } } : {};
       await api().setDecision(matches[0]); same(ctx, token);
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
-      await result.manualDisplay.alloy('sendEvent', { renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+      const displayPayload = { ...result.manualDisplay.edgeOptions,
+        renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
         xdm: { eventType: 'decisioning.propositionDisplay', identityMap,
-          ...tenantIdentity,
+          ...result.manualDisplay.eventXdm,
           web: { webPageDetails: { URL: result.personalizationPageUrl || location.origin + location.pathname,
             name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,
             items: p.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}), ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
-            propositionEventType: { display: 1 } } } } });
+            propositionEventType: { display: 1 } } } } };
+      console.info('[tui-decisioning-display] Sending original decision attribution', displayPayload);
+      const displayResponse = await result.manualDisplay.alloy('sendEvent', displayPayload);
+      console.info('[tui-decisioning-display] Edge response', displayResponse);
       same(ctx, token);
       await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
       same(ctx, token); message('Live hero displayed across all three views.');
@@ -236,7 +233,7 @@
       tagsEnvironmentId: prefix + 'TagsEnvironment', injectButtonId: prefix + 'InjectSdkBtn', selectedScriptId: prefix + 'SelectedScript',
       configFieldsId: prefix + 'SdkConfigFields', configSummaryId: prefix + 'SdkConfigSummary',
       configSummaryTextId: prefix + 'SdkConfigSummaryText', changeConfigButtonId: prefix + 'ChangeSdkConfigBtn',
-      getSelectedGeneratorTarget: getTarget, getEmail: () => email.value, iframeIds: ['tui-visualiser'],
+      getSelectedGeneratorTarget: getTarget, getEmail: () => email.value, iframeIds: [],
       hideTagsCompanyUi: true, webPush: { enabled: false }, brandConcierge: { enabled: false },
     });
     global.envBar.registerTagsInjection(tags);

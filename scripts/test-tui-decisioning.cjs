@@ -488,12 +488,57 @@ async function main() {
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Profile changes confirmed.'));
     assert.deepEqual(shellCalls.filter(call => call.path === '/api/profile/update').map(call => call.body.industry),
       ['travel', 'travel', 'generic', 'generic'], 'Partial failure never resends the accepted travel snapshot');
+    let receivedDisplay = 0;
+    const pendingDisplays = [];
+    await shell.exposeFunction('ingestFixtureDisplay', xdm => {
+      const flatten = (value, prefix = '') => Object.entries(value).flatMap(([key, child]) => {
+        const path = prefix ? prefix + '.' + key : key;
+        return child && typeof child === 'object' ? flatten(child, path) : [{ path, value: child }];
+      });
+      pendingDisplays.push({ availableAt: Date.now() + 1500, event: {
+        id: 'ingested-live-display-' + ++receivedDisplay, timestamp: Date.now(),
+        eventType: xdm.eventType, rows: flatten(xdm),
+      } });
+    });
+    await shell.route('**/api/profile/events?*', async route => {
+      for (let i = pendingDisplays.length - 1; i >= 0; i--) {
+        if (pendingDisplays[i].availableAt <= Date.now()) events.unshift(pendingDisplays.splice(i, 1)[0].event);
+      }
+      await route.fallback();
+    });
     await shell.evaluate(() => {
       window.fixtureDisplayEvents = [];
-      window.DecisioningProfileRuntime = {
-        supportsManualDisplay: true, runProfileLookup: async () => true,
-        runContentDecision: async options => {
-          if (!options.manualDisplay) throw new Error('Manual display is required');
+      window.fixtureDecisionRequests = [];
+      window.fixtureIdentityReads = 0;
+      const enabled = document.getElementById('siteCloneDecisioningEnabledToggle');
+      enabled.checked = true;
+      enabled.dispatchEvent(new Event('change', { bubbles: true }));
+      window.fixtureDatastream = '46677fd7-9db0-4f16-898c-b424d0245c38';
+      window.DemoTagsInjection.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.fixtureDatastream } });
+      window.DemoTagsInjection.ensureAlloyReady = async () => window.alloy;
+      window.alloy = async (command, options) => {
+        if (command === 'getIdentity') {
+          window.fixtureIdentityReads++;
+          return { identity: { ECID: window.fixtureIdentityMode === 'missing' ? '' : '12345678901234567890' } };
+        }
+        if (command !== 'sendEvent') throw new Error('Unexpected SDK command: ' + command);
+        if (options.xdm.eventType === 'decisioning.propositionDisplay') {
+          const request = window.fixtureDecisionRequests.at(-1);
+          if (JSON.stringify(options.xdm.identityMap) !== JSON.stringify(request.xdm.identityMap) ||
+            options.xdm._demoemea?.identification?.core?.ecid !== request.xdm.identityMap.ECID[0].id ||
+            options.edgeConfigOverrides.datastreamId !== request.edgeConfigOverrides.datastreamId) {
+            throw new Error('Display did not preserve the requested visitor and datastream');
+          }
+          window.fixtureDisplayEvents.push({ command, options });
+          if (window.fixtureDisplayFailure) throw new Error('Fixture display transport failed');
+          await window.ingestFixtureDisplay(options.xdm);
+          return {};
+        } else {
+          if (options.renderDecisions !== false || options.personalization.sendDisplayEvent !== false) {
+            throw new Error('Manual display is required');
+          }
+          if (!options.xdm._demoemea?.identification?.core?.ecid) throw new Error('Required event schema ECID missing');
+          window.fixtureDecisionRequests.push(options);
           if (window.fixtureDecisionMode === 'empty') return { propositions: [] };
           if (window.fixtureDecisionMode === 'wait') {
             await new Promise(resolve => { window.releaseFixtureDecision = resolve; });
@@ -509,16 +554,13 @@ async function main() {
                   (window.fixtureDecisionMode === 'broken' ? 'missing.jpg' : next ? 'mexico.jpg?next-image=1' : 'crete.jpg'),
                   title: next ? 'Next live offer' : 'Fixture live offer',
                   fullDescription: next ? 'Next returned copy' : 'Actual returned fixture copy' } }] }],
-            manualDisplay: { identityMap: window.fixtureIdentityMode === 'missing' ? null :
-              window.fixtureIdentityMode === 'email' ? { Email: [{ id: 'traveller@example.invalid', primary: true }] } :
-                { ECID: [{ id: '12345678901234567890', primary: true }] },
-              alloy: async (command, options) => window.fixtureDisplayEvents.push({ command, options }) },
           };
-        },
+        }
       };
     });
     await shell.locator('#tuiRunDecision').click();
-    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'))
+      .catch(async error => { throw new Error('Live status: ' + await shell.locator('#tuiLiveStatus').textContent(), { cause: error }); });
     assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer');
     assert.equal(await frame.locator('#mobile-preview .app-offer-title').textContent(), 'Fixture live offer');
     assert.doesNotMatch(await shell.locator('#tuiLiveStatus').textContent(), /simulat|app concept|illustrat/i);
@@ -530,19 +572,17 @@ async function main() {
       'Tenant event identity matches the original decision request, not a newly read browser identity');
     assert.equal(display.web.webPageDetails.viewName, 'TUI Decisioning');
     assert.equal(display._experience.decisioning.propositions[0].items[0].name, 'Returned fixture offer');
+    const decisionRequest = await shell.evaluate(() => window.fixtureDecisionRequests.at(-1));
+    assert.deepEqual(display.identityMap, decisionRequest.xdm.identityMap);
+    assert.equal(display.identityMap.Email[0].id, fixture.profileEmail, 'The selected profile remains linked to the active visitor');
+    assert.equal(decisionRequest.xdm._demoemea.identification.core.ecid, display.identityMap.ECID[0].id);
+    assert.equal(await shell.evaluate(() => window.fixtureIdentityReads), 1, 'Only the request resolves ECID; display reuses it');
     const readOnlyBeforePoll = shellCalls.filter(call => call.path === '/api/profile/consent').length;
     const eventReadsBeforePoll = shellCalls.filter(call => call.path === '/api/profile/events').length;
     await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().events.length === 5);
-    await new Promise(resolve => setTimeout(resolve, 1100));
-    events.unshift({ id: 'ingested-live-display', timestamp: Date.now(), eventType: 'decisioning.propositionDisplay',
-      rows: [
-        { path: '_experience.decisioning.propositions.0.items.0.name', value: 'Returned fixture offer' },
-        { path: '_experience.decisioning.propositions.0.items.0.itemSelection.selectionDetail.strategyName', value: 'Returned fixture strategy' },
-        { path: 'web.webPageDetails.name', value: display.web.webPageDetails.name },
-      ] });
     await shell.waitForFunction(() => document.getElementById('profileDrawerEvents').textContent.includes('Returned fixture offer'));
     assert.match(await shell.locator('#profileDrawerEvents').innerText(), /Returned fixture strategy/);
-    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().eventsStory[0].id), 'ingested-live-display');
+    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().eventsStory[0].id), 'ingested-live-display-1');
     assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 0,
       'A decision display does not increment Messages Sent');
     assert(shellCalls.filter(call => call.path === '/api/profile/events').length > eventReadsBeforePoll,
@@ -697,29 +737,35 @@ async function main() {
       [{ path: 'airlineCustomer.journeyStage', value: 'Booked', valueType: 'string' }],
       'Configured writable dataflow allows first-time Travel population with no existing rows');
     const configuredTenant = fixture.industries.generic.xdmKey;
-    for (const [identityMode, tenant] of [['email', configuredTenant], ['', null], ['email', null],
-      ['', '_repo'], ['', 'invalid tenant']]) {
+    for (const tenant of [null, '_repo', 'invalid tenant']) {
       fixture.industries.generic.xdmKey = tenant;
-      await shell.evaluate(mode => { window.fixtureIdentityMode = mode; }, identityMode);
       const before = await shell.evaluate(() => window.fixtureDisplayEvents.length);
       await shell.locator('#tuiRunDecision').click();
       await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.startsWith('Live hero displayed'));
       assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), before + 1,
-        'Optional ECID/tenant enrichment cannot block a valid returned decision');
+        'Profile dataflow metadata is not used as the event schema tenant');
       const xdm = await shell.evaluate(() => window.fixtureDisplayEvents.at(-1).options.xdm);
-      assert.equal(Object.hasOwn(xdm, '_demoemea'), false, 'Unavailable enrichment is omitted, never fabricated');
+      assert.equal(xdm._demoemea.identification.core.ecid, xdm.identityMap.ECID[0].id,
+        'The reviewed event tenant is independent of missing or invalid Generic profile configuration');
       assert.equal(Object.hasOwn(xdm, '_repo'), false, 'Reserved XDM roots cannot receive tenant enrichment');
-      assert.deepEqual(Object.keys(xdm.identityMap), [identityMode === 'email' ? 'Email' : 'ECID'],
-        'Display preserves exactly the request identity namespace');
+      assert.deepEqual(Object.keys(xdm.identityMap), ['Email', 'ECID'],
+        'Display preserves the selected email plus the captured browser visitor');
       assert.equal(await frame.locator('#email-preview .email-heading').textContent(), 'Fixture live offer');
     }
     fixture.industries.generic.xdmKey = configuredTenant;
     await shell.evaluate(() => { window.fixtureIdentityMode = 'missing'; });
     const beforeMissingIdentity = await shell.evaluate(() => window.fixtureDisplayEvents.length);
     await shell.locator('#tuiRunDecision').click();
-    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('missing the original request identity map'));
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('browser ECID was not returned'));
     assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), beforeMissingIdentity,
-      'Genuinely missing attribution still blocks a display notification');
+      'Missing SDK identity blocks before requesting a decision, not after displaying content');
+    await shell.evaluate(() => { window.fixtureIdentityMode = ''; window.fixtureDisplayFailure = true; });
+    const beforeFailure = await shell.evaluate(() => window.fixtureDisplayEvents.length);
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Fixture display transport failed'));
+    await shell.waitForTimeout(1200);
+    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), beforeFailure + 1,
+      'An uncertain display send is attempted only once, never retried by polling');
     await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     await shell.locator('#tui-visualiser').contentFrame().locator('html[data-aep-theme="dark"]').waitFor();
     assert.equal(await frame.locator('html').getAttribute('data-aep-theme'), 'dark');
