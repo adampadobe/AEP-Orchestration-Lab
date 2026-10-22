@@ -514,9 +514,10 @@
         throw new Error('The selected ECID differs from the active Web SDK visitor. Use the linked email or active visitor.');
       }
       eventXdm[tenant] = { identification: { core: { ecid: browserEcid } } };
-      if (global.DemoTagsInjection && typeof global.DemoTagsInjection.edgeConfigOverrides === 'function') {
-        edgeOptions = global.DemoTagsInjection.edgeConfigOverrides();
+      if (!global.DemoLabEdgeConfig || typeof global.DemoLabEdgeConfig.edgeConfigOverrides !== 'function') {
+        throw new Error('Lab datastream configuration is unavailable. Reload the page before requesting a decision.');
       }
+      edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
     }
     var surfaces = buildSurfacesForPage();
     var href = resolvePersonalizationPageUrl();

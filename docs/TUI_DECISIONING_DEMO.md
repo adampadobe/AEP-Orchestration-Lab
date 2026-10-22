@@ -23,6 +23,12 @@ Eligible NBAs is separated from Selection Strategies by 18px. The desktop drawer
 uses a narrower one-third profile hero with the remaining space shared equally
 by identity graph, audience/messages and events; classic and mobile layouts
 retain their existing behaviour and height limits.
+Attribute cards size to their contents rather than stretching down the column.
+Labels are at least 13px and values at least 16px at default desktop zoom.
+Two-column signal tiles have larger padding, and KPI cards reflow into two
+compact rows when the profile column is narrow, avoiding truncated values.
+Contact, grouped-attribute and Identity tabs remain keyboard accessible; normal
+tabs fit without scrolling within the existing 560px drawer cap.
 
 ## Source and limits
 
@@ -106,6 +112,14 @@ reserved before dispatch; uncertain tracking failures are explicit and never
 retried automatically or on Run/reapply. Failed tracking does not start profile
 confirmation; a later explicit Run may reconcile the accepted snapshots without
 resending the event. Context changes discard deferred state.
+
+Datastream options come from the shared
+`DemoLabEdgeConfig.edgeConfigOverrides()` API exported by
+`demo-tags-injection.js`, not `DemoTagsInjection`. Apply and the captured-context
+decision/display runtime use that same helper. An empty override preserves
+Tags' configured datastream; a missing helper fails before profile writes or
+the decision request. Regression fixtures execute the actual helper with
+sandbox-scoped stored UUIDs rather than inventing an export in a mock.
 
 After an acknowledged send the loaded drawer's events are refreshed; its shared
 poll retrieves delayed ingested activity without fabricating a card or counting

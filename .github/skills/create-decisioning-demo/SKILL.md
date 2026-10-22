@@ -307,6 +307,13 @@ audience/messages and recent-events columns (TUI uses 1.5fr / 1fr / 1fr / 1fr).
 Do not leave the hero spanning two of five equal tracks. Scope the change to
 the demo so classic-layout rollback and other demos are unchanged. Recheck every
 attribute tab for clipping/scrolling and preserve the capped drawer height.
+At default desktop zoom use readable attribute typography (TUI: labels at least
+13px, values at least 16px), generous two-column signal tiles, and content-sized
+tab cards rather than a mostly empty card stretched to the drawer bottom.
+Reflow KPI cards based on the profile column's own width (TUI: two compact rows
+below 480px), not only the viewport; do not truncate values or split short words
+across lines. Check 1280/1440/1920px desktops as well as narrow screens in both
+themes, retaining the same drawer-height cap and keyboard tabs.
 On narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
 stacked sections. Verify exact loaded/unloaded height limits with five fixture
 events, all sections, both themes, and desktop/narrow viewports. Move, rather than clone, the
@@ -656,6 +663,15 @@ is the field template, not permission to reuse BA copy for another customer.
   attributing a remembered event contract to a reference page.
   Capture the Alloy callback, browser ECID, selected identity and datastream
   override before any writes, retaining the reviewed event-schema tenant.
+    Use `DemoLabEdgeConfig.edgeConfigOverrides()` from the actual shared
+    `demo-tags-injection.js`; it is not a `DemoTagsInjection` method. Capture the
+    returned options for Apply events and decision/display alike. An empty
+    override uses the Tags-configured datastream; a missing helper is an explicit
+    preflight failure, not permission to silently drop the user's override.
+    Execute the real helper against sandbox-scoped stored UUIDs in tests, mocking
+    only the SDK transport. Do not invent an export on the Tags object in a
+    fixture, which previously hid an Apply-time TypeError and a dropped decision
+    override.
   Send only root `eventType`, `identityMap` and `web.webPageDetails`, plus
   `<eventTenant>.identification.core.ecid/email`. Never put the profile-only
   `airlineCustomer.abandonedSearchFlag` in event XDM, invent flight/search

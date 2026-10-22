@@ -492,7 +492,7 @@ async function main() {
     assert.equal(await shell.locator('#tuiPhSignal-score').textContent(), '2.99');
     for (const dark of [false, true]) {
       await shell.evaluate(dark => document.documentElement.setAttribute('data-aep-theme', dark ? 'dark' : 'light'), dark);
-      for (const width of [1440, 390]) {
+      for (const width of [1280, 1440, 1920, 390]) {
         await shell.setViewportSize({ width, height: 844 });
         await shell.locator('#profileDrawer').evaluate(drawer => drawer.style.transition = 'none');
         const height = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(n => n.getBoundingClientRect().height);
@@ -520,6 +520,20 @@ async function main() {
             const hero = document.getElementById('tuiProfileHero').getBoundingClientRect(), box = node.getBoundingClientRect();
             return box.top >= hero.top && box.bottom <= hero.bottom + 1;
           }), 'Selected attribute panel fits inside the compact hero without clipping');
+          const emptyTail = await panel.evaluate(node => {
+            const rect = node.getBoundingClientRect();
+            const children = [...node.children].map(child => child.getBoundingClientRect()).filter(box => box.height > 0);
+            return rect.bottom - Math.max(...children.map(box => box.bottom));
+          });
+          assert(emptyTail < 28, `${label} at ${width}px: content-sized attribute card has ${emptyTail}px empty tail`);
+          if (width > 1100) {
+            assert(await panel.locator('dd').evaluateAll(nodes => nodes.every(node => parseFloat(getComputedStyle(node).fontSize) >= 16)),
+              'Attribute values are readable at default desktop zoom');
+            if (await panel.locator('.dph-signal dt').count()) {
+              assert(await panel.locator('.dph-signal dt').evaluateAll(nodes => nodes.every(node => parseFloat(getComputedStyle(node).fontSize) >= 13)),
+                'Signal labels are readable without browser zoom');
+            }
+          }
         }
         await shell.getByRole('tab', { name: 'Holiday', exact: true }).click();
         assert.equal(await shell.locator('#tuiPhSignal-booking').isVisible(), true, 'Travel values remain accessible via tabs');
@@ -590,7 +604,7 @@ async function main() {
       assert.equal(xdm._demoemea.identification.core.email, fixture.profileEmail);
       assert.equal(xdm.web.webPageDetails.viewName, 'TUI Decisioning');
       assert.equal(xdm._demoemea.airlineCustomer, undefined, 'Profile flag is not sent as an event field');
-      assert.equal(payload.edgeConfigOverrides.datastreamId, 'abandonment-datastream');
+      assert.equal(payload.edgeConfigOverrides.datastreamId, '46677fd7-9db0-4f16-898c-b424d0245c38');
       const rows = (value, prefix = '') => Object.entries(value).flatMap(([key, child]) => {
         const path = prefix ? prefix + '.' + key : key;
         return child && typeof child === 'object' ? rows(child, path) : [{ path, value: child }];
@@ -602,7 +616,10 @@ async function main() {
     await shell.evaluate(() => {
       window.fixtureAbandonments = [];
       window.DemoTagsInjection.ensureAlloyReady = async () => window.alloy;
-      window.DemoTagsInjection.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'abandonment-datastream' } });
+      if (typeof window.DemoLabEdgeConfig.edgeConfigOverrides !== 'function' ||
+          window.DemoTagsInjection.edgeConfigOverrides !== undefined) throw new Error('Unexpected shared Tags API contract');
+      window.AepLabEnvBarPrefs.writeMap('siteCloneBcDatastreamIdBySandbox',
+        { kirkham: '46677fd7-9db0-4f16-898c-b424d0245c38' });
       window.sendFixtureAbandonment = async options => {
         window.fixtureAbandonments.push(options);
         if (window.fixtureAbandonmentFailure) throw new Error('Fixture abandonment transport failed');
@@ -683,7 +700,7 @@ async function main() {
       enabled.checked = true;
       enabled.dispatchEvent(new Event('change', { bubbles: true }));
       window.fixtureDatastream = '46677fd7-9db0-4f16-898c-b424d0245c38';
-      window.DemoTagsInjection.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.fixtureDatastream } });
+      window.AepLabEnvBarPrefs.writeMap('siteCloneBcDatastreamIdBySandbox', { kirkham: window.fixtureDatastream });
       window.DemoTagsInjection.ensureAlloyReady = async () => window.alloy;
       window.alloy = async (command, options) => {
         if (command === 'getIdentity') {

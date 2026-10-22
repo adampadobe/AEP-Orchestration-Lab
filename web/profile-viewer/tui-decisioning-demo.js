@@ -122,6 +122,9 @@
     if (!global.DemoTagsInjection?.ensureAlloyReady || !global.CdEdgeMounts?.buildIdentityMap) {
       throw new Error('Inject Tags with Web SDK before applying abandoned search.');
     }
+    if (typeof global.DemoLabEdgeConfig?.edgeConfigOverrides !== 'function') {
+      throw new Error('Lab datastream configuration is unavailable. Reload the page before Apply; no profile changes sent.');
+    }
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
@@ -130,7 +133,7 @@
     if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned; no profile changes sent.');
     if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) throw new Error('The selected ECID differs from the active Web SDK visitor. No profile changes sent.');
     return { alloy, attempted: false, payload: {
-      ...global.DemoTagsInjection.edgeConfigOverrides(),
+      ...global.DemoLabEdgeConfig.edgeConfigOverrides(),
       renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
       xdm: {
         eventType: 'abandoned.search',

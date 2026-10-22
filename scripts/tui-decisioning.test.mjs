@@ -11,17 +11,27 @@ const model = createRequire(import.meta.url)('../web/profile-viewer/tui-decision
 const profile = createRequire(import.meta.url)('../web/profile-viewer/tui-decisioning-profile.js');
 const { getManifestForIndustry } = createRequire(import.meta.url)('../functions/profileCoreV2Manifest.js');
 const { resolveIndustryForPath } = createRequire(import.meta.url)('../functions/industryAttributeMap.js');
+const tagsSource = await readFile(new URL('../web/profile-viewer/demo-tags-injection.js', import.meta.url), 'utf8');
+function attachRealEdgeConfig(global, readDatastream) {
+  global.window = global;
+  global.AepGlobalSandbox = { getSandboxName: () => 'kirkham' };
+  global.localStorage = { getItem: key => key === 'siteCloneBcDatastreamIdBySandbox'
+    ? JSON.stringify({ kirkham: readDatastream() }) : null };
+  vm.runInNewContext(tagsSource, global);
+  assert.equal(typeof global.DemoLabEdgeConfig.edgeConfigOverrides, 'function');
+  assert.equal(global.DemoTagsInjection.edgeConfigOverrides, undefined);
+}
 test('abandoned search prepares only a typed transition and captures event identity before writes', async () => {
   const source = await readFile(new URL('../web/profile-viewer/tui-decisioning-demo.js', import.meta.url), 'utf8');
   const helpers = source.slice(source.indexOf('  async function prepareAbandonment'), source.indexOf('  async function apply()'));
   const mountsSource = await readFile(new URL('../web/profile-viewer/content-decision-edge-mounts.js', import.meta.url), 'utf8');
   const mounts = { console, URL, URLSearchParams, document: {} };
   vm.runInNewContext(mountsSource, mounts);
-  for (const mode of ['valid', 'unchanged', 'reset', 'missing-field', 'invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale', 'send-failure']) {
+  for (const mode of ['valid', 'default-datastream', 'missing-config', 'unchanged', 'reset', 'missing-field', 'invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale', 'send-failure']) {
     const commands = [], refreshes = [];
     const ctx = { sandbox: 'kirkham', namespace: mode === 'mismatched-ecid' ? 'ecid' : 'email',
       identifier: mode === 'mismatched-ecid' ? '99999999999999999999' : 'fixture@example.invalid' };
-    let datastream = 'captured-datastream';
+    let datastream = mode === 'default-datastream' ? '' : '46677fd7-9db0-4f16-898c-b424d0245c38';
     const environment = {
       profile, prefix: 'tuiDecisioning', appliedAbandoned: undefined, abandonmentEvent: null,
       location: { origin: 'https://example.invalid', pathname: '/tui' },
@@ -30,25 +40,24 @@ test('abandoned search prepares only a typed transition and captures event ident
       global: {
         envBarConfig: { decisioning: { eventTenantNamespace: mode === 'invalid-tenant' ? '_repo' : '_demoemea' } },
         CdEdgeMounts: mounts.CdEdgeMounts,
-        DemoTagsInjection: {
-          edgeConfigOverrides: () => ({ edgeConfigOverrides: { datastreamId: datastream } }),
-          ensureAlloyReady: async () => async (command, options) => {
-            commands.push({ command, options });
-            if (command === 'getIdentity') return { identity: { ECID: mode === 'missing-ecid' ? '' : '12345678901234567890' } };
-            if (mode === 'send-failure') throw new Error('Uncertain transport failure');
-            return {};
-          },
-        },
         DemoProfileDrawer: { refreshDrawerEventsForLoadedProfile: async () => refreshes.push(true) },
       },
     };
+    attachRealEdgeConfig(environment.global, () => datastream);
+    environment.global.DemoTagsInjection.ensureAlloyReady = async () => async (command, options) => {
+      commands.push({ command, options });
+      if (command === 'getIdentity') return { identity: { ECID: mode === 'missing-ecid' ? '' : '12345678901234567890' } };
+      if (mode === 'send-failure') throw new Error('Uncertain transport failure');
+      return {};
+    };
+    if (mode === 'missing-config') delete environment.global.DemoLabEdgeConfig;
     const { prepareAbandonment, trackAbandonment } = vm.runInNewContext(helpers + '; ({ prepareAbandonment, trackAbandonment });', environment);
     const data = { profileEmail: 'fixture@example.invalid', rows: [
       { path: '_demoemea.airlineCustomer.abandonedSearchFlag', value: mode === 'unchanged', valueType: 'boolean' },
     ] };
     const batch = { expected: mode === 'missing-field' ? {} : { 'airlineCustomer.abandonedSearchFlag': mode !== 'reset' } };
-    if (['invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale'].includes(mode)) {
-      await assert.rejects(prepareAbandonment(data, batch, ctx, 0), /tenant|ECID|context|Identity/);
+    if (['invalid-tenant', 'missing-ecid', 'mismatched-ecid', 'stale', 'missing-config'].includes(mode)) {
+      await assert.rejects(prepareAbandonment(data, batch, ctx, 0), /tenant|ECID|context|Identity|datastream configuration/);
       assert.equal(commands.filter(call => call.command === 'sendEvent').length, 0);
       continue;
     }
@@ -65,7 +74,7 @@ test('abandoned search prepares only a typed transition and captures event ident
     await trackAbandonment(ctx, 0);
     assert.equal(commands.filter(call => call.command === 'sendEvent').length, 1, 'At most one send even after a failed response');
     assert.equal(commands.filter(call => call.command === 'getIdentity').length, 1, 'Send reuses captured identity');
-    assert.equal(event.payload.edgeConfigOverrides.datastreamId, 'captured-datastream');
+    assert.equal(event.payload.edgeConfigOverrides?.datastreamId, mode === 'default-datastream' ? undefined : '46677fd7-9db0-4f16-898c-b424d0245c38');
     assert.equal(event.payload.xdm.identityMap.Email[0].id, ctx.identifier);
     assert.equal(event.payload.xdm.identityMap.ECID[0].id, event.payload.xdm._demoemea.identification.core.ecid);
     assert.equal(event.payload.xdm.eventType, 'abandoned.search');
@@ -128,7 +137,7 @@ test('Run uses one fresh runtime profile read and retains actual consent, test-p
 test('runtime captures the SDK event identity and datastream without changing legacy callers', async () => {
   const source = await readFile(new URL('../web/profile-viewer/decisioning-profile-module/decisioning-profile-runtime.js', import.meta.url), 'utf8');
   let namespace = 'email', identifier = 'traveller@example.invalid', ecid = '12345678901234567890';
-  let datastream = 'original-datastream';
+  let datastream = '46677fd7-9db0-4f16-898c-b424d0245c38';
   const commands = [];
   const alloy = async (command, options) => {
     commands.push({ command, options });
@@ -139,15 +148,14 @@ test('runtime captures the SDK event identity and datastream without changing le
     document: { title: 'TUI Decisioning', readyState: 'loading', addEventListener() {} },
     addEventListener() {}, dispatchEvent() {}, CustomEvent: class {},
     fetch: async () => ({ ok: true, json: async () => ({ found: true }) }),
-    DemoTagsInjection: { ensureAlloyReady: async () => alloy,
-      edgeConfigOverrides: () => ({ edgeConfigOverrides: { datastreamId: datastream } }) },
     DecisioningProfileModule: { extractEntityFromUps: () => ({ identityMap: { ECID: [{ id: '99999999999999999999' }] } }) },
     CdEdgeMounts: { buildIdentityMap: profile => ({
       ...(namespace === 'email' ? { Email: [{ id: identifier, primary: true }] } : {}),
       ECID: [{ id: profile.ecid, primary: namespace === 'ecid' }],
     }) },
   };
-  global.window = global;
+  attachRealEdgeConfig(global, () => datastream);
+  global.DemoTagsInjection.ensureAlloyReady = async () => alloy;
   vm.runInNewContext(source, global);
   const runtime = global.DecisioningProfileRuntime;
   runtime.init({ useParentDocument: true, enabled: () => true, autoRunDecisioning: false,
@@ -169,7 +177,15 @@ test('runtime captures the SDK event identity and datastream without changing le
   assert.equal(result.manualDisplay.identityMap, request.xdm.identityMap);
   assert.equal(result.manualDisplay.eventXdm._demoemea, request.xdm._demoemea);
   datastream = 'changed-during-image-load';
-  assert.equal(result.manualDisplay.edgeOptions.edgeConfigOverrides.datastreamId, 'original-datastream');
+  assert.equal(result.manualDisplay.edgeOptions.edgeConfigOverrides.datastreamId, '46677fd7-9db0-4f16-898c-b424d0245c38');
+  const edgeConfig = global.DemoLabEdgeConfig;
+  global.DemoLabEdgeConfig = undefined;
+  await assert.rejects(runtime.runContentDecision(options), /datastream configuration/);
+  global.DemoLabEdgeConfig = edgeConfig;
+  datastream = '';
+  const defaultStream = await runtime.runContentDecision(options);
+  assert.equal(defaultStream.manualDisplay.edgeOptions.edgeConfigOverrides, undefined,
+    'No selected override preserves the datastream configured in Tags');
   const before = commands.filter(call => call.command === 'sendEvent').length;
   for (const eventTenantNamespace of [null, '_repo', '_experience', 'invalid tenant']) {
     await assert.rejects(runtime.runContentDecision({ ...options, eventTenantNamespace }), /event schema tenant/);
