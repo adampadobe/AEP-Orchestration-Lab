@@ -83,7 +83,8 @@
     const low = `${type} ${name}`.toLowerCase();
     const pageName = rowValue(rows, /^(?:xdm\.)?web\.webPageDetails\.(name|viewName)$/);
     const isDisplay = (type || name).toLowerCase() === 'decisioning.propositiondisplay';
-    const isDecisionRequest = name === viewName || pageName === viewName;
+    const isAbandonedSearch = (type || name).toLowerCase() === 'abandoned.search';
+    const isDecisionRequest = !isAbandonedSearch && (name === viewName || pageName === viewName);
     const msgKind = h.messageChannelKind(ev);
     const isMessage = !!msgKind || /message\.(tracking|feedback)|messagetracking|messagefeedback/.test(low.replace(/\s+/g, ''));
     const isWeb = !isDecisionRequest && (h.isWebPageview(ev) || type.toLowerCase().startsWith('web'));
@@ -108,6 +109,9 @@
     } else if (isMessage) {
       src = [/feedback/.test(low) ? 'Feedback' : 'Tracking', msgKind === 'email' ? 'Email' : msgKind === 'push' ? 'Push' : '']
         .filter(Boolean).join(' · ');
+    } else if (isAbandonedSearch) {
+      title = 'Abandoned search';
+      src = 'Search activity';
     } else if (/flight\.?disruption/.test(low.replace(/\s+/g, ''))) {
       const kind = rowValue(rows, /flightDisruption\.disruptionType$/);
       const flight = rowValue(rows, /flightDisruption\.flightNumber$/);

@@ -110,7 +110,8 @@ test('Run uses one fresh runtime profile read and retains actual consent, test-p
         DecisioningProfileRuntime: {
           supportsManualDisplay: true, supportsCapturedEventContext: true,
           runProfileLookup: async options => {
-            assert.equal(options.skipHydrate, true); lookups++;
+            assert.equal(options.skipHydrate, true);
+            assert.equal(options.throwOnError, true); lookups++;
             if (scenario === 'context-changed') environment.version++;
             return scenario !== 'lookup-failed';
           },
@@ -132,6 +133,57 @@ test('Run uses one fresh runtime profile read and retains actual consent, test-p
       assert.match(statuses.at(-1).text, /Expected one hero image decision/);
     }
     assert.equal(environment.busy, false);
+  }
+});
+test('runtime lookup explains disabled, identity and transport failures without changing boolean callers', async () => {
+  const source = await readFile(new URL('../web/profile-viewer/decisioning-profile-module/decisioning-profile-runtime.js', import.meta.url), 'utf8');
+  let enabled = true, identifier = 'fixture@example.invalid', response = 'success', calls = 0;
+  const updates = [];
+  const global = {
+    console: { log() {} }, URL, URLSearchParams,
+    document: { readyState: 'loading', addEventListener() {} },
+    addEventListener() {}, dispatchEvent: event => updates.push(event.detail),
+    CustomEvent: class { constructor(_name, options) { this.detail = options.detail; } },
+    fetch: async () => {
+      calls++;
+      if (response === 'network') throw new Error('Failed to fetch');
+      return { ok: response !== 'http', status: response === 'http' ? 503 : 200, json: async () => {
+        if (response === 'invalid-json') throw new SyntaxError('Unexpected token');
+        return response === 'http' ? { error: 'Profile service unavailable' } : { found: true, rows: [] };
+      } };
+    },
+  };
+  global.window = global;
+  vm.runInNewContext(source, global);
+  const runtime = global.DecisioningProfileRuntime;
+  runtime.init({ enabled: () => enabled, autoRunDecisioning: false, useParentDocument: true,
+    getIdentifierValue: () => identifier, getNamespace: () => 'email', getSandboxName: () => 'kirkham' });
+  for (const mode of ['disabled', 'missing', 'http', 'network', 'invalid-json']) {
+    enabled = true; identifier = 'fixture@example.invalid'; response = 'success';
+    assert.equal(await runtime.runProfileLookup(), true);
+    const before = calls;
+    enabled = mode !== 'disabled';
+    if (mode === 'missing') identifier = '';
+    if (!['disabled', 'missing'].includes(mode)) response = mode;
+    const expected = { disabled: /Decisioning is disabled.*enable Decisioning/, missing: /Enter a profile identifier/,
+      http: /HTTP 503.*Profile service unavailable/, network: /Failed to fetch/, 'invalid-json': /Unexpected token/ }[mode];
+    await assert.rejects(runtime.runProfileLookup({ skipHydrate: true, throwOnError: true }), expected);
+    assert.equal(runtime.getApi().getLastUpsClientData(), null, 'Failure cannot reuse stale consent/profile data');
+    assert.match(updates.at(-1).error, expected);
+    assert.equal(await runtime.runProfileLookup(), false, 'Existing boolean callers remain compatible');
+    assert.equal(calls - before, ['disabled', 'missing'].includes(mode) ? 0 : 2, 'No hidden retries or disabled network calls');
+  }
+});
+test('abandoned search uses the shared local abandonment SVG instead of unrelated external artwork', async () => {
+  const source = await readFile(new URL('../web/profile-viewer/aep-profile-drawer.js', import.meta.url), 'utf8');
+  const artwork = source.slice(source.indexOf('const AEP_EVENT_THUMB_SVG'), source.indexOf('function hotelEventThumbFromBlob'));
+  const resolver = source.slice(source.indexOf('function eventThumbForEvent'), source.indexOf('/**', source.indexOf('function eventThumbForEvent')));
+  const resolve = vm.runInNewContext(artwork + resolver + '; eventThumbForEvent;', {});
+  for (const event of [{ eventType: 'abandoned.search' }, { eventName: 'abandoned.search' }]) {
+    const thumb = resolve(event);
+    assert.equal(thumb.variant, 'search-abandon');
+    assert.match(thumb.svg, /<svg.*<circle.*<path/);
+    assert.equal(thumb.url, undefined);
   }
 });
 test('runtime captures the SDK event identity and datastream without changing legacy callers', async () => {

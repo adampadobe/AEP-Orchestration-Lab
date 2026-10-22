@@ -644,6 +644,14 @@ is the field template, not permission to reuse BA copy for another customer.
   readback, Edge decision, image readiness and display tracking to distinguish
   client overhead from upstream latency; do not bypass gates, resend decisions
   or show locally predicted content to hide AEP propagation delay.
+    Explicit Run should opt into `runProfileLookup({skipHydrate:true,
+    throwOnError:true})` and surface the actual failure, not replace every false
+    result with "Decision runtime lookup failed". The shared Decisioning toggle
+    still gates lookup and delivery: when off, instruct the user to enable
+    Decisioning in configuration; never enable it silently. Preserve boolean
+    behaviour for legacy lookup callers and clear stale runtime data on failure.
+    Cover the real runtime with disabled/missing-identity, HTTP, network and
+    invalid-JSON failures, and successful explicit Run after enabling it.
 - If operational/intent transitions trigger Apply events (e.g.
   `flight.disruption`, `flight.search`, `flight.abandoned`), send only on a state
   transition, at most once, using the same captured Alloy instance and browser
@@ -687,6 +695,14 @@ is the field template, not permission to reuse BA copy for another customer.
   unchanged/rearmed transitions and failed sends. A fixture-passing deployment
   does not prove live ingestion until the real event is read back for the
   authorised test identity.
+    Keep `abandoned.search` classified as search activity in journey views even
+    when its web page name matches the configured decisioning view name.
+    Map `abandoned.search` to a local inline abandonment SVG in the shared event
+    thumbnail resolver, reused by recent events and all journey views. The
+    inspected NatWest deployment still used an unrelated external microscope
+    image via the generic abandonment fallback; do not copy that URL or claim it
+    is a dedicated search icon. Verify the actual rendered SVG in the drawer and
+    Canvas flow, Swimlanes and Stages, including blocked external requests.
 - Test stale Apply readback/progress, disabled waiting Run, eventual continuation,
   timeout/retry, shared promises, context cancellation, partial writes, rule-field
   filtering and field-specific aliases. VM-sliced `save()` harnesses must include

@@ -227,7 +227,9 @@
       if (!loaded) throw new Error('Look up the current test profile before Run.');
       const runtime = global.DecisioningProfileRuntime;
       if (!runtime?.supportsManualDisplay || !runtime.supportsCapturedEventContext) throw new Error('Configure and inject Tags with the current decisioning runtime first.');
-      if (!await runtime.runProfileLookup({ skipHydrate: true })) throw new Error('Decision runtime lookup failed.');
+      if (!await runtime.runProfileLookup({ skipHydrate: true, throwOnError: true })) {
+        throw new Error('Profile lookup did not complete. Check Decisioning is enabled in configuration and look up the current test profile.');
+      }
       same(ctx, token);
       const data = runtime.getApi().getLastUpsClientData();
       if (data?.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');

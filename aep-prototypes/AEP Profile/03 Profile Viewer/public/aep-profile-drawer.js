@@ -2385,6 +2385,10 @@ function eventThumbForEvent(ev) {
     };
   }
 
+  if (key === 'abandoned.search' || key === 'abandonedsearch') {
+    return { variant: 'search-abandon', svg: AEP_EVENT_THUMB_SVG.hotelAbandon };
+  }
+
   if (blob.includes('hotel') || key.includes('hotel')) {
     return hotelEventThumbFromBlob(blob);
   }

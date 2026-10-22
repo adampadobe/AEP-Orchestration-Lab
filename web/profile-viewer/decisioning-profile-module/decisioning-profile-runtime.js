@@ -113,7 +113,17 @@
 
   async function runProfileLookup(opts) {
     opts = opts || {};
-    if (!isEnabled()) return false;
+    function failed(reason, error) {
+      lastUpsClientData = null;
+      lastProfileEcid = '';
+      autoLookupLastKey = '';
+      dispatchUpdated({ ok: false, reason: reason, error: error.message, loading: false });
+      if (opts.throwOnError === true) throw error;
+      return false;
+    }
+    if (!isEnabled()) {
+      return failed('disabled', new Error('Decisioning is disabled. Open configuration (gear), enable Decisioning, then click Run live decision.'));
+    }
     var idVal =
       typeof cfg('getIdentifierValue') === 'function' ? String(cfg('getIdentifierValue')() || '').trim() : '';
     var ns =
@@ -121,33 +131,26 @@
     var sandbox =
       typeof cfg('getSandboxName') === 'function' ? String(cfg('getSandboxName')() || '').trim() : '';
     if (!idVal) {
-      dispatchUpdated({ ok: false, reason: 'missing-identifier', loading: false });
-      return false;
+      return failed('missing-identifier', new Error('Enter a profile identifier and look up the current test profile before Run.'));
     }
     var qs = new URLSearchParams({ namespace: ns, identifier: idVal });
     if (sandbox) qs.set('sandbox', sandbox);
     dispatchUpdated({ loading: true });
     try {
       var res = await fetch('/api/profile/table?' + qs.toString(), { headers: { Accept: 'application/json' } });
-      var data = await res.json().catch(function () {
-        return {};
-      });
+      var data = await res.json();
+      if (!res.ok || !isUpsOk(data)) {
+        var detail = data && (data.error || data.message || (data.platform_response && data.platform_response.error));
+        var description = typeof detail === 'string' ? detail : detail && detail.message;
+        throw new Error('Profile lookup failed (HTTP ' + res.status + ')' + (description ? ': ' + description : '.'));
+      }
       lastUpsClientData = data;
       autoLookupLastKey = lookupIdentityKey();
-      if (!res.ok || !isUpsOk(data)) {
-        lastUpsClientData = null;
-        lastProfileEcid = '';
-        dispatchUpdated({ ok: false, loading: false });
-        return false;
-      }
       lastProfileEcid = extractEcidFromUps(data);
       dispatchUpdated({ ok: true, ecid: lastProfileEcid, skipHydrate: !!opts.skipHydrate, loading: false });
       return true;
     } catch (e) {
-      lastUpsClientData = null;
-      lastProfileEcid = '';
-      dispatchUpdated({ ok: false, error: String(e && e.message ? e.message : e), loading: false });
-      return false;
+      return failed('lookup-failed', new Error('Profile lookup could not complete: ' + String(e && e.message ? e.message : e)));
     }
   }
 

@@ -651,6 +651,21 @@ async function main() {
     assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 1, 'Resuming partial Apply sends exactly one captured abandonment');
     await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().events.some(event => event.eventType === 'abandoned.search'));
     assert.match(await shell.locator('#profileDrawerEvents').innerText(), /abandon/i, 'Delayed ingestion appears in the actual events list without refresh');
+    const abandonmentIcon = shell.locator('#profileDrawerEvents .aep-profile-drawer-event-thumb--search-abandon');
+    assert(await abandonmentIcon.locator('svg circle').count() > 0, 'Abandoned search renders its local circle-and-cross icon');
+    assert.equal(await abandonmentIcon.first().evaluate(node => getComputedStyle(node).backgroundImage), 'none',
+      'Abandoned-search icon has no external artwork dependency');
+    await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
+    await shell.locator('#profileDrawerEventsStoryOpen').click();
+    for (const view of ['A', 'B', 'C']) {
+      await shell.locator('[data-dpj-view="' + view + '"]').click();
+      const card = shell.locator('.dpj-root button[data-dpj-sel]').filter({ hasText: /abandon/i });
+      assert(await card.locator('.dpj-ico svg circle').count() > 0,
+        'Journey ' + view + ' reuses the abandonment SVG: ' + await shell.locator('.dpj-root').innerText());
+    }
+    await shell.keyboard.press('Escape');
+    await shell.evaluate(() => document.body.classList.remove('mod-demo-page--profile-open'));
+    await shell.mouse.move(700, 100);
     assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 0);
     await applyScenario(2);
     assert.equal(await shell.evaluate(() => window.fixtureAbandonments.length), 1, 'Applying unchanged Yes does not duplicate the event');
@@ -696,9 +711,6 @@ async function main() {
       window.fixtureIdentityReads = 0;
       window.fixtureIdentityReadsAtRequest = 0;
       window.fixtureIdentityReadsAtDisplay = 0;
-      const enabled = document.getElementById('siteCloneDecisioningEnabledToggle');
-      enabled.checked = true;
-      enabled.dispatchEvent(new Event('change', { bubbles: true }));
       window.fixtureDatastream = '46677fd7-9db0-4f16-898c-b424d0245c38';
       window.AepLabEnvBarPrefs.writeMap('siteCloneBcDatastreamIdBySandbox', { kirkham: window.fixtureDatastream });
       window.DemoTagsInjection.ensureAlloyReady = async () => window.alloy;
@@ -746,6 +758,22 @@ async function main() {
           };
         }
       };
+    });
+    await shell.evaluate(() => {
+      document.getElementById('siteCloneDecisioningEnabledToggle').checked = false;
+    });
+    const readsWhileDisabled = shellCalls.filter(call => call.path === '/api/profile/table').length;
+    await shell.locator('#tuiRunDecision').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Decisioning is disabled.'));
+    assert.match(await shell.locator('#tuiLiveStatus').textContent(), /enable Decisioning/);
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/table').length, readsWhileDisabled,
+      'Disabled Decisioning gives actionable feedback before any profile request');
+    assert.equal(await shell.evaluate(() => window.fixtureDecisionRequests.length), 0);
+    assert.equal(await shell.evaluate(() => window.fixtureDisplayEvents.length), 0);
+    await shell.evaluate(() => {
+      const enabled = document.getElementById('siteCloneDecisioningEnabledToggle');
+      enabled.checked = true;
+      enabled.dispatchEvent(new Event('change', { bubbles: true }));
     });
     const tableReadsBeforeRun = shellCalls.filter(call => call.path === '/api/profile/table').length;
     await shell.locator('#tuiRunDecision').click();

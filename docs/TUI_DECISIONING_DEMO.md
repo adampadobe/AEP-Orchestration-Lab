@@ -126,9 +126,20 @@ poll retrieves delayed ingested activity without fabricating a card or counting
 it as a message sent. Intercepted-SDK fixtures cover the full Apply-to-events
 flow; no real abandonment event/profile write was sent during implementation,
 so live dataset ingestion still requires readback of a real authorised test run.
+`abandoned.search` uses the existing local circle-and-cross abandonment SVG in
+recent events and all three journey views, not the unrelated external artwork
+selected by the legacy generic abandonment fallback.
+Journey cards label it Abandoned search rather than treating the shared TUI
+page name as evidence of a decision request.
 
 **Run** checks actual test-profile and email/personalisation consent readback,
 then requests the explicitly configured live policy through the shared runtime.
+Decisioning must be enabled in the configuration gear panel. Run does not
+silently enable it; a disabled toggle now produces that specific instruction
+instead of "Decision runtime lookup failed". Explicit Run requests opt into
+runtime lookup errors, preserving API/HTTP, network and invalid-JSON failure
+details. Failed lookups clear cached runtime profile data and never request a
+decision or send display tracking. Existing boolean lookup callers are unchanged.
 One fresh runtime profile lookup now supplies both those checks and the runtime
 identity context, replacing two serial reads of the same profile. It does not
 reuse stale loaded values or bypass pending Apply confirmation. Console
