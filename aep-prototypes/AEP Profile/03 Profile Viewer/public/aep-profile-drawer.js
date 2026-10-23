@@ -3594,12 +3594,8 @@ function renderEventTimeline(events) {
 }
 
 let compactEventFilter = 'all';
-let compactEventOffset = 0;
-let compactEventEnd = 0;
 let compactEventContext = -1;
 let compactEventControls = null;
-let compactEventPager = null;
-let compactEventResize = null;
 
 function compactEventKind(ev) {
   const type = String((ev && ev.eventType) || (ev && ev.eventName) || '').toLowerCase();
@@ -3609,36 +3605,10 @@ function compactEventKind(ev) {
   return 'other';
 }
 
-function fitCompactEventPage() {
-  if (!compactEventPager || !profileDrawerEvents.clientHeight) return;
-  const cards = Array.from(profileDrawerEvents.children);
-  if (!cards.length || cards[0].tagName === 'P') {
-    compactEventPager.hidden = true;
-    return;
-  }
-  compactEventOffset = Math.min(compactEventOffset, cards.length - 1);
-  let used = 0;
-  compactEventEnd = compactEventOffset;
-  cards.forEach((card, index) => {
-    card.hidden = false;
-    const height = card.getBoundingClientRect().height + parseFloat(getComputedStyle(card).marginBottom || 0);
-    const fits = index >= compactEventOffset && compactEventEnd === index &&
-      (used + height <= profileDrawerEvents.clientHeight || index === compactEventOffset);
-    card.hidden = !fits;
-    if (fits) { used += height; compactEventEnd = index + 1; }
-  });
-  const [previous, range, next] = compactEventPager.children;
-  previous.disabled = compactEventOffset === 0;
-  next.disabled = compactEventEnd >= cards.length;
-  range.textContent = `${compactEventOffset + 1}-${compactEventEnd} of ${cards.length}`;
-  compactEventPager.hidden = compactEventOffset === 0 && compactEventEnd >= cards.length;
-}
-
 function renderCompactEventTimeline(events) {
   if (compactEventContext !== profileContextVersion) {
     compactEventContext = profileContextVersion;
     compactEventFilter = 'all';
-    compactEventOffset = 0;
   }
   if (!compactEventControls) {
     const heading = getProfileDrawerEventsHeadingRow();
@@ -3654,35 +3624,17 @@ function renderCompactEventTimeline(events) {
       button.textContent = label;
       button.addEventListener('click', () => {
         compactEventFilter = key;
-        compactEventOffset = 0;
         renderCompactEventTimeline(lastLookedUpProfile && lastLookedUpProfile.events);
       });
       compactEventControls.appendChild(button);
     }
     profileDrawerEvents.before(compactEventControls);
-    compactEventPager = document.createElement('div');
-    compactEventPager.className = 'aep-event-pager';
-    const previous = document.createElement('button'), next = document.createElement('button');
-    previous.type = next.type = 'button';
-    previous.textContent = 'Previous';
-    next.textContent = 'Next';
-    previous.addEventListener('click', () => {
-      compactEventOffset = Math.max(0, compactEventOffset - Math.max(1, compactEventEnd - compactEventOffset));
-      fitCompactEventPage();
-    });
-    next.addEventListener('click', () => { compactEventOffset = compactEventEnd; fitCompactEventPage(); });
-    const range = document.createElement('span');
-    range.setAttribute('aria-live', 'polite');
-    compactEventPager.append(previous, range, next);
-    profileDrawerEvents.after(compactEventPager);
-    compactEventResize = new ResizeObserver(fitCompactEventPage);
-    compactEventResize.observe(profileDrawerEvents);
   }
   compactEventControls.querySelectorAll('button').forEach(button =>
     button.setAttribute('aria-pressed', String(button.dataset.filter === compactEventFilter)));
   const story = lastLookedUpProfile && lastLookedUpProfile.eventsStory;
   const all = Array.isArray(story) && story.length ? story : Array.isArray(events) ? events : [];
-  const list = all.filter(ev => compactEventFilter === 'all' || compactEventKind(ev) === compactEventFilter);
+  const list = all.filter(ev => compactEventFilter === 'all' || compactEventKind(ev) === compactEventFilter).slice(0, 5);
   profileDrawerEvents.replaceChildren();
   for (const [index, ev] of list.entries()) {
     appendDrawerEventTimelineItem(ev);
@@ -3721,8 +3673,7 @@ function renderCompactEventTimeline(events) {
     empty.textContent = all.length ? 'No activity matches this filter' : 'No events found for this profile';
     profileDrawerEvents.appendChild(empty);
   }
-  updateProfileDrawerEventsStoryBadgeCount(all.length);
-  fitCompactEventPage();
+  updateProfileDrawerEventsStoryBadgeCount(list.length);
 }
 
 function renderClassicEventItems(list) {

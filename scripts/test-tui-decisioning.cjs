@@ -522,6 +522,15 @@ async function main() {
         for (const label of ['Contact', 'Holiday', 'Support', 'Shopping', 'Preferences', 'Consent', 'Identity']) {
           await shell.getByRole('tab', { name: label, exact: true }).click();
           const panel = shell.locator('#tuiProfileHero [role="tabpanel"]:visible');
+          if (label === 'Contact') {
+            const consents = await panel.locator('.tui-channel-consents .dph-tog').evaluateAll(nodes =>
+              nodes.map(node => { const box = node.getBoundingClientRect(); return { top: box.top, left: box.left, right: box.right }; }));
+            assert.equal(consents.length, 3, 'Email, SMS and Push all remain visible');
+            assert(Math.max(...consents.map(box => box.top)) - Math.min(...consents.map(box => box.top)) < 1,
+              'Email, SMS and Push share one row at every viewport and theme');
+            assert(consents[0].right <= consents[1].left && consents[1].right <= consents[2].left,
+              'Consent indicators do not overlap');
+          }
           assert(await panel.evaluate(node => node.scrollHeight <= node.clientHeight + 1), 'All attributes in each tab fit without panel scrolling');
           assert(await panel.evaluate(node => {
             const hero = document.getElementById('tuiProfileHero').getBoundingClientRect(), box = node.getBoundingClientRect();
@@ -849,16 +858,21 @@ async function main() {
     })));
     await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
     await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
-    const filters = shell.locator('.aep-event-filters'), pager = shell.locator('.aep-event-pager');
+    const filters = shell.locator('.aep-event-filters');
     await filters.getByRole('button', { name: 'Decisions', exact: true }).click();
-    assert(await pager.isVisible(), 'Overflow uses paging, not a scrollbar');
-    const firstRange = await pager.locator('span').textContent();
-    await pager.getByRole('button', { name: 'Next', exact: true }).click();
-    assert.notEqual(await pager.locator('span').textContent(), firstRange, 'Older activity remains accessible');
+    assert.equal(await shell.locator('.aep-event-pager').count(), 0, 'Timeline has no page numbers or navigation');
+    assert.deepEqual(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-title').allTextContents(),
+      [11, 10, 9, 8, 7].map(index => 'Fixture holiday offer ' + index), 'Only the five latest matching events render');
+    assert(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().eventsStory.length > 5),
+      'Full journey history remains available separately');
     assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
       node.scrollHeight <= node.clientHeight + 1 && [...node.children].filter(card => !card.hidden).every(card =>
         card.getBoundingClientRect().bottom <= node.getBoundingClientRect().bottom + 1)),
-    'Paged cards fit completely without clipping or scrolling');
+    'All five decision cards fit completely without clipping or scrolling: ' +
+      JSON.stringify(await shell.locator('#profileDrawerEvents').evaluate(node => ({
+        height: node.clientHeight, scroll: node.scrollHeight,
+        cards: [...node.children].map(card => card.getBoundingClientRect().height),
+      }))));
     await filters.getByRole('button', { name: 'Email', exact: true }).click();
     assert.match(await shell.locator('#profileDrawerEvents').textContent(), /No activity matches/);
     const consentReadsBeforeEmail = shellCalls.filter(call => call.path === '/api/profile/consent').length;
@@ -882,6 +896,8 @@ async function main() {
     events.splice(0, events.length, ...savedEvents);
     await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
     await filters.getByRole('button', { name: 'All', exact: true }).click();
+    assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5,
+      'All filter also shows only the latest five events');
     await shell.evaluate(() => {
       document.activeElement?.blur();
       document.body.classList.remove('mod-demo-page--profile-open');

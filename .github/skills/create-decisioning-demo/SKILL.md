@@ -304,10 +304,12 @@ For the presentation-clean timeline, follow TUI's supplied drawer design:
 profile / graph / audience-messages / timeline in 1 / .7 / .4 / 1.6 proportions,
 with readable minimum widths. Give events the widest column. Use compact
 display cards with ingested offer and strategy names, smaller system rows,
-All / Decisions / Web / Email filters and height-fitted Previous / Next paging,
-not a desktop event scrollbar or clipped overflow. Preserve full fetched journey
+All / Decisions / Web / Email filters showing only the latest five matching events,
+without page numbers, Previous / Next controls or a desktop event scrollbar.
+Keep Email, SMS and Push consent indicators together in one three-column row.
+Preserve full fetched journey
 history, full titles in hover/event details and the event-count journey dialog.
-Reset filters/paging on context changes; preserve them during unchanged polling.
+Reset filters on context changes; preserve them during unchanged polling.
 Retain capped, scrollable stacked sections on narrow screens.
 Do not leave the hero spanning two of five equal tracks. Scope the design to
 the demo so classic-layout rollback and other demos are unchanged. Recheck every

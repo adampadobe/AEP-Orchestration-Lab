@@ -40,9 +40,10 @@
     }
     for (const name of ['Email', 'Sms', 'Push']) {
       const state = global.DemoProfileDrawer?.getLastLookedUpProfile()?.channels?.[name.toLowerCase()];
-      $('tuiPhConsent-' + name).textContent = name + ': ' + (values ? name === 'Email'
+      const value = values ? name === 'Email'
         ? values.emailConsent === undefined ? 'Not set' : values.emailConsent
-        : state === undefined || state === null ? 'Not set / not granted' : String(state) : 'Not loaded');
+        : state === undefined || state === null ? 'Not set / not granted' : String(state) : 'Not loaded';
+      $('tuiPhConsent-' + name).replaceChildren(el('span', name === 'Sms' ? 'SMS' : name), el('strong', value));
     }
     const copy = $('tuiCopyEcid');
     copy.disabled = ['Not loaded', 'Not set'].includes(text('profileDrawerDesktopId'));
@@ -102,8 +103,14 @@
         if (isSignals) list.append(pair); else list.append(...pair.childNodes);
       }
       panel.append(list);
-      if (index === 0) for (const channel of ['Email', 'Sms', 'Push']) {
-        const consent = el('span', channel + ': Not loaded', 'dph-tog'); consent.id = 'tuiPhConsent-' + channel; panel.append(consent);
+      if (index === 0) {
+        const channels = el('div', undefined, 'tui-channel-consents');
+        for (const channel of ['Email', 'Sms', 'Push']) {
+          const consent = el('span', undefined, 'dph-tog'); consent.id = 'tuiPhConsent-' + channel;
+          consent.append(el('span', channel === 'Sms' ? 'SMS' : channel), el('strong', 'Not loaded'));
+          channels.append(consent);
+        }
+        panel.append(channels);
       }
       if (label === 'Identity') {
         const line = list.querySelector('dd'), ecid = el('span', line.textContent);
