@@ -3593,48 +3593,12 @@ function renderEventTimeline(events) {
   renderClassicEventItems(list);
 }
 
-let compactEventFilter = 'all';
-let compactEventContext = -1;
-let compactEventControls = null;
-
-function compactEventKind(ev) {
-  const type = String((ev && ev.eventType) || (ev && ev.eventName) || '').toLowerCase();
-  if (type.startsWith('decisioning.') || type === String(_config.viewName || '').toLowerCase()) return 'decisions';
-  if (aepProfileDrawerMessageChannelKind(ev) === 'email') return 'email';
-  if (type.startsWith('web.') || type === 'abandoned.search') return 'web';
-  return 'other';
-}
-
 function renderCompactEventTimeline(events) {
-  if (compactEventContext !== profileContextVersion) {
-    compactEventContext = profileContextVersion;
-    compactEventFilter = 'all';
-  }
-  if (!compactEventControls) {
-    const heading = getProfileDrawerEventsHeadingRow();
-    heading.querySelector('h2').textContent = 'Decision timeline';
-    compactEventControls = document.createElement('div');
-    compactEventControls.className = 'aep-event-filters';
-    compactEventControls.setAttribute('role', 'group');
-    compactEventControls.setAttribute('aria-label', 'Filter profile activity');
-    for (const [key, label] of [['all', 'All'], ['decisions', 'Decisions'], ['web', 'Web'], ['email', 'Email']]) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.dataset.filter = key;
-      button.textContent = label;
-      button.addEventListener('click', () => {
-        compactEventFilter = key;
-        renderCompactEventTimeline(lastLookedUpProfile && lastLookedUpProfile.events);
-      });
-      compactEventControls.appendChild(button);
-    }
-    profileDrawerEvents.before(compactEventControls);
-  }
-  compactEventControls.querySelectorAll('button').forEach(button =>
-    button.setAttribute('aria-pressed', String(button.dataset.filter === compactEventFilter)));
+  const heading = getProfileDrawerEventsHeadingRow();
+  heading.querySelector('h2').textContent = 'Last Events';
   const story = lastLookedUpProfile && lastLookedUpProfile.eventsStory;
   const all = Array.isArray(story) && story.length ? story : Array.isArray(events) ? events : [];
-  const list = all.filter(ev => compactEventFilter === 'all' || compactEventKind(ev) === compactEventFilter).slice(0, 5);
+  const list = all.slice(0, 5);
   profileDrawerEvents.replaceChildren();
   for (const [index, ev] of list.entries()) {
     appendDrawerEventTimelineItem(ev);
@@ -3643,7 +3607,7 @@ function renderCompactEventTimeline(events) {
     const offers = fields.filter(([label]) => label === 'Offer').map(([, value]) => value);
     const strategies = fields.filter(([label]) => label === 'Strategy').map(([, value]) => value);
     const isDisplay = String(ev.eventType || ev.eventName || '').toLowerCase() === 'decisioning.propositiondisplay';
-    card.classList.add(isDisplay ? 'aep-event-decision' : 'aep-event-system');
+    card.classList.add('aep-event-decision');
     if (index === 0) card.classList.add('aep-event-latest');
     const text = card.lastElementChild;
     const time = text.querySelector('.aep-profile-drawer-event-time');
@@ -3661,16 +3625,16 @@ function renderCompactEventTimeline(events) {
       why.title = why.textContent;
       text.appendChild(why);
     }
-    if (isDisplay) {
-      const sub = document.createElement('span');
-      sub.className = 'aep-profile-drawer-event-sub';
-      sub.textContent = formatDrawerEventChannelDisplay(ev) + ' · PropositionDisplay · ' + fullDate.split(', ')[0];
-      text.appendChild(sub);
-    }
+    const sub = text.querySelector('.aep-profile-drawer-event-sub') || document.createElement('span');
+    sub.className = 'aep-profile-drawer-event-sub';
+    const eventType = isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event');
+    sub.textContent = formatDrawerEventChannelDisplay(ev) + ' · ' + eventType + ' · ' + fullDate.split(', ')[0];
+    sub.title = sub.textContent;
+    text.appendChild(sub);
   }
   if (!list.length) {
     const empty = document.createElement('p');
-    empty.textContent = all.length ? 'No activity matches this filter' : 'No events found for this profile';
+    empty.textContent = 'No events found for this profile';
     profileDrawerEvents.appendChild(empty);
   }
   updateProfileDrawerEventsStoryBadgeCount(list.length);

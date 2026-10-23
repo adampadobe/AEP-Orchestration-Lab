@@ -64,11 +64,13 @@ digits, with accessible labelling and success/failure feedback.
 The shared anonymous-visitor control is moved, not cloned; reset remains
 an explicit action. Drawer height is capped at 560px and available viewport,
 or 55dvh on narrow screens, with internal scrolling for stacked sections.
-The desktop decision timeline has no event scrollbar or pagination: All /
-Decisions / Web / Email filters show only the latest five matching events.
+The desktop panel is titled **Last Events**, without filters, an event scrollbar
+or pagination. It shows the latest five events of any type.
 The separate journey dialog retains the fetched history.
-Display cards use ingested offer titles and strategy names;
-other activity uses compact rows. Long titles retain full hover text and the
+Every event uses the same bordered decision-card design, with the newest
+highlighted. Display cards use ingested offer titles and strategy names;
+other activity retains its actual title, channel and event type without invented
+offer/strategy details. Long titles retain full hover text and the
 journey event details. Email, SMS and Push consent indicators sit in one
 three-column row within the Contact tab. The event count opens
 Canvas flow / Swimlanes / Stages. Offer and strategy names come only from

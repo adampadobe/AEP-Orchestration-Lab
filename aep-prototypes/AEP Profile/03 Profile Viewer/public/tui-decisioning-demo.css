@@ -25,12 +25,6 @@
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-col:last-child {
   padding: .8rem; border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); background: var(--dash-surface);
 }
-.tui-demo-shell.decisioning-profile-hero .aep-event-filters { display: flex; gap: .4rem; margin: .25rem 0 .65rem; flex: none; }
-.tui-demo-shell.decisioning-profile-hero .aep-event-filters button {
-  font: inherit; font-size: .8rem; padding: .2rem .65rem; border: 1px solid var(--dash-border);
-  border-radius: 99px; background: var(--dash-surface); color: var(--dash-text-secondary); cursor: pointer;
-}
-.tui-demo-shell.decisioning-profile-hero .aep-event-filters button[aria-pressed="true"] { background: var(--dash-blue); color: var(--dash-on-accent); border-color: var(--dash-blue); }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item {
   grid-template-columns: 32px minmax(0, 1fr); gap: .6rem; padding: .4rem .65rem; margin-bottom: .35rem;
   border: 1px solid var(--dash-border); border-radius: 10px; background: var(--dash-surface);
@@ -44,9 +38,7 @@
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-time { grid-column: 2; grid-row: 1; font-size: .7rem; margin: 0; white-space: nowrap; align-self: center; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-title { grid-column: 1; grid-row: 1; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-decision-detail { grid-column: 1 / -1; font-size: .8rem; color: var(--dash-blue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-sub { grid-column: 1 / -1; font-size: .7rem; margin: 0; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-event-system { border-color: transparent; padding-block: .2rem; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-event-system .aep-profile-drawer-event-sub { display: none; }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-sub { grid-column: 1 / -1; font-size: .7rem; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tui-profile-sections { min-height: 0; }
 .tui-profile-sections .dph-tabs { flex-wrap: wrap; gap: .25rem; }
 .tui-profile-sections .dph-tabs [role="tab"] { padding: .35rem .5rem; font-size: .82rem; }

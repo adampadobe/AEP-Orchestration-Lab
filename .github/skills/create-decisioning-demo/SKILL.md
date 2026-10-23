@@ -303,13 +303,14 @@ Verify each normal attribute tab fits without vertical panel scrolling.
 For the presentation-clean timeline, follow TUI's supplied drawer design:
 profile / graph / audience-messages / timeline in 1 / .7 / .4 / 1.6 proportions,
 with readable minimum widths. Give events the widest column. Use compact
-display cards with ingested offer and strategy names, smaller system rows,
-All / Decisions / Web / Email filters showing only the latest five matching events,
-without page numbers, Previous / Next controls or a desktop event scrollbar.
+decision-style bordered cards for every event type under **Last Events**, showing
+only the latest five events of any type, without filter options, page numbers,
+Previous / Next controls or a desktop event scrollbar. Highlight the newest event.
+Use ingested offer/strategy names only on actual decision displays; other events
+retain their actual titles, channels and types without invented decision metadata.
 Keep Email, SMS and Push consent indicators together in one three-column row.
 Preserve full fetched journey
 history, full titles in hover/event details and the event-count journey dialog.
-Reset filters on context changes; preserve them during unchanged polling.
 Retain capped, scrollable stacked sections on narrow screens.
 Do not leave the hero spanning two of five equal tracks. Scope the design to
 the demo so classic-layout rollback and other demos are unchanged. Recheck every
@@ -339,7 +340,7 @@ Keep the one-second shared cadence, use `cache: 'no-store'` for event reads and
 coalesce concurrent refreshes per identity/context to avoid stale overlapping
 responses. Refresh immediately when the page regains focus or visibility.
 Log failed reads and retain the last successful activity/totals, not an empty
-success-shaped result. Test delayed email ingestion updates both the filtered
+success-shaped result. Test delayed email ingestion updates both the latest-event
 list and Messages Sent without a profile lookup; distinguish this client cadence
 from upstream ingestion and API latency.
 Follow BA's event attribution and shared polling, not just its static drawer

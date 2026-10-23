@@ -858,11 +858,11 @@ async function main() {
     })));
     await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
     await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
-    const filters = shell.locator('.aep-event-filters');
-    await filters.getByRole('button', { name: 'Decisions', exact: true }).click();
+    assert.equal(await shell.locator('.aep-event-filters').count(), 0, 'Last Events has no filter options');
+    assert.equal(await shell.locator('.aep-profile-drawer-events-heading-title').textContent(), 'Last Events');
     assert.equal(await shell.locator('.aep-event-pager').count(), 0, 'Timeline has no page numbers or navigation');
     assert.deepEqual(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-title').allTextContents(),
-      [11, 10, 9, 8, 7].map(index => 'Fixture holiday offer ' + index), 'Only the five latest matching events render');
+      [11, 10, 9, 8, 7].map(index => 'Fixture holiday offer ' + index), 'Only the five latest events render');
     assert(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().eventsStory.length > 5),
       'Full journey history remains available separately');
     assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
@@ -873,8 +873,6 @@ async function main() {
         height: node.clientHeight, scroll: node.scrollHeight,
         cards: [...node.children].map(card => card.getBoundingClientRect().height),
       }))));
-    await filters.getByRole('button', { name: 'Email', exact: true }).click();
-    assert.match(await shell.locator('#profileDrawerEvents').textContent(), /No activity matches/);
     const consentReadsBeforeEmail = shellCalls.filter(call => call.path === '/api/profile/consent').length;
     const emailAvailableAt = Date.now();
     events.unshift({ id: 'timeline-email', timestamp: Date.now(), eventType: 'message.feedback', rows: [
@@ -884,9 +882,20 @@ async function main() {
     await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h === 1,
       null, { timeout: 3000 });
     assert(Date.now() - emailAvailableAt < 3000, 'New email activity updates within the one-second poll plus fixture response time');
-    assert.equal(await filters.getByRole('button', { name: 'Email', exact: true }).getAttribute('aria-pressed'), 'true',
-      'Polling preserves the selected activity filter');
-    assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 1);
+    await shell.waitForFunction(() => [...document.querySelectorAll('#profileDrawerEvents .aep-profile-drawer-event-sub')]
+      .some(node => node.textContent.includes('message.feedback')));
+    assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5);
+    assert.equal(await shell.locator('#profileDrawerEvents .aep-event-decision').count(), 5,
+      'Mixed event types share the decision-card design');
+    assert.deepEqual((await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-title').allTextContents()).slice(1),
+      [11, 10, 9, 8].map(index => 'Fixture holiday offer ' + index),
+      'New email joins the latest four decisions in timestamp order');
+    assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').first()
+      .locator('.aep-profile-drawer-event-decision-detail').count(), 0, 'Email has no invented strategy metadata');
+    assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
+      node.scrollHeight <= node.clientHeight + 1 && [...node.children].every(card =>
+        card.getBoundingClientRect().bottom <= node.getBoundingClientRect().bottom + 1)),
+    'Five mixed event cards fit without clipping or scrolling');
     assert.equal(shellCalls.filter(call => call.path === '/api/profile/consent').length, consentReadsBeforeEmail,
       'Email totals update from event polling without another profile lookup');
     await shell.route('**/api/profile/events?*', route => route.fulfill({ status: 503, json: { error: 'Fixture unavailable' } }), { times: 1 });
@@ -895,9 +904,8 @@ async function main() {
       'A failed refresh retains last successful event data and totals');
     events.splice(0, events.length, ...savedEvents);
     await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
-    await filters.getByRole('button', { name: 'All', exact: true }).click();
     assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 5,
-      'All filter also shows only the latest five events');
+      'Last Events continues to show only the latest five events');
     await shell.evaluate(() => {
       document.activeElement?.blur();
       document.body.classList.remove('mod-demo-page--profile-open');
