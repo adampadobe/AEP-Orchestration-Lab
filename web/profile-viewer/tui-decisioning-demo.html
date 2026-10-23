@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
-  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261022-readable-drawer">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261023-event-timeline">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell">
@@ -57,7 +57,7 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js"></script>
-  <script src="aep-profile-drawer.js?v=20261022-abandoned-search-icon"></script>
+  <script src="aep-profile-drawer.js?v=20261023-event-timeline"></script>
   <script src="aep-demo-generator-targets.js"></script>
   <script src="tui-decisioning-model.js?v=20261021-abandoned-search"></script>
   <script src="tui-decisioning-profile.js?v=20261016-ranked"></script>
@@ -83,7 +83,7 @@
       iframeIds: ['tui-visualiser'],
       decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
         autoRunDecisioning: false, viewName: 'TUI Decisioning', eventTenantNamespace: '_demoemea' },
-      labCoreScript: 'tui-decisioning-demo.js?v=20261022-lookup-errors'
+      labCoreScript: 'tui-decisioning-demo.js?v=20261023-event-timeline'
     };
     if (!window.AepGlobalSandbox.getSelected()) {
       window.AepGlobalSandbox.setSelected('kirkham', { source: 'tui-demo-default' });

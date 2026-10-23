@@ -324,8 +324,12 @@ async function main() {
       row.industry = 'generic'; row.writable = false;
     });
     const events = Array.from({ length: 5 }, (_, i) => ({ id: 'fixture-' + i, timestamp: Date.now() - i * 60000,
-      eventType: i === 0 ? 'decisioning.propositionDisplay' : 'web.webPageDetails.pageViews', channel: 'web',
-      rows: [{ path: 'web.webPageDetails.name', value: 'TUI Decisioning' }] }));
+      eventType: i % 2 === 0 ? 'decisioning.propositionDisplay' : 'web.webPageDetails.pageViews', channel: 'web',
+      rows: [{ path: 'web.webPageDetails.name', value: 'TUI Decisioning' }, ...(i % 2 === 0 ? [
+        { path: '_experience.decisioning.propositions.0.items.0.name', value: i === 2 ? 'Return to holiday search' : 'Holiday inspiration' },
+        { path: '_experience.decisioning.propositions.0.items.0.itemSelection.selectionDetail.strategyName',
+          value: i === 2 ? 'NBA Strategy 5 - Find your getaway' : 'NBA Strategy 7 - Keep the smiles coming' },
+      ] : [])] }));
     const pendingAbandonments = [];
     await shellContext.route('**/*', async route => {
       const request = route.request();
@@ -506,9 +510,12 @@ async function main() {
           });
           assert.equal(columns.widths.length, 4, 'Profile plus three supporting columns');
           assert.equal(columns.span, 'auto', 'Profile no longer spans two equal tracks');
-          assert(Math.abs(columns.widths[0] / columns.widths[1] - 1.5) < .02, 'Narrow profile gets one third of available track width');
-          assert(Math.max(...columns.widths.slice(1)) - Math.min(...columns.widths.slice(1)) <= 1,
-            'All three supporting columns share recovered width equally');
+          assert(columns.widths[3] > columns.widths[0] && columns.widths[3] > columns.widths[1],
+            'Decision timeline is the widest column, following the supplied design');
+          assert(columns.widths[1] > columns.widths[2], 'Graph retains more width than audience/messages');
+          assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
+            node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1),
+          'Events fit at default zoom without horizontal or vertical scrolling');
         }
         await shell.mouse.move(width / 2, 550);
         await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
@@ -815,6 +822,71 @@ async function main() {
       call.query.identifier === fixture.profileEmail && call.query.namespace === 'email' && call.query.sandbox === 'kirkham'),
       'Polling retains the loaded namespace, identifier and sandbox: ' +
       JSON.stringify(shellCalls.filter(call => call.path === '/api/profile/events').slice(-2).map(call => call.query)));
+    const refreshProbe = await shell.evaluate(async () => {
+      await window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+      const original = window.fetch, calls = [];
+      window.fetch = (url, options) => {
+        if (String(url).startsWith('/api/profile/events')) calls.push(options?.cache);
+        return original(url, options);
+      };
+      try {
+        await Promise.all(Array.from({ length: 3 }, () => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile()));
+        const coalesced = calls.slice();
+        window.dispatchEvent(new Event('focus'));
+        await window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+        return { coalesced, resumed: calls.slice(coalesced.length) };
+      } finally { window.fetch = original; }
+    });
+    assert.deepEqual(refreshProbe.coalesced, ['no-store'], 'Concurrent refreshes share one uncached event request');
+    assert.deepEqual(refreshProbe.resumed, ['no-store'], 'Focus resumes activity immediately using the same refresh path');
+    const savedEvents = events.slice();
+    events.unshift(...Array.from({ length: 12 }, (_, index) => ({
+      id: 'timeline-layout-' + index, timestamp: Date.now() + 100 + index,
+      eventType: 'decisioning.propositionDisplay', channel: 'web', rows: [
+        { path: '_experience.decisioning.propositions.0.items.0.name', value: 'Fixture holiday offer ' + index },
+        { path: '_experience.decisioning.propositions.0.items.0.itemSelection.selectionDetail.strategyName', value: 'Fixture selection strategy ' + index },
+      ],
+    })));
+    await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+    await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
+    const filters = shell.locator('.aep-event-filters'), pager = shell.locator('.aep-event-pager');
+    await filters.getByRole('button', { name: 'Decisions', exact: true }).click();
+    assert(await pager.isVisible(), 'Overflow uses paging, not a scrollbar');
+    const firstRange = await pager.locator('span').textContent();
+    await pager.getByRole('button', { name: 'Next', exact: true }).click();
+    assert.notEqual(await pager.locator('span').textContent(), firstRange, 'Older activity remains accessible');
+    assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
+      node.scrollHeight <= node.clientHeight + 1 && [...node.children].filter(card => !card.hidden).every(card =>
+        card.getBoundingClientRect().bottom <= node.getBoundingClientRect().bottom + 1)),
+    'Paged cards fit completely without clipping or scrolling');
+    await filters.getByRole('button', { name: 'Email', exact: true }).click();
+    assert.match(await shell.locator('#profileDrawerEvents').textContent(), /No activity matches/);
+    const consentReadsBeforeEmail = shellCalls.filter(call => call.path === '/api/profile/consent').length;
+    const emailAvailableAt = Date.now();
+    events.unshift({ id: 'timeline-email', timestamp: Date.now(), eventType: 'message.feedback', rows: [
+      { path: '_experience.customerJourneyManagement.emailChannelContext.namespace', value: 'email' },
+      { path: '_experience.customerJourneyManagement.messageDeliveryFeedback.feedbackStatus', value: 'sent' },
+    ] });
+    await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h === 1,
+      null, { timeout: 3000 });
+    assert(Date.now() - emailAvailableAt < 3000, 'New email activity updates within the one-second poll plus fixture response time');
+    assert.equal(await filters.getByRole('button', { name: 'Email', exact: true }).getAttribute('aria-pressed'), 'true',
+      'Polling preserves the selected activity filter');
+    assert.equal(await shell.locator('#profileDrawerEvents .aep-profile-drawer-event-item').count(), 1);
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/consent').length, consentReadsBeforeEmail,
+      'Email totals update from event polling without another profile lookup');
+    await shell.route('**/api/profile/events?*', route => route.fulfill({ status: 503, json: { error: 'Fixture unavailable' } }), { times: 1 });
+    await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+    assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 1,
+      'A failed refresh retains last successful event data and totals');
+    events.splice(0, events.length, ...savedEvents);
+    await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+    await filters.getByRole('button', { name: 'All', exact: true }).click();
+    await shell.evaluate(() => {
+      document.activeElement?.blur();
+      document.body.classList.remove('mod-demo-page--profile-open');
+    });
+    await shell.mouse.move(700, 100);
     const contentSnapshot = () => shell.evaluate(() => {
       const doc = document.getElementById('tui-visualiser').contentDocument;
       return ['email-preview', 'mobile-preview', 'web-preview'].map(id => doc.getElementById(id).innerHTML);

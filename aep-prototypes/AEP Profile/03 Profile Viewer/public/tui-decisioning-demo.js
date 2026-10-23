@@ -317,7 +317,7 @@
     });
     global.envBar.registerTagsInjection(tags);
     global.DemoProfileDrawer.init({ emailInputId: 'customerEmail', profileOpenClass: 'mod-demo-page--profile-open',
-      viewName: 'TUI Decisioning', emailGetter: () => email.value, messageSetter: (text, type) => message(text, type === 'error'),
+      viewName: 'TUI Decisioning', eventTimeline: 'compact', emailGetter: () => email.value, messageSetter: (text, type) => message(text, type === 'error'),
       getSelectedGeneratorTarget: getTarget, fetchBrowserEcidOnInit: true });
     global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(async () => {
       targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect($('generatorTarget'), {});

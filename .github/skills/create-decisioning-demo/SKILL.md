@@ -299,12 +299,17 @@ unchanged polling refreshes. Clear it on identity/sandbox changes. Keep the
 Email/Desktop, Mobile App, and Web channel selector. Group holdings into a two-column tile grid rather than a long
 single label/value list. Keep all actual values accessible, including full long
 strings through wrapping (with internal overflow only for exceptional long data).
-Verify each normal attribute tab fits without vertical panel scrolling. Scroll
-event/audience overflow internally.
-On desktop, give the tabbed profile hero approximately one third of the drawer
-width and distribute the remaining width evenly across the identity graph,
-audience/messages and recent-events columns (TUI uses 1.5fr / 1fr / 1fr / 1fr).
-Do not leave the hero spanning two of five equal tracks. Scope the change to
+Verify each normal attribute tab fits without vertical panel scrolling.
+For the presentation-clean timeline, follow TUI's supplied drawer design:
+profile / graph / audience-messages / timeline in 1 / .7 / .4 / 1.6 proportions,
+with readable minimum widths. Give events the widest column. Use compact
+display cards with ingested offer and strategy names, smaller system rows,
+All / Decisions / Web / Email filters and height-fitted Previous / Next paging,
+not a desktop event scrollbar or clipped overflow. Preserve full fetched journey
+history, full titles in hover/event details and the event-count journey dialog.
+Reset filters/paging on context changes; preserve them during unchanged polling.
+Retain capped, scrollable stacked sections on narrow screens.
+Do not leave the hero spanning two of five equal tracks. Scope the design to
 the demo so classic-layout rollback and other demos are unchanged. Recheck every
 attribute tab for clipping/scrolling and preserve the capped drawer height.
 At default desktop zoom use readable attribute typography (TUI: labels at least
@@ -328,6 +333,13 @@ or decisioning events merely to populate the drawer.
 Refresh **Messages Sent** in the same event-poll update as the drawer's events
 and journey data, using the same identity and time window, not a separate slow
 profile lookup.
+Keep the one-second shared cadence, use `cache: 'no-store'` for event reads and
+coalesce concurrent refreshes per identity/context to avoid stale overlapping
+responses. Refresh immediately when the page regains focus or visibility.
+Log failed reads and retain the last successful activity/totals, not an empty
+success-shaped result. Test delayed email ingestion updates both the filtered
+list and Messages Sent without a profile lookup; distinguish this client cadence
+from upstream ingestion and API latency.
 Follow BA's event attribution and shared polling, not just its static drawer
 markup. The manual PropositionDisplay must carry the original request
 `identityMap` and original proposition scope/metadata. Inspect the **event**

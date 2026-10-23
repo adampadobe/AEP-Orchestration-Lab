@@ -20,9 +20,10 @@ icon-only expand/collapse controls; repeated scenario instructions and the blue
 local/live policy summary are removed, without changing strategy evaluation,
 explicit Apply/Run, error feedback or returned-content retention.
 Eligible NBAs is separated from Selection Strategies by 18px. The desktop drawer
-uses a narrower one-third profile hero with the remaining space shared equally
-by identity graph, audience/messages and events; classic and mobile layouts
-retain their existing behaviour and height limits.
+follows the supplied drawer HTML: profile / identity graph / audience-messages /
+decision timeline in 1 / .7 / .4 / 1.6 proportions, with minimum readable widths.
+The timeline is the widest column; classic and mobile layouts retain their
+height limits.
 Attribute cards size to their contents rather than stretching down the column.
 Labels are at least 13px and values at least 16px at default desktop zoom.
 Two-column signal tiles have larger padding, and KPI cards reflow into two
@@ -50,7 +51,7 @@ fixture and makes no API/external requests. The dashboard shell instead uses
 the canonical Spectrum site-configuration strip, Tags controls and shared
 bottom profile drawer. Lookup is read-only and disables application-login
 events; it never creates activity to fill the drawer. Actual loaded identity,
-consent, travel attributes, linked identities, audiences and five recent events
+consent, travel attributes, linked identities, audiences and recent events
 are separate from staged simulator values. Missing values show Not set,
 unloaded values Not loaded, and unavailable KPIs Unavailable.
 
@@ -62,10 +63,24 @@ selected tab. The ECID has a 24px icon-only copy button immediately beside its
 digits, with accessible labelling and success/failure feedback.
 The shared anonymous-visitor control is moved, not cloned; reset remains
 an explicit action. Drawer height is capped at 560px and available viewport,
-or 55dvh on narrow screens, with internal scrolling. The event count opens
+or 55dvh on narrow screens, with internal scrolling for stacked sections.
+The desktop decision timeline has no event scrollbar: All / Decisions / Web /
+Email filters and fitted Previous / Next pages retain access to the fetched
+journey history. Display cards use ingested offer titles and strategy names;
+other activity uses compact rows. Long titles retain full hover text and the
+journey event details. Paging adapts to actual available height without clipping
+the last card. The event count opens
 Canvas flow / Swimlanes / Stages. Offer and strategy names come only from
 ingested event data, never the simulated winner. Identity/sandbox changes clear
 the drawer, dialogs and signals and discard late responses.
+
+NatWest and TUI both use the shared one-second event poll. Requests now bypass
+browser caching and share one in-flight refresh per identity/context, preventing
+overlapping responses from replacing newer data. Returning focus to the page
+refreshes immediately. Email totals come from that same event response, not a
+second profile lookup; failed refreshes log an error and retain the last
+successful activity/totals. Upstream AEP ingestion and API latency remain outside
+this client refresh cadence.
 
 `?tuiDrawer=classic|hero` persists in `tuiProfileDrawerLayout`;
 `?journey=classic|concepts` persists in `decisioningPersonaJourneyLayout`, and

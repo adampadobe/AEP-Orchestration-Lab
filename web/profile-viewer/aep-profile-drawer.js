@@ -348,6 +348,8 @@ let _lastEventsPollNamespace = null;
 
 /** Auto-poll handle — polls events every 1 s while a profile is loaded */
 let _eventsPollInterval = null;
+let eventsRefreshInFlight = null;
+let eventsResumeBound = false;
 const EVENTS_POLL_MS = 1000;
 
 function startEventsPoll() {
@@ -3573,6 +3575,10 @@ function appendDrawerEventTimelineItem(ev) {
 function renderEventTimeline(events) {
   if (!profileDrawerEvents) return;
   ensureProfileDrawerEventsHeadingRow();
+  if (_config.eventTimeline === 'compact' && document.body.classList.contains('decisioning-profile-hero')) {
+    renderCompactEventTimeline(events);
+    return;
+  }
   profileDrawerEvents.innerHTML = '';
   // Profile `events` are already filtered in load/poll — do not re-run dedupe here (double-filter can zero the list while count badge was set from stored length).
   const list = Array.isArray(events) ? events.slice(0, 5) : [];
@@ -3584,6 +3590,142 @@ function renderEventTimeline(events) {
     return;
   }
 
+  renderClassicEventItems(list);
+}
+
+let compactEventFilter = 'all';
+let compactEventOffset = 0;
+let compactEventEnd = 0;
+let compactEventContext = -1;
+let compactEventControls = null;
+let compactEventPager = null;
+let compactEventResize = null;
+
+function compactEventKind(ev) {
+  const type = String((ev && ev.eventType) || (ev && ev.eventName) || '').toLowerCase();
+  if (type.startsWith('decisioning.') || type === String(_config.viewName || '').toLowerCase()) return 'decisions';
+  if (aepProfileDrawerMessageChannelKind(ev) === 'email') return 'email';
+  if (type.startsWith('web.') || type === 'abandoned.search') return 'web';
+  return 'other';
+}
+
+function fitCompactEventPage() {
+  if (!compactEventPager || !profileDrawerEvents.clientHeight) return;
+  const cards = Array.from(profileDrawerEvents.children);
+  if (!cards.length || cards[0].tagName === 'P') {
+    compactEventPager.hidden = true;
+    return;
+  }
+  compactEventOffset = Math.min(compactEventOffset, cards.length - 1);
+  let used = 0;
+  compactEventEnd = compactEventOffset;
+  cards.forEach((card, index) => {
+    card.hidden = false;
+    const height = card.getBoundingClientRect().height + parseFloat(getComputedStyle(card).marginBottom || 0);
+    const fits = index >= compactEventOffset && compactEventEnd === index &&
+      (used + height <= profileDrawerEvents.clientHeight || index === compactEventOffset);
+    card.hidden = !fits;
+    if (fits) { used += height; compactEventEnd = index + 1; }
+  });
+  const [previous, range, next] = compactEventPager.children;
+  previous.disabled = compactEventOffset === 0;
+  next.disabled = compactEventEnd >= cards.length;
+  range.textContent = `${compactEventOffset + 1}-${compactEventEnd} of ${cards.length}`;
+  compactEventPager.hidden = compactEventOffset === 0 && compactEventEnd >= cards.length;
+}
+
+function renderCompactEventTimeline(events) {
+  if (compactEventContext !== profileContextVersion) {
+    compactEventContext = profileContextVersion;
+    compactEventFilter = 'all';
+    compactEventOffset = 0;
+  }
+  if (!compactEventControls) {
+    const heading = getProfileDrawerEventsHeadingRow();
+    heading.querySelector('h2').textContent = 'Decision timeline';
+    compactEventControls = document.createElement('div');
+    compactEventControls.className = 'aep-event-filters';
+    compactEventControls.setAttribute('role', 'group');
+    compactEventControls.setAttribute('aria-label', 'Filter profile activity');
+    for (const [key, label] of [['all', 'All'], ['decisions', 'Decisions'], ['web', 'Web'], ['email', 'Email']]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.filter = key;
+      button.textContent = label;
+      button.addEventListener('click', () => {
+        compactEventFilter = key;
+        compactEventOffset = 0;
+        renderCompactEventTimeline(lastLookedUpProfile && lastLookedUpProfile.events);
+      });
+      compactEventControls.appendChild(button);
+    }
+    profileDrawerEvents.before(compactEventControls);
+    compactEventPager = document.createElement('div');
+    compactEventPager.className = 'aep-event-pager';
+    const previous = document.createElement('button'), next = document.createElement('button');
+    previous.type = next.type = 'button';
+    previous.textContent = 'Previous';
+    next.textContent = 'Next';
+    previous.addEventListener('click', () => {
+      compactEventOffset = Math.max(0, compactEventOffset - Math.max(1, compactEventEnd - compactEventOffset));
+      fitCompactEventPage();
+    });
+    next.addEventListener('click', () => { compactEventOffset = compactEventEnd; fitCompactEventPage(); });
+    const range = document.createElement('span');
+    range.setAttribute('aria-live', 'polite');
+    compactEventPager.append(previous, range, next);
+    profileDrawerEvents.after(compactEventPager);
+    compactEventResize = new ResizeObserver(fitCompactEventPage);
+    compactEventResize.observe(profileDrawerEvents);
+  }
+  compactEventControls.querySelectorAll('button').forEach(button =>
+    button.setAttribute('aria-pressed', String(button.dataset.filter === compactEventFilter)));
+  const story = lastLookedUpProfile && lastLookedUpProfile.eventsStory;
+  const all = Array.isArray(story) && story.length ? story : Array.isArray(events) ? events : [];
+  const list = all.filter(ev => compactEventFilter === 'all' || compactEventKind(ev) === compactEventFilter);
+  profileDrawerEvents.replaceChildren();
+  for (const [index, ev] of list.entries()) {
+    appendDrawerEventTimelineItem(ev);
+    const card = profileDrawerEvents.lastElementChild;
+    const fields = decisioningDisplayCardFields(ev);
+    const offers = fields.filter(([label]) => label === 'Offer').map(([, value]) => value);
+    const strategies = fields.filter(([label]) => label === 'Strategy').map(([, value]) => value);
+    const isDisplay = String(ev.eventType || ev.eventName || '').toLowerCase() === 'decisioning.propositiondisplay';
+    card.classList.add(isDisplay ? 'aep-event-decision' : 'aep-event-system');
+    if (index === 0) card.classList.add('aep-event-latest');
+    const text = card.lastElementChild;
+    const time = text.querySelector('.aep-profile-drawer-event-time');
+    const fullDate = time.textContent;
+    time.title = fullDate;
+    time.textContent = fullDate.includes(', ') ? fullDate.split(', ')[1] : fullDate;
+    const title = text.querySelector('.aep-profile-drawer-event-title');
+    if (offers.length) title.textContent = offers.join(' / ');
+    title.title = title.textContent;
+    text.querySelectorAll('.aep-profile-drawer-event-decision-detail').forEach(node => node.remove());
+    if (strategies.length) {
+      const why = document.createElement('span');
+      why.className = 'aep-profile-drawer-event-decision-detail';
+      why.textContent = 'Won via ' + strategies.join(' / ');
+      why.title = why.textContent;
+      text.appendChild(why);
+    }
+    if (isDisplay) {
+      const sub = document.createElement('span');
+      sub.className = 'aep-profile-drawer-event-sub';
+      sub.textContent = formatDrawerEventChannelDisplay(ev) + ' · PropositionDisplay · ' + fullDate.split(', ')[0];
+      text.appendChild(sub);
+    }
+  }
+  if (!list.length) {
+    const empty = document.createElement('p');
+    empty.textContent = all.length ? 'No activity matches this filter' : 'No events found for this profile';
+    profileDrawerEvents.appendChild(empty);
+  }
+  updateProfileDrawerEventsStoryBadgeCount(all.length);
+  fitCompactEventPage();
+}
+
+function renderClassicEventItems(list) {
   let renderedCount = 0;
   list.forEach((ev) => {
     if (!ev || typeof ev !== 'object') return;
@@ -3871,18 +4013,21 @@ async function fetchProfileEventsList(email, namespaceOverride) {
         '&namespace=' +
         encodeURIComponent(ns) +
         getSandboxParam(),
+      { cache: 'no-store' },
     );
-    if (!res.ok) return [];
-    const data = await res.json().catch(() => ({}));
-    const events = Array.isArray(data.events) ? data.events : [];
+    if (!res.ok) throw new Error('Events lookup failed (HTTP ' + res.status + ')');
+    const data = await res.json();
+    if (!Array.isArray(data.events)) throw new Error('Events lookup returned an invalid event list');
+    const events = data.events;
     events.sort((a, b) => {
       const at = a && a.timestamp != null ? Number(a.timestamp) : 0;
       const bt = b && b.timestamp != null ? Number(b.timestamp) : 0;
       return bt - at;
     });
     return events;
-  } catch {
-    return [];
+  } catch (error) {
+    labLog('error', 'events lookup failed', { message: error.message, namespace: ns });
+    throw error;
   }
 }
 
@@ -4192,7 +4337,20 @@ function patchLastProfileOrUpdate(partial) {
  * @param {string} identifier
  * @param {string} [namespaceOverride] - e.g. 'ecid'
  */
-async function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
+function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
+  const key = [profileContextVersion, identifier, namespaceOverride, getSandboxParam()].join('|');
+  if (eventsRefreshInFlight && eventsRefreshInFlight.key === key) return eventsRefreshInFlight.promise;
+  const operation = { key, promise: null };
+  operation.promise = updateDrawerEventsForIdentity(identifier, namespaceOverride)
+    .catch(error => {
+      labLog('error', 'events refresh failed; retaining last successful activity', { message: error.message });
+    })
+    .finally(() => { if (eventsRefreshInFlight === operation) eventsRefreshInFlight = null; });
+  eventsRefreshInFlight = operation;
+  return operation.promise;
+}
+
+async function updateDrawerEventsForIdentity(identifier, namespaceOverride) {
   const id = String(identifier || '').trim();
   if (!id) return;
   cacheDomRefs();
@@ -4683,6 +4841,14 @@ function init(config) {
   ensureProfileDrawerIdentityGraphHeadingRow();
   ensureProfileDrawerShellReady();
   window.addEventListener('beforeunload', stopEventsPoll, { once: true });
+  if (!eventsResumeBound) {
+    eventsResumeBound = true;
+    const resume = () => {
+      if (_lastLoadedIdentifier && !document.hidden) void refreshDrawerEventsForLoadedProfile();
+    };
+    window.addEventListener('focus', resume);
+    document.addEventListener('visibilitychange', resume);
+  }
 
   if (!eventsStoryModalKeydownBound) {
     eventsStoryModalKeydownBound = true;
