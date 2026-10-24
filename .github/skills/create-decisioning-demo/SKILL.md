@@ -344,6 +344,13 @@ Log failed reads and retain the last successful activity/totals, not an empty
 success-shaped result. Test delayed email ingestion updates both the latest-event
 list and Messages Sent without a profile lookup; distinguish this client cadence
 from upstream ingestion and API latency.
+Refresh **Audiences** from the same shared poll for the same identity, but
+throttle it to every five seconds (each read is a UPS lookup plus audience-name
+lookups) and refresh immediately on focus/visibility. Use `cache: 'no-store'`,
+coalesce per context, update only when membership changes, keep an open
+Audiences dialog current, and retain the last successful list on failure.
+Audience membership is computed by AEP: streaming audiences realise in minutes,
+batch audiences only after their scheduled evaluation; polling cannot speed that.
 Follow BA's event attribution and shared polling, not just its static drawer
 markup. The manual PropositionDisplay must carry the original request
 `identityMap` and original proposition scope/metadata. Inspect the **event**

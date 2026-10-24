@@ -185,6 +185,10 @@ profile's events; the shared drawer's one-second poll then catches delayed Hub
 ingestion without another full profile lookup. Actual ingested events update the
 five-card box and journey, not optimistic local cards. Content displays do not
 increment Messages Sent. Context changes invalidate old event responses.
+The same poll refreshes audience membership every five seconds (and immediately
+on focus/visibility) without another profile lookup; failed reads keep the last
+successful list. AEP still decides when an audience is realised: streaming
+audiences appear after evaluation, batch audiences only after their scheduled run.
 The browser regression uses the real shared runtime with an intercepted SDK:
 only schema-valid outbound displays become delayed fixture API events, preserving
 their actual returned item and strategy fields. This verifies the client

@@ -331,6 +331,7 @@ async function main() {
           value: i === 2 ? 'NBA Strategy 5 - Find your getaway' : 'NBA Strategy 7 - Keep the smiles coming' },
       ] : [])] }));
     const pendingAbandonments = [];
+    let audienceFixture = { realized: [{ segmentId: 'test-audience', name: 'Fixture holiday audience' }], exited: [] };
     await shellContext.route('**/*', async route => {
       const request = route.request();
       const parsed = new URL(request.url());
@@ -360,7 +361,7 @@ async function main() {
           }
           json = { events };
         }
-        if (parsed.pathname === '/api/profile/audiences') json = { realized: [{ id: 'test-audience', name: 'Fixture holiday audience' }], exited: [] };
+        if (parsed.pathname === '/api/profile/audiences') json = audienceFixture;
         if (parsed.pathname === '/api/aep' && body?.path?.includes('schemaregistry')) {
           const schema = { version: '1.11', 'meta:tenantNamespace': mismatchTenant ? 'different' : 'demoemea',
             properties: { _id: { type: 'string' }, _repo: { properties: {} }, _experience: { properties: {} },
@@ -900,6 +901,23 @@ async function main() {
     'Five mixed event cards fit without clipping or scrolling');
     assert.equal(shellCalls.filter(call => call.path === '/api/profile/consent').length, consentReadsBeforeEmail,
       'Email totals update from event polling without another profile lookup');
+    audienceFixture = { realized: [{ segmentId: 'joined-audience', name: 'Fixture abandoned search audience' },
+      ...audienceFixture.realized], exited: [] };
+    const audienceReadsBeforeJoin = shellCalls.filter(call => call.path === '/api/profile/audiences').length;
+    const audienceJoinedAt = Date.now();
+    await shell.waitForFunction(() => [...document.querySelectorAll('#profileDrawerAudiences li')]
+      .some(node => node.textContent === 'Fixture abandoned search audience'), null, { timeout: 8000 });
+    const audienceWaitMs = Date.now() - audienceJoinedAt;
+    assert(audienceWaitMs < 8000, 'A newly joined audience appears from polling');
+    assert.equal(shellCalls.filter(call => call.path === '/api/profile/consent').length, consentReadsBeforeEmail,
+      'Audience membership refreshes without another profile lookup');
+    assert(shellCalls.filter(call => call.path === '/api/profile/audiences').length - audienceReadsBeforeJoin
+      <= Math.ceil(audienceWaitMs / 5000) + 1, 'Audience polling is throttled below the one-second event cadence');
+    await shell.route('**/api/profile/audiences?*', route => route.fulfill({ status: 503, json: { error: 'Fixture unavailable' } }), { times: 1 });
+    await shell.evaluate(() => window.dispatchEvent(new Event('focus')));
+    await shell.waitForTimeout(300);
+    assert.equal(await shell.locator('#profileDrawerAudiences li', { hasText: 'Fixture abandoned search audience' }).count(), 1,
+      'A failed audience refresh retains the last successful membership');
     await shell.route('**/api/profile/events?*', route => route.fulfill({ status: 503, json: { error: 'Fixture unavailable' } }), { times: 1 });
     await shell.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
     assert.equal(await shell.evaluate(() => window.DemoProfileDrawer.getLastLookedUpProfile().emailSendsLast24h), 1,

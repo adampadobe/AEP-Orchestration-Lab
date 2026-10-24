@@ -351,6 +351,10 @@ let _eventsPollInterval = null;
 let eventsRefreshInFlight = null;
 let eventsResumeBound = false;
 const EVENTS_POLL_MS = 1000;
+/** Audience reads cost one UPS lookup plus one name lookup per audience, so poll less often than events. */
+const AUDIENCES_POLL_MS = 5000;
+let audiencesRefreshInFlight = null;
+let audiencesLastRefreshAt = 0;
 
 function startEventsPoll() {
   stopEventsPoll();
@@ -362,6 +366,7 @@ function startEventsPoll() {
         ? String(_lastEventsPollNamespace).trim().toLowerCase()
         : getNamespaceForDrawer(id);
     void refreshDrawerEventsForIdentity(id, ns);
+    if (Date.now() - audiencesLastRefreshAt >= AUDIENCES_POLL_MS) void refreshDrawerAudiencesForIdentity(id, ns);
   }, EVENTS_POLL_MS);
 }
 
@@ -1875,9 +1880,12 @@ function renderAudienceList(audiences) {
   });
 }
 
-async function fetchAudienceMembership(email) {
+async function fetchAudienceMembership(email, namespaceOverride) {
   if (!email) return null;
-  const ns = getNamespaceForDrawer(email);
+  const ns =
+    namespaceOverride != null && String(namespaceOverride).trim()
+      ? String(namespaceOverride).trim().toLowerCase()
+      : getNamespaceForDrawer(email);
   try {
     const res = await fetch(
       '/api/profile/audiences?identifier=' +
@@ -1885,6 +1893,7 @@ async function fetchAudienceMembership(email) {
         '&namespace=' +
         encodeURIComponent(ns) +
         getSandboxParam(),
+      { cache: 'no-store' },
     );
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
@@ -1892,6 +1901,38 @@ async function fetchAudienceMembership(email) {
   } catch {
     return null;
   }
+}
+
+function audienceMembershipSignature(audiences) {
+  const { current, exited } = audienceSlicesFromPayload(audiences);
+  const ids = rows => rows.map(row => [row && row.segmentId, row && row.name, row && row.lastQualificationTime].join('~'));
+  return JSON.stringify([ids(current), ids(exited)]);
+}
+
+/** Refresh audience membership for the loaded identity; failures retain the last successful list. */
+function refreshDrawerAudiencesForIdentity(identifier, namespaceOverride) {
+  const id = String(identifier || '').trim();
+  if (!id) return Promise.resolve();
+  const key = [profileContextVersion, id, namespaceOverride, getSandboxParam()].join('|');
+  if (audiencesRefreshInFlight && audiencesRefreshInFlight.key === key) return audiencesRefreshInFlight.promise;
+  audiencesLastRefreshAt = Date.now();
+  const version = profileContextVersion;
+  const operation = { key, promise: null };
+  operation.promise = fetchAudienceMembership(id, namespaceOverride)
+    .then(audiences => {
+      if (!isCurrentDrawerContext(version)) return;
+      if (!audiences || (!Array.isArray(audiences.realized) && !Array.isArray(audiences.exited))) {
+        labLog('warn', 'audience refresh failed; retaining last successful membership', {});
+        return;
+      }
+      const previous = lastLookedUpProfile && lastLookedUpProfile.audiences;
+      if (audienceMembershipSignature(previous) === audienceMembershipSignature(audiences)) return;
+      patchLastProfileOrUpdate({ audiences });
+      if (audiencesModalOpen) renderAudiencesModalContent();
+    })
+    .finally(() => { if (audiencesRefreshInFlight === operation) audiencesRefreshInFlight = null; });
+  audiencesRefreshInFlight = operation;
+  return operation.promise;
 }
 
 function normalizeEventName(name) {
@@ -4111,6 +4152,7 @@ async function loadProfileDataForDrawer(email, options) {
       }
     }
 
+    audiencesLastRefreshAt = Date.now();
     const [audiences, eventsAll] = await Promise.all([
       fetchAudienceMembership(emailTrim),
       fetchProfileEventsList(emailTrim, ns),
@@ -4759,7 +4801,11 @@ function init(config) {
   if (!eventsResumeBound) {
     eventsResumeBound = true;
     const resume = () => {
-      if (_lastLoadedIdentifier && !document.hidden) void refreshDrawerEventsForLoadedProfile();
+      if (!_lastLoadedIdentifier || document.hidden) return;
+      void refreshDrawerEventsForLoadedProfile();
+      const id = _lastEventsPollIdentifier || _lastLoadedIdentifier;
+      const ns = _lastEventsPollNamespace ? String(_lastEventsPollNamespace).trim().toLowerCase() : getNamespaceForDrawer(id);
+      void refreshDrawerAudiencesForIdentity(id, ns);
     };
     window.addEventListener('focus', resume);
     document.addEventListener('visibilitychange', resume);
