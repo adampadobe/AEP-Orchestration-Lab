@@ -18,23 +18,24 @@
 .tui-demo-shell.mod-demo-page--profile-open #profileDrawer { transform: translateY(0); }
 .tui-demo-shell #profileDrawer .aep-profile-drawer-inner { padding-top: 1.9rem; max-height: calc(100dvh - var(--tui-content-top, 100px)); overflow-y: auto; }
 .tui-demo-shell:not(.mod-demo-page--profile-open):not(.aep-profile-drawer-open) #profileDrawer:not(:focus-within) .aep-profile-drawer-inner { opacity: 0; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); max-width: none; grid-template-columns: minmax(330px, 1fr) minmax(200px, .7fr) minmax(150px, .4fr) minmax(0, 1.6fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); max-width: none; grid-template-columns: minmax(330px, 1.25fr) minmax(200px, .75fr) minmax(150px, .45fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
 .tui-demo-shell.decisioning-profile-hero #tuiProfileHero { grid-column: auto; container-type: inline-size; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-audiences { overflow-y: auto; overscroll-behavior: contain; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-events { overflow: hidden; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-col:last-child {
   padding: .8rem; border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); background: var(--dash-surface);
 }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child { align-self: start; max-height: 100%; padding: .65rem; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item {
-  grid-template-columns: 32px minmax(0, 1fr); gap: .6rem; padding: .4rem .65rem; margin-bottom: .35rem;
+  grid-template-columns: 28px minmax(0, 1fr); gap: .5rem; padding: .3rem .55rem; margin-bottom: .25rem;
   border: 1px solid var(--dash-border); border-radius: 10px; background: var(--dash-surface);
 }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item[hidden] { display: none; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item::before { display: none; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-event-decision.aep-event-latest { border-color: var(--dash-blue); background: var(--dash-info-bg); }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-thumb { width: 32px; height: 32px; border-radius: 10px; border: 0; background-color: var(--dash-info-bg); }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-thumb { width: 28px; height: 28px; border-radius: 8px; border: 0; background-color: var(--dash-info-bg); }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-thumb svg { color: var(--dash-blue); }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item > div:last-child { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .15rem .5rem; align-content: center; }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-item > div:last-child { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .1rem .5rem; align-content: center; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-time { grid-column: 2; grid-row: 1; font-size: .7rem; margin: 0; white-space: nowrap; align-self: center; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-title { grid-column: 1; grid-row: 1; font-size: .9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-decision-detail { grid-column: 1 / -1; font-size: .8rem; color: var(--dash-blue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }

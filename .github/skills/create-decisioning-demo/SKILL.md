@@ -301,8 +301,9 @@ single label/value list. Keep all actual values accessible, including full long
 strings through wrapping (with internal overflow only for exceptional long data).
 Verify each normal attribute tab fits without vertical panel scrolling.
 For the presentation-clean timeline, follow TUI's supplied drawer design:
-profile / graph / audience-messages / timeline in 1 / .7 / .4 / 1.6 proportions,
-with readable minimum widths. Give events the widest column. Use compact
+profile / graph / audience-messages / Last Events in 1.25 / .75 / .45 / 1.15 proportions,
+with readable minimum widths. Keep events narrower than the profile and size the
+events block to its five compact cards rather than the full drawer height. Use compact
 decision-style bordered cards for every event type under **Last Events**, showing
 only the latest five events of any type, without filter options, page numbers,
 Previous / Next controls or a desktop event scrollbar. Highlight the newest event.

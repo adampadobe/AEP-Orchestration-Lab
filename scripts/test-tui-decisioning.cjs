@@ -510,8 +510,10 @@ async function main() {
           });
           assert.equal(columns.widths.length, 4, 'Profile plus three supporting columns');
           assert.equal(columns.span, 'auto', 'Profile no longer spans two equal tracks');
-          assert(columns.widths[3] > columns.widths[0] && columns.widths[3] > columns.widths[1],
-            'Decision timeline is the widest column, following the supplied design');
+          const eventsHeight = await shell.locator('#profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child').evaluate(col => col.getBoundingClientRect().height);
+          assert(columns.widths[3] < columns.widths[0] && columns.widths[3] > columns.widths[1],
+            'Last Events is narrower than profile but wider than graph');
+          assert(eventsHeight < height - 20, 'Last Events is content-height rather than full drawer height');
           assert(columns.widths[1] > columns.widths[2], 'Graph retains more width than audience/messages');
           assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
             node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1),
@@ -875,7 +877,7 @@ async function main() {
       }))));
     const consentReadsBeforeEmail = shellCalls.filter(call => call.path === '/api/profile/consent').length;
     const emailAvailableAt = Date.now();
-    events.unshift({ id: 'timeline-email', timestamp: Date.now(), eventType: 'message.feedback', rows: [
+    events.unshift({ id: 'timeline-email', timestamp: Math.max(Date.now(), ...events.map(event => event.timestamp)) + 1, eventType: 'message.feedback', rows: [
       { path: '_experience.customerJourneyManagement.emailChannelContext.namespace', value: 'email' },
       { path: '_experience.customerJourneyManagement.messageDeliveryFeedback.feedbackStatus', value: 'sent' },
     ] });

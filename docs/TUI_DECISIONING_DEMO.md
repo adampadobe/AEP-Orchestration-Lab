@@ -21,8 +21,8 @@ local/live policy summary are removed, without changing strategy evaluation,
 explicit Apply/Run, error feedback or returned-content retention.
 Eligible NBAs is separated from Selection Strategies by 18px. The desktop drawer
 follows the supplied drawer HTML: profile / identity graph / audience-messages /
-decision timeline in 1 / .7 / .4 / 1.6 proportions, with minimum readable widths.
-The timeline is the widest column; classic and mobile layouts retain their
+decision timeline in 1.25 / .75 / .45 / 1.15 proportions, with minimum readable widths.
+Last Events is narrower than the profile and sized to its five compact cards; classic and mobile layouts retain their
 height limits.
 Attribute cards size to their contents rather than stretching down the column.
 Labels are at least 13px and values at least 16px at default desktop zoom.
