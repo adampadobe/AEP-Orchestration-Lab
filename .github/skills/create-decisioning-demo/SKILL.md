@@ -309,7 +309,12 @@ only the latest five events of any type, without filter options, page numbers,
 Previous / Next controls or a desktop event scrollbar. Highlight the newest event.
 Use ingested offer/strategy names only on actual decision displays; other events
 retain their actual titles, channels and types without invented decision metadata.
-Keep Email, SMS and Push consent indicators together in one three-column row.
+Keep Email, SMS and Push consent indicators together in one compact
+(about 28px) three-column row. On desktop size the drawer to the profile
+column so it ends at that row (capped at 35rem/viewport): stack all tab panels
+in one grid cell for a stable height, give the graph/audience columns
+`contain: size`, and anchor the consent row to the Contact card's bottom when
+five event cards need more height. Keep the narrow capped layout unchanged.
 Preserve full fetched journey
 history, full titles in hover/event details and the event-count journey dialog.
 Retain capped, scrollable stacked sections on narrow screens.

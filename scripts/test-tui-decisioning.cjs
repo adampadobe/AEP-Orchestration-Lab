@@ -404,7 +404,7 @@ async function main() {
     const shell = await shellContext.newPage();
     shell.setDefaultTimeout(15000);
     shell.on('pageerror', error => errors.push(error.message));
-    await shell.goto(origin + '/profile-viewer/tui-decisioning-demo.html?channel=web');
+    await shell.goto(origin + '/profile-viewer/tui-decisioning-demo.html?channel=web', { timeout: 45000 });
     await shell.waitForFunction(() => !!window.TuiDecisioningDrawer, null, { timeout: 30000 });
     assert.equal(await shell.evaluate(() => window.AepGlobalSandbox.getSandboxName()), 'kirkham', 'A fresh TUI browser defaults to kirkham');
     const minimize = shell.getByRole('button', { name: 'Minimize configuration panels', exact: true });
@@ -514,7 +514,8 @@ async function main() {
           const eventsHeight = await shell.locator('#profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child').evaluate(col => col.getBoundingClientRect().height);
           assert(columns.widths[3] < columns.widths[0] && columns.widths[3] > columns.widths[1],
             'Last Events is narrower than profile but wider than graph');
-          assert(eventsHeight < height - 20, 'Last Events is content-height rather than full drawer height');
+          assert(eventsHeight <= height, 'Last Events fills, but does not extend, the profile-sized drawer');
+          assert(height < 500, `Drawer height ${height}px is reduced to the profile content`);
           assert(columns.widths[1] > columns.widths[2], 'Graph retains more width than audience/messages');
           assert(await shell.locator('#profileDrawerEvents').evaluate(node =>
             node.scrollHeight <= node.clientHeight + 1 && node.scrollWidth <= node.clientWidth + 1),
@@ -533,6 +534,13 @@ async function main() {
               'Email, SMS and Push share one row at every viewport and theme');
             assert(consents[0].right <= consents[1].left && consents[1].right <= consents[2].left,
               'Consent indicators do not overlap');
+            const consentRow = await panel.locator('.tui-channel-consents').evaluate(row => {
+              const inner = document.querySelector('#profileDrawer .aep-profile-drawer-inner').getBoundingClientRect();
+              const box = row.getBoundingClientRect();
+              return { height: box.height, gap: inner.bottom - box.bottom };
+            });
+            assert(consentRow.height <= 30, `Consent row is compact (${consentRow.height}px)`);
+            if (width > 1100) assert(consentRow.gap <= 40, `Drawer ends at the consent row (${consentRow.gap}px below it)`);
           }
           assert(await panel.evaluate(node => node.scrollHeight <= node.clientHeight + 1), 'All attributes in each tab fit without panel scrolling');
           assert(await panel.evaluate(node => {

@@ -72,7 +72,11 @@ highlighted. Display cards use ingested offer titles and strategy names;
 other activity retains its actual title, channel and event type without invented
 offer/strategy details. Long titles retain full hover text and the
 journey event details. Email, SMS and Push consent indicators sit in one
-three-column row within the Contact tab. The event count opens
+compact (about 28px) three-column row within the Contact tab. On desktop the
+drawer is no longer a fixed 35rem: it ends at that consent row (still capped
+at 35rem and the viewport), and all tab panels share one grid cell so its height
+does not change between tabs. If five events need more height, the consent row
+is anchored to the bottom of the Contact card. The event count opens
 Canvas flow / Swimlanes / Stages. Offer and strategy names come only from
 ingested event data, never the simulated winner. Identity/sandbox changes clear
 the drawer, dialogs and signals and discard late responses.

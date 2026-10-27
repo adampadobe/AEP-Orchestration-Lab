@@ -50,10 +50,10 @@
 #tuiProfileHero .dph-kpi b { font-size: 1.15rem; white-space: normal; overflow: visible; overflow-wrap: normal; }
 #tuiProfileHero .tui-profile-section { padding: .8rem; }
 #tuiProfileHero .tui-profile-section dl { font-size: 1rem; line-height: 1.4; gap: .5rem .65rem; }
-#tuiProfileHero .tui-profile-section .dph-signals { gap: .65rem; }
-#tuiProfileHero .dph-signal { min-height: 60px; padding: .5rem; display: flex; flex-direction: column; justify-content: center; }
-#tuiProfileHero .dph-signal dt { font-size: .85rem; line-height: 1.35; margin-bottom: .3rem; }
-#tuiProfileHero .dph-signal dd { font-size: 1.05rem; line-height: 1.3; }
+#tuiProfileHero .tui-profile-section .dph-signals { gap: .4rem; }
+#tuiProfileHero .dph-signal { min-height: 0; padding: .35rem .5rem; display: flex; flex-direction: column; justify-content: center; }
+#tuiProfileHero .dph-signal dt { font-size: .82rem; line-height: 1.25; margin-bottom: .15rem; }
+#tuiProfileHero .dph-signal dd { font-size: 1rem; line-height: 1.25; }
 #tuiProfileHero .dph-tog { font-size: .82rem; }
 @container (max-width: 480px) {
   #tuiProfileHero .dph-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -65,8 +65,25 @@
 .tui-ecid-line dd { min-width: 0; }
 .tui-ecid-line .dph-copy { display: inline-grid; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; padding: 0; }
 .tui-copy-feedback { font-size: .7rem; color: var(--dash-muted); }
-.tui-channel-consents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; margin-top: .5rem; }
-.tui-channel-consents .dph-tog { min-width: 0; flex-direction: column; align-items: flex-start; gap: .2rem; overflow-wrap: anywhere; }
+.tui-channel-consents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; margin-top: .4rem; }
+#tuiProfileHero .tui-channel-consents .dph-tog { min-width: 0; flex-direction: row; align-items: center; justify-content: space-between; gap: .3rem; padding: .15rem .45rem; font-size: .72rem; line-height: 1.25; white-space: nowrap; }
+#tuiProfileHero .tui-channel-consents .dph-tog > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+#tuiProfileHero .tui-channel-consents .dph-tog strong { font-size: .72rem; }
+/* Stack every tab panel in one cell so the drawer keeps one stable height across tabs. */
+#tuiProfileHero .tui-profile-sections { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: start; }
+#tuiProfileHero .tui-profile-sections > .tui-profile-section { grid-row: 2; grid-column: 1; align-self: start; }
+#tuiProfileHero .tui-profile-sections > .tui-profile-section[hidden] { display: block; visibility: hidden; }
+@media (min-width: 1101px) {
+  /* The profile column sets the drawer height; the other columns fill it without growing it. */
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: auto; max-height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); grid-template-rows: auto; padding-bottom: .75rem; }
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiProfileHero .tui-profile-sections { grid-template-rows: auto minmax(0, 1fr); }
+  /* When five events outgrow the profile, keep consents on the drawer's bottom edge. */
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0 { align-self: stretch; display: flex; flex-direction: column; }
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0[hidden] { display: flex; }
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0 .tui-channel-consents { margin-top: auto; padding-top: .4rem; }
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > :not(#tuiProfileHero):not(:last-child) { contain: size; min-height: 0; overflow: hidden; }
+  .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child { align-self: stretch; max-height: none; }
+}
 @media (max-width: 1100px) {
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, 55dvh, calc(100dvh - var(--tui-content-top, 100px))); display: flex; flex-direction: column; overflow-y: auto; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > * { flex: none; height: auto; }
