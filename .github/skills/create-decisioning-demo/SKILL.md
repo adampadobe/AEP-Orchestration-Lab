@@ -290,7 +290,7 @@ vertical page scrolling; use columns, bounded internal areas and fit-to-height
 zoom rather than an indefinitely tall canvas. **Do not grow the entire drawer
 to fit profile fields.** Use a desktop height budget of roughly five recent event
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
-Use compact Contact / industry-attribute-group / Identity tabs below the
+Use compact Contact / industry-attribute-group / Consent tabs below the
 hero and KPIs. Split a large industry panel by its meaningful groups (TUI:
 Holiday, Support, Shopping, Preferences, Consent), rather than packing every
 attribute into one scrolling Travel panel. Only the selected panel is visible;
@@ -301,20 +301,25 @@ single label/value list. Keep all actual values accessible, including full long
 strings through wrapping (with internal overflow only for exceptional long data).
 Verify each normal attribute tab fits without vertical panel scrolling.
 For the presentation-clean timeline, follow TUI's supplied drawer design:
-profile / graph / audience-messages / Last Events in 1.25 / .75 / .45 / 1.15 proportions,
-with readable minimum widths. Keep events narrower than the profile and size the
+profile / graph / audience-messages / Last Events in 1.05 / .85 / .55 / 1.15 proportions,
+with readable minimum widths. Keep the Events width unchanged when reallocating
+profile width to the graph and audience columns, and size the
 events block to its five compact cards rather than the full drawer height. Use compact
 decision-style bordered cards for every event type under **Last Events**, showing
 only the latest five events of any type, without filter options, page numbers,
 Previous / Next controls or a desktop event scrollbar. Highlight the newest event.
 Use ingested offer/strategy names only on actual decision displays; other events
 retain their actual titles, channels and types without invented decision metadata.
-Keep Email, SMS and Push consent indicators together in one compact
-(about 28px) three-column row. On desktop size the drawer to the profile
-column so it ends at that row (capped at 35rem/viewport): stack all tab panels
-in one grid cell for a stable height, give the graph/audience columns
-`contain: size`, and anchor the consent row to the Contact card's bottom when
-five event cards need more height. Keep the narrow capped layout unchanged.
+Show Email, personalisation, SMS and Push only in the Consent tab, using the
+same attribute-tile design; do not duplicate channel consent under Contact.
+Use actual loaded channel states for SMS/Push, never infer them from Email.
+Put ECID and its icon-only copy button beneath demographics in the coloured
+customer header without increasing its existing 70px height. Preserve the full
+identifier in copy and a tooltip when abbreviated. Remove the Identity tab and
+move the existing anonymous-visitor control into Contact.
+On desktop size the drawer to profile content or five event cards (capped at
+35rem/viewport): stack all tab panels in one grid cell for a stable height and
+give the graph/audience columns `contain: size`. Keep the narrow capped layout unchanged.
 Preserve full fetched journey
 history, full titles in hover/event details and the event-count journey dialog.
 Retain capped, scrollable stacked sections on narrow screens.
@@ -331,7 +336,7 @@ themes, retaining the same drawer-height cap and keyboard tabs.
 On narrow layouts keep the outer drawer capped (55dvh in NatWest) and scroll
 stacked sections. Verify exact loaded/unloaded height limits with five fixture
 events, all sections, both themes, and desktop/narrow viewports. Move, rather than clone, the
-shared anonymous-visitor control into the hero identity card.
+shared anonymous-visitor control into the hero Contact card.
 
 On identity or sandbox changes, clear the customer, banking fields, events and
 open dialogs; discard late lookup/poll responses for the previous context.

@@ -26,11 +26,14 @@
     $('tuiPhName').textContent = text('profileDrawerName');
     $('tuiPhMeta').textContent = ['profileDrawerGender', 'profileDrawerAge', 'profileDrawerCity']
       .map(text).filter(value => value !== 'Not loaded').join(' / ');
+    $('tuiPhName').title = $('tuiPhName').textContent;
+    $('tuiPhMeta').title = $('tuiPhMeta').textContent;
     $('tuiPhLtv').textContent = text('profileDrawerLtv');
     const avatar = $('profileDrawerAvatar');
     $('tuiPhAvatar').hidden = !avatar?.getAttribute('src');
     if (avatar?.getAttribute('src')) $('tuiPhAvatar').src = avatar.src;
-    ['Email', 'Phone', 'City', 'DesktopId'].forEach(name => { $('tuiPh' + name).textContent = text('profileDrawer' + name); });
+    ['Email', 'Phone', 'City'].forEach(name => { $('tuiPh' + name).textContent = text('profileDrawer' + name); });
+    $('tuiPhDesktopId').textContent = values ? text('profileDrawerDesktopId') : 'Not loaded';
     for (const field of global.TuiDecisioning.fields) {
       const value = values ? values[field.key] : undefined;
       $('tuiPhSignal-' + field.key).textContent = value === undefined ? (values ? 'Not set' : 'Not loaded') : String(value);
@@ -38,15 +41,14 @@
     for (const [key, value] of [['score', values?.score], ['points', values?.points], ['booking', values?.booking], ['intent', values?.intent]]) {
       $('tuiPhKpi-' + key).textContent = value === undefined ? 'Unavailable' : String(value);
     }
-    for (const name of ['Email', 'Sms', 'Push']) {
+    for (const name of ['Sms', 'Push']) {
       const state = global.DemoProfileDrawer?.getLastLookedUpProfile()?.channels?.[name.toLowerCase()];
-      const value = values ? name === 'Email'
-        ? values.emailConsent === undefined ? 'Not set' : values.emailConsent
-        : state === undefined || state === null ? 'Not set / not granted' : String(state) : 'Not loaded';
-      $('tuiPhConsent-' + name).replaceChildren(el('span', name === 'Sms' ? 'SMS' : name), el('strong', value));
+      $('tuiPhConsent-' + name).textContent = values
+        ? state === undefined || state === null ? 'Not set / not granted' : String(state) : 'Not loaded';
     }
+    $('tuiPhDesktopId').title = $('tuiPhDesktopId').textContent;
     const copy = $('tuiCopyEcid');
-    copy.disabled = ['Not loaded', 'Not set'].includes(text('profileDrawerDesktopId'));
+    copy.disabled = !values || ['Not loaded', 'Not set'].includes(text('profileDrawerDesktopId'));
     if (!values) {
       $('tuiPhTab-0').click();
       doc.querySelector('.tui-copy-feedback').textContent = '';
@@ -61,6 +63,24 @@
     avatar.id = 'tuiPhAvatar'; avatar.alt = 'Customer profile photo'; avatar.hidden = true;
     const who = el('div', undefined, 'dph-who'), name = el('h2', 'No profile loaded'), meta = el('p');
     name.id = 'tuiPhName'; meta.id = 'tuiPhMeta'; who.append(name, meta);
+    const line = el('div', undefined, 'tui-ecid-line'), ecid = el('span', 'Not loaded');
+    ecid.id = 'tuiPhDesktopId';
+    const copy = el('button', undefined, 'dph-copy'); copy.id = 'tuiCopyEcid'; copy.type = 'button';
+    copy.setAttribute('aria-label', 'Copy ECID'); copy.title = 'Copy ECID';
+    const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 16 16'); icon.setAttribute('width', '14'); icon.setAttribute('height', '14');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('fill', 'currentColor'); path.setAttribute('d', 'M5 1h9v11h-3v3H1V4h4V1zm1 3h5v7h2V2H6v2zM2 5v9h8V5H2z');
+    icon.append(path); copy.append(icon);
+    const feedback = el('span', undefined, 'tui-copy-feedback'); feedback.setAttribute('role', 'status');
+    copy.addEventListener('click', async () => {
+      const id = text('profileDrawerDesktopId');
+      if (['Not loaded', 'Not set'].includes(id)) { feedback.textContent = 'No ECID loaded'; return; }
+      try { await navigator.clipboard.writeText(id); feedback.textContent = 'ECID copied'; }
+      catch (error) { console.warn('ECID copy failed', error); feedback.textContent = 'Copy unavailable'; }
+    });
+    line.append(el('small', 'ECID'), ecid, copy, feedback); who.append(line);
     const ltv = el('div', undefined, 'dph-clv'), amount = el('b'); amount.id = 'tuiPhLtv';
     ltv.append(el('small', 'Lifetime value'), amount); head.append(avatar, who, ltv);
     const kpis = el('div', undefined, 'dph-kpis');
@@ -71,7 +91,7 @@
     const details = el('div', undefined, 'dph-details tui-profile-sections');
     const tabs = el('div', undefined, 'dph-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Traveller attributes');
     details.append(tabs);
-    const labels = ['Contact', ...new Set(global.TuiDecisioning.fields.map(f => f.group)), 'Identity'];
+    const labels = ['Contact', ...new Set(global.TuiDecisioning.fields.map(f => f.group))];
     const panels = [], buttons = [];
     function select(index, focus) {
       buttons.forEach((button, i) => {
@@ -92,10 +112,10 @@
       tabs.append(button); buttons.push(button);
       const panel = el('section', undefined, 'dph-card tui-profile-section'); panel.id = 'tuiPhPanel-' + index; panel.tabIndex = 0;
       panel.setAttribute('role', 'tabpanel'); panel.setAttribute('aria-labelledby', button.id); panels.push(panel);
-      const isSignals = index > 0 && index < labels.length - 1;
+      const isSignals = index > 0;
       const list = el('dl', undefined, isSignals ? 'dph-signals' : '');
       const fields = index === 0 ? [['Email', 'Email'], ['Phone', 'Phone'], ['City', 'City']]
-        : isSignals ? global.TuiDecisioning.fields.filter(f => f.group === label).map(f => [f.key, f.label]) : [['DesktopId', 'ECID']];
+        : global.TuiDecisioning.fields.filter(f => f.group === label).map(f => [f.key, f.label]);
       for (const [key, title] of fields) {
         const value = el('dd', 'Not loaded'); value.id = isSignals ? 'tuiPhSignal-' + key : 'tuiPh' + key;
         const pair = el(isSignals ? 'div' : 'span', undefined, isSignals ? 'dph-signal' : '');
@@ -103,35 +123,15 @@
         if (isSignals) list.append(pair); else list.append(...pair.childNodes);
       }
       panel.append(list);
-      if (index === 0) {
-        const channels = el('div', undefined, 'tui-channel-consents');
-        for (const channel of ['Email', 'Sms', 'Push']) {
-          const consent = el('span', undefined, 'dph-tog'); consent.id = 'tuiPhConsent-' + channel;
-          consent.append(el('span', channel === 'Sms' ? 'SMS' : channel), el('strong', 'Not loaded'));
-          channels.append(consent);
+      if (label === 'Consent') {
+        for (const channel of ['Sms', 'Push']) {
+          const pair = el('div', undefined, 'dph-signal'), value = el('dd', 'Not loaded');
+          value.id = 'tuiPhConsent-' + channel;
+          pair.append(el('dt', channel === 'Sms' ? 'SMS marketing consent' : 'Push marketing consent'), value);
+          list.append(pair);
         }
-        panel.append(channels);
       }
-      if (label === 'Identity') {
-        const line = list.querySelector('dd'), ecid = el('span', line.textContent);
-        ecid.id = line.id; line.removeAttribute('id'); line.className = 'tui-ecid-line';
-        line.replaceChildren(ecid);
-        const copy = el('button', undefined, 'dph-copy'); copy.id = 'tuiCopyEcid'; copy.type = 'button';
-        copy.setAttribute('aria-label', 'Copy ECID'); copy.title = 'Copy ECID';
-        const icon = doc.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        icon.setAttribute('viewBox', '0 0 16 16'); icon.setAttribute('width', '14'); icon.setAttribute('height', '14');
-        icon.setAttribute('aria-hidden', 'true');
-        const path = doc.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('fill', 'currentColor'); path.setAttribute('d', 'M5 1h9v11h-3v3H1V4h4V1zm1 3h5v7h2V2H6v2zM2 5v9h8V5H2z');
-        icon.append(path); copy.append(icon);
-        const feedback = el('span', undefined, 'tui-copy-feedback'); feedback.setAttribute('role', 'status');
-        copy.addEventListener('click', async () => {
-          const id = text('profileDrawerDesktopId');
-          if (['Not loaded', 'Not set'].includes(id)) { feedback.textContent = 'No ECID loaded'; return; }
-          try { await navigator.clipboard.writeText(id); feedback.textContent = 'ECID copied'; }
-          catch (error) { console.warn('ECID copy failed', error); feedback.textContent = 'Copy unavailable'; }
-        });
-        line.append(copy); panel.append(feedback);
+      if (index === 0) {
         const reset = $('profileDrawerEcidResetWrap'); if (reset) panel.append(reset);
       }
       details.append(panel);

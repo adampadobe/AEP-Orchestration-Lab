@@ -468,6 +468,7 @@ async function main() {
     assert.equal(await shell.locator('[data-demo-env-strip-prefix="tuiDecisioning"]').count(), 1);
     assert.equal(await shell.locator('#customerEmail').count(), 1);
     assert.equal(await shell.locator('#tuiProfileHero').count(), 1);
+    assert.equal(await shell.locator('#tuiCopyEcid').isDisabled(), true, 'Header copy is disabled before profile lookup');
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());
     await shell.waitForFunction(() => document.getElementById('infoEcid').textContent === '12345678901234567890');
     await shell.evaluate(() => window.EnvBarCompact.openOverlay());
@@ -482,16 +483,19 @@ async function main() {
     await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await shell.mouse.move(700, 500);
     await shell.evaluate(() => document.body.classList.add('mod-demo-page--profile-open'));
-    assert.equal(await shell.locator('#tuiProfileHero [role="tab"]').count(), 7, 'Compact profile tabs split attributes into readable groups');
+    assert.equal(await shell.locator('#tuiProfileHero [role="tab"]').count(), 6, 'Attributes have six tabs, with identity in the header');
+    assert.equal(await shell.getByRole('tab', { name: 'Identity', exact: true }).count(), 0);
+    assert.equal(await shell.locator('#tuiProfileHero .tui-channel-consents').count(), 0, 'No duplicate channel consent row');
     assert.equal(await shell.locator('#tuiProfileHero [role="tabpanel"]:visible').count(), 1);
-    await shell.getByRole('tab', { name: 'Identity', exact: true }).click();
     await shellContext.grantPermissions(['clipboard-read', 'clipboard-write']);
     assert.equal(await shell.locator('#tuiCopyEcid').innerText(), '', 'Copy ECID uses an icon only');
     assert((await shell.locator('#tuiCopyEcid').boundingBox()).width <= 26);
     await shell.locator('#tuiCopyEcid').click();
     assert.equal(await shell.evaluate(() => navigator.clipboard.readText()), fixture.ecid);
     assert.equal(await shell.locator('.tui-copy-feedback').textContent(), 'ECID copied');
-    await shell.getByRole('tab', { name: 'Identity', exact: true }).press('Home');
+    await shell.getByRole('tab', { name: 'Contact', exact: true }).press('End');
+    assert.equal(await shell.getByRole('tab', { name: 'Consent', exact: true }).getAttribute('aria-selected'), 'true');
+    await shell.getByRole('tab', { name: 'Consent', exact: true }).press('Home');
     assert.equal(await shell.getByRole('tab', { name: 'Contact', exact: true }).getAttribute('aria-selected'), 'true');
     assert.equal(await shell.locator('#profileDrawerEcidResetWrap').count(), 1, 'Anonymous control moved, not cloned');
     assert.equal(await shell.locator('#tuiPhSignal-score').textContent(), '2.99');
@@ -506,14 +510,20 @@ async function main() {
         if (width > 1100) {
           const columns = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(inner => {
             const visible = [...inner.children].filter(child => getComputedStyle(child).display !== 'none');
-            return { widths: visible.map(child => child.getBoundingClientRect().width),
+            const widths = visible.map(child => child.getBoundingClientRect().width), saved = inner.style.gridTemplateColumns;
+            inner.style.gridTemplateColumns = 'minmax(330px, 1.25fr) minmax(200px, .75fr) minmax(150px, .45fr) minmax(0, 1.15fr)';
+            const previous = visible.map(child => child.getBoundingClientRect().width);
+            inner.style.gridTemplateColumns = saved;
+            return { widths, previous,
               span: getComputedStyle(document.getElementById('tuiProfileHero')).gridColumn };
           });
           assert.equal(columns.widths.length, 4, 'Profile plus three supporting columns');
           assert.equal(columns.span, 'auto', 'Profile no longer spans two equal tracks');
           const eventsHeight = await shell.locator('#profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child').evaluate(col => col.getBoundingClientRect().height);
-          assert(columns.widths[3] < columns.widths[0] && columns.widths[3] > columns.widths[1],
-            'Last Events is narrower than profile but wider than graph');
+          assert(columns.widths[0] < columns.previous[0] - 25, 'Profile column is narrower');
+          assert(columns.widths[1] > columns.previous[1] + 10, 'Identity graph gets more width');
+          assert(columns.widths[2] > columns.previous[2] + 10, 'Audience/messages get more width');
+          assert(Math.abs(columns.widths[3] - columns.previous[3]) < 3, 'Events keeps its existing width');
           assert(eventsHeight <= height, 'Last Events fills, but does not extend, the profile-sized drawer');
           assert(height < 500, `Drawer height ${height}px is reduced to the profile content`);
           assert(columns.widths[1] > columns.widths[2], 'Graph retains more width than audience/messages');
@@ -523,24 +533,23 @@ async function main() {
         }
         await shell.mouse.move(width / 2, 550);
         await shell.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
-        for (const label of ['Contact', 'Holiday', 'Support', 'Shopping', 'Preferences', 'Consent', 'Identity']) {
+        const header = await shell.locator('#tuiProfileHero .dph-hero').evaluate(node => {
+          const meta = document.getElementById('tuiPhMeta').getBoundingClientRect();
+          const ecid = document.getElementById('tuiPhDesktopId').getBoundingClientRect(), box = node.getBoundingClientRect();
+          const hero = document.getElementById('tuiProfileHero').getBoundingClientRect();
+          return { height: box.height, belowMeta: ecid.top >= meta.bottom, inside: ecid.bottom <= box.bottom,
+            copyInside: document.getElementById('tuiCopyEcid').getBoundingClientRect().right <= box.right,
+            fitsColumn: box.right <= hero.right + 1 && box.width <= hero.width + 1 };
+        });
+        assert(header.height <= 70 && header.belowMeta && header.inside && header.copyInside && header.fitsColumn,
+          'ECID fits below demographics without increasing the 70px coloured header');
+        for (const label of ['Contact', 'Holiday', 'Support', 'Shopping', 'Preferences', 'Consent']) {
           await shell.getByRole('tab', { name: label, exact: true }).click();
           const panel = shell.locator('#tuiProfileHero [role="tabpanel"]:visible');
-          if (label === 'Contact') {
-            const consents = await panel.locator('.tui-channel-consents .dph-tog').evaluateAll(nodes =>
-              nodes.map(node => { const box = node.getBoundingClientRect(); return { top: box.top, left: box.left, right: box.right }; }));
-            assert.equal(consents.length, 3, 'Email, SMS and Push all remain visible');
-            assert(Math.max(...consents.map(box => box.top)) - Math.min(...consents.map(box => box.top)) < 1,
-              'Email, SMS and Push share one row at every viewport and theme');
-            assert(consents[0].right <= consents[1].left && consents[1].right <= consents[2].left,
-              'Consent indicators do not overlap');
-            const consentRow = await panel.locator('.tui-channel-consents').evaluate(row => {
-              const inner = document.querySelector('#profileDrawer .aep-profile-drawer-inner').getBoundingClientRect();
-              const box = row.getBoundingClientRect();
-              return { height: box.height, gap: inner.bottom - box.bottom };
-            });
-            assert(consentRow.height <= 30, `Consent row is compact (${consentRow.height}px)`);
-            if (width > 1100) assert(consentRow.gap <= 40, `Drawer ends at the consent row (${consentRow.gap}px below it)`);
+          if (label === 'Consent') {
+            assert.equal(await panel.locator('.dph-signal').count(), 4, 'Email, personalisation, SMS and Push use matching tiles');
+            assert.equal(await panel.locator('#tuiPhConsent-Sms').textContent(), 'out');
+            assert.equal(await panel.locator('#tuiPhConsent-Push').textContent(), 'not_provided');
           }
           assert(await panel.evaluate(node => node.scrollHeight <= node.clientHeight + 1), 'All attributes in each tab fit without panel scrolling');
           assert(await panel.evaluate(node => {
@@ -560,6 +569,9 @@ async function main() {
               assert(await panel.locator('.dph-signal dt').evaluateAll(nodes => nodes.every(node => parseFloat(getComputedStyle(node).fontSize) >= 13)),
                 'Signal labels are readable without browser zoom');
             }
+          }
+          if (screenshotDir && ['Contact', 'Consent'].includes(label)) {
+            await shell.screenshot({ path: path.join(screenshotDir, `shell-${dark ? 'dark' : 'light'}-${width}-${label}.png`) });
           }
         }
         await shell.getByRole('tab', { name: 'Holiday', exact: true }).click();

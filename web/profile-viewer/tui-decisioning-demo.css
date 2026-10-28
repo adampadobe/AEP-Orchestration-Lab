@@ -18,8 +18,8 @@
 .tui-demo-shell.mod-demo-page--profile-open #profileDrawer { transform: translateY(0); }
 .tui-demo-shell #profileDrawer .aep-profile-drawer-inner { padding-top: 1.9rem; max-height: calc(100dvh - var(--tui-content-top, 100px)); overflow-y: auto; }
 .tui-demo-shell:not(.mod-demo-page--profile-open):not(.aep-profile-drawer-open) #profileDrawer:not(:focus-within) .aep-profile-drawer-inner { opacity: 0; }
-.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); max-width: none; grid-template-columns: minmax(330px, 1.25fr) minmax(200px, .75fr) minmax(150px, .45fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
-.tui-demo-shell.decisioning-profile-hero #tuiProfileHero { grid-column: auto; container-type: inline-size; }
+.tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); max-width: none; grid-template-columns: minmax(300px, 1.05fr) minmax(200px, .85fr) minmax(150px, .55fr) minmax(0, 1.15fr); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+.tui-demo-shell.decisioning-profile-hero #tuiProfileHero { grid-column: auto; grid-template-columns: minmax(0, 1fr); container-type: inline-size; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-audiences { overflow-y: auto; overscroll-behavior: contain; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-events { overflow: hidden; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-col:last-child {
@@ -61,14 +61,18 @@
   #tuiProfileHero .dph-kpi small { flex: 1; min-width: 0; }
   #tuiProfileHero .dph-kpi b { margin: 0; font-size: 1rem; }
 }
-.tui-ecid-line { display: flex; align-items: center; gap: .4rem; min-width: 0; }
-.tui-ecid-line dd { min-width: 0; }
-.tui-ecid-line .dph-copy { display: inline-grid; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; padding: 0; }
-.tui-copy-feedback { font-size: .7rem; color: var(--dash-muted); }
-.tui-channel-consents { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3rem; margin-top: .4rem; }
-#tuiProfileHero .tui-channel-consents .dph-tog { min-width: 0; flex-direction: row; align-items: center; justify-content: space-between; gap: .3rem; padding: .15rem .45rem; font-size: .72rem; line-height: 1.25; white-space: nowrap; }
-#tuiProfileHero .tui-channel-consents .dph-tog > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-#tuiProfileHero .tui-channel-consents .dph-tog strong { font-size: .72rem; }
+#tuiProfileHero .dph-hero { box-sizing: border-box; height: 70px; gap: .5rem; }
+#tuiProfileHero .dph-who { flex: 1; }
+#tuiProfileHero .dph-who h2 { font-size: 1.05rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tuiProfileHero .dph-who p { font-size: .72rem; line-height: 1.2; margin: .1rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#tuiProfileHero .dph-clv small { font-size: .5rem; letter-spacing: .03em; }
+#tuiProfileHero .dph-clv b { font-size: 1.2rem; }
+.tui-ecid-line { position: relative; display: flex; align-items: center; gap: .2rem; min-width: 0; font: .62rem/1.2 ui-monospace, Consolas, monospace; }
+.tui-ecid-line > small { font: inherit; }
+#tuiPhDesktopId { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tui-ecid-line .dph-copy { display: inline-grid; place-items: center; flex: 0 0 16px; width: 16px; height: 16px; padding: 0; background: transparent; color: inherit; border-color: currentColor; }
+.tui-copy-feedback { position: absolute; bottom: 100%; left: 0; font: .7rem/1.3 "Segoe UI", Arial, sans-serif; color: var(--dash-text); background: var(--dash-surface); border-radius: 4px; white-space: nowrap; }
+.tui-copy-feedback:not(:empty) { padding: .2rem .4rem; }
 /* Stack every tab panel in one cell so the drawer keeps one stable height across tabs. */
 #tuiProfileHero .tui-profile-sections { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto; align-content: start; }
 #tuiProfileHero .tui-profile-sections > .tui-profile-section { grid-row: 2; grid-column: 1; align-self: start; }
@@ -77,10 +81,6 @@
   /* The profile column sets the drawer height; the other columns fill it without growing it. */
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner { height: auto; max-height: min(35rem, calc(100dvh - var(--tui-content-top, 100px))); grid-template-rows: auto; padding-bottom: .75rem; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiProfileHero .tui-profile-sections { grid-template-rows: auto minmax(0, 1fr); }
-  /* When five events outgrow the profile, keep consents on the drawer's bottom edge. */
-  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0 { align-self: stretch; display: flex; flex-direction: column; }
-  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0[hidden] { display: flex; }
-  .tui-demo-shell.decisioning-profile-hero #profileDrawer #tuiPhPanel-0 .tui-channel-consents { margin-top: auto; padding-top: .4rem; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > :not(#tuiProfileHero):not(:last-child) { contain: size; min-height: 0; overflow: hidden; }
   .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-inner > .aep-profile-drawer-col:last-child { align-self: stretch; max-height: none; }
 }

@@ -56,12 +56,13 @@ are separate from staged simulator values. Missing values show Not set,
 unloaded values Not loaded, and unavailable KPIs Unavailable.
 
 The compact traveller hero uses Contact / Holiday / Support / Shopping /
-Preferences / Consent / Identity tabs, replacing the long stacked attribute
+Preferences / Consent tabs, replacing the long stacked attribute
 list. Only one panel is shown; ordinary attributes fit without vertical panel
 scrolling. Keyboard arrows/Home/End switch tabs, and event polling preserves the
-selected tab. The ECID has a 24px icon-only copy button immediately beside its
-digits, with accessible labelling and success/failure feedback.
-The shared anonymous-visitor control is moved, not cloned; reset remains
+selected tab. ECID sits beneath gender/age/city in the existing 70px coloured
+header, with an icon-only copy button, full-value tooltip, accessible labelling
+and success/failure feedback. There is no separate Identity attribute tab.
+The shared anonymous-visitor control is moved into Contact, not cloned; reset remains
 an explicit action. Drawer height is capped at 560px and available viewport,
 or 55dvh on narrow screens, with internal scrolling for stacked sections.
 The desktop panel is titled **Last Events**, without filters, an event scrollbar
@@ -71,12 +72,14 @@ Every event uses the same bordered decision-card design, with the newest
 highlighted. Display cards use ingested offer titles and strategy names;
 other activity retains its actual title, channel and event type without invented
 offer/strategy details. Long titles retain full hover text and the
-journey event details. Email, SMS and Push consent indicators sit in one
-compact (about 28px) three-column row within the Contact tab. On desktop the
-drawer is no longer a fixed 35rem: it ends at that consent row (still capped
-at 35rem and the viewport), and all tab panels share one grid cell so its height
-does not change between tabs. If five events need more height, the consent row
-is anchored to the bottom of the Contact card. The event count opens
+journey event details. Consent contains matching Email, personalisation, SMS
+and Push tiles; Contact no longer duplicates the channel indicators. SMS and
+Push display actual loaded channel states, never permission inferred from Email.
+Desktop column proportions are 1.05 / .85 / .55 / 1.15: Profile is narrower,
+Graph and Audiences/Messages wider, and Events retains its previous width.
+The drawer is content-sized (still capped at 35rem and the viewport), and all
+tab panels share one grid cell so its height does not change between tabs.
+The event count opens
 Canvas flow / Swimlanes / Stages. Offer and strategy names come only from
 ingested event data, never the simulated winner. Identity/sandbox changes clear
 the drawer, dialogs and signals and discard late responses.
