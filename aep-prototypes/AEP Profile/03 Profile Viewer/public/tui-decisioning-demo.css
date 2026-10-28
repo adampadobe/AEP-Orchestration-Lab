@@ -41,8 +41,8 @@
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-decision-detail { grid-column: 1 / -1; font-size: .8rem; color: var(--dash-blue); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 0; }
 .tui-demo-shell.decisioning-profile-hero #profileDrawer .aep-profile-drawer-event-sub { grid-column: 1 / -1; font-size: .7rem; margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tui-profile-sections { min-height: 0; }
-.tui-profile-sections .dph-tabs { flex-wrap: wrap; gap: .25rem; }
-.tui-profile-sections .dph-tabs [role="tab"] { padding: .35rem .5rem; font-size: .82rem; }
+.tui-profile-sections .dph-tabs { flex-wrap: nowrap; gap: 0; justify-content: space-between; }
+.tui-profile-sections .dph-tabs [role="tab"] { flex: none; padding: .35rem .1rem; font-size: .75rem; white-space: nowrap; }
 .tui-profile-section { min-width: 0; flex: 0 1 auto; overflow-y: auto; overscroll-behavior: contain; }
 .tui-profile-section[hidden] { display: none; }
 #tuiProfileHero .dph-kpi { padding: .65rem; }

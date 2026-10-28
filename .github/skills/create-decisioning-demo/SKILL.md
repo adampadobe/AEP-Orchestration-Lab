@@ -291,7 +291,9 @@ zoom rather than an indefinitely tall canvas. **Do not grow the entire drawer
 to fit profile fields.** Use a desktop height budget of roughly five recent event
 cards (NatWest caps the full drawer at 35rem / 560px and the available viewport).
 Use compact Contact / industry-attribute-group / Consent tabs below the
-hero and KPIs. Split a large industry panel by its meaningful groups (TUI:
+hero and KPIs. Keep the six TUI headings in one row by reducing horizontal
+padding and gaps, not widening Profile; verify no overlap or horizontal scrolling.
+Split a large industry panel by its meaningful groups (TUI:
 Holiday, Support, Shopping, Preferences, Consent), rather than packing every
 attribute into one scrolling Travel panel. Only the selected panel is visible;
 support roving focus, arrow/Home/End navigation and preserve the active tab on

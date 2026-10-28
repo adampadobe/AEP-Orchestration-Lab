@@ -56,7 +56,7 @@ are separate from staged simulator values. Missing values show Not set,
 unloaded values Not loaded, and unavailable KPIs Unavailable.
 
 The compact traveller hero uses Contact / Holiday / Support / Shopping /
-Preferences / Consent tabs, replacing the long stacked attribute
+Preferences / Consent tabs on one compact row without widening Profile, replacing the long stacked attribute
 list. Only one panel is shown; ordinary attributes fit without vertical panel
 scrolling. Keyboard arrows/Home/End switch tabs, and event polling preserves the
 selected tab. ECID sits beneath gender/age/city in the existing 70px coloured

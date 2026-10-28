@@ -507,6 +507,14 @@ async function main() {
         const height = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(n => n.getBoundingClientRect().height);
         assert(height <= Math.min(560, width < 1100 ? 844 * .55 : 844) + 1, 'Drawer obeys bounded five-card budget');
         assert.equal(await shell.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        assert(await shell.locator('#tuiProfileHero .dph-tabs').evaluate(tabs => {
+          const box = tabs.getBoundingClientRect();
+          const buttons = [...tabs.children].map(button => button.getBoundingClientRect());
+          return buttons.every((button, index) => Math.abs(button.top - buttons[0].top) < 1 &&
+            button.left >= box.left && button.right <= box.right + 1 &&
+            (!index || button.left >= buttons[index - 1].right - 1)) &&
+            tabs.scrollWidth <= tabs.clientWidth + 1;
+        }), 'All six attribute tabs fit on one row without overlap or horizontal scrolling');
         if (width > 1100) {
           const columns = await shell.locator('#profileDrawer .aep-profile-drawer-inner').evaluate(inner => {
             const visible = [...inner.children].filter(child => getComputedStyle(child).display !== 'none');
