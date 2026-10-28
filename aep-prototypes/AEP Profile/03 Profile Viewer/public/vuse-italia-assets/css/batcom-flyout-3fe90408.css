@@ -1,0 +1,112 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-flyout__dialog { display: none; }
+
+.batcom-flyout__dialog.opened { display: block; }
+
+.batcom-flyout__dialog.opened .batcom-flyout__mask { display: block; }
+
+@media only screen and (min-width: 768px) {
+  .aem-AuthorLayer-Edit .batcom-flyout__dialog, .aem-AuthorLayer-Layouting .batcom-flyout__dialog { display: none; }
+}
+
+.batcom-flyout__window { position: fixed; inset: 0px; width: 100%; margin: auto; max-height: min(95%, 95vh); max-width: min(95%, 95vw); transform: translateX(-100%); transition: transform 0.7s; z-index: 9; overflow: auto; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-flyout__window { padding-inline: var(--flyout-mobile-padding, 20px); }
+}
+
+@media only screen and (min-width: 768px) {
+  .batcom-flyout__window { transform: none; transition: none; width: var(--flyout-desktop-width, 768px); max-width: min(90vw, var(--flyout-desktop-width, 768px)); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .aem-AuthorLayer-Preview .batcom-flyout__window { height: 494px; }
+}
+
+.batcom-flyout__window.slide-in { transform: translateX(0%); }
+
+.batcom-flyout__header { padding: 10px 0px; text-align: right; }
+
+.batcom-flyout__header--with-styled-close-icon { background-color: var(--batcom-flyout-header-background, #fff); padding: 1rem; display: flex; justify-content: flex-end; align-items: center; }
+
+.batcom-flyout__header--with-styled-close-icon .batcom-flyout__closebutton { height: 24px; width: 24px; }
+
+.batcom-flyout__header--with-styled-close-icon .batcom-flyout__closeicon { background-color: rgb(0, 0, 0); }
+
+.batcom-flyout__body { overflow-x: hidden; }
+
+.batcom-flyout__body .root.batcom-container { margin-bottom: 0px; }
+
+.batcom-flyout__body .batcom-content { width: 100%; }
+
+.batcom-flyout__body #acs-commons-env-indicator { display: none; }
+
+.batcom-flyout__body .aem-Grid-newComponent { display: none; }
+
+.batcom-flyout__buttons { margin-left: 20px; margin-right: 20px; }
+
+.batcom-flyout__buttons:not(:empty) { margin-top: 40px; }
+
+.batcom-flyout__buttons .batcom-flyout__footerbutton { margin-bottom: 0px; }
+
+.batcom-flyout__mask { display: none; height: 100%; left: 0px; position: fixed; overflow: hidden; top: 0px; width: 100%; z-index: 8; }
+
+.batcom-flyout__closebutton { overflow: visible; width: auto; padding: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; margin: 0px; appearance: none; background: transparent; color: inherit; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; font-size: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; -webkit-font-smoothing: inherit; line-height: normal; }
+
+.batcom-flyout__closebutton { font-size: 0px; height: 18px; width: 18px; }
+
+.batcom-flyout__closeicon { background-color: rgb(255, 255, 255); cursor: pointer; display: inline-block; height: 100%; mask-image: url("../img/close-99e67507.svg"); mask-size: contain; width: 100%; }
+
+.batcom-flyout__window.batcom-flyout--layout-velo-newsletter { padding: 40px 20px; background-color: rgb(255, 255, 255); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-flyout__window.batcom-flyout--layout-velo-newsletter { padding: 24px 20px; }
+}
+
+.batcom-flyout__window.batcom-flyout--layout-velo-newsletter .batcom-flyout__header { padding: 3px; }
+
+.batcom-flyout__window.batcom-flyout--layout-velo-newsletter .batcom-flyout__header .batcom-flyout__closeicon { background-color: rgb(39, 38, 38); }
+
+.batcom-flyout__window.batcom-flyout--layout-velo-newsletter .newsletter-container { padding: 16px; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-flyout__window.batcom-flyout--layout-velo-newsletter .newsletter-container { padding: 24px 20px; }
+}
+
+.batcom-flyout__window.batcom-flyout--layout-velo-newsletter .batcom-text.batcom-space--noBottomSpace { margin-bottom: 0px; }
+
+@supports (-webkit-touch-callout: none) {
+  body .batcom-flyout__body { overflow-y: auto; max-height: 95vh; position: relative; }
+}

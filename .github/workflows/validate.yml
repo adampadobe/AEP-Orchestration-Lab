@@ -119,3 +119,5 @@ jobs:
         run: npm run test:demo-env-bar
       - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
         run: npm run test:riyadh-air
+      - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
+        run: npm run test:vuse-italia

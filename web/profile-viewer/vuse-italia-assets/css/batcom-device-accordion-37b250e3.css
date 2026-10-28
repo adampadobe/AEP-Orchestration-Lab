@@ -1,0 +1,142 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cmp-device-accordion { display: flex; flex-direction: column; gap: 16px; }
+
+@media only screen and (min-width: 1280px) {
+  .cmp-device-accordion { padding-left: 70px; }
+}
+
+.cmp-device-accordion__header { height: 88px; width: 100%; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__header { height: 96px; }
+}
+
+.cmp-device-accordion__text { position: absolute; font-size: 20px; top: 0px; max-width: 60%; height: 88px; padding: 24px 0px; display: flex; align-items: center; text-align: left; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__text { max-width: 50%; height: 96px; }
+}
+
+.cmp-device-accordion__item { position: relative; border-radius: 16px; overflow: hidden; background: var(--batcom-color-accordion-bg-gradient-blue); box-shadow: var(--batcom-color-accordion-box-shadow-dark-grey); backdrop-filter: blur(28.3px); max-width: 682px; }
+
+@media only screen and (min-width: 1280px) {
+  .cmp-device-accordion__item { min-width: 682px; }
+}
+
+.cmp-device-accordion__body { height: 0px; overflow: hidden; transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.cmp-device-accordion__item--expanded .cmp-device-accordion__body { overflow: visible; }
+
+.cmp-device-accordion__image-container { position: relative; width: 100%; min-height: 292px; }
+
+.cmp-device-accordion__image { max-width: 145px; right: 14.66%; position: absolute; }
+
+@media only screen and (max-width: 1023px) {
+  .cmp-device-accordion__image { right: -24px; }
+}
+
+@media only screen and (min-width: 1024px) and (max-width: 1279px) {
+  .cmp-device-accordion__image { right: 4.66%; }
+}
+
+.cmp-device-accordion__image.is-horizontal { max-width: 195px; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__image.is-horizontal { max-width: 145px; }
+}
+
+.cmp-device-accordion__button { width: 100%; padding: 0px 24px; display: flex; justify-content: space-between; align-items: center; background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; cursor: pointer; }
+
+.cmp-device-accordion__inner { padding: 16px 24px 24px; display: flex; flex-direction: column; gap: 24px; line-height: 100%; }
+
+.cmp-device-accordion__inner .cmp-text p { font-weight: 300; font-size: 15px; line-height: 100%; }
+
+.cmp-device-accordion__inner .cmp-text ul { list-style: none; padding: 0px; margin: 0px; display: grid; gap: 16px; grid-template-columns: 1fr 1fr; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__inner .cmp-text ul { grid-template-columns: 1fr; }
+}
+
+.cmp-device-accordion__inner .cmp-text ul li { display: flex; align-items: center; font-size: 14px; letter-spacing: -0.5px; line-height: 100%; padding: 0px; text-indent: 0px; }
+
+.cmp-device-accordion__inner__dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; background: var(--dot-color, #fff); box-shadow: 0 0 4px 0 var(--dot-color, #fff); flex-shrink: 0; }
+
+.cmp-device-accordion__inner-icon { position: relative; width: 24px; height: 24px; display: contents; }
+
+.cmp-device-accordion__floating-container { display: flex; justify-content: flex-start; align-items: center; text-align: left; gap: 8px; position: absolute; top: 104px; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__floating-container { top: 112px; }
+}
+
+.cmp-device-accordion__floating-text p { font-size: 14px; line-height: 100%; max-width: 175px; }
+
+.cmp-device-accordion__icon { position: absolute; right: 10px; flex-shrink: 0; top: 24px; z-index: 2; transition: transform 0.5s; }
+
+.cmp-device-accordion__icon img { width: 40px; height: 40px; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-device-accordion__icon { right: 24px; }
+}
+
+.cmp-device-accordion__item--expanded .cmp-device-accordion__icon { transform: rotate(45deg); }
+
+.cmp-device-accordion b { font-family: var(--batcom-font-face-3-name, "Gotham-Bold"); font-weight: 700; }
+
+.cmp-device-accordion-custom-padding { padding-top: 64px; }
+
+@media only screen and (max-width: 1023px) {
+  .no-padding-mobile .cmp-device-accordion { padding-left: 20px; padding-right: 20px; }
+}
+
+@media only screen and (min-width: 1680px) {
+  .batcom-image:has(.vuse-accordion-product-image) { display: flex; justify-content: right; }
+}
+
+.vuse-accordion-product-image { width: 100%; }
+
+@media only screen and (min-width: 1280px) {
+  .vuse-accordion-product-image { width: 562px; }
+}
+
+@media only screen and (max-width: 767px) {
+  .flex-direction-reverse-mobile .columncontrol__wrapper { flex-direction: column-reverse; }
+}
+
+.cmp-device-accordion[data-isauthor="true"] > .cmp-device-accordion__item { overflow: visible; height: auto; }
+
+.cmp-device-accordion[data-isauthor="true"] > .cmp-device-accordion__item > .cmp-device-accordion__body { height: auto; overflow: visible; display: block; }
+
+.cmp-device-accordion[data-isauthor="true"] > .cmp-device-accordion__item .cmp-device-accordion__image { position: static; max-width: 250px; }
