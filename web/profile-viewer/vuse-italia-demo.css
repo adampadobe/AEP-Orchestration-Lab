@@ -1,9 +1,14 @@
 .vuse-italia-demo-page .vuse-presenter-launcher {
-  position: fixed; right: 1rem; bottom: 1rem; z-index: 1100;
-  width: 2.5rem; height: 2.5rem; border-radius: var(--dash-radius-sm);
-  background: var(--dash-surface); color: var(--dash-text); border: 1px solid var(--dash-border);
+  position: fixed; right: var(--lab-env-midrail-right, .85rem);
+  top: calc(50% + 3 * var(--lab-env-midrail-slot, 2.55rem)); transform: translateY(-50%); z-index: 7152;
+  display: grid; place-items: center; padding: 0;
+  width: var(--lab-env-midrail-btn-size, 2rem); height: var(--lab-env-midrail-btn-size, 2rem); border-radius: 50%;
+  background: var(--dash-surface); color: var(--dash-blue); border: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
   cursor: pointer;
 }
+.vuse-presenter-launcher:hover { background: var(--dash-hover); }
+.vuse-presenter-launcher:focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 3px; }
 .vuse-presenter {
   width: min(45rem, calc(100vw - 2rem)); max-height: 85vh; padding: 0;
   background: var(--dash-surface); color: var(--dash-text); border: 1px solid var(--dash-border);

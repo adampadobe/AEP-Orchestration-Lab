@@ -232,9 +232,9 @@ function buildShellHtml({ fileSlug, record, snapshotRelPath }) {
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
-  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-profile-drawer.js?v=20261029-new-visitor"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
+  <script src="shared/env-bar.js?v=20261029-new-visitor"></script>
   <script>
     window.envBarConfig = { prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true }, labCoreScript: 'brand-scraper-site-clone-lab-core.js?v=20260701-site-clone-login' };
     window.SiteCloneDemoEnv = {
@@ -399,9 +399,9 @@ function buildMobileShellHtml({ fileSlug, record, snapshotRelPath }) {
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
-  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-profile-drawer.js?v=20261029-new-visitor"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
+  <script src="shared/env-bar.js?v=20261029-new-visitor"></script>
   <script>
     window.envBarConfig = {
       prefix: '${prefix}', variant: 'spectrum', features: { webPush: true, bc: true, decisioning: true },

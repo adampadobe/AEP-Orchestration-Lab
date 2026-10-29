@@ -16,9 +16,15 @@
   let signingIn = false;
   let sdkSandbox = '';
   let bookingIdentity = '';
+  let visitorRevision = 0, lookingUp = 0;
+  const visitorBlocked = () => !!global.AepDemoVisitorReset?.isBlocked();
+  function requireVisitor() {
+    if (visitorBlocked()) throw new Error('Visitor reset is unverified. Finish it before continuing.');
+  }
 
   async function pageView() {
     try {
+      requireVisitor();
       if (!browserEcid || sdkSandbox !== sandbox() || !global.DemoTagsInjection.isAlloyReady() ||
         global.AepLabTagsInjectGuard.isInProgress('riyadhAirDemo')) {
         throw new Error('Page view not sent. Inject the selected sandbox’s Tags library before browsing.');
@@ -195,6 +201,7 @@
   }
 
   function context() {
+    requireVisitor();
     if (!ready) throw new Error('Lab controls are still loading.');
     const input = identifier();
     if (input && (!verified || verified.identifier !== input || verified.namespace !== namespace() || verified.sandbox !== sandbox())) {
@@ -363,6 +370,9 @@
   }
 
   async function lookup(value, options) {
+    requireVisitor();
+    lookingUp++;
+    try {
     if (sending) throw new Error('Wait for the current event to finish before changing profiles.');
     const input = byId('customerEmail');
     if (value != null) {
@@ -400,10 +410,12 @@
       ? 'Profile resolved. Tags identity stitch accepted; verify the graph in the drawer.'
       : 'Profile resolved for generator events. Tags identity stitch is not verified; inject the selected Tags library if needed.', false);
     return verified;
+    } finally { lookingUp--; }
   }
 
   async function connectBookingEmail(value) {
     await api.ready;
+    requireVisitor();
     const email = String(value || '').trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Enter a valid booking email address.');
     const beforeSandbox = sandbox();
@@ -426,7 +438,9 @@
   }
 
   async function send(action, trip, options) {
+    requireVisitor();
     await api.ready;
+    requireVisitor();
     if (sending) throw new Error('An event is already in progress. Wait before sending another interaction.');
     if (uncertain) {
       const error = new Error('Previous delivery is uncertain. Reconcile profile activity in Presenter controls before explicitly allowing another attempt.');
@@ -505,6 +519,8 @@
   }
 
   async function validateIdentity(detail) {
+    if (visitorBlocked()) return;
+    const revision = visitorRevision;
     bookingIdentity = '';
     verified = null;
     const requestedSandbox = sandbox();
@@ -518,7 +534,7 @@
     const response = await global.AepDemoGeneratorTargets.labAuthFetch('/api/profile/consent?' + query);
     const data = await response.json();
     if (!response.ok || !data.found) throw new Error(data.error || 'Selected profile was not found during identity verification.');
-    if (requestedSandbox !== sandbox() || detail.identifier !== identifier() || requestedNamespace !== namespace()) return;
+    if (visitorBlocked() || revision !== visitorRevision || requestedSandbox !== sandbox() || detail.identifier !== identifier() || requestedNamespace !== namespace()) return;
     const ecid = Array.isArray(data.ecid) ? String(data.ecid[0] || '') : String(data.ecid || '');
     if (!/^\d{10,}$/.test(ecid) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email || '')) {
       throw new Error('The selected profile must have its own email and ECID; a previous browser or profile identity will not be substituted.');
@@ -537,9 +553,30 @@
     if (!byId('customerEmail') || !global.DemoTagsInjection || !global.DemoProfileDrawer) {
       throw new Error('Shared Lab components did not load. Reload the page and check the local asset server.');
     }
+    const freshVisitor = ({ ecid }) => {
+      browserEcid = String(ecid || ''); sdkSandbox = browserEcid ? sandbox() : '';
+      verified = null; signedInOwner = ''; bookingIdentity = ''; byId('customerEmail').value = '';
+      notifyContext();
+    };
+    global.AepDemoVisitorReset?.registerAdapter({
+      beforeReset() {
+        if (sending || signingIn || lookingUp) throw new Error('Wait for the current Riyadh Air operation before resetting the visitor.');
+        if (uncertain) throw new Error('Previous delivery is uncertain. Reconcile it before resetting the visitor.');
+      },
+      invalidate() {
+        visitorRevision++;
+        verified = null; signedInOwner = ''; bookingIdentity = ''; browserEcid = ''; sdkSandbox = '';
+        previewTrip = null;
+        byId('customerEmail').value = ''; byId('raAccountEmail').value = '';
+        global.sessionStorage.removeItem('riyadhAirJourneyV1');
+        notifyContext();
+      },
+      afterReset: freshVisitor,
+    });
+    global.addEventListener('aep-demo-visitor-reset-complete', (event) => freshVisitor(event.detail));
     global.AepIdentityPicker.init('customerEmail', 'riyadhNs');
     global.attachEmailDatalist('customerEmail', 'recentEmails', 'riyadhNs');
-    global.hydrateIdentifierFromSession('customerEmail', 'riyadhNs');
+    if (!visitorBlocked()) global.hydrateIdentifierFromSession('customerEmail', 'riyadhNs');
     const toolbar = document.querySelector('#riyadhDemoTopAnchor .lab-env-toolbar');
     if (toolbar) {
       const reserveToolbarSpace = () => document.body.style.setProperty('--ra-lab-inset', Math.ceil(toolbar.getBoundingClientRect().height) + 'px');
@@ -561,7 +598,7 @@
       changeConfigButtonId: 'riyadhChangeSdkConfigBtn', hideTagsCompanyUi: true,
       iframeIds: [], getEmail: () => verified ? verified.email : '',
       // Do not give Tags a generator target: its anonymous page view must not be mirrored twice.
-      onEcidResolved: (ecid) => { browserEcid = String(ecid); sdkSandbox = sandbox(); notifyContext(); },
+      onEcidResolved: (ecid) => { if (!visitorBlocked()) { browserEcid = String(ecid); sdkSandbox = sandbox(); notifyContext(); } },
       webPush: { enabled: true, subscribeAfterInject: webPushDesired, requestPermissionOnInject: webPushDesired },
       brandConcierge: {
         enabled: () => !!byId('riyadhBcOnInjectToggle').checked,

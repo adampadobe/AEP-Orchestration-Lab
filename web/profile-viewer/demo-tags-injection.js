@@ -474,6 +474,10 @@
   }
 
   function createInstance(config) {
+    let visitorRevision = 0;
+    for (const type of ['aep-demo-visitor-reset-start', 'aep-demo-visitor-invalidated']) {
+      global.addEventListener(type, function () { ++visitorRevision; });
+    }
     const cfg = config || {};
     const storagePrefix = String(cfg.storagePrefix || 'demoTagsInjection');
     const scriptStorageKey = storagePrefix + 'SelectedLaunchScriptBySandbox';
@@ -1778,6 +1782,9 @@
     }
 
     async function syncEcidFromAlloy() {
+      const revision = visitorRevision;
+      const reset = global.AepDemoVisitorReset;
+      const resetSync = !!(reset && (reset.isBlocked() || reset.isResetPage()));
       dtLog('syncEcidFromAlloy: waiting for window.alloy (up to 12s)');
       const alloyFn = await waitForAlloy(12000);
       if (!alloyFn) {
@@ -1819,12 +1826,22 @@
           setMessage('No ECID returned yet from alloy.getIdentity after retry.', 'error');
           return '';
         }
+        if (revision !== visitorRevision) return '';
+        if (resetSync || (reset && reset.isBlocked())) {
+          await reset.acceptEcid(ecid);
+          if (reset.isBlocked()) return '';
+          if (infoEcidEl) infoEcidEl.textContent = ecid;
+          persistLastResolvedEcid(ecid);
+          if (typeof cfg.onEcidResolved === 'function') cfg.onEcidResolved(ecid);
+          return ecid;
+        }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
         persistLastResolvedEcid(ecid);
         await sendDemoemeaWebPageViewToEdge(alloyFn, {
           phase: 'post-ecid-anonymous',
           ecid: ecid,
         });
+        if (revision !== visitorRevision || (reset && reset.isBlocked())) return '';
         void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
@@ -1838,9 +1855,11 @@
         ) {
           void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
           global.setTimeout(function () {
+            if (revision !== visitorRevision) return;
             void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
           }, 2500);
           global.setTimeout(function () {
+            if (revision !== visitorRevision) return;
             void global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ecid, 'ecid');
           }, 8000);
         }
@@ -1913,7 +1932,7 @@
         const ecid = await syncEcidFromAlloy();
         const wp = resolveWebPushCfg();
         if (
-          ecid &&
+          ecid && !(global.AepDemoVisitorReset && (global.AepDemoVisitorReset.isBlocked() || global.AepDemoVisitorReset.isResetPage())) &&
           wp &&
           wp.subscribeAfterInject &&
           global.AepDemoWebPush &&
@@ -1976,9 +1995,16 @@
     }
 
     async function stitchEmailToEcid(email, ecid) {
+      const revision = visitorRevision;
+      if (global.AepDemoVisitorReset && global.AepDemoVisitorReset.isBlocked()) {
+        throw new Error('Visitor identity changed or reset is incomplete. Finish reset before linking a profile.');
+      }
       const alloyFn = await waitForAlloy(8000);
       if (!alloyFn) return false;
       if (!email || !ecid) return false;
+      if (revision !== visitorRevision || (global.AepDemoVisitorReset && global.AepDemoVisitorReset.isBlocked())) {
+        throw new Error('Visitor identity changed while waiting for Web SDK. No profile was linked.');
+      }
       const labContext = cfg.identityStitchLabEdgeContext === true;
       try {
         await alloyFn('sendEvent', {
