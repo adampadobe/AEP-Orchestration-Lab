@@ -57,6 +57,9 @@ jobs:
       - name: Verify demo workspace APIs and UI regressions
         run: node --test functions/test/demo*.test.cjs
 
+      - name: Verify Vuse safe profile snapshots and additive schema manifest (offline)
+        run: node --test functions/test/profileConsentPreserve.test.cjs functions/test/vuseProfilePreferencesManifest.test.cjs
+
       - name: Install MCP dependencies
         working-directory: tools/aep-lab-profile-mcp
         run: npm ci

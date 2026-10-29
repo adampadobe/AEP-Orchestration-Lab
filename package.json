@@ -29,7 +29,7 @@
     "test:arch-line-e2e": "node web/profile-viewer/scripts/e2e-architecture-line-bend.mjs",
     "test:demo-workspace-e2e": "node scripts/test-demo-workspace-e2e.cjs",
     "test:riyadh-air": "node scripts/test-riyadh-air.cjs",
-    "test:vuse-italia": "node scripts/test-vuse-italia.cjs && node scripts/test-vuse-storefront.cjs && node --test scripts/test-vuse-italia-profile.cjs functions/test/profileConsentPreserve.test.cjs functions/test/vuseProfilePreferencesManifest.test.cjs",
+    "test:vuse-italia": "node scripts/test-vuse-italia.cjs && node scripts/test-vuse-storefront.cjs && node --test scripts/test-vuse-italia-profile.cjs",
     "test:demo-env-bar": "node scripts/test-demo-env-bar.cjs",
     "test:sidebar-account-theme": "node scripts/test-sidebar-account-theme.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
