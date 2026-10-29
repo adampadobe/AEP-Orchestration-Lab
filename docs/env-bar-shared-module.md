@@ -217,6 +217,130 @@ HTML references `shared/env-bar.js?v={manifestVersion}`. The loader fetches the 
 - `setEnvironment()` uses `AepGlobalSandbox.setSelected` + `applySandboxConfigState` on the registered Tags instance.
 - Per-demo `DemoTagsInjection.init({ hideTagsCompanyUi: true, … })` stays in lab-core JS; env-bar only loads shared modules.
 
+## Shared visitor / ECID reset
+
+`shared/demo-visitor-reset.js` owns the reload-and-verify lifecycle for
+**New visitor**. The env bar owns its controls and loads the controller, then
+`shared/demo-visitor-adapters.js` before initializing the controller, Tags and demo
+hydration. The adapters register exact visitor-only storage cleanup across demos,
+including journeys not currently open. `init(config)` is synchronous and mounts no UI;
+pending SDK verification runs in the background with a bounded timeout (15 seconds
+by default, configurable with `timeoutMs`).
+
+Reset first asks for confirmation, then reads the **live configured SDK**
+`getIdentity` result. A displayed or persisted ECID is never accepted as proof.
+Without a usable live ECID, the operation fails without deleting cookies or
+reloading. The controller waits for `beforeReset` adapters, persists a
+tab-scoped reload marker, preserves the selected Tags script for automatic
+reinjection, invalidates visitor state and accessible identity cookies, then
+performs one full reload to discard the SDK's in-memory identity.
+
+On the landing page, only a valid ECID **different from the old ECID** completes
+reset. Missing identity, SDK errors, a timeout, or the same ECID produce an
+explicit error and keep identity sends/lookups blocked. Failure markers survive
+reload; they do not cause reload loops or silently retry. A late old/unavailable
+ECID after successful verification is also rejected. Reset does **not** call
+`sendEvent`, stitch an email, mint an ECID, invoke a server-side anonymous-ID
+fallback, or delete an existing AEP profile.
+
+### Controller API and integration
+
+| API | Contract |
+|-----|----------|
+| `AepDemoVisitorReset.init(config)` | Merge env config and synchronously invalidate a pending reset before hydration. Returns the controller, not an SDK wait promise. |
+| `reset()` | Confirm, capture live identity, invalidate and reload. Returns a promise; cancellation resolves `false`, failure rejects. |
+| `availability()` / `canReset()` | SDK availability and reset capability. `availability()` returns `{available, canReset, reason}`; a live `getIdentity` still has to succeed. |
+| `isBlocked()` | Gate profile lookup, identity stitching, SDK sends and anonymous-ID fallbacks while resetting, verifying, failed or invalidated. |
+| `isPending()` | Verification is outstanding on a reset landing page; false on errors or another-tab invalidation. |
+| `isResetPage()` | Fixed true for a page loaded with a reset marker, even after verification. Suppress automatic boot page views/mirrors/push subscriptions for that entire landing page; later explicit demo interactions may proceed after `isBlocked()` becomes false. |
+| `acceptEcid(ecid)` | Consume a pending reset identity exactly once; returns `true` for reset-owned sync (including already completed). Rejects old/missing identity or a different identity after completion. Never fall through to automatic send/mirror/stitch for this sync. |
+| `registerAdapter({beforeReset?, invalidate?, afterReset?})` | Register hooks; returns unsubscribe. `beforeReset` is awaited before deletion/reload; `invalidate` clears demo visitor state. A late adapter receives invalidation while blocked, or the verified `{ecid}` after completion. Hooks must not send/stitch events. |
+| `getState()` | Snapshot `{status, blocked, message}` for controls mounted after initialization. |
+| `guardSdkWindow(window)` | Install submission guards in a same-origin SDK window before injecting its Tags/SDK bootstrap. Safe to call again after a supported configurable binding was explicitly redefined. |
+| `getGuardWarnings()` | Coverage warnings for inaccessible frames or unsupported SDK global descriptors. These are also emitted as `aep-demo-visitor-reset-guard-warning` with `{message}`. |
+
+Supported config includes `prefix`, `storagePrefix`, `defaultSandbox`,
+`selectedScriptId`, `scriptUrl`, `orgId` / `imsOrgId`, and `timeoutMs`.
+Nonstandard pages can supply `alloyInstanceName`, an `alloy` function, or a
+`getSdk()` resolver. Only the supported browser `getIdentity` command is used;
+there is no assumed `resetIdentities` command.
+
+Events:
+
+- `aep-demo-visitor-reset-state`: `{status, blocked, message}` on lifecycle changes.
+- `aep-demo-visitor-reset-start`: `{oldEcid}` before local visitor invalidation.
+- `aep-demo-visitor-reset-complete`: `{ecid}` only after a different ECID is verified.
+- `aep-demo-visitor-invalidated`: `{reason: 'cross-tab'}` in other same-origin
+  tabs. These tabs clear stale UI and block sends/lookups; they require an explicit
+  reload/reset, never replay prior events automatically. Their next manual reload
+  verifies identity against the previous ECID before unblocking.
+
+### Preserved state and cookie limitations
+
+Sandbox, Tags company/property/environment/script, datastream, feature settings,
+consent and the shared recent-email history are preserved. The selected email,
+`aep-demo-session-identifier-v1`, drawer profile/identity graph/events/audiences
+and registered demo persona/visitor state are cleared. Cached ECID maps are
+cleared with empty-string **tombstones**, including unified
+`AepLabEnvBarPrefs.tagsBySandbox`: deleting a map entry alone is insufficient
+because preference writes merge entries. Demo-specific visitor-only cleanup
+belongs in the shared adapter registry; never broadly clear storage.
+
+Cookie expiration targets the active organization's `kndctr_*_identity` /
+`kndctr_*_cluster`, legacy `AMCV_*` / `AMCVS_*`, and legacy `s_ecid`.
+The controller attempts host-only, explicit hostname, parent-domain and
+current/ancestor-path variants. It preserves Adobe consent cookies and other
+organizations' named cookies. Supply `orgId` when multiple visible organizations
+make inference ambiguous or no accessible cookie identifies the active org.
+JavaScript cannot delete HttpOnly cookies, cookies on another origin, or cookies
+outside accessible domain/path scope. Adobe/server-side identity recovery can
+also return the old ECID: this is reported as failure, never fabricated success.
+Cookie changes affect other tabs sharing the origin/organization; existing
+Adobe profiles and their identity links are not erased.
+
+### SDK submission guard and coverage boundary
+
+The controller installs a submission guard **at script evaluation**, before
+`init()` and Tags reinjection. It intercepts calls through `window.alloy`,
+`config.alloyInstanceName`, and Adobe's registered `window.__alloyNS` instance
+names. Configurable global accessors wrap both existing functions and subsequent
+ordinary assignments synchronously. Adobe bootstrap namespace-array assignment,
+`push` and indexed additions are observed, including a named instance created
+after Tags loads. Globals remain configurable; the controller does not lock SDK
+bindings or modify global `fetch`/XHR.
+
+While `isBlocked()` is true, `sendEvent` rejects with
+`error.code === 'AEP_DEMO_VISITOR_BLOCKED'` before reaching the SDK. It is not
+queued for later replay. Existing Adobe bootstrap queue entries
+`[resolve, reject, arguments]` for `sendEvent` are removed and rejected when reset
+blocks the visitor. `getIdentity`, `configure` and other commands remain available.
+Function proxies preserve the original property/queue objects and caller
+receiver. Once verification succeeds, explicit later submissions can pass;
+the separate `isResetPage()` integration still suppresses automatic boot events.
+
+Existing same-origin iframe windows are guarded, and newly discovered frames are
+observed for load. **For a guarantee before a frame's boot scripts run**, the
+code injecting Tags/SDK into that frame must call
+`AepDemoVisitorReset.guardSdkWindow(frame.contentWindow)` first. Mutation/load
+observers cannot retroactively prevent startup code that has already run.
+Cross-origin frames cannot be guarded, and a frame navigation destroys its prior
+window's SDK context; load-time reinstallation may occur after its own startup.
+
+This is not a universal network firewall: raw SDK function references captured
+before installation, in-flight SDK requests, functions returned only through an
+opaque custom resolver, direct Edge/API HTTP submissions, workers, unsupported
+non-configurable/accessor globals, explicit `defineProperty`/deletion replacing a
+guard, and inaccessible iframe scripts remain outside interception. Such
+integrations must use the existing lifecycle gates or install a guard before
+capturing/creating SDK references. Unsupported binding/frame cases produce
+coverage warnings rather than silently claiming protection.
+
+Fixture-only validation (no live Adobe requests):
+
+```bash
+node --test scripts/test-demo-visitor-reset.cjs
+```
+
 ### Modes (`envBarConfig.mode`)
 
 | Mode | Mount | Loads Tags / BC | Use case |

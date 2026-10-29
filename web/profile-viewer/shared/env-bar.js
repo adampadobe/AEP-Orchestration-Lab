@@ -15,10 +15,10 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20261014-shared-env-parity',
+    manifestVersion: '20261029-new-visitor',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20260713e-armcom-env-bar',
+      bundleCss: '20261029-new-visitor',
       spectrumCss: '20260714-env-bar-config-fileconvert',
       demoEnvStripSpectrum: '20260721-linkedin-env-bar-fix',
       demoEnvStrip: '20260714-tags-property-typeahead',
@@ -31,7 +31,7 @@
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-linkedin-prefs-loop-fix',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20261015-booking-stitch-context',
+      tagsInjection: '20261029-new-visitor',
       aepDemoEnvBar: '20260720-global-lab-console',
       siteCloneBcEnv: '20260721-cross-tab-bc-restore',
       siteCloneBcChrome: '20260614-modal-dock-parity',
@@ -43,6 +43,7 @@
       modalBarJs: '20260617-modal-bar-v7',
       modalBarBoot: '20260617-modal-bar-v7',
       envBarJs: '20260721-presenter-strip-hide',
+      visitorReset: '20261029-new-visitor',
       decisioningModuleCss: '20260618-reset-apply-spacing',
       decisioningPanelCss: '20260618-midrail-dynamic-stack',
       profileStreamingShared: '20260615',
@@ -490,6 +491,8 @@
     }
     chain.push(assetUrl('shared/demo-env-strip.js', a.demoEnvStrip));
     chain.push(assetUrl('shared/aep-lab-console.js', a.aepLabConsole || '20260720-global-lab-console'));
+    chain.push(assetUrl('shared/demo-visitor-reset.js', a.visitorReset));
+    chain.push(assetUrl('shared/demo-visitor-adapters.js', a.visitorReset));
     if (isProfileLookupMode(cfg)) {
       chain.push(assetUrl('shared/aep-lab-debug.js', a.aepLabDebug));
     }
@@ -509,6 +512,11 @@
       return p.then(function () {
         log('load script', src);
         return loadScript(src);
+      }).then(function () {
+        if (src.indexOf('shared/demo-visitor-adapters.js') !== -1) {
+          global.AepDemoVisitorAdapters.register();
+          global.AepDemoVisitorReset.init(cfg);
+        }
       });
     }, Promise.resolve());
   }
@@ -1020,6 +1028,7 @@
       .then(function (result) {
         initSpectrumSync(state.config);
         initCompactDropdown(state.config);
+        mountVisitorResetControls();
         applyDefaultSandbox(state.config);
         state.initialized = true;
         notifyChange({ type: 'init', config: getConfig(), bootstrap: result });
@@ -1138,6 +1147,88 @@
     global.__envBarTagsInjection = instance || null;
   }
 
+  function resetVisitor() {
+    if (!global.AepDemoVisitorReset) return Promise.reject(new Error('Visitor reset is not loaded.'));
+    return global.AepDemoVisitorReset.reset();
+  }
+
+  function mountVisitorResetControls() {
+    var host = document.querySelector('.lab-env-toolbar__actions') ||
+      document.querySelector('.mod-demo-profile-actions') ||
+      document.querySelector('[data-demo-env-strip-mount]');
+    if (!host || document.getElementById('aepLabNewVisitorBtn')) return;
+    var button = document.createElement('button');
+    button.id = 'aepLabNewVisitorBtn';
+    button.type = 'button';
+    button.className = 'aep-lab-new-visitor-btn';
+    button.textContent = 'New visitor';
+    button.title = 'Reset browser identity and reload with a verified new ECID. Existing AEP profiles are kept.';
+    button.addEventListener('click', function () {
+      button.disabled = true;
+      resetVisitor().catch(function (error) {
+        labError('visitor reset failed', { message: error.message });
+        var status = document.getElementById('aepLabVisitorResetStatus');
+        if (status) {
+          status.hidden = false;
+          var text = status.querySelector('span');
+          if (text) text.textContent = error.message;
+        }
+      }).finally(function () { button.disabled = false; });
+    });
+    host.insertBefore(button, host.firstChild);
+    var status = document.createElement('div');
+    status.id = 'aepLabVisitorResetStatus';
+    status.className = 'aep-lab-visitor-reset-status';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    status.hidden = true;
+    var text = document.createElement('span');
+    var reload = document.createElement('button');
+    reload.type = 'button';
+    reload.className = 'aep-lab-new-visitor-btn';
+    reload.textContent = 'Reload demo';
+    reload.addEventListener('click', function () { global.location.reload(); });
+    status.append(text, reload);
+    document.body.appendChild(status);
+    function update(detail) {
+      detail = detail || (typeof global.AepDemoVisitorReset.getState === 'function' ? global.AepDemoVisitorReset.getState() : null);
+      var blocked = global.AepDemoVisitorReset.isBlocked();
+      document.documentElement.toggleAttribute('data-aep-visitor-blocked', blocked);
+      document.querySelectorAll('iframe').forEach(function (frame) {
+        if (blocked && !frame.hasAttribute('inert')) {
+          frame.setAttribute('data-aep-visitor-reset-inert', '');
+          frame.setAttribute('inert', '');
+        } else if (!blocked && frame.hasAttribute('data-aep-visitor-reset-inert')) {
+          frame.removeAttribute('inert');
+          frame.removeAttribute('data-aep-visitor-reset-inert');
+        }
+      });
+      status.hidden = !blocked;
+      text.textContent = detail && detail.message || 'Visitor identity is being reset. Demo interactions are paused.';
+      reload.hidden = !blocked || global.AepDemoVisitorReset.isPending();
+      button.textContent = global.AepDemoVisitorReset.isPending() ? 'Resetting...' : 'New visitor';
+      button.disabled = global.AepDemoVisitorReset.isPending();
+      var drawerButton = document.getElementById('profileDrawerResetEcid');
+      if (drawerButton) drawerButton.disabled = global.AepDemoVisitorReset.isPending();
+    }
+    global.addEventListener('aep-demo-visitor-reset-state', function (event) { update(event.detail); });
+    global.addEventListener('aep-demo-visitor-invalidated', function () {
+      update({ message: 'Visitor identity changed in another demo tab. Reload this demo before continuing.' });
+    });
+    global.addEventListener('aep-demo-visitor-reset-complete', function () { update(); });
+    function pauseVisitorInteraction(event) {
+      if (!global.AepDemoVisitorReset.isBlocked()) return;
+      var target = event.target;
+      if (target.closest && target.closest('#aepLabVisitorResetStatus, #aepLabNewVisitorBtn, #profileDrawerResetEcid, #aepLabEnvOverlayPanel, .lab-env-toolbar')) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }
+    document.addEventListener('click', pauseVisitorInteraction, true);
+    document.addEventListener('submit', pauseVisitorInteraction, true);
+    update();
+    global.dispatchEvent(new CustomEvent('aep-demo-visitor-reset-ready'));
+  }
+
   /**
    * Subscribe to env bar changes (init, sandbox switch, sdk reload).
    * @param {function(object): void} callback
@@ -1241,6 +1332,7 @@
     whenPrefsReady: whenPrefsReady,
     setEnvironment: setEnvironment,
     reloadSDK: reloadSDK,
+    resetVisitor: resetVisitor,
     getConfig: getConfig,
     onChange: onChange,
     registerTagsInjection: registerTagsInjection,

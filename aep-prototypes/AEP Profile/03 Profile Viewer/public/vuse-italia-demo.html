@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="mod-demo.css?v=20260529-vuse-demo">
-  <link rel="stylesheet" href="vuse-italia-demo.css?v=20261029">
+  <link rel="stylesheet" href="vuse-italia-demo.css?v=20261029-round-presenter">
   <link rel="stylesheet" href="site-clone-bc.css?v=20260614-modal-dock-parity">
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
@@ -103,7 +103,9 @@
     </div>
   </div>
 
-  <button id="vusePresenterLauncher" class="vuse-presenter-launcher" type="button" title="Presenter controls" aria-label="Open presenter controls" aria-haspopup="dialog" aria-controls="vusePresenter" aria-expanded="false">⚙</button>
+  <button id="vusePresenterLauncher" class="vuse-presenter-launcher" type="button" title="Presenter controls" aria-label="Open presenter controls" aria-haspopup="dialog" aria-controls="vusePresenter" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 4h16v11H4zM12 15v5M8 20h8M8 8h8M8 11h5"/></svg>
+  </button>
   <dialog id="vusePresenter" class="vuse-presenter" aria-labelledby="vusePresenterTitle">
     <header><h2 id="vusePresenterTitle">Presenter controls</h2><button id="vusePresenterClose" type="button">Close</button></header>
     <div class="vuse-presenter-body">
@@ -136,9 +138,9 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js?v=20260601-modal-central"></script>
-  <script src="aep-profile-drawer.js?v=20260521-ns-autodetect"></script>
+  <script src="aep-profile-drawer.js?v=20261029-new-visitor"></script>
   <script src="aep-demo-web-push.js?v=20260512-lab-push"></script>
-  <script src="shared/env-bar.js?v=20261014-shared-env-parity"></script>
+  <script src="shared/env-bar.js?v=20261029-new-visitor"></script>
   <script>
     window.envBarConfig = {
       prefix: 'vuse',
@@ -164,7 +166,7 @@
     };
   </script>
   <script src="vuse-italia-events.js?v=20261029"></script>
-  <script src="vuse-italia-demo.js?v=20261029"></script>
+  <script src="vuse-italia-demo.js?v=20261029-new-visitor"></script>
   <script src="site-clone-bc.js?v=20260614-modal-dock-parity"></script>
   <div id="brand-concierge-mount-host" aria-live="polite" hidden>
     <button type="button" id="aepBcDismissBtn" class="aep-bc-dismiss-btn" aria-label="Close Brand Concierge">&times;</button>

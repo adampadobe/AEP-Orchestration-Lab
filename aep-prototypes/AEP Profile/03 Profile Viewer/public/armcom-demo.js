@@ -410,7 +410,20 @@ function triggerArmcomDecisioningRefresh(payload) {
   postArmcomBannerMessage('armcom-banner-refresh', payload || { contentTriggered: true });
 }
 
+var armcomVisitorSendCount = 0;
+var armcomResetInitialPageViewSuppressed = false;
+function armcomVisitorBlocked() {
+  return window.AepDemoVisitorReset
+    ? window.AepDemoVisitorReset.isBlocked()
+    : !!sessionStorage.getItem('aep-demo-visitor-reset-v1');
+}
 async function sendArmcomExperienceEvent(payload) {
+  if (armcomVisitorBlocked()) return false;
+  if (payload?.eventType === 'armcom.page.view' && !armcomResetInitialPageViewSuppressed &&
+    window.AepDemoVisitorReset?.isResetPage()) {
+    armcomResetInitialPageViewSuppressed = true;
+    return false;
+  }
   var p = payload && typeof payload === 'object' ? payload : {};
   var ecidEl = document.getElementById('infoEcid');
   var ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
@@ -441,6 +454,7 @@ async function sendArmcomExperienceEvent(payload) {
     typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
       ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
       : body;
+  armcomVisitorSendCount++;
   try {
     var res = await fetch('/api/events/generator', {
       method: 'POST',
@@ -450,6 +464,7 @@ async function sendArmcomExperienceEvent(payload) {
     var data = await res.json().catch(function () {
       return {};
     });
+    if (armcomVisitorBlocked()) return false;
     if (!res.ok) {
       setArmcomMessage(data.error || data.message || 'Request failed.', 'error');
       return false;
@@ -461,6 +476,8 @@ async function sendArmcomExperienceEvent(payload) {
   } catch (err) {
     setArmcomMessage(err.message || 'Network error', 'error');
     return false;
+  } finally {
+    armcomVisitorSendCount--;
   }
 }
 
@@ -476,6 +493,10 @@ function isArmcomDecisioningSignal(payload) {
 }
 
 window.addEventListener('message', function (ev) {
+  if (armcomVisitorBlocked()) {
+    if (ev.data?.payload?.eventType === 'armcom.page.view') armcomResetInitialPageViewSuppressed = true;
+    return;
+  }
   if (ev.data && ev.data.source === 'armcom-journey' && ev.data.type === 'armcom-journey-slide') {
     applyArmcomJourneySlide(ev.data.slideIndex);
     return;

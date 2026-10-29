@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
 const http = require('node:http');
 const path = require('node:path');
+const vm = require('node:vm');
 const { chromium } = require('playwright');
 const events = require('../web/profile-viewer/vuse-italia-events');
 const { buildGeneratorEdgeInteractXdm } = require('../functions/eventEdgeService');
@@ -89,6 +90,9 @@ async function browserTests() {
     await browserContext.addInitScript(() => {
       localStorage.setItem('aepGlobalSandboxName', 'apalmer');
       localStorage.setItem('aepDemoNavVisibility', 'all');
+      // The Tags fixture represents an already configured lab, not first-run environment onboarding.
+      sessionStorage.setItem('aepLabEnvConfigured:vuse', '1');
+      localStorage.setItem('aepLabEnvConfiguredLocal:vuse', '1');
       window.firebase = { apps: [{}], auth: () => ({ currentUser: null, onAuthStateChanged(callback) { callback(null); }, onIdTokenChanged() {}, signInAnonymously: async () => ({ user: null }) }) };
       let tags;
       Object.defineProperty(window, 'DemoTagsInjection', { configurable: true, get: () => tags, set(value) {
@@ -97,6 +101,29 @@ async function browserTests() {
       window.fixtureSdkEvents = [];
       window.alloy = async (command, options) => { if (command === 'sendEvent') window.fixtureSdkEvents.push(options); return {}; };
       window.alloy.getLibraryInfo = () => ({});
+      const adapters = [];
+      let blocked = false;
+      const visitorReset = {
+        init() { return visitorReset; },
+        registerAdapter(adapter) { adapters.push(adapter); },
+        isBlocked: () => blocked,
+        isPending: () => blocked,
+        acceptEcid: () => !blocked,
+        async reset() {
+          for (const adapter of adapters) await adapter.beforeReset?.();
+          blocked = true;
+          window.dispatchEvent(new CustomEvent('aep-demo-visitor-reset-start'));
+          for (const adapter of adapters) adapter.invalidate?.();
+          window.fixtureResetCalls = (window.fixtureResetCalls || 0) + 1;
+          return { ok: true };
+        },
+      };
+      // Fixture only the shared controller: these tests exercise the demo's adapter and event gates.
+      Object.defineProperty(window, 'AepDemoVisitorReset', { configurable: true, get: () => visitorReset, set() {} });
+      window.fixtureCompleteVisitorReset = (id) => {
+        blocked = false;
+        window.dispatchEvent(new CustomEvent('aep-demo-visitor-reset-complete', { detail: { ecid: id } }));
+      };
     });
     const page = await browserContext.newPage();
     page.on('pageerror', (error) => errors.push(error.message));
@@ -149,6 +176,8 @@ async function browserTests() {
     abortNext = true;
     await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('loyalty.join', {})));
     assert(await page.locator('#vuseUncertainDelivery').isVisible());
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.resetVisitor()), /uncertain/);
+    assert(await page.locator('#vuseUncertainDelivery').isVisible(), 'Reset must not hide an uncertain delivery');
     const count = requests.length;
     await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('loyalty.join', {})), /uncertain/);
     assert.equal(requests.length, count);
@@ -160,16 +189,164 @@ async function browserTests() {
     missingEcid = true;
     await assert.rejects(page.evaluate((email) => window.VuseItaliaLab.lookup(email, { requireStitch: true }), profile.email), /usable identity/);
     missingEcid = false;
-    await page.evaluate(() => {
-      window.AepLabEnvBarPrefs.writeMap('vuseLastResolvedEcidBySandbox', { apalmer: '12345678901234567890123456789012345678', other: '44444444444444444444444444444444444444' });
-      window.VuseItaliaLab.resetVisitor();
+    await page.evaluate(async () => {
+      for (const key of ['vuseAgeGate', 'vuseCart', 'vuseIdentity', 'vuseAbandonSent', 'vuseConsent', 'vuseLoyalty']) sessionStorage.setItem(key, 'old visitor');
+      sessionStorage.setItem('vuseSdkConfiguredBySandbox', 'keep environment');
+      sessionStorage.setItem('aepDemoTagsInjected:vuse:apalmer', 'keep selected Tags');
+      localStorage.setItem('aep-profile-viewer-recent-identifiers-v1', JSON.stringify({ email: ['recent@example.com'] }));
+      await window.VuseItaliaLab.resetVisitor();
     });
-    assert.equal(await page.evaluate(() => window.AepLabEnvBarPrefs.readMap('vuseLastResolvedEcidBySandbox').apalmer), undefined);
-    assert.equal(await page.evaluate(() => window.AepLabEnvBarPrefs.readMap('vuseLastResolvedEcidBySandbox').other), '44444444444444444444444444444444444444');
+    assert.equal(await page.evaluate(() => window.fixtureResetCalls), 1, 'Presenter action delegates to shared reset');
+    assert(await page.evaluate(() => ['vuseAgeGate', 'vuseCart', 'vuseIdentity', 'vuseAbandonSent', 'vuseConsent', 'vuseLoyalty'].every((key) => sessionStorage.getItem(key) === null)));
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('vuseSdkConfiguredBySandbox')), 'keep environment');
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('aepDemoTagsInjected:vuse:apalmer')), 'keep selected Tags');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('aep-profile-viewer-recent-identifiers-v1')).email[0]), 'recent@example.com');
     assert.equal(await page.locator('#customerEmail').inputValue(), '');
-    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('ageGate.verified', {})), /ECID/);
+    assert.equal(await page.locator('#vusePersonaEmail').inputValue(), '');
+    const resetRequests = requests.length, resetSdkEvents = await page.evaluate(() => window.fixtureSdkEvents.length);
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('ageGate.verified', {})), /reset/);
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.lookup('giulia.rossi@example.com')), /reset/);
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.pageView({ page: 'home' })), /reset/);
+    await sendFrame('ageGate.verified', {});
+    await page.waitForTimeout(100);
+    assert.equal(requests.length, resetRequests, 'No generator events escape a pending reset');
+    assert.equal(await page.evaluate(() => window.fixtureSdkEvents.length), resetSdkEvents, 'Reset never creates SDK hits');
+    const freshEcid = '55555555555555555555555555555555555555';
+    await page.evaluate((id) => window.fixtureCompleteVisitorReset(id), freshEcid);
+    await page.evaluate(() => window.VuseItaliaLab.send('ageGate.verified', {}));
+    assert.equal(requests.at(-1).ecid, freshEcid, 'New anonymous interactions use the verified fresh browser ECID');
+    assert.equal(requests.at(-1).email, undefined);
+    await page.evaluate((email) => window.VuseItaliaLab.lookup(email, { requireStitch: true }), profile.email);
+    assert.equal(await page.evaluate(() => window.VuseItaliaLab.context().known), true, 'An explicit lookup can stitch again after reset');
     assert.deepEqual(errors, [], 'No uncaught browser errors with local API fixtures');
+    await resetRoundtripTests(browser, origin);
     console.log('Vuse Italia browser contracts: OK');
   } finally { if (browser) await browser.close(); await new Promise((resolve) => server.close(resolve)); }
 }
-(async () => { contractTests(); await browserTests(); console.log('Vuse Italia event contracts: OK'); })().catch((error) => { console.error(error); process.exitCode = 1; });
+async function resetRoundtripTests(browser, origin) {
+  const context = await browser.newContext();
+  const ids = ['1'.repeat(38), '2'.repeat(38), '3'.repeat(38)];
+  const html = `<!doctype html><title>Visitor reset roundtrip fixture</title>
+    <select id="sandboxSelect"><option selected>apalmer</option></select>
+    <input id="customerEmail"><span id="infoEcid"></span><span id="aepLabProfileStatus"></span>
+    <script>
+      window.fixtureSdkEvents = [];
+      window.fixtureGetIdentityCalls = 0;
+      var ids = ${JSON.stringify(ids)};
+      var match = document.cookie.match(/(?:^|; )kndctr_fixture_AdobeOrg_identity=(\\d+)/);
+      var sdkIdentity = match && match[1];
+      window.alloy = async function(command) {
+        if (command === 'sendEvent') { fixtureSdkEvents.push(command); throw new Error('Reset must never send an event'); }
+        if (command !== 'getIdentity') throw new Error('Unexpected SDK command: ' + command);
+        fixtureGetIdentityCalls++;
+        if (!sdkIdentity) {
+          var next = Number(sessionStorage.getItem('fixtureIdentityIndex') || '0');
+          sdkIdentity = ids[next];
+          sessionStorage.setItem('fixtureIdentityIndex', String(next + 1));
+          document.cookie = 'kndctr_fixture_AdobeOrg_identity=' + sdkIdentity + '; Path=/';
+        }
+        return { identity: { ECID: sdkIdentity } };
+      };
+      window.fixtureStitches = 0;
+    </script>
+    <script src="/profile-viewer/shared/demo-visitor-reset.js"></script>
+    <script src="/profile-viewer/shared/demo-visitor-adapters.js"></script>
+    <script>
+      AepDemoVisitorReset.init({ storagePrefix: 'vuse', orgId: 'fixture@AdobeOrg',
+        scriptUrl: 'https://assets.adobedtm.com/fixture/launch.js', timeoutMs: 2000 });
+      AepDemoVisitorAdapters.register();
+      window.fixtureReady = true;
+    </script>`;
+  await context.route('**/visitor-reset-fixture', (route) => route.fulfill({ contentType: 'text/html', body: html }));
+  const page = await context.newPage();
+  page.on('dialog', (dialog) => dialog.accept());
+  try {
+    await page.goto(origin + '/visitor-reset-fixture');
+    await page.evaluate(() => window.alloy('getIdentity'));
+    assert.equal(await page.evaluate(async () => (await alloy('getIdentity')).identity.ECID), ids[0]);
+    await page.evaluate(() => {
+      document.getElementById('customerEmail').value = 'old@example.com';
+      sessionStorage.setItem('aep-demo-session-identifier-v1', JSON.stringify({ identifier: 'old@example.com', namespace: 'email' }));
+      sessionStorage.setItem('vuseCart', 'old cart');
+      sessionStorage.setItem('aepFnbSessionProfileEmail', 'old@example.com');
+      sessionStorage.setItem('aepFnbAnonymousEcid', '1'.repeat(38));
+      sessionStorage.setItem('aepOmSessionProfileEmail', 'old@example.com');
+      sessionStorage.setItem('riyadhAirJourneyV1', 'old trip');
+      sessionStorage.setItem('armcomFakeAudienceStage', '4');
+      sessionStorage.setItem('vuseUncertainDelivery', 'retain receipt');
+      sessionStorage.setItem('armcomDecisioningEnabled', '1');
+      localStorage.setItem('miralCrossSiteState', 'old visitor');
+      localStorage.setItem('aep-profile-viewer-recent-identifiers-v1', '{"email":["recent@example.com"]}');
+      localStorage.setItem('aepGlobalSandboxName', 'apalmer');
+      localStorage.setItem('aepLabEnvBarV1', '{"tagsBySandbox":{"apalmer":{"ecid":"11111111111111111111111111111111111111","launchScript":"https://assets.adobedtm.com/fixture/launch.js"}},"settings":{"keep":true}}');
+    });
+    for (const id of ids.slice(1)) {
+      const loaded = page.waitForEvent('load');
+      await page.evaluate(() => { void AepDemoVisitorReset.reset(); });
+      await loaded;
+      await page.waitForFunction(() => window.AepDemoVisitorReset?.getState().status === 'complete');
+      assert.equal(await page.evaluate(async () => (await alloy('getIdentity')).identity.ECID), id);
+      assert.equal(await page.locator('#customerEmail').inputValue(), '');
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('aep-demo-visitor-reset-v1')), null, 'Verified reset marker is cleared');
+      assert.equal(await page.evaluate(() => fixtureSdkEvents.length), 0);
+      assert.equal(await page.evaluate(() => fixtureStitches), 0);
+      assert(await page.evaluate(() => ['vuseCart', 'aepFnbSessionProfileEmail', 'aepFnbAnonymousEcid', 'aepOmSessionProfileEmail', 'riyadhAirJourneyV1', 'armcomFakeAudienceStage', 'aep-demo-session-identifier-v1'].every((key) => sessionStorage.getItem(key) === null)));
+      assert.equal(await page.evaluate(() => localStorage.getItem('miralCrossSiteState')), null);
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('vuseUncertainDelivery')), 'retain receipt');
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('armcomDecisioningEnabled')), '1');
+      assert.equal(await page.evaluate(() => localStorage.getItem('aepGlobalSandboxName')), 'apalmer');
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('aepLabEnvBarV1')).settings.keep), true);
+      assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('aep-profile-viewer-recent-identifiers-v1')).email[0]), 'recent@example.com');
+      assert.equal(await page.evaluate(() => sessionStorage.getItem('vusePendingLaunchInject')), 'https://assets.adobedtm.com/fixture/launch.js');
+      await page.reload();
+      assert.equal(await page.evaluate(async () => (await alloy('getIdentity')).identity.ECID), id, 'Fresh cookie identity survives ordinary reload');
+    }
+    console.log('Visitor reset real-controller browser roundtrips: OK');
+  } finally { await context.close(); }
+}
+async function armAdapterTests() {
+  const source = await fs.readFile(path.join(__dirname, '../web/profile-viewer/demos/armcom/armcom-ecid-reset.js'), 'utf8');
+  const session = new Map([
+    ['armcomFakeAudienceStage', '4'], ['armcomJourneySlideIndex', '4'], ['armcomBannerState', 'old visitor'],
+    ['armcomDecisioningEnabled', '1'], ['aepDemoTagsInjected:armcom:apalmer', 'selected Tags'],
+  ]);
+  const local = new Map([['armcomPaidAdClickedAfterBrief', '1'], ['armcomSelectedLaunchScriptBySandbox', 'selected Tags']]);
+  const storage = (map) => ({ getItem: (key) => map.get(key) ?? null, removeItem: (key) => map.delete(key), setItem: (key, value) => map.set(key, value) });
+  let resolveReady, adapter, resets = 0, fakeAudienceResets = 0;
+  const ready = new Promise((resolve) => { resolveReady = resolve; });
+  const global = {
+    document: { body: { classList: { contains: (value) => value === 'armcom-demo-page' } } },
+    envBar: { ready: () => ready },
+    sessionStorage: storage(session), localStorage: storage(local),
+    ArmcomFakeAudiences: { reset() { fakeAudienceResets++; session.set('armcomFakeAudienceStage', '0'); } },
+    console,
+  };
+  global.window = global;
+  vm.runInNewContext(source, global);
+  assert.equal(global.ArmcomEcidReset.isAvailable(), false);
+  global.AepDemoVisitorReset = {
+    registerAdapter(value) { adapter = value; }, isBlocked: () => false,
+    availability: () => ({ available: true }),
+    reset() { resets++; return Promise.resolve({ ok: true }); },
+  };
+  resolveReady();
+  await ready; await Promise.resolve();
+  assert(adapter, 'Arm adapter waits for envBar.ready when controller is deferred');
+  assert.equal(global.ArmcomEcidReset.isAvailable(), true);
+  global.armcomVisitorSendCount = 1;
+  assert.throws(() => adapter.beforeReset(), /current Arm event/);
+  global.armcomVisitorSendCount = 0;
+  adapter.invalidate();
+  assert.equal(fakeAudienceResets, 1);
+  assert.equal(session.has('armcomFakeAudienceStage'), false);
+  assert.equal(session.has('armcomJourneySlideIndex'), false);
+  assert.equal(session.has('armcomBannerState'), false);
+  assert.equal(local.has('armcomPaidAdClickedAfterBrief'), false);
+  assert.equal(session.get('armcomDecisioningEnabled'), '1');
+  assert.equal(session.get('aepDemoTagsInjected:armcom:apalmer'), 'selected Tags');
+  assert.equal(local.get('armcomSelectedLaunchScriptBySandbox'), 'selected Tags');
+  await global.ArmcomEcidReset.reset();
+  assert.equal(resets, 1, 'Arm compatibility API delegates identity work to shared controller');
+  console.log('Arm reset compatibility adapter: OK');
+}
+(async () => { contractTests(); await armAdapterTests(); await browserTests(); console.log('Vuse Italia event contracts: OK'); })().catch((error) => { console.error(error); process.exitCode = 1; });

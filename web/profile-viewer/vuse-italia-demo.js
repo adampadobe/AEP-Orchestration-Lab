@@ -10,13 +10,19 @@
   let currentPage = { page: 'home', title: 'Home', url: 'https://www.vuse.com/it/it/' };
   let lastInteraction = null;
   let routingRevision = 0, settingNamespace = false;
+  let visitorRevision = 0;
 
+  const visitorBlocked = () => !!global.AepDemoVisitorReset?.isBlocked();
+  function requireVisitor() {
+    if (visitorBlocked()) throw new Error('Visitor reset is pending or this tab is invalidated. Finish the reset before continuing.');
+  }
   const sandbox = () => global.AepDemoGeneratorTargets.getSandboxName();
   const identifier = () => String(byId('customerEmail')?.value || '').trim();
   const namespace = () => String(global.AepIdentityPicker.getNamespace('customerEmail') || 'email').toLowerCase();
   const selectedTarget = () => targets.find((target) => target.id === byId('generatorTarget')?.value) || null;
   const targetToken = (target) => JSON.stringify(target ? [target.id, target.transport, target.dataStreamId, target.xdmStyle, target.streamingUrl] : null);
   function context() {
+    requireVisitor();
     if (!ready) throw new Error('Lab controls are still loading.');
     const input = identifier();
     if (input && (!verified || verified.identifier !== input || verified.namespace !== namespace() || verified.sandbox !== sandbox() || !verified.stitched)) {
@@ -78,7 +84,9 @@
     if (targetToken(target) !== targetToken(ctx.target)) throw new Error('Event target configuration changed. Reload targets before continuing.');
   }
   async function send(type, payload, expectedToken) {
+    requireVisitor();
     await api.ready;
+    requireVisitor();
     if (sending || lookingUp) throw new Error('Wait for the current identity lookup or event to finish.');
     if (uncertain) throw new Error('Previous delivery is uncertain. Check profile activity, then explicitly allow retry in Presenter controls.');
     const token = contextToken();
@@ -91,6 +99,7 @@
     let submitted = false, accepted = false, rejected = false;
     try {
       await checkTarget(ctx);
+      requireVisitor();
       if (token !== contextToken()) throw new Error('Identity or environment changed before sending. Nothing was sent.');
       submitted = true;
       const response = await global.AepDemoGeneratorTargets.labAuthFetch('/api/events/generator', {
@@ -124,6 +133,7 @@
     await global.DemoProfileDrawer.refreshDrawerEventsForIdentity(ctx.ecid, 'ecid');
   }
   async function validateIdentity(detail) {
+    if (visitorBlocked()) return;
     const revision = ++identityRevision;
     verified = null;
     const requestedSandbox = sandbox(), requestedNamespace = namespace();
@@ -132,7 +142,7 @@
     const response = await global.AepDemoGeneratorTargets.labAuthFetch('/api/profile/consent?' + query);
     const data = await response.json();
     if (!response.ok || !data.found) throw new Error(data.error || 'Profile not found during identity verification.');
-    if (revision !== identityRevision || requestedSandbox !== sandbox() || detail.identifier !== identifier() || requestedNamespace !== namespace()) return;
+    if (visitorBlocked() || revision !== identityRevision || requestedSandbox !== sandbox() || detail.identifier !== identifier() || requestedNamespace !== namespace()) return;
     const ecid = String(Array.isArray(data.ecid) ? data.ecid[0] || '' : data.ecid || '');
     if (!/^\d{10,}$/.test(ecid) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email || '')) throw new Error('The selected profile needs its own email and ECID.');
     verified = { identifier: detail.identifier, namespace: requestedNamespace, sandbox: requestedSandbox, ecid,
@@ -140,7 +150,9 @@
     notifyContext();
   }
   async function lookup(value, options) {
+    requireVisitor();
     await api.ready;
+    requireVisitor();
     if (sending || lookingUp) throw new Error('Wait for the current event or profile lookup to finish.');
     lookingUp = true;
     try {
@@ -177,6 +189,7 @@
     } finally { lookingUp = false; }
   }
   async function pageView(payload) {
+    requireVisitor();
     if (!browserEcid || sdkSandbox !== sandbox() || !global.DemoTagsInjection.isAlloyReady() || global.AepLabTagsInjectGuard.isInProgress('vuse')) throw new Error('Inject the selected sandbox’s Tags library before recording a page view.');
     const ctx = context(), token = contextToken();
     const overrides = global.DemoLabEdgeConfig.edgeConfigOverrides();
@@ -190,48 +203,62 @@
     await global.alloy('sendEvent', { ...overrides, xdm });
     if (token !== contextToken() || JSON.stringify(overrides) !== JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides())) throw new Error('The context changed during the SDK page view. Check activity before another attempt.');
   }
-  async function handleInteraction(type, payload, token) {
+  async function handleInteraction(type, payload, token, revision = visitorRevision) {
+    requireVisitor();
     await api.ready;
+    requireVisitor();
+    if (revision !== visitorRevision) throw new Error('Interaction belongs to an earlier visitor; nothing was sent.');
     if (token && token !== routingToken()) throw new Error('Interaction belongs to an earlier identity or environment; no automatic replay was made.');
     if (type === 'login') {
       await lookup(payload.email, { requireStitch: true });
     }
     updatePreview({ type, payload });
     if (type === 'pageView') {
+      const identityToken = contextToken();
       currentPage = { page: String(payload.page || 'home'), title: String(payload.title || 'Home'), url: events.build('pageView', payload, context()).viewUrl };
       try { await pageView(payload); return { ok: true, via: 'web-sdk' }; }
-      catch (error) { record('SDK page view: ' + error.message); }
+      catch (error) {
+        requireVisitor();
+        if (revision !== visitorRevision || identityToken !== contextToken()) throw error;
+        record('SDK page view: ' + error.message);
+      }
     }
     return send(type, payload, contextToken());
   }
   function onFrameMessage(event) {
+    if (visitorBlocked()) return;
     const frame = byId('vuseDemoSiteFrame');
     if (event.source !== frame.contentWindow || event.origin !== global.location.origin || event.data?.source !== 'vuse-site') return;
     const { type, payload } = event.data;
     if (!Object.hasOwn(events.TYPES, type) || !payload || typeof payload !== 'object' || Array.isArray(payload)) return;
     const token = ready ? routingToken() : null;
-    queue = queue.then(() => handleInteraction(type, payload, token)).catch((error) => { message(error.message, true); record(type + ' / ' + error.message); });
+    const revision = visitorRevision;
+    queue = queue.then(() => handleInteraction(type, payload, token, revision)).catch((error) => { message(error.message, true); record(type + ' / ' + error.message); });
   }
-  function resetVisitor() {
+  function beforeVisitorReset() {
     if (sending || lookingUp) throw new Error('Wait for the current operation before resetting the visitor.');
-    invalidateIdentity(); browserEcid = ''; sdkSandbox = '';
+    if (uncertain) throw new Error('Previous delivery is uncertain. Reconcile it before resetting the visitor.');
+  }
+  function invalidateVisitor() {
+    ++visitorRevision; ++identityRevision; ++routingRevision;
+    verified = null; browserEcid = ''; sdkSandbox = '';
     byId('customerEmail').value = ''; byId('infoEcid').textContent = '—';
-    global.sessionStorage.removeItem('aep-demo-session-identifier-v1');
-    const prefs = global.AepLabEnvBarPrefs;
-    if (prefs && typeof prefs.readMap === 'function' && typeof prefs.writeMap === 'function') {
-      const cache = prefs.readMap('vuseLastResolvedEcidBySandbox');
-      // Unified preferences merge patches: an empty value clears this sandbox's cached ECID.
-      cache[prefs.sandboxKey(sandbox())] = '';
-      prefs.writeMap('vuseLastResolvedEcidBySandbox', cache);
+    byId('vusePersonaEmail').value = '';
+    for (const key of ['vuseAgeGate', 'vuseCart', 'vuseIdentity', 'vuseAbandonSent', 'vuseConsent', 'vuseLoyalty']) {
+      global.sessionStorage.removeItem(key);
     }
-    for (const storage of [global.localStorage, global.sessionStorage]) {
-      for (const key of Object.keys(storage)) {
-        if (key === 'vuseLastResolvedEcidBySandbox' || key.startsWith('aepDemoTagsInjected:vuse:') || key.startsWith('aepDemoTagsInjectedLocal:vuse:')) storage.removeItem(key);
-      }
-    }
-    post('reset', {}); lastInteraction = null; currentPage = { page: 'home', title: 'Home', url: 'https://www.vuse.com/it/it/' };
+    lastInteraction = null; currentPage = { page: 'home', title: 'Home', url: 'https://www.vuse.com/it/it/' };
     notifyContext();
-    message('Local visitor reset. Re-inject Tags before continuing. Existing Adobe identity cookies are unchanged; use a fresh browser session for a new visitor ECID. Uncertain delivery, if any, still needs reconciliation.', false);
+  }
+  async function resetVisitor() {
+    await api.ready;
+    if (!global.AepDemoVisitorReset) throw new Error('Shared visitor reset is unavailable. Reload the lab before trying again.');
+    return global.AepDemoVisitorReset.reset();
+  }
+  function applyFreshVisitor(detail) {
+    browserEcid = String(detail?.ecid || ''); sdkSandbox = browserEcid ? sandbox() : '';
+    verified = null; byId('customerEmail').value = ''; byId('vusePersonaEmail').value = '';
+    notifyContext();
   }
   function initPresenter() {
     const panel = byId('vusePresenter'), launcher = byId('vusePresenterLauncher');
@@ -295,10 +322,12 @@
     byId('vuseDemoSiteFrame').addEventListener('load', notifyIdentity);
     await global.envBar.ready();
     if (!byId('customerEmail') || !global.DemoTagsInjection || !global.DemoProfileDrawer) throw new Error('Shared Lab components did not load.');
+    global.AepDemoVisitorReset?.registerAdapter({ beforeReset: beforeVisitorReset, invalidate: invalidateVisitor, afterReset: applyFreshVisitor });
+    global.addEventListener('aep-demo-visitor-reset-complete', (event) => applyFreshVisitor(event.detail));
     global.AepIdentityPicker.init('customerEmail', 'vuseNs');
     global.attachEmailDatalist('customerEmail', 'recentEmails', 'vuseNs');
     global.attachEmailDatalist('vusePersonaEmail', 'vusePersonaRecentEmails', null);
-    global.hydrateIdentifierFromSession('customerEmail', 'vuseNs');
+    if (!visitorBlocked()) global.hydrateIdentifierFromSession('customerEmail', 'vuseNs');
     global.__siteCloneSuppressBcEnable = true;
     byId('vuseInjectSdkBtn').addEventListener('click', () => { global.__siteCloneSuppressBcEnable = false; }, true);
     const webPushDesired = () => !!byId('vuseWebPushOnInjectToggle').checked;
@@ -309,7 +338,7 @@
       selectedScriptId: 'vuseSelectedScript', configFieldsId: 'vuseSdkConfigFields', configSummaryId: 'vuseSdkConfigSummary',
       configSummaryTextId: 'vuseSdkConfigSummaryText', changeConfigButtonId: 'vuseChangeSdkConfigBtn', hideTagsCompanyUi: true,
       iframeIds: [], getEmail: () => verified?.email || '', messageSetter: (text, type) => message(text, type === 'error'),
-      onEcidResolved: (ecid) => { browserEcid = String(ecid); sdkSandbox = sandbox(); invalidateIdentity(); },
+      onEcidResolved: (ecid) => { if (!visitorBlocked()) { browserEcid = String(ecid); sdkSandbox = sandbox(); invalidateIdentity(); } },
       webPush: { enabled: true, subscribeAfterInject: webPushDesired, requestPermissionOnInject: webPushDesired },
       brandConcierge: { enabled: () => !!byId('vuseBcOnInjectToggle').checked, styleKey: () => byId('vuseBcStyleSelect').value, suppressEnable: () => !!global.__siteCloneSuppressBcEnable },
     });

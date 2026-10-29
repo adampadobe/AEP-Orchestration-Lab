@@ -7,3 +7,53 @@
 @import url('../site-clone-bc-env-strip.css');
 @import url('../site-clone-bc.css');
 @import url('env-bar-compact.css');
+
+.aep-lab-new-visitor-btn {
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm, 12px);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  padding: 6px 10px;
+  white-space: nowrap;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.aep-lab-new-visitor-btn:hover {
+  background: var(--dash-hover);
+}
+
+.aep-lab-new-visitor-btn:focus-visible {
+  outline: 2px solid var(--dash-blue);
+  outline-offset: 2px;
+}
+
+.aep-lab-new-visitor-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.aep-lab-visitor-reset-status {
+  position: fixed;
+  inset: auto 16px 16px;
+  z-index: 2147483647;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--dash-border);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  box-shadow: var(--dash-shadow);
+}
+
+.aep-lab-visitor-reset-status[hidden],
+.aep-lab-visitor-reset-status button[hidden] {
+  display: none;
+}
+
+html[data-aep-visitor-blocked] iframe {
+  pointer-events: none;
+}
