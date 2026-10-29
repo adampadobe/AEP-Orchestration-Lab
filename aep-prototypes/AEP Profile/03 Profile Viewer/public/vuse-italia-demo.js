@@ -297,6 +297,7 @@
     if (!byId('customerEmail') || !global.DemoTagsInjection || !global.DemoProfileDrawer) throw new Error('Shared Lab components did not load.');
     global.AepIdentityPicker.init('customerEmail', 'vuseNs');
     global.attachEmailDatalist('customerEmail', 'recentEmails', 'vuseNs');
+    global.attachEmailDatalist('vusePersonaEmail', 'vusePersonaRecentEmails', null);
     global.hydrateIdentifierFromSession('customerEmail', 'vuseNs');
     global.__siteCloneSuppressBcEnable = true;
     byId('vuseInjectSdkBtn').addEventListener('click', () => { global.__siteCloneSuppressBcEnable = false; }, true);

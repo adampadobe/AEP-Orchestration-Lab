@@ -20,6 +20,13 @@
     try { var v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
   }
   function write(key, value) { sessionStorage.setItem(key, JSON.stringify(value)); }
+  // Shared Lab recent-identifier cache (email-cache.js, same origin): newest first, max 20.
+  function recentEmails() {
+    try {
+      var list = (JSON.parse(localStorage.getItem('aep-profile-viewer-recent-identifiers-v1')) || {}).email;
+      return Array.isArray(list) ? list.filter(function (e) { return typeof e === 'string' && e.indexOf('@') > 0; }).slice(0, 20) : [];
+    } catch (e) { return []; }
+  }
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -455,7 +462,8 @@
       '<div class="vs-tabs" role="tablist"><button class="vs-tab" role="tab" aria-selected="true" data-vs-tab="signin">Sign in</button>' +
       '<button class="vs-tab" role="tab" aria-selected="false" data-vs-tab="register">Create account</button></div>' +
       '<form class="vs-form" data-vs-panel="signin" novalidate>' +
-        '<div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>' +
+        '<div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="off" list="vsRecentEmails" required>' +
+        '<datalist id="vsRecentEmails">' + recentEmails().map(function (e) { return '<option value="' + esc(e) + '">'; }).join('') + '</datalist></div>' +
         '<div class="vs-field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>' +
         '<div class="vs-error" data-vs-error></div>' +
         '<button class="vs-btn vs-btn--block" type="submit">Sign in</button>' +
