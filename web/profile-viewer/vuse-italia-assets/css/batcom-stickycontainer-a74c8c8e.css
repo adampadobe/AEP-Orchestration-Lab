@@ -1,0 +1,50 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-stickycontainer.sticky-container-visible { z-index: 1; position: fixed; left: 0px; width: 100%; top: var(--batcom-layout-container-sticky-container-top-mobile); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-stickycontainer.sticky-container-visible { top: var(--batcom-layout-container-sticky-container-top-desktop); }
+}
+
+.batcom-stickycontainer:has(.vuse-pro-sticky-container) { position: fixed; bottom: 0px; left: 0px; width: 100%; margin-bottom: 8px; z-index: 1; transition: 0.3s linear; }
+
+.batcom-stickycontainer:has(.vuse-pro-sticky-container).hide-sticky-container { transform: translateY(calc(100% + 20px)); }
+
+@media only screen and (min-width: 480px) {
+  .batcom-stickycontainer:has(.vuse-pro-sticky-container).hide-sticky-container--desktop-only { transform: translateY(calc(100% + 20px)); }
+}
+
+@media only screen and (max-width: 479px) {
+  .batcom-stickycontainer:has(.vuse-pro-sticky-container).hide-sticky-container--mobile-only { transform: translateY(calc(100% + 20px)); }
+}

@@ -1,0 +1,73 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#dark-theme { color: white; }
+
+@media only screen and (min-width: 768px) {
+  #dark-theme .batcom-container .columncontrol .columncontrol__base .columncontrol__column--lt4 { width: calc((100% - 2 * var(--batcom-layout-column-control-dark-gutter, 24px)) / 3); }
+}
+
+#dark-theme { background-color: rgb(0, 0, 0); }
+
+#dark-theme .batcom-container { margin-bottom: 0px; }
+
+#dark-theme .dark-theme-section .cmp-text { color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__image .product-card__link { background-color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__link .product-card__name { color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__rating { color: white; }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__rating .product-card__rating-container, #dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__rating .product-card__rating-reviews { color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__button .product-card__price { color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__product-status--nonsellable { color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-dynamiclist__products .product-card .product-card__content .product-card__nicotine .product-card__nicotine-button img { filter: contrast(1) invert(1); }
+
+#dark-theme .dark-theme-section .cmp-list__carousel-dots-container .cmp-list__carousel-dots { bottom: 14px; position: relative; }
+
+#dark-theme .dark-theme-section .cmp-list__carousel-dots-container .cmp-list__carousel-dots .dot { background-color: rgb(255, 255, 255); opacity: 0.4; height: 8px; width: 8px; padding: 0px; margin: 0px; border: 0px; min-width: 8px; border-radius: 50%; }
+
+#dark-theme .dark-theme-section .cmp-list__carousel-dots-container .cmp-list__carousel-dots .dot.active { opacity: 1; }
+
+#dark-theme .dark-theme-section .cmp-list__carousel-button-container .cmp-list__carousel-prev, #dark-theme .dark-theme-section .cmp-list__carousel-button-container .cmp-list__carousel-next { background-color: rgb(41, 41, 41); }
+
+#dark-theme .dark-theme-section .cmp-list__carousel-button-container .cmp-list__carousel-prev::after, #dark-theme .dark-theme-section .cmp-list__carousel-button-container .cmp-list__carousel-next::after { background-color: rgb(255, 255, 255); }
+
+#dark-theme .dark-theme-section .batcom-bff-dynamiclist .product-card .product-card__image { padding-top: 24px; }
+
+#dark-theme .batcom-teaser.batcom-teaser--corners-round .cmp-teaser__image img { border-radius: var(--batcom-layout-teaser-dark-round-teasers-border-radius,18px); }
+
+#dark-theme .batcom-teaser .cmp-teaser .h2-style { --batcom-typography-h2-size-mobile: var(--batcom-typography-h2-dark-size-desktop,22px); --batcom-typography-h2-line-height-mobile: var(--batcom-typography-h2-line-height-desktop,30px); }

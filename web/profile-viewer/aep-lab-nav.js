@@ -601,6 +601,22 @@
           ],
         },
         {
+          id: 'demoVuseItalia',
+          label: 'Vuse Italia',
+          demoCustomer: true,
+          channels: [{
+            id: 'vuseItaliaWeb',
+            label: 'Web',
+            items: [{
+              label: 'Vuse Italia (web)',
+              href: 'vuse-italia-demo.html',
+              navHideKey: 'vuseItaliaWebDemo',
+              demoMeta: { owners: ['apalmer'] },
+              ico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M4 5l8 14 8-14M8 5l4 7 4-7" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+            }],
+          }],
+        },
+        {
           id: 'demoRiyadhAir',
           label: 'Riyadh Air',
           demoCustomer: true,

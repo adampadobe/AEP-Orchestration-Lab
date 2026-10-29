@@ -1,0 +1,132 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cmp-batcom-agegate { display: flex; visibility: visible; position: fixed; top: 0px; left: 0px; width: 100dvw; height: 100dvh; justify-content: center; align-items: center; z-index: 10000; background-image: ; background-position-x: ; background-position-y: ; background-size: ; background-repeat: ; background-attachment: ; background-origin: ; background-clip: ; background-color: var(--batcom-color-age-gate-bg); }
+
+.batcom-agegate__content { display: block; position: relative; flex: 0 1 auto; max-width: 668px; width: calc(100% - var(--batcom-layout-content-left-right-margin)); max-height: calc(100dvh - var(--batcom-layout-content-left-right-margin)); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-agegate__content { width: 100%; }
+}
+
+.batcom-agegate__content-data { padding: 2rem; overflow: auto; max-height: calc(100dvh - var(--batcom-layout-content-left-right-margin)); background: var(--batcom-color-palette-3); text-align: center; box-shadow: rgba(0, 0, 0, 0.12) 0px 4px 9px 0px; }
+
+.batcom-agegate__logo { width: 100%; max-width: 160px; margin: 0px auto 1rem; }
+
+.batcom-agegate__provinces-select { height: 2.5rem; padding: 0.5rem 1rem; width: 100%; margin: 0.5rem 0px 1.25rem; appearance: none; border-radius: 0.5rem; background: var(--batcom-color-form-select-input) url("../img/chevron-down-a453671e.svg") no-repeat center right 1rem; border: 2px solid var(--batcom-color-form-select-border); color: var(--batcom-color-body-text); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-agegate__provinces-select { width: 300px; }
+}
+
+.batcom-agegate__provinces-select:focus { outline: none; }
+
+.batcom-agegate__provinces-select:focus-visible { outline: 2px auto var(--batcom-color-button-outline); outline-offset: 2px; }
+
+.batcom-container--primary-dark .batcom-agegate__provinces-select:focus-visible, .batcom-container--secondary-dark .batcom-agegate__provinces-select:focus-visible, .batcom-container--tertiary-dark .batcom-agegate__provinces-select:focus-visible, .batcom-container--bg-black .batcom-agegate__provinces-select:focus-visible { --batcom-color-button-outline: var(--batcom-color-button-outline-inverted); }
+
+.batcom-agegate__heading { margin-bottom: 0.75rem; }
+
+.batcom-agegate__text { margin-bottom: var(--batcom-layout-spacing-xl, 32px); font-size: 1rem; line-height: 1.5rem; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-agegate__text { margin-bottom: var(--batcom-layout-spacing-l, 24px); }
+}
+
+.batcom-agegate__text { display: flex; flex-direction: column; gap: var(--batcom-layout-spacing-s, 12px); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-agegate__languagenavigation { display: block; }
+}
+
+.batcom-agegate__languagenavigation .batcom-languagenavigation__container { display: block; width: auto; }
+
+.batcom-agegate__languagenavigation .batcom-languagenavigation__buttons { display: flex; justify-content: space-evenly; flex-flow: wrap; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-agegate__languagenavigation .batcom-languagenavigation__buttons .batcom-agegate__languagenavigation-button.cmp-button { padding: 8px; margin-bottom: 10px; }
+}
+
+.batcom-agegate__languagenavigation .batcom-languagenavigation__toggle { display: none; }
+
+.batcom-agegate__buttons { display: flex; align-items: center; flex-direction: column; gap: 1rem; margin-bottom: 2rem; }
+
+.batcom-agegate__buttons .batcom-button { margin-bottom: 0px; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-agegate__buttons .batcom-button { width: 100%; }
+}
+
+.batcom-agegate__buttons .batcom-button.batcom-agegate__button-over-age .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); }
+
+.batcom-agegate__footnote { font-size: 0.75rem; line-height: 1.125rem; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-agegate__bg-image-desktop { display: none !important; visibility: hidden !important; }
+}
+
+.batcom-agegate__bg-image-desktop { position: absolute; z-index: -1; }
+
+.batcom-agegate__bg-image-desktop .cmp-image { width: 100vw; height: 100vh; }
+
+.batcom-agegate__bg-image-desktop .cmp-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-agegate__bg-image-mobile { display: none !important; visibility: hidden !important; }
+}
+
+.batcom-agegate__bg-image-mobile .cmp-image__image { position: fixed; min-width: 100vw; min-height: 100vh; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1; object-fit: cover; }
+
+.batcom-agegate--transparent-background .batcom-agegate__content-data { background: transparent; box-shadow: none; }
+
+.batcom-agegate--transparent-background .batcom-agegate__buttons { flex-direction: row; justify-content: center; }
+
+.batcom-agegate--transparent-background .batcom-agegate__heading { color: var(--batcom-color-age-gate-transparent-heading, #fff); }
+
+.batcom-agegate--transparent-background .batcom-agegate__text { color: var(--batcom-color-age-gate-transparent-text, #fff); }
+
+.batcom-agegate--transparent-background .batcom-agegate__text h1, .batcom-agegate--transparent-background .batcom-agegate__text h2, .batcom-agegate--transparent-background .batcom-agegate__text h3, .batcom-agegate--transparent-background .batcom-agegate__text h4, .batcom-agegate--transparent-background .batcom-agegate__text h5, .batcom-agegate--transparent-background .batcom-agegate__text h6, .batcom-agegate--transparent-background .batcom-agegate__text a { color: inherit; }
+
+.batcom-agegate--transparent-background .batcom-agegate__footnote { color: var(--batcom-color-age-gate-transparent-footnote, #fff); }
+
+.batcom-agegate--transparent-background .batcom-agegate__footnote h1, .batcom-agegate--transparent-background .batcom-agegate__footnote h2, .batcom-agegate--transparent-background .batcom-agegate__footnote h3, .batcom-agegate--transparent-background .batcom-agegate__footnote h4, .batcom-agegate--transparent-background .batcom-agegate__footnote h5, .batcom-agegate--transparent-background .batcom-agegate__footnote h6, .batcom-agegate--transparent-background .batcom-agegate__footnote a { color: inherit; }
+
+.batcom-agegate--transparent-background .batcom-agegate__button-over-age.batcom-button .cmp-button { --batcom-button-text: var(--batcom-color-age-gate-transparent-button-primary-text, var(--batcom-color-button-primary-text)); --batcom-button-text-hover: var(--batcom-color-age-gate-transparent-button-primary-text-hover, var(--batcom-color-button-primary-text-hover)); --batcom-button-bg: var(--batcom-color-age-gate-transparent-button-primary-bg, var(--batcom-color-button-primary-bg)); --batcom-button-bg-hover: var(--batcom-color-age-gate-transparent-button-primary-bg-hover, var(--batcom-color-button-primary-bg-hover)); --batcom-button-border: var(--batcom-color-age-gate-transparent-button-primary-border, var(--batcom-color-button-primary-border)); --batcom-button-border-hover: var(--batcom-color-age-gate-transparent-button-primary-border-hover, var(--batcom-color-button-primary-border-hover)); --batcom-button-icon: var(--batcom-color-age-gate-transparent-button-primary-icon, var(--batcom-color-button-primary-text)); --batcom-button-icon-hover: var(--batcom-color-age-gate-transparent-button-primary-icon-hover, var(--batcom-color-button-primary-text-hover)); }
+
+.batcom-agegate--transparent-background .batcom-agegate__button-under-age.batcom-button .cmp-button { --batcom-button-text: var(--batcom-color-age-gate-transparent-button-secondary-text, var(--batcom-color-button-secondary-text)); --batcom-button-text-hover: var(--batcom-color-age-gate-transparent-button-secondary-text-hover, var(--batcom-color-button-secondary-text-hover)); --batcom-button-bg: var(--batcom-color-age-gate-transparent-button-secondary-bg, var(--batcom-color-button-secondary-bg)); --batcom-button-bg-hover: var(--batcom-color-age-gate-transparent-button-secondary-bg-hover, var(--batcom-color-button-secondary-bg-hover)); --batcom-button-border: var(--batcom-color-age-gate-transparent-button-secondary-border, var(--batcom-color-button-secondary-border)); --batcom-button-border-hover: var(--batcom-color-age-gate-transparent-button-secondary-border-hover, var(--batcom-color-button-secondary-border-hover)); --batcom-button-icon: var(--batcom-color-age-gate-transparent-button-secondary-icon, var(--batcom-color-button-secondary-text)); --batcom-button-icon-hover: var(--batcom-color-age-gate-transparent-button-secondary-icon-hover, var(--batcom-color-button-secondary-text-hover)); }
+
+.batcom-canada .batcom-agegate__buttons .batcom-button.batcom-agegate__button-over-age .cmp-button { --batcom-button-text: var(--batcom-color-button-teal-text, #fff); --batcom-button-text-hover: var(--batcom-color-button-teal-text-hover, #fff); --batcom-button-bg: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-bg-hover: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-border: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-border-hover: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); }
+
+.batcom-canada .batcom-agegate__buttons .batcom-button.batcom-button--secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-teal-secondary-text, #027f9c); --batcom-button-text-hover: var(--batcom-color-button-teal-secondary-text-hover, #027f9c); --batcom-button-bg: var(--batcom-color-button-teal-secondary-bg, transparent); --batcom-button-bg-hover: var(--batcom-color-button-teal-secondary-bg, transparent); --batcom-button-border: var(--batcom-color-button-teal-secondary-bg, #027f9c); --batcom-button-border-hover: var(--batcom-color-button-teal-secondary-bg, #027f9c); }
+
+html.aem-AuthorLayer-Edit .batcom-experiencefragment .cmp-batcom-agegate { display: none !important; visibility: hidden !important; }

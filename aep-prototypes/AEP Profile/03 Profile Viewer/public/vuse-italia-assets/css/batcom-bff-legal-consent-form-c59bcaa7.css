@@ -1,0 +1,56 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-bff-legal-consent-form .cmp-form { max-width: 512px; margin-left: auto; margin-right: auto; }
+
+.batcom-bff-legal-consent-form .cmp-form .form-text__fieldError { display: none; color: rgb(153, 31, 57); font-size: 14px; line-height: 18px; font-family: var(--batcom-font-face-1-name); }
+
+.batcom-bff-legal-consent-form .cmp-form .form-text__fieldError--active { display: block; margin-top: 4px; }
+
+.batcom-bff-legal-consent-form .cmp-form .form-text__fieldError.cmp-form-error__item { margin-bottom: 4px; }
+
+.batcom-bff-legal-consent-form .cmp-form .form-field-group--option { display: grid; place-items: center; gap: 16px; }
+
+.batcom-bff-legal-consent-form .cmp-form .form-field-group-checkbox .form-field--option { width: 100%; }
+
+.batcom-bff-legal-consent-form .batcom-title { text-align: center; margin: 16px 0px; }
+
+.batcom-bff-legal-consent-form .batcom-text { font-size: 14px; padding: 16px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-legal-consent-form .batcom-text { padding: 16px 0px; }
+}
+
+.batcom-bff-legal-consent-form .batcom-button { margin: 8px 0px; }
+
+.batcom-bff-legal-consent-form .aem-Grid-newComponent { display: none; }
