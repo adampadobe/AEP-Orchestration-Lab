@@ -18,8 +18,7 @@
   var ORIENT_STORE_KEY = 'ipadBezOrient';
 
   /** Client-only recent email lookups (max 5, newest first, case-insensitive dedupe). */
-  var ETIHAD_IPAD_RECENT_EMAILS_KEY = 'etihadIpadRecentEmails';
-  var ETIHAD_IPAD_RECENT_EMAILS_MAX = 5;
+  var ETIHAD_IPAD_LEGACY_RECENT_EMAILS_KEY = 'etihadIpadRecentEmails';
 
   /** NPS on 0–10 scale: scores strictly below this show the at-risk (detractor) banner. */
   var ETIHAD_IPAD_DETRACTOR_NPS_THRESHOLD = 7;
@@ -986,27 +985,26 @@
     return 'loyaltyId';
   }
 
+  // Shared Lab recent-identifier cache (email-cache.js): newest first, max 20, synced per sandbox.
   function readRecentEmailsFromStorage() {
-    try {
-      var raw = localStorage.getItem(ETIHAD_IPAD_RECENT_EMAILS_KEY);
-      if (!raw) return [];
-      var parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed)) return [];
-      var out = [];
-      for (var i = 0; i < parsed.length; i++) {
-        var s = typeof parsed[i] === 'string' ? parsed[i].trim() : '';
-        if (s && resolveNamespace(s) === 'email') out.push(s);
-      }
-      return out;
-    } catch (eRe0) {
-      return [];
-    }
+    if (typeof getRecentForNamespace !== 'function') return [];
+    return getRecentForNamespace('email').filter(function (s) { return resolveNamespace(s) === 'email'; });
   }
 
-  function writeRecentEmailsToStorage(list) {
+  /** One-time move of this page's former private list into the shared cache. */
+  function migrateLegacyRecentEmails() {
     try {
-      localStorage.setItem(ETIHAD_IPAD_RECENT_EMAILS_KEY, JSON.stringify(list));
-    } catch (eRe1) {}
+      var raw = localStorage.getItem(ETIHAD_IPAD_LEGACY_RECENT_EMAILS_KEY);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && typeof addRecentIdentifier === 'function') {
+        for (var i = parsed.length - 1; i >= 0; i--) {
+          var s = typeof parsed[i] === 'string' ? parsed[i].trim() : '';
+          if (s && resolveNamespace(s) === 'email') addRecentIdentifier(s, 'email');
+        }
+      }
+      localStorage.removeItem(ETIHAD_IPAD_LEGACY_RECENT_EMAILS_KEY);
+    } catch (eRe0) {}
   }
 
   /** Rebuild datalist + hint from storage (call after writes and on load). */
@@ -1025,22 +1023,11 @@
     if (hint) hint.hidden = emails.length === 0;
   }
 
-  /**
-   * After a successful profile table load, remember the typed query if it was an email search.
-   * Prunes to ETIHAD_IPAD_RECENT_EMAILS_MAX distinct addresses (case-insensitive); newest first.
-   */
+  /** After a successful profile table load, remember the typed query in the shared cache if it was an email. */
   function rememberRecentEmailAfterSuccessfulLookup(typedQuery) {
     var trimmed = String(typedQuery || '').trim();
     if (!trimmed || resolveNamespace(trimmed) !== 'email') return;
-    var lower = trimmed.toLowerCase();
-    var prev = readRecentEmailsFromStorage();
-    var next = [trimmed];
-    for (var i = 0; i < prev.length; i++) {
-      if (prev[i].toLowerCase() === lower) continue;
-      next.push(prev[i]);
-      if (next.length >= ETIHAD_IPAD_RECENT_EMAILS_MAX) break;
-    }
-    writeRecentEmailsToStorage(next);
+    if (typeof addRecentIdentifier === 'function') addRecentIdentifier(trimmed, 'email');
     refreshRecentEmailDatalistUi();
   }
 
@@ -1885,6 +1872,10 @@
   syncOrientButtons();
   initLabIndustryDock();
   wireEvents();
+  migrateLegacyRecentEmails();
+  document.addEventListener('aep-lab-sandbox-keys-applied', refreshRecentEmailDatalistUi);
+  var gaSearchForRecents = document.getElementById('gaSearchInput');
+  if (gaSearchForRecents) gaSearchForRecents.addEventListener('focus', refreshRecentEmailDatalistUi);
   refreshRecentEmailDatalistUi();
   loadRtdbData();
 
