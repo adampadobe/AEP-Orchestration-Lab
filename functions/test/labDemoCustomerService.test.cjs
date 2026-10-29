@@ -119,6 +119,12 @@ function fixture() {
         async once() { return { val: () => clone(database.root) }; },
         async transaction(update) {
           if (database.fail?.()) throw new Error('injected RTDB failure');
+          if (database.coldCache) {
+            // Firebase first runs the handler with the (empty) local cache, then reruns with the server value on mismatch.
+            const local = update(null);
+            if (local === undefined) return { committed: false };
+            if (database.root === null) { database.root = clone(local); return { committed: true }; }
+          }
           const next = update(clone(database.root));
           if (next === undefined) return { committed: false };
           database.root = clone(next);
@@ -287,6 +293,26 @@ test('staging validates decoded image types and scope ownership', async () => {
   }, f.deps), /Explicitly keep/);
   const preview = await f.preview({ action: 'customer-save-preview', customer_name: 'A' });
   await assert.rejects(service.apply({ ...f.context, uid: 'other-user' }, { preflight_id: preview.preflightId, confirmed: true, idempotency_key: 'other-user-key' }, f.deps), /Record not found/);
+});
+
+test('switch commits when the RTDB transaction first runs against a cold local cache', async () => {
+  const f = fixture();
+  await f.setup();
+  f.database.coldCache = true;
+  const switched = await f.apply(await f.newPreview());
+  assert.equal(switched.verified, true);
+  assert.equal(f.database.root.CoreDemoData.name, 'Customer B');
+  assert.equal(f.database.root.Uncatalogued.secret, 'must not be snapshotted');
+});
+
+test('cold-cache transaction still rejects stale configuration', async () => {
+  const f = fixture();
+  await f.setup();
+  f.database.coldCache = true;
+  const next = await f.newPreview();
+  f.database.root.CoreDemoData.slogan = 'newer external slogan';
+  await assert.rejects(f.apply(next), /changed after preview/);
+  assert.equal(f.database.root.CoreDemoData.slogan, 'newer external slogan');
 });
 
 test('backup failure and stale configuration never begin publication', async () => {
