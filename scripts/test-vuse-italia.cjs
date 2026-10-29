@@ -210,7 +210,18 @@ async function browserTests() {
     const count = requests.length;
     await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('loyalty.join', {})), /uncertain/);
     assert.equal(requests.length, count);
+    await page.locator('#vuseDemoSiteFrame').evaluate(frame => {
+      frame.contentWindow.eval("window.addEventListener('message', e => { if (e.data?.type === 'customer.reconciled') window.fixtureReconciled = true; });");
+    });
     await page.locator('#vuseAllowRetry').click();
+    await page.waitForFunction(() => document.getElementById('vuseDemoSiteFrame').contentWindow.fixtureReconciled);
+    await sendFrame('customer.uncertain', { requestId: 'interrupted-resume', action: 'resume' });
+    await page.waitForFunction(() => document.getElementById('vuseLastAttempt').textContent.includes('interrupted-resume'));
+    assert(await page.locator('#vuseUncertainDelivery').isVisible());
+    assert((await page.locator('#vuseLastAttempt').textContent()).includes('interrupted-resume'));
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('loyalty.join', {})), /uncertain/);
+    await page.locator('#vuseAllowRetry').click();
+    assert.equal(requests.length, count, 'Reconciling an interrupted storefront request never replays it');
     currentTarget = { ...target, dataStreamId: 'changed-datastream' };
     await assert.rejects(page.evaluate(() => window.VuseItaliaLab.send('loyalty.join', {})), /configuration changed/);
     assert.equal(requests.length, count, 'Changed server target is rejected before POST');

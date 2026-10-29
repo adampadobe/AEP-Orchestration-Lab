@@ -67,7 +67,7 @@
     payload.email = email;
     var requestId = 'vuse-' + crypto.randomUUID();
     return new Promise(function (resolve, reject) {
-      write('uncertain', { requestId: requestId });
+      write('uncertain', { requestId: requestId, action: payload.action });
       pending = { requestId: requestId, payload: payload, resolve: resolve, reject: reject };
       pending.timer = setTimeout(function () {
         if (!pending || pending.requestId !== requestId) return;
@@ -849,14 +849,24 @@
       scope = nextScope;
       renderAccount();
       renderBasket();
+      var unresolved = read('uncertain', false);
+      if (unresolved) post('customer.uncertain', unresolved);
       var stored = identity();
       if (stored && stored.signedIn) {
         setIdentity(Object.assign({}, stored, { signedIn: false }));
-        submitCustomer({ action: 'resume', email: stored.email }).catch(function (error) { toast(error.message); });
+        if (!unresolved) submitCustomer({ action: 'resume', email: stored.email }).catch(function (error) { toast(error.message); });
       }
       initAgeGate().then(function () { gateReady = true; rootView(); });
     } else if (d.type === 'customer.result') {
       result(d);
+    } else if (d.type === 'customer.reconciled') {
+      if (pending && !pending.timedOut) return;
+      if (pending) { clearTimeout(pending.timer); pending = null; }
+      write('uncertain', false);
+      $$('[data-vs-modal] button[type="submit"], [data-vs-save]').forEach(function (button) { button.disabled = false; });
+      var error = $('[data-vs-modal] [data-vs-error]');
+      if (error) error.textContent = 'Previous delivery checked. You may explicitly submit again.';
+      toast('Previous delivery checked. No automatic retry was made.');
     } else if (d.type === 'reset') {
       resetAll();
     }
@@ -876,6 +886,12 @@
   };
 
   function boot() {
+    document.addEventListener('click', function (e) {
+      if (!pending) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      toast('Please wait for the customer submission to finish before navigating.');
+    }, true);
     document.addEventListener('click', onClick);
     window.addEventListener('message', onMessage);
     initNav();
