@@ -405,8 +405,9 @@ const PROFILE_LOOKUP_NAMESPACE_TRIES = {
  * Fetch profile by identity value and namespace (Consent Manager / Profile table).
  * @param {string} identityValue - email, ECID, CRM ID, etc.
  * @param {string} [namespaceKey='email'] - key from PROFILE_LOOKUP_NAMESPACE_TRIES or custom UPS namespace code
+ * @param {{ strictRead?: boolean }} [options] - reject malformed/partially failed reads instead of confirming absence
  */
-async function fetchUpsProfileEntities(identityValue, sandboxName, token, clientId, orgId, namespaceKey = 'email') {
+async function fetchUpsProfileEntities(identityValue, sandboxName, token, clientId, orgId, namespaceKey = 'email', { strictRead = false } = {}) {
   const headers = {
     Authorization: `Bearer ${token}`,
     'x-api-key': clientId,
@@ -420,6 +421,7 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
     PROFILE_LOOKUP_NAMESPACE_TRIES[norm] || (rawKey && rawKey !== 'email' ? [rawKey] : PROFILE_LOOKUP_NAMESPACE_TRIES.email);
   let lastMessage = null;
   let sawOkEmpty = false;
+  let sawFailure = false;
   for (const entityIdNS of entityIdNsList) {
     const qs = new URLSearchParams({
       'schema.name': '_xdm.context.profile',
@@ -429,8 +431,20 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
     appendProfileAccessMergePolicyIfConfigured(qs);
     const url = `${UPS_ENTITIES}?${qs}`;
     const res = await fetch(url, { method: 'GET', headers });
-    const data = await res.json().catch(() => ({}));
+    const data = strictRead ? await res.json() : await res.json().catch(() => ({}));
+    if (strictRead && (!data || typeof data !== 'object' || Array.isArray(data))) {
+      throw new Error('Invalid Profile Access response; absence is not confirmed.');
+    }
+    if (strictRead && res.ok && Object.keys(data).some((key) => /^(?:_?errors?|error_description)$/i.test(key))) {
+      throw new Error('Profile Access returned errors; absence is not confirmed.');
+    }
     if (!res.ok) {
+      if (strictRead && res.status === 404 && data['error-code'] === 'UPLIB-201001-404'
+        && data.title === 'Entity not found.' && Number(data.status) === 404) {
+        sawOkEmpty = true;
+        continue;
+      }
+      sawFailure = true;
       lastMessage = data.message || data.error_description || data.title || res.statusText;
       continue;
     }
@@ -438,7 +452,7 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
     if (keys.length > 0) return data;
     sawOkEmpty = true;
   }
-  if (sawOkEmpty) return {};
+  if (sawOkEmpty && (!strictRead || !sawFailure)) return {};
   const err = new Error(lastMessage || 'Profile not found');
   err.code = 'UPS_FAILED';
   throw err;

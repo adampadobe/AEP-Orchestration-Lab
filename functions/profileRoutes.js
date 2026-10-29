@@ -96,8 +96,15 @@ function registerProfileRoutes(deps) {
       const clientId = ADOBE_CLIENT_ID.value();
       const orgId = ADOBE_IMS_ORG.value();
       try {
-        const ups = await profileTableHelpers.fetchUpsProfileEntities(identifier, sandbox, accessToken, clientId, orgId, namespace);
+        const ups = await profileTableHelpers.fetchUpsProfileEntities(
+          identifier, sandbox, accessToken, clientId, orgId, namespace,
+          { strictRead: String(req.query.safeSnapshot || '') === '1' },
+        );
         const payload = profileTableHelpers.buildProfileTablePayload(identifier, ups);
+        if (String(req.query.safeSnapshot || '') === '1') {
+          payload.safeSnapshot = true;
+          payload.profileWriteConsentMode = 'preserve';
+        }
         try {
           const statusAllPayload = await profileInfraStatusAllSvc.runProfileInfraStatusAll({
             sandbox,
@@ -271,6 +278,11 @@ function registerProfileRoutes(deps) {
  * Default payload matches Profile Viewer: profileStreamingCore.buildProfileStreamPayload (identityMap + root consents/optInOut + _demoemea + demoemea mirror).
  * ECID optional: included in identityMap and identification.core when body.ecid is valid.
  * Optional streamPayloadProfile=operational for slim shape only.
+ * Opt-in consentMode=preserve accepts schema-qualified full snapshots: no consent defaults,
+ * preferred-language/tenant mirrors, or implicit sibling fields. Submit a schema-supported
+ * root testProfile / xdm:testProfile marker (forced true). Missing consent stays unknown.
+ * GET /api/profile/table?safeSnapshot=1 uses strict absence checks and advertises this mode.
+ * Live receipts indicate inlet acceptance only; callers must not automatically retry.
  *
  * Consent Manager (consent.html) does **not** use this endpoint for “Update consent”: it builds a full DCS
  * envelope client-side and POSTs to `/api/consent/legacy-update` (see consent.js `buildConsentPayload` /
@@ -295,6 +307,15 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   const consentRaw = body.consent;
   const hasConsent = consentRaw != null && typeof consentRaw === 'object' && !Array.isArray(consentRaw);
   const sandbox = resolveSandboxForProfileBody(req);
+  const consentMode = body.consentMode;
+  if (consentMode != null && consentMode !== 'preserve') {
+    res.status(400).json({ error: 'Unsupported consentMode. Use "preserve" or omit for legacy behavior.' });
+    return;
+  }
+  if (consentMode === 'preserve' && (hasConsent || body.streamPayloadProfile || body.streaming?.streamPayloadProfile)) {
+    res.status(400).json({ error: 'consentMode=preserve requires standard updates[], not consent or operational payloads.' });
+    return;
+  }
 
   if (!email) {
     res.status(400).json({ error: 'Email is required (primary identity for consent streaming).' });
@@ -478,6 +499,15 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       let path = rawPath
         .replace(/^(_demoemea\.|xdm:demoss\.)/i, '')
         .replace(/^demoemea\./i, '');
+      const tenantPrefix = `${xdmKey}.`;
+      const explicitTenant = rawPath.startsWith(tenantPrefix);
+      if (consentMode === 'preserve') {
+        path = explicitTenant ? rawPath.slice(tenantPrefix.length) : rawPath;
+        if (!path || path.split('.').some((key) => ['__proto__', 'prototype', 'constructor'].includes(key))) {
+          res.status(400).json({ error: 'Unsafe profile update path.' });
+          return;
+        }
+      }
       if (!path) {
         if (rawPath) skippedPaths.push(rawPath);
         continue;
@@ -520,7 +550,10 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
         out = normalized;
       }
       const top = path.split('.')[0];
-      const underRootMixin = profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
+      // Safe callers send schema-qualified paths; only the configured tenant prefix is stripped.
+      const underRootMixin = consentMode === 'preserve'
+        ? !explicitTenant
+        : profileStreamingCore.PROFILE_STREAM_ROOT_PATH_PREFIXES.has(top);
       const target = underRootMixin ? rootExtras : demoemea;
       if (
         typeof out === 'string' &&
@@ -561,8 +594,16 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     successMessage = `Profile update accepted (${applied} field(s)).`;
   }
 
-  if (!hasConsent) {
+  if (!hasConsent && consentMode !== 'preserve') {
     profileStreamingCore.mirrorPreferredLanguageDemoSchema(demoemea, rootExtras);
+  }
+  if (consentMode === 'preserve') {
+    const markers = ['testProfile', 'xdm:testProfile'].filter((key) => Object.prototype.hasOwnProperty.call(rootExtras, key));
+    if (!markers.length) {
+      res.status(400).json({ error: 'consentMode=preserve requires a schema-supported root testProfile marker.' });
+      return;
+    }
+    for (const key of markers) rootExtras[key] = true;
   }
 
   const normPayloadProfile = String(
@@ -624,7 +665,7 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       orgId,
       sourceLabel,
       rootExtras,
-      { useEnvelope, datasetId, schemaId },
+      { useEnvelope, datasetId, schemaId, consentMode },
     );
     payload = built.payload;
     payloadFormat = built.format;
@@ -659,7 +700,9 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       imsOrgId: orgId,
       industry: industryKey,
       note:
-        streamPayloadProfileLabel === 'operational-consent'
+        consentMode === 'preserve'
+          ? 'Safe snapshot: explicit schema-qualified fields only; no default opt-ins. Preview is not inlet acceptance or UPS verification.'
+          : streamPayloadProfileLabel === 'operational-consent'
           ? 'Operational consent payload (explicit streamPayloadProfile only).'
           : streamPayloadProfileLabel === 'operational-profile-union'
             ? 'Operational Profile union payload (root person/address + _demoemea tenant leaves, identityMap retained).'
@@ -736,6 +779,12 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   res.status(200).json({
     ok: true,
     message: successMessage,
+    ...(consentMode === 'preserve' ? {
+      accepted: true,
+      upsVerified: false,
+      consentMode,
+      receipt: { stage: 'inlet-accepted', upsVerified: false, retrySafe: false },
+    } : {}),
     sentToAep: payload,
     payloadFormat,
     streamPayloadProfile: streamPayloadProfileLabel,

@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
   const TYPES = Object.freeze({
-    pageView: 'web.webpagedetails.pageViews', 'ageGate.verified': 'ageGate.verified',
+    pageView: 'web.webPageDetails.pageViews', 'ageGate.verified': 'ageGate.verified',
     'ageGate.underage': 'ageGate.underage', productView: 'commerce.productViews',
     'commerce.productListAdds': 'commerce.productListAdds', 'subscription.intent': 'subscription.intent',
     'cart.abandon': 'cart.abandon', 'commerce.purchases': 'commerce.purchases',
@@ -10,9 +10,9 @@
   });
   const STEPS = Object.freeze([
     { label: 'Age gate', type: 'ageGate.verified', payload: {} },
-    { label: 'Discover (page and product views)', type: 'productView', payload: { sku: 'VUSE-PRO', name: 'Vuse PRO', category: 'device', price: 9.99, currency: 'EUR' } },
+    { label: 'Simulate product interest (not a page view)', type: 'productView', payload: { sku: 'VUSE-PRO', name: 'Vuse PRO', category: 'device', price: 9.99, currency: 'EUR' } },
     { label: 'Store locator', type: 'storeLocator.search', payload: { query: 'Milano', results: 3 } },
-    { label: 'Register & consent', type: 'login', payload: { firstName: 'Giulia', lastName: 'Rossi', isNew: true } },
+    { label: 'Connect existing customer (no consent change)', type: 'login', payload: {} },
     { label: 'Loyalty join', type: 'loyalty.join', payload: { programme: 'Vuse', tier: 'Member' } },
     { label: 'Add to cart / subscribe', type: 'commerce.productListAdds', payload: { sku: 'VUSE-PRO', name: 'Vuse PRO', price: 9.99, qty: 1, currency: 'EUR' } },
     { label: 'Cart abandon', type: 'cart.abandon', payload: { items: [{ sku: 'VUSE-PRO', name: 'Vuse PRO', price: 9.99, qty: 1 }], total: 9.99 } },
@@ -31,11 +31,16 @@
     if (!text || text.length > 256 || /[\u0000-\u001f\u007f]/.test(text)) throw new Error('Enter an event type of 1-256 characters without control characters.');
     return text;
   }
-  function safeUrl(value, base) {
+  function safeUrl(value, base, external) {
     const fallback = 'https://www.vuse.com/it/it/';
     const resolvedBase = new URL(base || fallback, fallback);
     const url = new URL(value || resolvedBase.href, resolvedBase);
     if (!['http:', 'https:'].includes(url.protocol)) throw new Error('A page URL must use HTTP or HTTPS.');
+    if (url.pathname.startsWith('/profile-viewer/vuse-italia-assets/')) {
+      const page = url.pathname.split('/').pop().replace(/\.html$/, '');
+      url.href = fallback + (page === 'index' ? '' : page);
+    }
+    if (!external && (url.hostname !== 'www.vuse.com' || !url.pathname.startsWith('/it/it/'))) throw new Error('Use a canonical Vuse Italia page URL without customer data.');
     url.search = ''; url.hash = ''; url.username = ''; url.password = '';
     return url.href;
   }
@@ -91,7 +96,7 @@
       }
     }
     if (type === 'loyalty.join') Object.assign(pub, { reward_points_balance: 0, loyalty_tier: String(p.tier || 'Member'), loyalty_programme: String(p.programme || 'Vuse') });
-    if (type === 'velo.view') Object.assign(pub, { brand_name: 'velo', linkUrl: safeUrl(p.href, ctx.url) });
+    if (type === 'velo.view') Object.assign(pub, { brand_name: 'velo', linkUrl: safeUrl(p.href, ctx.url, true) });
     return body;
   }
   function buildCustom(type, ctx, fields) {

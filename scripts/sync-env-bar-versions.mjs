@@ -32,7 +32,10 @@ for (const filename of consumers) {
     after = after.replace(/(<script\b[^>]*\bsrc=["'][^"']*aep-profile-drawer\.js)(?:\?[^"']*)?(["'])/g,
       '$1?v=' + manifest.assets.visitorReset + '$2');
     after = after.replace(/(<script\b[^>]*\bsrc=["'][^"']*(?:vuse-italia-demo|riyadh-air-demo|armcom-demo|armcom-mobile-demo|armcom-ecid-reset|fnb-demo|oldmutual-demo|navigator-global-demo)\.js)(?:\?[^"']*)?(["'])/g,
-      '$1?v=' + manifest.assets.visitorReset + '$2');
+      (_match, prefix, suffix) => {
+        const name = prefix.match(/([^/"]+)\.js$/)?.[1];
+        return prefix + '?v=' + (manifest.pageAssets?.[name] || manifest.assets.visitorReset) + suffix;
+      });
   }
   if (before === after) continue;
   changed.push(path.relative(root, filename));

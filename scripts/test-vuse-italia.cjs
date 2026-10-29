@@ -63,12 +63,12 @@ async function browserTests() {
     browser = await chromium.launch({ headless: true });
     const browserContext = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const requests = [], errors = [];
-    let abortNext = false, rejectNext = false, missingEcid = false;
+    let abortNext = false, rejectNext = false, missingEcid = false, realStorefront = false;
     let currentTarget = target;
     await browserContext.route('**/*', async (route) => {
       const url = new URL(route.request().url());
       if (url.origin !== origin) { await route.fulfill({ body: '', contentType: 'text/javascript' }); return; }
-      if (url.pathname === '/profile-viewer/vuse-italia-assets/index.html') {
+      if (url.pathname === '/profile-viewer/vuse-italia-assets/index.html' && !realStorefront) {
         await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Vuse Italia</title><h1>Vuse Italia</h1><div id="TopRibbon"></div><div id="hero-banner"></div><div id="ContentCardContainer"></div>' }); return;
       }
       if (!url.pathname.startsWith('/api/')) { await route.continue(); return; }
@@ -99,7 +99,25 @@ async function browserTests() {
         tags = { ...value, init(options) { window.vuseTagsOptions = options; return { stitchAfterProfileLookup: async () => window.fixtureStitch !== false }; } };
       } });
       window.fixtureSdkEvents = [];
-      window.alloy = async (command, options) => { if (command === 'sendEvent') window.fixtureSdkEvents.push(options); return {}; };
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent') {
+          window.fixtureSdkEvents.push(options);
+          if (window.fixtureSdkFailure) throw new Error('SDK delivery uncertain');
+        }
+        return {};
+      };
+      window.fixtureProfileWrites = [];
+      let profileApi;
+      Object.defineProperty(window, 'VuseItaliaProfile', { configurable: true, get: () => profileApi, set(value) {
+        profileApi = { ...value, async submit(body) {
+          window.fixtureProfileWrites.push(body);
+          if (window.fixtureProfileFailure) {
+            const error = new Error('Profile delivery uncertain'); error.uncertain = true; throw error;
+          }
+          return { accepted: true, requestId: 'profile-fixture' };
+        } };
+      } });
+      window.VuseItaliaProfile = {};
       window.alloy.getLibraryInfo = () => ({});
       const adapters = [];
       let blocked = false;
@@ -129,11 +147,18 @@ async function browserTests() {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto(origin + '/profile-viewer/vuse-italia-demo.html');
     await page.evaluate(() => window.VuseItaliaLab.ready);
+    await page.evaluate(() => { window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'fixture-datastream' } }); });
     assert.equal(await page.title(), 'Vuse Italia (web)');
     assert.equal(await page.locator('#aepDemoEnvSection').count(), 1);
     assert.equal(await page.locator('[data-demo-env-strip-disclaimer]').count(), 0);
     assert.equal(await page.locator('#profileDrawer').count(), 1);
     await page.evaluate((id) => { window.DemoTagsInjection.isAlloyReady = () => true; window.vuseTagsOptions.onEcidResolved(id); }, ecid);
+    assert.equal(await page.evaluate(() => window.vuseTagsOptions.sendInitialPageView), false);
+    assert.equal(await page.evaluate(() => window.vuseTagsOptions.simulatedAuthentication), true);
+    await page.evaluate(() => { window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({}); });
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.pageView({ page: 'home' })), /same sandbox dataflow/);
+    assert.equal(await page.evaluate(() => window.fixtureSdkEvents.length), 0);
+    await page.evaluate(() => { window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'fixture-datastream' } }); });
     await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
     await page.locator('#vusePresenterLauncher').click();
     assert(await page.locator('#vusePresenter').evaluate((dialog) => dialog.open));
@@ -166,6 +191,10 @@ async function browserTests() {
     assert.equal(await page.evaluate(() => window.fixtureSdkEvents.at(-1).xdm.eventType), 'web.webPageDetails.pageViews');
     await page.waitForTimeout(150);
     assert.equal(requests.length, beforePageView, 'A page view recorded by the Web SDK is not duplicated through the generator');
+    await page.evaluate(() => { window.fixtureSdkFailure = true; });
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.handleInteraction('pageView', { page: 'home' })), /SDK delivery uncertain/);
+    assert.equal(requests.length, beforePageView, 'An uncertain SDK page view is never replayed through the generator');
+    await page.evaluate(() => { window.fixtureSdkFailure = false; });
     await sendFrame('productView', { sku: 'PRO', name: 'Vuse PRO', price: 9.99, qty: 1 });
     await page.waitForFunction(() => document.getElementById('vuseLastAttempt').textContent.includes('productViews'));
     assert(!await page.locator('#vusePayloadPreview').innerText().then((text) => text.includes(profile.email) || text.includes(ecid)));
@@ -187,7 +216,8 @@ async function browserTests() {
     assert.equal(requests.length, count, 'Changed server target is rejected before POST');
     currentTarget = target;
     missingEcid = true;
-    await assert.rejects(page.evaluate((email) => window.VuseItaliaLab.lookup(email, { requireStitch: true }), profile.email), /usable identity/);
+    await page.evaluate((email) => window.VuseItaliaLab.lookup(email, { requireStitch: true }), profile.email);
+    assert.equal(await page.evaluate(() => window.VuseItaliaLab.context().ecid), ecid, 'A profile does not need a stored device ECID; use this browser');
     missingEcid = false;
     await page.evaluate(async () => {
       for (const key of ['vuseAgeGate', 'vuseCart', 'vuseIdentity', 'vuseAbandonSent', 'vuseConsent', 'vuseLoyalty']) sessionStorage.setItem(key, 'old visitor');
@@ -218,6 +248,72 @@ async function browserTests() {
     assert.equal(requests.at(-1).email, undefined);
     await page.evaluate((email) => window.VuseItaliaLab.lookup(email, { requireStitch: true }), profile.email);
     assert.equal(await page.evaluate(() => window.VuseItaliaLab.context().known), true, 'An explicit lookup can stitch again after reset');
+    await assert.rejects(page.evaluate(() => window.VuseItaliaLab.lookup('another@example.com', { requireStitch: true })), /New visitor/);
+    await page.evaluate(() => window.VuseItaliaLab.lookup('giulia.rossi@example.com', { requireStitch: true }));
+    const submitFrame = async (id, payload) => {
+      await page.evaluate((id) => {
+        window.fixtureCustomerResults ||= {};
+        window.addEventListener('message', (event) => {
+          if (event.data?.type === 'customer.result' && event.data.requestId === id) window.fixtureCustomerResults[id] = event.data.payload;
+        });
+        const frame = document.getElementById('vuseDemoSiteFrame');
+        frame.contentWindow.addEventListener('message', (event) => {
+          if (event.data?.type === 'customer.result') parent.postMessage(event.data, location.origin);
+        });
+      }, id);
+      await page.locator('#vuseDemoSiteFrame').evaluate((frame, input) => {
+        frame.contentWindow.eval('parent.postMessage(' + JSON.stringify({ source: 'vuse-site', type: 'customer.submit', requestId: input.id, payload: input.payload }) + ', location.origin)');
+      }, { id, payload });
+      await page.waitForFunction((id) => !!window.fixtureCustomerResults[id], id);
+      return page.evaluate((id) => window.fixtureCustomerResults[id], id);
+    };
+    const customer = { action: 'profile', email: profile.email, details: { firstName: 'Giulia', lastName: 'Rossi', phone: '+391234567890' }, preferences: { vuse: { email: false } } };
+    const result = await submitFrame('profile-1', customer);
+    assert.equal(result.ok, true, result.error);
+    assert.equal(result.identity.lastName, 'Rossi');
+    assert.equal(await page.evaluate(() => window.fixtureProfileWrites.at(-1).ecid), freshEcid);
+    const writeCount = await page.evaluate(() => window.fixtureProfileWrites.length);
+    await submitFrame('profile-1', customer);
+    assert.equal(await page.evaluate(() => window.fixtureProfileWrites.length), writeCount, 'A repeated bridge request receives its cached receipt without another write');
+    await page.evaluate(() => { window.fixtureProfileFailure = true; });
+    const failed = await submitFrame('profile-2', customer);
+    assert.equal(failed.ok, false); assert.equal(failed.uncertain, true);
+    assert(await page.locator('#vuseUncertainDelivery').isVisible());
+    await page.evaluate(() => { sessionStorage.removeItem('vuseUncertainDelivery'); });
+    realStorefront = true;
+    await page.reload();
+    await page.evaluate(() => window.VuseItaliaLab.ready);
+    await page.evaluate((id) => {
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'fixture-datastream' } });
+      window.DemoTagsInjection.isAlloyReady = () => true;
+      window.vuseTagsOptions.onEcidResolved(id);
+      window.EnvBarCompact.closeOverlay({ force: true });
+    }, ecid);
+    const storefront = page.frameLocator('#vuseDemoSiteFrame');
+    await storefront.locator('.batcom-agegate__button-over-age .cmp-button').click();
+    await page.waitForFunction(() => window.fixtureSdkEvents.some((event) => event.xdm.web?.webPageDetails?.URL === 'https://www.vuse.com/it/it/'));
+    await storefront.locator('body').evaluate(() => window.VuseSite.openAccount('register'));
+    const registration = storefront.locator('[data-vs-panel="register"]');
+    for (const [name, value] of Object.entries({ firstName: 'Giulia', lastName: 'Rossi', email: profile.email, dateOfBirth: '1990-05-04' })) {
+      await registration.locator('[name="' + name + '"]').fill(value);
+    }
+    await registration.locator('[data-vs-terms]').check();
+    await registration.locator('button[type="submit"]').click();
+    await page.waitForFunction(() => document.getElementById('vuseEventLog').textContent.includes('userAccount.createProfile / apalmer / accepted'));
+    await registration.waitFor({ state: 'hidden' });
+    assert.equal(await page.evaluate(() => window.fixtureProfileWrites.at(-1).details.lastName), 'Rossi', 'The real registration form reaches the shell profile adapter');
+    assert.equal(await page.evaluate(() => window.fixtureProfileWrites.at(-1).ecid), ecid);
+    const writesBeforeReload = await page.evaluate(() => window.fixtureProfileWrites.length);
+    await page.evaluate(() => { window.fixtureResumeSeen = false; window.addEventListener('message', (event) => {
+      if (event.data?.type === 'customer.submit' && event.data.payload?.action === 'resume') window.fixtureResumeSeen = true;
+    }); });
+    await storefront.locator('body').evaluate(() => location.reload());
+    await page.waitForFunction(() => window.fixtureResumeSeen);
+    await page.waitForFunction(() => {
+      try { return window.VuseItaliaLab.context().known; }
+      catch { return false; }
+    });
+    assert.equal(await page.evaluate(() => window.fixtureProfileWrites.length), writesBeforeReload, 'Returning visitor restores identity without another profile write');
     assert.deepEqual(errors, [], 'No uncaught browser errors with local API fixtures');
     await resetRoundtripTests(browser, origin);
     console.log('Vuse Italia browser contracts: OK');
