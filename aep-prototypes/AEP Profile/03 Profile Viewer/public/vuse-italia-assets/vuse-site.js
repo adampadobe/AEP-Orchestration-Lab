@@ -1,5 +1,5 @@
 /* Site behaviour for the captured Vuse IT pages: age gate, carousels, catalogue, cart, account, store finder.
- * All interactions are local; data capture is relayed to the host frame via postMessage. */
+ * Authentication, payment and fulfilment are simulated; customer writes require a host acknowledgement. */
 (function () {
   'use strict';
 
@@ -16,10 +16,27 @@
 
   function $(sel, root) { return (root || document).querySelector(sel); }
   function $$(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+  var scope = '';
+  var context = null;
+  var pending = null;
+  var gateReady = false;
+  var currentView = '';
+  var rootUrl = 'https://www.vuse.com/it/it/' + (PAGE === 'index' ? '' : PAGE);
   function read(key, fallback) {
-    try { var v = sessionStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+    if (!scope) return fallback;
+    try { var v = localStorage.getItem(scope + key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
   }
-  function write(key, value) { sessionStorage.setItem(key, JSON.stringify(value)); }
+  function write(key, value) {
+    if (!scope) throw new Error('Waiting for the lab visitor context.');
+    localStorage.setItem(scope + key, JSON.stringify(value));
+  }
+  function view(page, title, url) {
+    if (!gateReady || !context || currentView === url) return;
+    currentView = url;
+    post('pageView', { page: page, title: title, url: url });
+  }
+  function rootView() { view(PAGE, document.title, rootUrl); }
+  function ready() { post('site.ready', { page: PAGE, title: document.title, url: rootUrl }); }
   // Shared Lab recent-identifier cache (email-cache.js, same origin): newest first, max 20.
   function recentEmails() {
     try {
@@ -40,6 +57,83 @@
     window.parent.postMessage({ source: 'vuse-site', type: type, payload: payload || {} }, location.origin);
   }
 
+  function submitCustomer(payload) {
+    if (!context) return Promise.reject(new Error('Waiting for the lab visitor context.'));
+    if (pending || read('uncertain', false)) return Promise.reject(new Error('A previous submission is pending or uncertain. Check the lab before retrying; use New visitor only after resolving delivery.'));
+    var email = String(payload.email || '').trim().toLowerCase();
+    var binding = read('boundEmail', '') || (identity() || {}).email;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return Promise.reject(new Error('Please enter a valid email address.'));
+    if (binding && binding.toLowerCase() !== email) return Promise.reject(new Error('Use New visitor in the lab before switching to a different email.'));
+    payload.email = email;
+    var requestId = 'vuse-' + crypto.randomUUID();
+    return new Promise(function (resolve, reject) {
+      write('uncertain', { requestId: requestId });
+      pending = { requestId: requestId, payload: payload, resolve: resolve, reject: reject };
+      pending.timer = setTimeout(function () {
+        if (!pending || pending.requestId !== requestId) return;
+        pending.timedOut = true;
+        pending.reject(new Error('Delivery is uncertain: no acknowledgement received. Do not submit again; check the lab.'));
+        // A late acknowledgement cannot safely complete an already dismissed checkout.
+      }, 30000);
+      window.parent.postMessage({ source: 'vuse-site', type: 'customer.submit', requestId: requestId, payload: payload }, location.origin);
+    });
+  }
+
+  function result(d) {
+    if (!pending || pending.timedOut || d.requestId !== pending.requestId) return;
+    var request = pending;
+    var p = d.payload || {};
+    clearTimeout(request.timer);
+    pending = null;
+    write('uncertain', p.uncertain ? { requestId: d.requestId } : false);
+    if (!p.ok) { request.reject(new Error(p.error || (p.uncertain ? 'Delivery is uncertain. Check the lab before retrying.' : 'The lab rejected this submission.'))); return; }
+    if (p.uncertain) { request.reject(new Error('Delivery is uncertain. Check the lab before retrying.')); return; }
+    var received = p.identity || {};
+    if (!received.email || received.email.toLowerCase() !== request.payload.email) {
+      write('uncertain', { requestId: d.requestId });
+      request.reject(new Error('The lab acknowledgement did not match this customer. Check the lab before retrying.'));
+      return;
+    }
+    var old = identity() || {};
+    var details = Object.assign({}, old.details || {}, request.payload.details || {});
+    var id = {
+      email: received.email.toLowerCase(),
+      firstName: received.firstName || details.firstName || old.firstName || '',
+      lastName: received.lastName || details.lastName || old.lastName || '',
+      details: details,
+      signedIn: true
+    };
+    write('boundEmail', id.email);
+    setIdentity(id);
+    if (request.payload.preferences) write(KEYS.consent, request.payload.preferences);
+    if (request.payload.loyalty) write(KEYS.loyalty, true);
+    request.resolve(p);
+  }
+
+  function submitForm(form, payload, success) {
+    var error = $('[data-vs-error]', form);
+    var buttons = $$('button[type="submit"], [data-vs-save]', form);
+    buttons.forEach(function (b) { b.disabled = true; });
+    if (error) error.textContent = 'Saving through the lab…';
+    return submitCustomer(payload).then(function (p) {
+      if (error) error.textContent = '';
+      success(p);
+    }).catch(function (e) {
+      if (error) error.textContent = e.message;
+    }).finally(function () {
+      buttons.forEach(function (b) { b.disabled = !!read('uncertain', false); });
+    });
+  }
+
+  function logout() {
+    if (pending || read('uncertain', false)) { toast('Resolve the pending or uncertain submission in the lab first.'); return; }
+    var id = identity();
+    if (id) setIdentity(Object.assign({}, id, { signedIn: false }));
+    post('logout', {});
+    closeModal();
+    toast('Signed out. Use New visitor to switch customer.');
+  }
+
   function toast(msg) {
     var t = el('<div class="vs-toast" role="status">' + esc(msg) + '</div>');
     document.body.appendChild(t);
@@ -48,7 +142,7 @@
 
   /* ---------- Modal helpers ---------- */
   function openModal(inner, opts) {
-    closeModal();
+    closeModal(true);
     var b = el('<div class="vs-backdrop" data-vs-modal><div class="vs-modal' + (opts && opts.narrow ? ' vs-modal--narrow' : '') +
       '" role="dialog" aria-modal="true"><button class="vs-close" type="button" aria-label="Close">×</button></div></div>');
     var m = b.firstElementChild;
@@ -58,11 +152,18 @@
     document.documentElement.classList.add('vs-locked');
     return m;
   }
-  function closeModal() {
+  function closeModal(replacing) {
+    var hadModal = !!$('[data-vs-modal]');
     $$('[data-vs-modal]').forEach(function (n) { n.remove(); });
     if (!$('.cmp-batcom-agegate.vs-open')) document.documentElement.classList.remove('vs-locked');
+    if (hadModal && !replacing) {
+      if (drawer && drawer.classList.contains('vs-open')) view('cart', 'Your cart', 'https://www.vuse.com/it/it/checkout/cart');
+      else rootView();
+    }
   }
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(); closeDrawer(); } });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { if ($('[data-vs-modal]')) closeModal(); else closeDrawer(); }
+  });
 
   /* ---------- Identity ---------- */
   function identity() { return read(KEYS.identity, null); }
@@ -217,6 +318,10 @@
 
   /* ---------- Product rail ---------- */
   function initProductRails() {
+    $$('.product-card').forEach(function (card) {
+      var quantity = $('[data-key="quantity"]', card);
+      if (quantity && productFromCard(card).purchasable) quantity.classList.remove('batcom-hide');
+    });
     $$('.cmp-list__carousel-skeleton-wrapper, .batcom-dynamiclist__skeleton-container').forEach(function (n) { n.style.display = 'none'; });
     $$('[data-nc="ProductListCarousel"]').forEach(function (rail) {
       var ul = $('ul.batcom-dynamiclist__products', rail);
@@ -314,6 +419,10 @@
               '<div class="vs-actions"><a href="store-locator.html" class="vs-btn vs-btn--block">Find a store</a></div>') +
         '</div>' +
       '</div>');
+    var productPath;
+    try { productPath = new URL(p.href, 'https://www.vuse.com').pathname; } catch (e) { productPath = '/it/it/products/' + encodeURIComponent(p.sku); }
+    if (productPath.indexOf('/it/it/products/') !== 0) productPath = '/it/it/products/' + encodeURIComponent(p.sku);
+    view('product', p.name, 'https://www.vuse.com' + productPath);
     $$('[data-vs-strength] .vs-chip, [data-vs-qty] .vs-chip', m).forEach(function (c) {
       c.addEventListener('click', function () {
         $$('.vs-chip', c.parentNode).forEach(function (x) { x.setAttribute('aria-pressed', String(x === c)); });
@@ -326,7 +435,7 @@
       var sub = $('[data-vs-subscribe]', m);
       addToCart(p, qty);
       if (sub && sub.checked) post('subscription.intent', { sku: p.sku, name: p.name, frequency: 'monthly', price: p.price, currency: CURRENCY });
-      closeModal();
+      closeModal(true);
       openDrawer();
     });
   }
@@ -355,6 +464,7 @@
   }
   var drawer = null;
   function openDrawer() {
+    view('cart', 'Your cart', 'https://www.vuse.com/it/it/checkout/cart');
     if (!drawer) {
       drawer = el('<aside class="vs-drawer" aria-label="Cart"><div class="vs-drawer__head"><h3>Your cart</h3>' +
         '<button class="vs-close" style="position:static" type="button" aria-label="Close">×</button></div>' +
@@ -367,7 +477,7 @@
     var foot = $('.vs-drawer__foot', drawer);
     body.innerHTML = items.length ? items.map(function (i) {
       return '<div class="vs-line">' + (i.image ? '<img src="' + esc(i.image) + '" alt="">' : '<span></span>') +
-        '<div><strong>' + esc(i.name) + '</strong><small>Qty ' + i.qty + '</small>' +
+        '<div><strong>' + esc(i.name) + '</strong><label>Quantity <input type="number" min="1" max="99" value="' + i.qty + '" data-vs-line-qty="' + esc(i.sku) + '" aria-label="Quantity for ' + esc(i.name) + '"></label>' +
         '<button type="button" class="vs-link" data-vs-remove="' + esc(i.sku) + '" style="font-size:13px">Remove</button></div>' +
         '<strong>' + money((i.price || 0) * i.qty) + '</strong></div>';
     }).join('') : '<p class="vs-empty">Your cart is empty.</p>';
@@ -381,6 +491,19 @@
         renderBasket();
         openDrawer();
       });
+      $$('[data-vs-line-qty]', body).forEach(function (input) {
+        input.addEventListener('change', function () {
+          var qty = Number(input.value);
+          var lines = cart();
+          var line = lines.filter(function (i) { return i.sku === input.getAttribute('data-vs-line-qty'); })[0];
+          if (!Number.isInteger(qty) || qty < 1 || qty > 99) { toast('Choose a quantity between 1 and 99.'); input.value = line ? line.qty : 1; return; }
+          if (line) line.qty = qty;
+          write(KEYS.cart, lines);
+          renderBasket();
+          if (line) $(':scope > strong', input.closest('.vs-line')).textContent = money((line.price || 0) * qty);
+          $('.vs-total span:last-child', foot).textContent = money(cartTotal(lines));
+        });
+      });
     });
     var co = $('[data-vs-checkout]', foot);
     co && co.addEventListener('click', function () { drawer.classList.remove('vs-open'); openCheckout(); });
@@ -389,7 +512,7 @@
   function closeDrawer() {
     if (!drawer || !drawer.classList.contains('vs-open')) return;
     drawer.classList.remove('vs-open');
-    abandonCart();
+    rootView();
   }
   function abandonCart() {
     var items = cart();
@@ -401,38 +524,88 @@
   function openCheckout() {
     var id = identity() || {};
     var items = cart();
+    if (!items.length) { toast('Add a product before checking out.'); return; }
     var m = openModal(
       '<h2>Checkout</h2>' +
+      '<p class="vs-note">Demo checkout: payment and fulfilment are simulated. No payment details are collected and no email is sent.</p>' +
       '<form class="vs-form" novalidate>' +
-        '<div class="vs-row"><div class="vs-field"><label>First name</label><input name="firstName" required value="' + esc(id.firstName || '') + '"></div>' +
-        '<div class="vs-field"><label>Last name</label><input name="lastName" required value="' + esc(id.lastName || '') + '"></div></div>' +
+        customerFields(id, true) +
         '<div class="vs-field"><label>Email</label><input name="email" type="email" required value="' + esc(id.email || '') + '"></div>' +
-        '<div class="vs-field"><label>Address</label><input name="address" required value="' + (id.signedIn ? 'Via Torino 21' : '') + '"></div>' +
-        '<div class="vs-row"><div class="vs-field"><label>City</label><input name="city" required value="' + (id.signedIn ? 'Milano' : '') + '"></div>' +
-        '<div class="vs-field"><label>Postcode</label><input name="zip" required value="' + (id.signedIn ? '20123' : '') + '"></div></div>' +
         '<div class="vs-total" style="margin-top:8px"><span>Total</span><span>' + money(cartTotal(items)) + '</span></div>' +
         '<div class="vs-error" data-vs-error></div>' +
         '<button class="vs-btn vs-btn--block" type="submit">Place order</button>' +
       '</form>', { narrow: true });
+    view('checkout', 'Checkout', 'https://www.vuse.com/it/it/checkout');
     $('form', m).addEventListener('submit', function (e) {
       e.preventDefault();
       var f = e.target;
-      var missing = $$('input[required]', f).filter(function (i) { return !i.value.trim(); });
-      if (missing.length) { $('[data-vs-error]', m).textContent = 'Please complete all required fields.'; return; }
-      var orderId = 'VIT' + Date.now().toString().slice(-8);
-      post('commerce.purchases', { items: items, total: cartTotal(items), currency: CURRENCY, orderId: orderId, email: f.email.value.trim() });
-      write(KEYS.cart, []);
-      write(KEYS.abandon, true);
-      renderBasket();
-      m.innerHTML = '<button class="vs-close" type="button" aria-label="Close">×</button>' +
-        '<h2>Thank you for your order</h2><p>Your order number is <strong>' + orderId + '</strong>.</p>' +
-        '<p>We have sent a confirmation to ' + esc(f.email.value.trim()) + '.</p>' +
-        '<div class="vs-actions" style="margin-top:20px"><button type="button" class="vs-btn vs-btn--block" data-vs-done>Continue shopping</button></div>';
-      $('[data-vs-done]', m).addEventListener('click', closeModal);
+      if (!validForm(f)) return;
+      var orderId = 'VIT-' + crypto.randomUUID();
+      submitForm(f, { action: 'checkout', email: field(f, 'email'), details: customerDetails(f), items: items, total: cartTotal(items), currency: CURRENCY, orderId: orderId }, function () {
+        write(KEYS.cart, []);
+        write(KEYS.abandon, true);
+        renderBasket();
+        m.innerHTML = '<button class="vs-close" type="button" aria-label="Close">×</button>' +
+          '<h2>Demo order confirmed</h2><p>Your simulated order number is <strong>' + esc(orderId) + '</strong>.</p>' +
+          '<p>Payment and fulfilment are simulated. No charge, shipment or confirmation email has been made.</p>' +
+          '<div class="vs-actions" style="margin-top:20px"><button type="button" class="vs-btn vs-btn--block" data-vs-done>Continue shopping</button></div>';
+        view('confirmation', 'Demo order confirmed', 'https://www.vuse.com/it/it/checkout/confirmation');
+        $('[data-vs-done]', m).addEventListener('click', function () { closeModal(); });
+      });
     });
   }
 
   /* ---------- Account ---------- */
+  function field(form, name) { var input = form.elements.namedItem(name); return input ? input.value.trim() : ''; }
+  function customerFields(id, shippingRequired) {
+    var d = id.details || {};
+    var a = d.address || {};
+    return [
+      ['firstName', 'First name', d.firstName || id.firstName, 'text', true],
+      ['lastName', 'Last name', d.lastName || id.lastName, 'text', true],
+      ['dateOfBirth', 'Date of birth', d.dateOfBirth, 'date', !shippingRequired],
+      ['phone', 'Phone', d.phone, 'tel', false],
+      ['street1', 'Street address', a.street1, 'text', shippingRequired],
+      ['city', 'City', a.city, 'text', shippingRequired],
+      ['postalCode', 'Postcode', a.postalCode, 'text', shippingRequired],
+      ['countryCode', 'Country code (2 letters)', a.countryCode, 'text', shippingRequired]
+    ].map(function (f) {
+      return '<div class="vs-field"><label>' + f[1] + '<input name="' + f[0] + '" type="' + f[3] + '" value="' + esc(f[2] || '') + '"' + (f[4] ? ' required' : '') + (f[0] === 'countryCode' ? ' maxlength="2" pattern="[A-Za-z]{2}"' : '') + '></label></div>';
+    }).join('');
+  }
+  function customerDetails(form) {
+    var d = {};
+    ['firstName', 'lastName', 'dateOfBirth', 'phone'].forEach(function (name) { if (field(form, name)) d[name] = field(form, name); });
+    var address = {};
+    ['street1', 'city', 'postalCode', 'countryCode'].forEach(function (name) {
+      var value = field(form, name);
+      if (value) address[name] = name === 'countryCode' ? value.toUpperCase() : value;
+    });
+    if (Object.keys(address).length) d.address = address;
+    return d;
+  }
+  function adult(dob) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) return false;
+    var birth = new Date(dob + 'T00:00:00Z');
+    if (!Number.isFinite(birth.getTime()) || birth.toISOString().slice(0, 10) !== dob) return false;
+    var today = new Date();
+    var age = today.getFullYear() - birth.getUTCFullYear();
+    if (today.getMonth() < birth.getUTCMonth() || (today.getMonth() === birth.getUTCMonth() && today.getDate() < birth.getUTCDate())) age--;
+    return age >= 18;
+  }
+  function validForm(form) {
+    var error = $('[data-vs-error]', form);
+    if (!form.checkValidity() || $$('input[required]', form).some(function (i) { return !i.value.trim(); })) {
+      error.textContent = 'Please complete all required fields with valid values.'; return false;
+    }
+    if (field(form, 'email') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(field(form, 'email'))) {
+      error.textContent = 'Please enter a valid email address.'; return false;
+    }
+    if (field(form, 'dateOfBirth') && !adult(field(form, 'dateOfBirth'))) {
+      error.textContent = 'You must be at least 18 years old.'; return false;
+    }
+    return true;
+  }
   var BRANDS = [['vuse', 'Vuse'], ['velo', 'Velo'], ['glo', 'glo']];
   var CHANNELS = [['email', 'Email'], ['sms', 'SMS'], ['whatsapp', 'WhatsApp']];
   function consentTable(state) {
@@ -455,25 +628,22 @@
     return out;
   }
 
-  function openAccount() {
+  function openAccount(initialTab) {
     var id = identity();
     if (id && id.signedIn) return openProfile(id);
     var m = openModal(
+      '<p class="vs-note">Synthetic customers only. Authentication is simulated; do not enter a real password. Customer details are saved through the lab.</p>' +
       '<div class="vs-tabs" role="tablist"><button class="vs-tab" role="tab" aria-selected="true" data-vs-tab="signin">Sign in</button>' +
       '<button class="vs-tab" role="tab" aria-selected="false" data-vs-tab="register">Create account</button></div>' +
       '<form class="vs-form" data-vs-panel="signin" novalidate>' +
         '<div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="off" list="vsRecentEmails" required>' +
         '<datalist id="vsRecentEmails">' + recentEmails().map(function (e) { return '<option value="' + esc(e) + '">'; }).join('') + '</datalist></div>' +
-        '<div class="vs-field"><label>Password</label><input name="password" type="password" autocomplete="current-password" required></div>' +
         '<div class="vs-error" data-vs-error></div>' +
         '<button class="vs-btn vs-btn--block" type="submit">Sign in</button>' +
       '</form>' +
       '<form class="vs-form" data-vs-panel="register" hidden novalidate>' +
-        '<div class="vs-row"><div class="vs-field"><label>First name</label><input name="firstName" autocomplete="given-name" required></div>' +
-        '<div class="vs-field"><label>Last name</label><input name="lastName" autocomplete="family-name" required></div></div>' +
-        '<div class="vs-row"><div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>' +
-        '<div class="vs-field"><label>Date of birth</label><input name="dob" type="date" required></div></div>' +
-        '<div class="vs-field"><label>Password</label><input name="password" type="password" autocomplete="new-password" required></div>' +
+        customerFields({}, false) +
+        '<div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="email" required></div>' +
         '<h3 style="margin-top:8px">Stay in touch</h3>' +
         '<p class="vs-note" style="margin-top:0">Choose how BAT Italia brands may contact you with news and offers.</p>' +
         consentTable({}) +
@@ -487,49 +657,27 @@
         var which = t.getAttribute('data-vs-tab');
         $$('[data-vs-tab]', m).forEach(function (x) { x.setAttribute('aria-selected', String(x === t)); });
         $$('[data-vs-panel]', m).forEach(function (p) { p.hidden = p.getAttribute('data-vs-panel') !== which; });
+        view('account-' + which, which === 'register' ? 'Create account' : 'Sign in', 'https://www.vuse.com/it/it/customer/account/' + (which === 'register' ? 'create' : 'login'));
       });
     });
+    $('[data-vs-tab="' + (initialTab === 'register' ? 'register' : 'signin') + '"]', m).click();
     $('[data-vs-panel="signin"]', m).addEventListener('submit', function (e) {
       e.preventDefault();
       var f = e.target;
-      var email = f.email.value.trim();
-      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !f.password.value) {
-        $('[data-vs-error]', f).textContent = 'Please enter a valid email and password.';
-        return;
-      }
-      var prev = identity() || {};
-      var first = prev.email === email && prev.firstName ? prev.firstName : email.split('@')[0].split(/[._+]/)[0];
-      first = first.charAt(0).toUpperCase() + first.slice(1);
-      var last = prev.email === email ? (prev.lastName || '') : '';
-      setIdentity({ email: email, firstName: first, lastName: last, signedIn: true });
-      post('login', { email: email, firstName: first, lastName: last, isNew: false });
-      closeModal();
-      toast('Welcome back, ' + first);
+      if (!validForm(f)) return;
+      submitForm(f, { action: 'login', email: field(f, 'email') }, function () {
+        closeModal();
+        toast('Simulated sign in complete');
+      });
     });
     $('[data-vs-panel="register"]', m).addEventListener('submit', function (e) {
       e.preventDefault();
       var f = e.target;
-      var err = $('[data-vs-error]', f);
-      var email = f.email.value.trim();
-      if (!f.firstName.value.trim() || !f.lastName.value.trim() || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !f.password.value || !f.dob.value) {
-        err.textContent = 'Please complete all required fields.';
-        return;
-      }
-      var age = (Date.now() - new Date(f.dob.value).getTime()) / (365.25 * 864e5);
-      if (!(age >= 18)) { err.textContent = 'You must be at least 18 years old to register.'; return; }
-      if (!$('[data-vs-terms]', f).checked) { err.textContent = 'Please accept the Terms and Conditions.'; return; }
-      var id = { email: email, firstName: f.firstName.value.trim(), lastName: f.lastName.value.trim(), dob: f.dob.value, signedIn: true };
-      setIdentity(id);
-      post('login', { email: id.email, firstName: id.firstName, lastName: id.lastName, dob: id.dob, isNew: true });
-      var consent = readConsent(f);
-      write(KEYS.consent, consent);
-      post('consent.preferences', consent);
-      if ($('[data-vs-loyalty]', f).checked) {
-        write(KEYS.loyalty, true);
-        post('loyalty.join', { programme: 'Vuse Rewards', tier: 'Member' });
-      }
-      closeModal();
-      toast('Welcome to Vuse, ' + id.firstName);
+      if (!validForm(f)) return;
+      submitForm(f, { action: 'register', email: field(f, 'email'), details: customerDetails(f), preferences: readConsent(f), loyalty: $('[data-vs-loyalty]', f).checked }, function () {
+        closeModal();
+        toast('Demo account saved');
+      });
     });
   }
 
@@ -537,37 +685,28 @@
     var joined = read(KEYS.loyalty, false);
     var m = openModal(
       '<h2>Hi ' + esc(id.firstName) + '</h2><p class="vs-note" style="margin-top:0">' + esc(id.email) + '</p>' +
+      '<form class="vs-form" novalidate>' + customerFields(id, false) +
       '<h3 style="margin-top:20px">Communication preferences</h3>' + consentTable(read(KEYS.consent, {})) +
       (joined ? '<p><strong>Vuse Rewards</strong> · Member</p>'
         : '<label class="vs-loyalty"><input type="checkbox" data-vs-loyalty><span><strong>Join Vuse Rewards</strong>Earn points on every purchase and unlock exclusive offers.</span></label>') +
-      '<div class="vs-actions"><button type="button" class="vs-btn vs-btn--block" data-vs-save>Save preferences</button>' +
-      '<button type="button" class="vs-btn vs-btn--ghost vs-btn--block" data-vs-signout>Sign out</button></div>', { narrow: true });
-    $('[data-vs-save]', m).addEventListener('click', function () {
-      var consent = readConsent(m);
-      write(KEYS.consent, consent);
-      post('consent.preferences', consent);
+      '<div class="vs-error" data-vs-error></div>' +
+      '<div class="vs-actions"><button type="submit" class="vs-btn vs-btn--block" data-vs-save>Save profile and preferences</button>' +
+      '<button type="button" class="vs-btn vs-btn--ghost vs-btn--block" data-vs-signout>Sign out</button></div></form>', { narrow: true });
+    view('account', 'My account', 'https://www.vuse.com/it/it/customer/account');
+    $('form', m).addEventListener('submit', function (e) {
+      e.preventDefault();
+      var f = e.target;
+      if (!validForm(f)) return;
       var l = $('[data-vs-loyalty]', m);
-      if (l && l.checked) { write(KEYS.loyalty, true); post('loyalty.join', { programme: 'Vuse Rewards', tier: 'Member' }); }
-      closeModal();
-      toast('Your preferences have been saved');
+      submitForm(f, { action: 'profile', email: id.email, details: customerDetails(f), preferences: readConsent(f), loyalty: !!(l && l.checked) }, function () {
+        closeModal();
+        toast('Your profile and preferences have been saved');
+      });
     });
-    $('[data-vs-signout]', m).addEventListener('click', function () {
-      setIdentity(Object.assign({}, id, { signedIn: false }));
-      closeModal();
-    });
+    $('[data-vs-signout]', m).addEventListener('click', logout);
   }
 
   /* ---------- Store locator ---------- */
-  var STORES = [
-    ['Tabaccheria Duomo', 'Via Torino 2', '20123 Milano', 'Mon–Sat 7:30–20:00'],
-    ['Tabacchi Brera 12', 'Via Fiori Chiari 12', '20121 Milano', 'Mon–Sun 8:00–21:00'],
-    ['Rivendita n. 148 Porta Romana', 'Corso di Porta Romana 74', '20122 Milano', 'Mon–Sat 7:00–19:30'],
-    ['Tabaccheria Navigli', 'Ripa di Porta Ticinese 33', '20143 Milano', 'Mon–Sun 8:00–22:00'],
-    ['Tabacchi Isola', 'Via Borsieri 9', '20159 Milano', 'Mon–Sat 7:30–19:30'],
-    ['Tabaccheria Centrale FS', 'Piazza Duca d’Aosta 1', '20124 Milano', 'Mon–Sun 6:00–22:00'],
-    ['Tabacchi Città Studi', 'Via Pascoli 41', '20133 Milano', 'Mon–Sat 7:00–20:00'],
-    ['Rivendita n. 52 CityLife', 'Piazza Tre Torri 1', '20145 Milano', 'Mon–Sun 10:00–21:00']
-  ];
   function initStoreLocator() {
     var root = $('.batcom-storelocator');
     if (!root) return;
@@ -576,28 +715,36 @@
     var map = $('.batcom-storelocator--map', root);
     if (map) map.style.display = 'none';
     if (!input || !listing) return;
-    function search(q) {
-      q = (q || '').trim();
-      if (!q) return;
-      var city = /^\d{5}$/.test(q) ? 'Milano' : q.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
-      var results = STORES.map(function (s, i) {
-        var km = (0.3 + i * 0.6).toFixed(1);
-        return { name: s[0], address: s[1], postcode: s[2].replace('Milano', city), hours: s[3], distanceKm: parseFloat(km) };
-      });
-      listing.innerHTML = '<ul class="vs-stores">' + results.map(function (r) {
-        return '<li><strong>' + esc(r.name) + '</strong><span>' + esc(r.address) + ', ' + esc(r.postcode) + '</span>' +
-          '<span>' + esc(r.hours) + ' · ' + r.distanceKm + ' km</span><a href="#" data-vs-noop>Get directions</a></li>';
-      }).join('') + '</ul>';
-      post('storeLocator.search', { query: q, results: results.length, nearest: results[0].name });
+    function search() {
+      listing.innerHTML = '<p class="vs-note" role="status">Live store search and geolocation are not connected in this demo. No retailer results or distances are available.</p>';
     }
+    search();
     input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); search(input.value); } });
     var go = $('.mapboxgl-ctrl-geocoder--icon-search', root);
     go && go.addEventListener('click', function () { search(input.value); });
     var loc = $('.batcom-storelocator--getloc', root);
-    loc && loc.addEventListener('click', function (e) { e.preventDefault(); input.value = 'Milano'; search('Milano'); });
+    loc && loc.addEventListener('click', function (e) { e.preventDefault(); search(); });
   }
 
   /* ---------- Accordions, nav, forms ---------- */
+  function openSearch(initialQuery) {
+    var products = $$('.product-card').map(productFromCard).filter(function (p, index, list) {
+      return list.findIndex(function (other) { return other.sku === p.sku; }) === index;
+    });
+    var m = openModal('<h2>Search captured products</h2><form class="vs-form"><label>Search <input name="query" type="search" value="' + esc(initialQuery || '') + '"></label><button type="submit" class="vs-btn">Search</button></form><div data-vs-results aria-live="polite"></div>');
+    function search() {
+      var query = field($('form', m), 'query').toLowerCase();
+      var matches = products.filter(function (p) { return p.name.toLowerCase().indexOf(query) !== -1; });
+      var results = $('[data-vs-results]', m);
+      results.innerHTML = matches.length ? matches.map(function (p, index) {
+        return '<p><button class="vs-link" type="button" data-vs-result="' + index + '">' + esc(p.name) + '</button></p>';
+      }).join('') : '<p>No matching products in this captured page.</p>';
+      $$('[data-vs-result]', results).forEach(function (b) { b.addEventListener('click', function () { openProduct(matches[Number(b.getAttribute('data-vs-result'))]); }); });
+    }
+    $('form', m).addEventListener('submit', function (e) { e.preventDefault(); search(); });
+    search();
+    view('search', 'Search captured products', 'https://www.vuse.com/it/it/search');
+  }
   function initAccordions() {
     $$('.cmp-accordion__button').forEach(function (b) {
       b.addEventListener('click', function (e) {
@@ -623,17 +770,27 @@
     });
     $$('form').forEach(function (f) {
       if (f.closest('[data-vs-modal]')) return;
-      f.addEventListener('submit', function (e) { e.preventDefault(); });
+      f.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var input = $('input[name="fulltext"]', f);
+        if (input) openSearch(input.value);
+        else toast('This captured form is not connected to a live service.');
+      });
     });
   }
 
   /* ---------- Click routing ---------- */
   function onClick(e) {
+    if (!context || !gateReady) {
+      if (!e.target.closest('.cmp-batcom-agegate')) { e.preventDefault(); toast('Complete the age check after the lab visitor is ready.'); }
+      return;
+    }
     if (e.target.closest('[data-vs-modal], .vs-drawer, .cmp-batcom-agegate')) {
       if (e.target.closest('[data-vs-noop]')) e.preventDefault();
       return;
     }
     if (e.target.closest('.batcom-bff-minibasket')) { e.preventDefault(); openDrawer(); return; }
+    if (e.target.closest('.cmp-search__toggle')) { e.preventDefault(); openSearch(); return; }
     if (e.target.closest('a.batcom-bff-accounticon__icon')) { e.preventDefault(); openAccount(); return; }
 
     var card = e.target.closest('.product-card');
@@ -642,10 +799,17 @@
       if (buy) {
         e.preventDefault();
         var p = productFromCard(card);
-        if (p.purchasable) { addToCart(p, 1); openDrawer(); } else openProduct(p);
+        var quantity = Number(($('.product-card__buy-quantityInput', card) || {}).value) || 1;
+        if (p.purchasable) { addToCart(p, quantity); openDrawer(); } else openProduct(p);
         return;
       }
-      if (e.target.closest('.product-card__buy-quantityBtn')) { e.preventDefault(); return; }
+      var quantityButton = e.target.closest('.product-card__buy-quantityBtn');
+      if (quantityButton) {
+        e.preventDefault();
+        var input = $('.product-card__buy-quantityInput', card);
+        if (input) input.value = Math.max(1, Math.min(99, (Number(input.value) || 1) + (quantityButton.getAttribute('data-key') === 'increase-amount' ? 1 : -1)));
+        return;
+      }
       if (e.target.closest('a, .product-card__image, .product-card__name')) { e.preventDefault(); openProduct(productFromCard(card)); return; }
     }
 
@@ -655,13 +819,17 @@
     var href = a.getAttribute('href') || '';
     if (vh) {
       e.preventDefault();
-      if (/velo/i.test(vh)) { post('velo.view', { href: vh }); return; }
+      if (/velo/i.test(vh)) { toast('The Velo storefront is not included in this captured demo.'); return; }
       if (/\/products\//.test(vh)) { openProduct(productFromHref(vh, a.textContent.trim())); return; }
-      if (/customer\/account|login|register/.test(vh)) { openAccount(); return; }
+      if (/logout|signout/.test(vh)) { logout(); return; }
+      if (/customer\/account|login|register/.test(vh)) { openAccount(/register|account\/create/.test(vh) ? 'register' : 'signin'); return; }
       if (/checkout\/cart/.test(vh)) { openDrawer(); return; }
+      toast('This destination is not included in this captured demo.');
       return;
     }
-    if (href === '#' || /^https?:/i.test(href) || /^(mailto|tel):/i.test(href)) e.preventDefault();
+    if (/logout|signout/.test(href)) { e.preventDefault(); logout(); return; }
+    if (/customer\/account|login|register/.test(href)) { e.preventDefault(); openAccount(/register|account\/create/.test(href) ? 'register' : 'signin'); return; }
+    if (href === '#' || /^https?:/i.test(href) || /^(mailto|tel):/i.test(href)) { e.preventDefault(); toast('This link is not connected to a live service in the demo.'); }
   }
 
   /* ---------- Host bridge ---------- */
@@ -669,15 +837,34 @@
     if (e.origin !== location.origin || e.source !== window.parent) return;
     var d = e.data || {};
     if (d.source !== 'vuse-shell') return;
-    if (d.type === 'identity' && d.payload) {
-      var p = d.payload;
-      setIdentity({ email: p.email, firstName: p.firstName, lastName: p.lastName || '', signedIn: p.signedIn !== false });
+    if (d.type === 'site.requestContext') {
+      ready();
+    } else if (d.type === 'site.context' && d.payload) {
+      var c = d.payload;
+      if (typeof c.sandbox !== 'string' || typeof c.visitorKey !== 'string' || !c.sandbox || !c.visitorKey) return;
+      var nextScope = 'vuseShopper:' + c.sandbox + ':' + c.visitorKey + ':';
+      if (context && nextScope === scope) return;
+      if (context) { location.reload(); return; }
+      context = c;
+      scope = nextScope;
+      renderAccount();
+      renderBasket();
+      var stored = identity();
+      if (stored && stored.signedIn) {
+        setIdentity(Object.assign({}, stored, { signedIn: false }));
+        submitCustomer({ action: 'resume', email: stored.email }).catch(function (error) { toast(error.message); });
+      }
+      initAgeGate().then(function () { gateReady = true; rootView(); });
+    } else if (d.type === 'customer.result') {
+      result(d);
     } else if (d.type === 'reset') {
       resetAll();
     }
   }
   function resetAll() {
-    Object.keys(sessionStorage).forEach(function (k) { if (k.indexOf('vuse') === 0) sessionStorage.removeItem(k); });
+    if (pending) { clearTimeout(pending.timer); pending.reject(new Error('Visitor reset.')); pending = null; }
+    Object.keys(localStorage).forEach(function (k) { if (k.indexOf('vuseShopper:') === 0) localStorage.removeItem(k); });
+    Object.keys(KEYS).forEach(function (key) { sessionStorage.removeItem(KEYS[key]); });
     location.reload();
   }
 
@@ -691,7 +878,6 @@
   function boot() {
     document.addEventListener('click', onClick);
     window.addEventListener('message', onMessage);
-    window.addEventListener('pagehide', abandonCart);
     initNav();
     initAccordions();
     initCarousels();
@@ -699,9 +885,7 @@
     initStoreLocator();
     renderAccount();
     renderBasket();
-    initAgeGate().then(function () {
-      post('pageView', { page: PAGE, title: document.title, url: location.href });
-    });
+    ready();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();

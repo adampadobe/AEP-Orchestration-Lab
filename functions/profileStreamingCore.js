@@ -309,8 +309,12 @@ function deepMergeStreamingConsentsPatch(base, patch) {
 }
 
 /** Root-level consents/optInOut: reuse tenant object when present so consent updates match the form (email-primary identity unchanged). */
-function resolveStreamingConsentsOptInOut(tenantPayload, email) {
+function resolveStreamingConsentsOptInOut(tenantPayload, email, consentMode) {
   const tenant = tenantPayload && typeof tenantPayload === 'object' ? tenantPayload : {};
+  // Safe snapshot callers preserve explicit fragments; absence means unknown, never opt-in.
+  if (consentMode === 'preserve') {
+    return {};
+  }
   const defaults = buildDefaultProfileStreamingConsentFields(email);
   if (tenant.consents != null && typeof tenant.consents === 'object') {
     const optInOut =
@@ -344,9 +348,9 @@ function mirrorRootTestProfileFields(target) {
   }
 }
 
-function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, rootProfileFields) {
+function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, rootProfileFields, consentMode) {
   const key = (xdmKey && String(xdmKey).trim()) || '_demoemea';
-  const { consents, optInOut } = resolveStreamingConsentsOptInOut(tenantPayload, email);
+  const consentFields = resolveStreamingConsentsOptInOut(tenantPayload, email, consentMode);
   const roots = rootProfileFields && typeof rootProfileFields === 'object' ? rootProfileFields : {};
   const hasEcid = ecid != null && String(ecid).trim().length >= 10;
   const entity = {
@@ -354,17 +358,16 @@ function buildProfileXdmEntityForStream(tenantPayload, email, ecid, xdmKey, root
       Email: [{ id: email, primary: true }],
       ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
     },
-    consents,
-    optInOut,
+    ...consentFields,
     ...roots,
   };
   entity[key] = tenantPayload;
   // Match Profile Viewer server.js: mirror tenant under lowercase `demoemea` when using `_demoemea`
   // (some Data Prep / HTTP flows expect this key; omit only if your schema rejects it).
-  if (key === '_demoemea') {
+  if (key === '_demoemea' && consentMode !== 'preserve') {
     entity.demoemea = tenantPayload;
   }
-  mirrorRootTestProfileFields(entity);
+  if (consentMode !== 'preserve') mirrorRootTestProfileFields(entity);
   return entity;
 }
 
@@ -407,13 +410,13 @@ function buildProfileStreamPayload(
   orgId,
   sourceLabel,
   rootProfileFields,
-  { useEnvelope, datasetId, schemaId }
+  { useEnvelope, datasetId, schemaId, consentMode }
 ) {
   const roots = rootProfileFields && typeof rootProfileFields === 'object' ? rootProfileFields : {};
   const hasRoots = Object.keys(roots).length > 0;
   if (!useEnvelope) {
     const k = (xdmKey && String(xdmKey).trim()) || '_demoemea';
-    const { consents, optInOut } = resolveStreamingConsentsOptInOut(demoemeaTenantObject, email);
+    const consentFields = resolveStreamingConsentsOptInOut(demoemeaTenantObject, email, consentMode);
     const hasEcid = ecid != null && String(ecid).trim().length >= 10;
     const payload = {
       identityMap: {
@@ -421,11 +424,10 @@ function buildProfileStreamPayload(
         ...(hasEcid ? { ECID: [{ id: String(ecid).trim(), primary: false }] } : {}),
       },
       [k]: demoemeaTenantObject,
-      consents,
-      optInOut,
+      ...consentFields,
       ...(hasRoots ? roots : {}),
     };
-    mirrorRootTestProfileFields(payload);
+    if (consentMode !== 'preserve') mirrorRootTestProfileFields(payload);
     return {
       payload,
       format: 'bare',
@@ -436,7 +438,8 @@ function buildProfileStreamPayload(
     email,
     ecid,
     xdmKey,
-    hasRoots ? roots : undefined
+    hasRoots ? roots : undefined,
+    consentMode
   );
   return {
     payload: buildProfileStreamingEnvelope(xdmEntity, orgId, sourceLabel, datasetId, schemaId),

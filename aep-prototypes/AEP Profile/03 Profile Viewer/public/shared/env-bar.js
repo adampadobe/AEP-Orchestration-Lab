@@ -15,7 +15,7 @@
 
   /** Fallback when env-bar-versions.json cannot be fetched. Keep in sync with JSON file. */
   var DEFAULT_VERSIONS = {
-    manifestVersion: '20261029-new-visitor',
+    manifestVersion: '20261029-customer-evolution',
     moduleVersion: '1.1.0',
     assets: {
       bundleCss: '20261029-new-visitor',
@@ -31,7 +31,7 @@
       bootstrap: '20260720-global-lab-console',
       prefsLocal: '20260721-linkedin-prefs-loop-fix',
       prefsSync: '20260616-tags-incognito-load',
-      tagsInjection: '20261029-new-visitor',
+      tagsInjection: '20261029-page-view-owner',
       aepDemoEnvBar: '20260720-global-lab-console',
       siteCloneBcEnv: '20260721-cross-tab-bc-restore',
       siteCloneBcChrome: '20260614-modal-dock-parity',

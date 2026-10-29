@@ -1837,12 +1837,14 @@
         }
         if (infoEcidEl) infoEcidEl.textContent = ecid;
         persistLastResolvedEcid(ecid);
-        await sendDemoemeaWebPageViewToEdge(alloyFn, {
-          phase: 'post-ecid-anonymous',
-          ecid: ecid,
-        });
+        if (cfg.sendInitialPageView !== false) {
+          await sendDemoemeaWebPageViewToEdge(alloyFn, {
+            phase: 'post-ecid-anonymous',
+            ecid: ecid,
+          });
+        }
         if (revision !== visitorRevision || (reset && reset.isBlocked())) return '';
-        void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
+        if (cfg.sendInitialPageView !== false) void mirrorAnonymousPageViewToGeneratorIfConfigured(ecid);
         if (global.DemoProfileDrawer && typeof global.DemoProfileDrawer.patchLastProfileOrUpdate === 'function') {
           global.DemoProfileDrawer.patchLastProfileOrUpdate({
             ecid: ecid,
@@ -2013,8 +2015,8 @@
             ...(labContext ? xdmDemoemeaTenantForEdge(ecid) : {}),
             eventType: identityEventType,
             identityMap: {
-              ECID: [{ id: ecid, authenticatedState: 'authenticated', primary: true }],
-              Email: [{ id: email, authenticatedState: 'authenticated', primary: false }],
+              ECID: [{ id: ecid, authenticatedState: cfg.simulatedAuthentication === true ? 'ambiguous' : 'authenticated', primary: true }],
+              Email: [{ id: email, authenticatedState: cfg.simulatedAuthentication === true ? 'ambiguous' : 'authenticated', primary: false }],
             },
           },
         });
