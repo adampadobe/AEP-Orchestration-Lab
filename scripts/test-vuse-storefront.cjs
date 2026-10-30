@@ -8,6 +8,7 @@ const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '../web');
 const shopperPrefix = 'vuseShopper:fixture:11111111111111111111111111111111111111:';
+const demoPassword = 'Synthetic-fixture-only-not-a-real-password-742!';
 const fixture = `<!doctype html><title>Storefront fixture</title><script>
 window.messages = [];
 window.fixtureContext = {sandbox:'fixture',visitorKey:'11111111111111111111111111111111111111'};
@@ -56,6 +57,27 @@ async function main() {
     }
     async function fill(frame, values, panel = '[data-vs-modal] form:visible') {
       for (const [name, value] of Object.entries(values)) await frame.locator(panel + ' [name="' + name + '"]').fill(value);
+      if (values.demoPassword) await assertPasswordPrivate();
+    }
+    async function assertPasswordPrivate() {
+      const state = await page.evaluate(() => ({
+        messages: window.messages,
+        local: Object.entries(localStorage),
+        session: Object.entries(sessionStorage)
+      }));
+      for (const [name, value] of Object.entries(state)) {
+        assert(!JSON.stringify(value).includes(demoPassword), 'Demo password must not appear in ' + name);
+      }
+    }
+    async function assertAccountPanel(frame, active) {
+      for (const panel of ['signin', 'register']) {
+        const selected = panel === active;
+        const form = frame.locator('[data-vs-panel="' + panel + '"]');
+        assert.equal(await form.isVisible(), selected, panel + ' visibility follows the selected tab with real CSS');
+        assert.equal(await form.evaluate(el => el.hidden), !selected);
+        assert.equal(await form.evaluate(el => getComputedStyle(el).display), selected ? 'grid' : 'none');
+        assert.equal(await frame.locator('[data-vs-tab="' + panel + '"]').getAttribute('aria-selected'), String(selected));
+      }
     }
     async function register(frame, email = 'giulia.fixture@example.com') {
       await frame.evaluate(() => window.VuseSite.openAccount('register'));
@@ -69,6 +91,7 @@ async function main() {
     }
     async function waitCount(type, count) {
       await page.waitForFunction(({ type, count }) => window.messages.filter(m => m.type === type).length === count, { type, count });
+      await assertPasswordPrivate();
     }
     async function stored(suffix) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)), shopperPrefix + suffix); }
 
@@ -89,6 +112,34 @@ async function main() {
     await page.evaluate(() => window.send('site.context', fixtureContext));
     await page.waitForTimeout(80);
     assert.equal((await messages('pageView')).length, 1, 'Repeated context does not duplicate pageviews');
+
+    const stylesheets = await frame.evaluate(() => Array.from(document.styleSheets, sheet => ({
+      href: sheet.href && new URL(sheet.href).pathname,
+      rules: sheet.cssRules.length
+    })));
+    for (const file of ['vuse-site.css', 'css/vuse-6f64419c.css', 'css/vuse-it-4d6d1c64.css']) {
+      assert(stylesheets.some(sheet => sheet.href?.endsWith('/' + file) && sheet.rules > 0),
+        'Fixture loads actual storefront stylesheet: ' + file);
+    }
+    await frame.evaluate(() => window.VuseSite.openAccount());
+    await assertAccountPanel(frame, 'signin');
+    const password = frame.locator('[data-vs-panel="signin"] [name="demoPassword"]');
+    assert(await password.isVisible(), 'Sign-in shows a demo password field');
+    assert.equal(await password.getAttribute('type'), 'password');
+    assert.equal(await password.getAttribute('autocomplete'), 'off');
+    assert(await password.evaluate(el => el.required));
+    assert.match(await frame.locator('.vs-modal').innerText(), /do not enter a real password/i);
+    await fill(frame, { email: 'giulia.fixture@example.com' }, '[data-vs-panel="signin"]');
+    await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+    assert.equal((await messages('customer.submit')).length, 0, 'Empty demo password prevents sign-in submission');
+    await fill(frame, { demoPassword }, '[data-vs-panel="signin"]');
+    await frame.locator('[data-vs-tab="register"]').click();
+    await assertAccountPanel(frame, 'register');
+    assert(!await password.isVisible(), 'Demo password is hidden on Create account');
+    await frame.locator('[data-vs-tab="signin"]').click();
+    await assertAccountPanel(frame, 'signin');
+    await frame.locator('.vs-close').click();
+    await assertPasswordPrivate();
 
     await frame.evaluate(() => {
       const link = document.createElement('a');
@@ -219,19 +270,20 @@ async function main() {
     await waitCount('logout', 1);
     assert.equal((await stored('vuseIdentity')).signedIn, false);
     await frame.evaluate(() => window.VuseSite.openAccount());
-    await fill(frame, { email: 'different.fixture@example.com' }, '[data-vs-panel="signin"]');
+    await fill(frame, { email: 'different.fixture@example.com', demoPassword }, '[data-vs-panel="signin"]');
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     await frame.waitForFunction(() => document.querySelector('[data-vs-panel="signin"] [data-vs-error]').textContent.includes('New visitor'));
     assert.equal((await messages('customer.submit')).length, 6);
-    await fill(frame, { email: registration.payload.email }, '[data-vs-panel="signin"]');
+    await fill(frame, { email: registration.payload.email, demoPassword }, '[data-vs-panel="signin"]');
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     await waitCount('customer.submit', 7);
+    assert.deepEqual((await lastSubmit()).payload, { action: 'login', email: registration.payload.email });
     await ack({ ok: false, error: 'Fixture delivery uncertain', uncertain: true });
     await frame.waitForFunction(() => document.querySelector('[data-vs-error]').textContent.includes('Fixture delivery uncertain'));
     assert(await frame.locator('[data-vs-panel="signin"] button[type="submit"]').isDisabled());
     await frame.locator('.vs-close').click();
     await frame.evaluate(() => window.VuseSite.openAccount());
-    await fill(frame, { email: registration.payload.email }, '[data-vs-panel="signin"]');
+    await fill(frame, { email: registration.payload.email, demoPassword }, '[data-vs-panel="signin"]');
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     assert.equal((await messages('customer.submit')).length, 7, 'Uncertain delivery cannot be resubmitted through a new form');
     await Promise.all([
@@ -241,7 +293,7 @@ async function main() {
     frame = await child();
     await page.evaluate(() => window.send('site.context', fixtureContext));
     await frame.evaluate(() => window.VuseSite.openAccount());
-    await fill(frame, { email: registration.payload.email }, '[data-vs-panel="signin"]');
+    await fill(frame, { email: registration.payload.email, demoPassword }, '[data-vs-panel="signin"]');
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     assert.equal((await messages('customer.submit')).length, 7, 'Uncertain lock survives a page reload');
     await waitCount('customer.uncertain', 1);
@@ -251,10 +303,12 @@ async function main() {
     assert.equal(await stored('uncertain'), false);
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     await waitCount('customer.submit', 8);
+    assert.deepEqual((await lastSubmit()).payload, { action: 'login', email: registration.payload.email });
     await ack({ ok: true, identity: { email: registration.payload.email, firstName: 'Giulia', lastName: 'Rossi' } });
     await frame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
     assert.equal((await stored('vuseIdentity')).signedIn, true, 'An explicit attempt works after reconciliation');
     assert.equal((await messages('cart.abandon')).length, 0, 'Closing/reloading is not cart abandonment');
+    await assertPasswordPrivate();
     for (const event of await messages('pageView')) {
       assert.equal(new URL(event.payload.url).hostname, 'www.vuse.com');
       assert(!event.payload.url.includes('@') && !event.payload.url.includes('?'), 'Pageview URL contains no PII');
@@ -274,7 +328,7 @@ async function main() {
     await page.evaluate(() => window.send('reset', {}));
     await page.waitForFunction(() => !Object.keys(localStorage).some(k => k.startsWith('vuseShopper:')));
     assert.deepEqual(errors, []);
-    console.log('Vuse storefront: acknowledgement, rejection, uncertainty, fields, preferences, checkout, scoped persistence, resume, logout and route fixtures passed.');
+    console.log('Vuse storefront: real-CSS account tabs, demo-password privacy, acknowledgement, rejection, uncertainty, fields, preferences, checkout, scoped persistence, resume, logout and route fixtures passed.');
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));

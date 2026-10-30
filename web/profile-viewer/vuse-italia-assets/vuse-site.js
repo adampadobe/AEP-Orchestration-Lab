@@ -638,6 +638,8 @@
       '<form class="vs-form" data-vs-panel="signin" novalidate>' +
         '<div class="vs-field"><label>Email</label><input name="email" type="email" autocomplete="off" list="vsRecentEmails" required>' +
         '<datalist id="vsRecentEmails">' + recentEmails().map(function (e) { return '<option value="' + esc(e) + '">'; }).join('') + '</datalist></div>' +
+        '<div class="vs-field"><label for="vsDemoPassword">Demo password</label><input id="vsDemoPassword" name="demoPassword" type="password" autocomplete="off" required aria-describedby="vsDemoPasswordHelp">' +
+        '<p class="vs-note" id="vsDemoPasswordHelp">Enter any made-up password. It is not checked, sent or saved. Never use a real password.</p></div>' +
         '<div class="vs-error" data-vs-error></div>' +
         '<button class="vs-btn vs-btn--block" type="submit">Sign in</button>' +
       '</form>' +

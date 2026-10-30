@@ -2,7 +2,7 @@
   "manifestVersion": "20261029-customer-evolution",
   "moduleVersion": "1.1.0",
   "pageAssets": {
-    "vuse-italia-demo": "20261030-recovery"
+    "vuse-italia-demo": "20261030-account"
   },
   "assets": {
     "bundleCss": "20261029-new-visitor",
