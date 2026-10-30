@@ -446,6 +446,14 @@ Base personas for all **7 industries** (generic, travel, fsi, retail, telecom, m
 - **`lab_generate_profiles_batch`**: optional `segment_hint`, `delay_ms` (0–5000, overrides env).
 - **`lab_onboard_sandbox`** `mode=execute_all`: queues **`onboard_all`** job — provisions all not-ready industries sequentially; poll **`lab_batch_job_status`** (same store as batch).
 - Job store: Firestore **`mcpProfileBatchJobs`** on Cloud Run; `AEP_LAB_MCP_BATCH_STORE=memory` locally.
+- Optional undefined fields are omitted recursively from job records and progress
+  updates; explicit `false`, `0`, empty strings and `null` are retained. Undefined
+  array entries become `null` so item positions do not shift.
+- AEP profile batches validate inputs and stored preferences before reserving a
+  rate-limit slot. A failed job-record write releases that reservation and starts
+  no worker. Accepted jobs retain their slot even if later generation fails.
+  The job record is required execution state, not optional telemetry: persistence
+  failures remain explicit errors rather than starting an untracked batch.
 
 ### Rate limits (Phase 3, in-memory per instance)
 
@@ -593,6 +601,7 @@ Tests:
 AEP_LAB_MCP_API_KEY='local-smoke-test-key' npm run smoke
 AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=off npm run test:phase2
 AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=off npm run test:phase3
+npm run test:batch-jobs # mocked Firestore/worker; no cloud writes or quota consumption
 ```
 
 ## Adobe AI Coworker setup
