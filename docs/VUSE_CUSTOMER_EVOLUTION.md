@@ -95,6 +95,17 @@ persisted uncertainty to Presenter controls. After checking AEP activity, **I
 checked activity; allow retry** clears both shell and storefront locks. It does
 not automatically replay the interrupted action.
 
+The storefront's 30-second acknowledgement deadline is not proof of failure.
+It retains the original request and accepts a matching late sign-in/resume receipt
+only after validating its email. A definite late rejection unlocks the form for
+an explicit correction; an ambiguous outcome remains blocked. After an iframe
+reload, a persisted sign-in request asks the still-open shell for its cached
+receipt instead of resubmitting. Only the exact confirmed request can clear its
+shell warning. A full shell reload loses this in-memory receipt cache; old
+markers without recovery metadata and late successful checkout/profile/
+registration writes still require activity review and explicit reconciliation.
+These paths never automatically repeat a stitch, profile write or purchase.
+
 ## Measurement semantics
 
 Page views represent actual page or virtual-screen navigation after the age gate.

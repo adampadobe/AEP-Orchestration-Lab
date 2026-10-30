@@ -60,7 +60,8 @@
 
   function submitCustomer(payload) {
     if (!context) return Promise.reject(new Error('Waiting for the lab visitor context.'));
-    if (pending || read('uncertain', false)) return Promise.reject(new Error('A previous submission is pending or uncertain. Check the lab before retrying; use New visitor only after resolving delivery.'));
+    if (pending && !pending.timedOut) return Promise.reject(new Error('Your previous submission is still processing. Wait for confirmation; do not submit again.'));
+    if (pending || read('uncertain', false)) return Promise.reject(new Error('The previous submission has no confirmed result yet. Check Last delivery attempt in Presenter controls before allowing retry.'));
     var email = String(payload.email || '').trim().toLowerCase();
     var binding = read('boundEmail', '') || (identity() || {}).email;
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return Promise.reject(new Error('Please enter a valid email address.'));
@@ -69,26 +70,33 @@
     dismissSigninNudge();
     var requestId = 'vuse-' + crypto.randomUUID();
     return new Promise(function (resolve, reject) {
-      write('uncertain', { requestId: requestId, action: payload.action });
+      write('uncertain', { requestId: requestId, action: payload.action, email: email });
       pending = { requestId: requestId, payload: payload, resolve: resolve, reject: reject };
       pending.timer = setTimeout(function () {
         if (!pending || pending.requestId !== requestId) return;
         pending.timedOut = true;
-        pending.reject(new Error('Delivery is uncertain: no acknowledgement received. Do not submit again; check the lab.'));
-        // A late acknowledgement cannot safely complete an already dismissed checkout.
+        pending.reject(new Error('Delivery is uncertain: confirmation is taking longer than expected. Do not submit again; check Last delivery attempt in Presenter controls.'));
+        post('customer.status', { requestId: requestId });
+        // Keep the request so a definite late sign-in result can reconcile it.
       }, 30000);
       window.parent.postMessage({ source: 'vuse-site', type: 'customer.submit', requestId: requestId, payload: payload }, location.origin);
     });
   }
 
   function result(d) {
-    if (!pending || pending.timedOut || d.requestId !== pending.requestId) return;
+    if (!pending || d.requestId !== pending.requestId) return;
     var request = pending;
     var p = d.payload || {};
+    if (request.timedOut && p.ok && !['login', 'resume'].includes(request.payload.action)) return;
     clearTimeout(request.timer);
     pending = null;
-    write('uncertain', p.uncertain ? { requestId: d.requestId } : false);
-    if (!p.ok) { request.reject(new Error(p.error || (p.uncertain ? 'Delivery is uncertain. Check the lab before retrying.' : 'The lab rejected this submission.'))); return; }
+    write('uncertain', p.uncertain ? { requestId: d.requestId, action: request.payload.action, email: request.payload.email } : false);
+    if (!p.ok) {
+      if (request.timedOut) showLateResult(p.error || 'The lab rejected this submission.', !!p.uncertain);
+      if (request.timedOut && !p.uncertain) post('customer.recovered', { requestId: d.requestId });
+      request.reject(new Error(p.error || (p.uncertain ? 'Delivery is uncertain. Check the lab before retrying.' : 'The lab rejected this submission.')));
+      return;
+    }
     if (p.uncertain) { request.reject(new Error('Delivery is uncertain. Check the lab before retrying.')); return; }
     var received = p.identity || {};
     if (!received.email || received.email.toLowerCase() !== request.payload.email) {
@@ -109,7 +117,19 @@
     setIdentity(id);
     if (request.payload.preferences) write(KEYS.consent, request.payload.preferences);
     if (request.payload.loyalty) write(KEYS.loyalty, true);
+    if (request.timedOut) {
+      post('customer.recovered', { requestId: d.requestId });
+      closeModal();
+      toast('Sign in confirmed. Open your account to continue.');
+    }
     request.resolve(p);
+  }
+
+  function showLateResult(message, blocked) {
+    $$('[data-vs-modal] button[type="submit"], [data-vs-save]').forEach(function (button) { button.disabled = blocked; });
+    var error = $('[data-vs-modal] [data-vs-error]');
+    if (error) error.textContent = message;
+    toast(message);
   }
 
   function submitForm(form, payload, success) {
@@ -950,7 +970,14 @@
       renderAccount();
       renderBasket();
       var unresolved = read('uncertain', false);
-      if (unresolved) post('customer.uncertain', unresolved);
+      if (unresolved) {
+        post('customer.uncertain', unresolved);
+        if (['login', 'resume'].includes(unresolved.action) && typeof unresolved.email === 'string') {
+          pending = { requestId: unresolved.requestId, payload: { action: unresolved.action, email: unresolved.email },
+            timedOut: true, resolve: function () {}, reject: function () {} };
+          post('customer.status', { requestId: unresolved.requestId });
+        }
+      }
       var stored = identity();
       if (stored && stored.signedIn) {
         setIdentity(Object.assign({}, stored, { signedIn: false }));

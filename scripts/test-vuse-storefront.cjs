@@ -632,6 +632,82 @@ async function main() {
     assert.equal(await frame.locator('.vs-account-name').count(), 0);
     await page.evaluate(() => window.send('reset', {}));
     await page.waitForFunction(() => !Object.keys(localStorage).some(k => k.startsWith('vuseShopper:')));
+    const recoveryContext = await browser.newContext();
+    await recoveryContext.route('**/*', route => new URL(route.request().url()).origin === origin
+      ? route.continue() : route.fulfill({ body: '', contentType: 'text/javascript' }));
+    const recoveryPage = await recoveryContext.newPage();
+    await recoveryPage.clock.install();
+    await recoveryPage.goto(origin + '/fixture');
+    await recoveryPage.waitForFunction(() => document.querySelector('iframe')?.contentWindow.VuseSite);
+    let recoveryFrame = recoveryPage.frames().find(f => f.url().includes('vuse-italia-assets'));
+    await recoveryFrame.locator('.batcom-agegate__button-over-age .cmp-button').click();
+    async function recoveryLogin() {
+      await recoveryFrame.evaluate(() => window.VuseSite.openAccount());
+      await recoveryFrame.locator('[name="email"]').first().fill('slow.fixture@example.com');
+      await recoveryFrame.locator('[name="demoPassword"]').fill(demoPassword);
+      await recoveryFrame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+    }
+    await recoveryLogin();
+    await recoveryPage.clock.fastForward(31000);
+    assert.match(await recoveryFrame.locator('[data-vs-panel="signin"] [data-vs-error]').innerText(), /uncertain/);
+    assert.equal(await recoveryPage.evaluate(() => messages.filter(m => m.type === 'customer.submit').length), 1);
+    assert.equal(await recoveryPage.evaluate(() => messages.filter(m => m.type === 'customer.status').length), 1,
+      'Timeout asks for a receipt, not another submission');
+    const lateIdentity = { email: 'slow.fixture@example.com', firstName: 'Slow', lastName: 'Fixture' };
+    await recoveryPage.evaluate(identity => window.send('customer.result', { ok: true, identity }, 'unrelated-request'), lateIdentity);
+    assert.equal(await recoveryPage.evaluate(key => localStorage.getItem(key), shopperPrefix + 'vuseIdentity'), null,
+      'A late receipt for another request cannot sign in');
+    await recoveryPage.evaluate(identity => {
+      const request = messages.find(m => m.type === 'customer.submit');
+      window.send('customer.result', { ok: true, identity }, request.requestId);
+    }, lateIdentity);
+    await recoveryFrame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
+    assert.equal(await recoveryPage.evaluate(key => JSON.parse(localStorage.getItem(key)).signedIn, shopperPrefix + 'vuseIdentity'), true);
+    assert.equal(await recoveryPage.evaluate(key => JSON.parse(localStorage.getItem(key)), shopperPrefix + 'uncertain'), false);
+
+    await recoveryFrame.evaluate(() => window.VuseSite.openAccount());
+    await recoveryPage.clock.runFor(500);
+    await recoveryFrame.locator('[data-vs-signout]').dispatchEvent('click');
+    await recoveryLogin();
+    await recoveryPage.clock.fastForward(31000);
+    await recoveryPage.evaluate(() => {
+      const request = messages.filter(m => m.type === 'customer.submit').at(-1);
+      window.send('customer.result', { ok: false, error: 'Definite fixture rejection', uncertain: false }, request.requestId);
+    });
+    await recoveryFrame.waitForFunction(() => document.querySelector('[data-vs-error]').textContent.includes('Definite fixture rejection'));
+    assert(!await recoveryFrame.locator('button[type="submit"]').first().isDisabled(), 'Late definite rejection allows explicit correction');
+    assert.equal(await recoveryPage.evaluate(() => messages.filter(m => m.type === 'customer.submit').length), 2);
+    await recoveryFrame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+    const reloaded = recoveryPage.waitForEvent('framenavigated', { predicate: f => f.parentFrame() === recoveryPage.mainFrame() });
+    await recoveryFrame.evaluate(() => location.reload());
+    await reloaded;
+    await recoveryPage.waitForFunction(() => messages.some(m => m.type === 'customer.uncertain'));
+    recoveryFrame = recoveryPage.frames().find(f => f.url().includes('vuse-italia-assets'));
+    await recoveryPage.evaluate(identity => {
+      const request = messages.filter(m => m.type === 'customer.submit').at(-1);
+      window.send('customer.result', { ok: true, identity }, request.requestId);
+    }, lateIdentity);
+    await recoveryFrame.waitForFunction(() => document.querySelector('.vs-account-name')?.textContent.includes('Slow'));
+    assert.equal(await recoveryPage.evaluate(() => messages.filter(m => m.type === 'customer.submit').length), 3,
+      'Iframe reload recovers an exact receipt without replaying sign-in');
+    const recoveryCards = recoveryFrame.locator('.product-card').filter({ has: recoveryFrame.locator('.product-card__price') });
+    const recoveryProduct = await recoveryCards.evaluateAll(cards => cards.findIndex(c => /(?:^|\D)0\s*mg|zero/i.test(c.querySelector('.product-card__name')?.textContent || '')));
+    assert(recoveryProduct >= 0);
+    await recoveryCards.nth(recoveryProduct).locator('.product-card__buy-button').dispatchEvent('click');
+    await recoveryFrame.locator('[data-vs-checkout]').dispatchEvent('click');
+    await fill(recoveryFrame, { street1: 'Via Fixture 17', city: 'Milano', postalCode: '20100', countryCode: 'IT' });
+    await recoveryFrame.locator('[data-vs-modal] form').dispatchEvent('submit');
+    await recoveryPage.waitForFunction(() => messages.filter(m => m.type === 'customer.submit').length === 4);
+    await recoveryPage.clock.fastForward(31000);
+    await recoveryPage.evaluate(identity => {
+      const request = messages.filter(m => m.type === 'customer.submit').at(-1);
+      window.send('customer.result', { ok: true, identity }, request.requestId);
+    }, lateIdentity);
+    assert(await recoveryFrame.locator('button[type="submit"]').isDisabled(), 'Late successful checkout still requires explicit reconciliation');
+    assert.equal(await recoveryFrame.locator('[data-vs-done]').count(), 0, 'No late optimistic order confirmation');
+    assert(await recoveryPage.evaluate(key => JSON.parse(localStorage.getItem(key)), shopperPrefix + 'uncertain'));
+    assert.equal(await recoveryPage.evaluate(() => messages.filter(m => m.type === 'customer.submit').length), 4, 'No automatic purchase retry');
+    await recoveryContext.close();
     await testStoryNudges();
     assert.deepEqual(errors, []);
     console.log('Vuse storefront: real-CSS account tabs, demo-password privacy, acknowledgement, rejection, uncertainty, fields, preferences, checkout, scoped persistence, resume, logout and route fixtures passed.');
