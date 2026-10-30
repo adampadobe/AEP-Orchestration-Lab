@@ -11,14 +11,14 @@ const shopperPrefix = 'vuseShopper:fixture:1111111111111111111111111111111111111
 const demoPassword = 'Synthetic-fixture-only-not-a-real-password-742!';
 const fixture = `<!doctype html><title>Storefront fixture</title><script>
 window.messages = [];
-window.fixtureContext = {sandbox:'fixture',visitorKey:'11111111111111111111111111111111111111'};
+window.fixtureContext = {sandbox:'fixture',visitorKey:new URLSearchParams(location.search).get('visitor')||'11111111111111111111111111111111111111'};
 window.send = (type,payload,requestId) => document.querySelector('iframe').contentWindow.postMessage({source:'vuse-shell',type,payload,requestId},location.origin);
 window.addEventListener('message',e=>{
   if(e.source!==document.querySelector('iframe').contentWindow||e.origin!==location.origin||e.data.source!=='vuse-site')return;
   messages.push(e.data);
   if(e.data.type==='site.ready'&&!location.search.includes('delay'))send('site.context',fixtureContext);
 });
-</script><iframe style="width:1440px;height:1100px" src="/profile-viewer/vuse-italia-assets/index.html"></iframe>`;
+</script><iframe style="width:100%;height:1100px" src="/profile-viewer/vuse-italia-assets/index.html"></iframe>`;
 
 async function main() {
   const server = http.createServer(async (req, res) => {
@@ -94,6 +94,287 @@ async function main() {
       await assertPasswordPrivate();
     }
     async function stored(suffix) { return page.evaluate(key => JSON.parse(localStorage.getItem(key)), shopperPrefix + suffix); }
+    async function testStoryNudges() {
+      const storyVisitor = '33333333333333333333333333333333333333';
+      const storyContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      await storyContext.route('**/*', route => {
+        if (new URL(route.request().url()).origin !== origin) return route.fulfill({ body: '', contentType: 'text/javascript' });
+        if (new URL(route.request().url()).pathname.startsWith('/api/')) throw new Error('Story nudges must not call a live API');
+        return route.continue();
+      });
+      const storyPage = await storyContext.newPage();
+      const storyErrors = [];
+      const copyViolations = [];
+      storyPage.on('pageerror', e => storyErrors.push(e.message));
+      let storyPrefix = 'vuseShopper:fixture:' + storyVisitor + ':';
+      const storyMessages = type => storyPage.evaluate(type => window.messages.filter(m => m.type === type), type);
+      async function storyFrame() {
+        await storyPage.waitForFunction(() => document.querySelector('iframe')?.contentWindow.VuseSite);
+        return storyPage.frames().find(frame => frame.url().includes('/vuse-italia-assets/'));
+      }
+      async function storyAck(payload) {
+        const request = (await storyMessages('customer.submit')).at(-1);
+        assert(request, 'A story submission waits for its fake shell acknowledgement');
+        await storyPage.evaluate(({ payload, requestId }) => window.send('customer.result', payload, requestId), {
+          payload,
+          requestId: request.requestId
+        });
+      }
+      async function storyCount(type, count) {
+        await storyPage.waitForFunction(({ type, count }) => window.messages.filter(m => m.type === type).length === count, { type, count });
+      }
+      async function storyCart() {
+        return storyPage.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), storyPrefix + 'vuseCart');
+      }
+      async function openPopulatedBag(frame, cartReader = storyCart) {
+        const cards = frame.locator('.product-card').filter({ has: frame.locator('.product-card__price') });
+        const index = await cards.evaluateAll(all => all.findIndex(card => /(?:^|\D)0\s*mg|zero/i.test(card.querySelector('.product-card__name')?.textContent || '')));
+        assert(index >= 0, 'Captured catalogue includes a purchasable zero-nicotine product for the nudge story');
+        const bag = cards.nth(index);
+        await bag.locator('.product-card__buy-button').click({ force: true });
+        await frame.locator('.vs-drawer.vs-open').waitFor();
+        assert((await cartReader()).length, 'The story bag is populated before it is closed');
+      }
+      async function closeBag(frame) {
+        await frame.locator('.vs-drawer.vs-open .vs-close').click();
+        await frame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+      }
+      async function assertNudgeLooksNative(frame, selector) {
+        const nudge = frame.locator(selector);
+        assert(await nudge.isVisible(), selector + ' is visible in the actual storefront');
+        const presentation = await nudge.evaluate(el => {
+          const rect = el.getBoundingClientRect();
+          const container = el.closest('.vs-backdrop') || el;
+          const style = getComputedStyle(container);
+          return {
+            position: style.position,
+            display: style.display,
+            left: rect.left,
+            right: rect.right,
+            width: rect.width,
+            viewport: document.documentElement.clientWidth,
+            text: el.innerText
+          };
+        });
+        assert.equal(presentation.position, 'fixed', selector + ' uses the loaded storefront presentation CSS');
+        assert.notEqual(presentation.display, 'none');
+        assert(presentation.left >= 0 && presentation.right <= presentation.viewport + 1,
+          selector + ' stays within the mobile viewport');
+        if (/\b(?:demo|fixture|fake|test)\b/i.test(presentation.text)) {
+          copyViolations.push(selector + ' contains a demo/test label: ' + presentation.text);
+        }
+        if (/subscription|subscribe/i.test(presentation.text)) {
+          copyViolations.push(selector + ' mentions a subscription offer: ' + presentation.text);
+        }
+        return presentation.text;
+      }
+      async function assertStoryPasswordPrivate(shellPage = storyPage) {
+        const state = await shellPage.evaluate(() => ({
+          messages: window.messages,
+          local: Object.entries(localStorage),
+          session: Object.entries(sessionStorage)
+        }));
+        for (const [name, value] of Object.entries(state)) {
+          assert(!JSON.stringify(value).includes(demoPassword), 'Demo password must not appear in story ' + name);
+        }
+      }
+
+      try {
+        await storyPage.goto(origin + '/fixture?visitor=' + storyVisitor);
+        const frame = await storyFrame();
+        await frame.locator('.batcom-agegate__button-over-age .cmp-button').click();
+        await storyPage.waitForFunction(() => window.messages.some(m => m.type === 'pageView'));
+
+        await frame.evaluate(() => window.VuseSite.openCart());
+        await frame.locator('.vs-drawer.vs-open').waitFor();
+        assert.equal(await frame.locator('[data-vs-signin-nudge]').count(), 0, 'An empty bag does not trigger a sign-in suggestion');
+        await closeBag(frame);
+        assert.equal(await storyMessages('cart.abandon').then(events => events.length), 0);
+
+        await openPopulatedBag(frame);
+        assert.equal(await frame.locator('[data-vs-signin-nudge]').count(), 0, 'The anonymous suggestion waits until the populated bag closes');
+        await closeBag(frame);
+        const signInNudge = frame.locator('[data-vs-signin-nudge]');
+        await assertNudgeLooksNative(frame, '[data-vs-signin-nudge]');
+        assert.match(await signInNudge.innerText(), /sign in/i);
+        await signInNudge.locator('[data-vs-nudge-signin]').click();
+        await frame.locator('[data-vs-panel="signin"]').waitFor();
+        await frame.locator('[data-vs-panel="signin"] [name="email"]').fill('marco.story@example.com');
+        await frame.locator('[data-vs-panel="signin"] [name="demoPassword"]').fill(demoPassword);
+        await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+        await storyCount('customer.submit', 1);
+        assert.equal(await frame.locator('[data-vs-checkout-help]').count(), 0, 'Pending sign-in cannot create a personalised checkout-help message');
+        await storyAck({ ok: false, error: 'Fixture sign-in rejected', uncertain: false });
+        await frame.waitForFunction(() => document.querySelector('[data-vs-panel="signin"] [data-vs-error]').textContent.includes('Fixture sign-in rejected'));
+        assert.equal(await storyPage.evaluate(key => localStorage.getItem(key), storyPrefix + 'vuseIdentity'), null,
+          'A failed sign-in does not establish a known customer');
+        assert.equal(await frame.locator('[data-vs-checkout-help]').count(), 0, 'A failed sign-in cannot personalise checkout help');
+
+        await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+        await storyCount('customer.submit', 2);
+        await storyAck({ ok: false, error: 'Fixture sign-in delivery uncertain', uncertain: true });
+        await frame.waitForFunction(() => document.querySelector('[data-vs-panel="signin"] [data-vs-error]').textContent.includes('uncertain'));
+        assert.equal(await frame.locator('[data-vs-checkout-help]').count(), 0, 'Uncertain sign-in cannot create personalised checkout help');
+        await storyPage.evaluate(() => window.send('customer.reconciled', {}));
+        await frame.waitForFunction(() => document.querySelector('[data-vs-panel="signin"] [data-vs-error]').textContent.includes('Previous delivery checked'));
+        assert.equal((await storyMessages('customer.submit')).length, 2, 'Reconciliation does not automatically retry sign-in');
+        await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+        await storyCount('customer.submit', 3);
+        await storyAck({ ok: true, identity: { email: 'marco.story@example.com', firstName: 'Marco', lastName: 'Bianchi' } });
+        await frame.waitForFunction(() => document.querySelector('.vs-modal')?.innerText.includes('Hi Marco'));
+        const identity = await storyPage.evaluate(key => JSON.parse(localStorage.getItem(key)), storyPrefix + 'vuseIdentity');
+        assert.equal(identity.signedIn, true);
+        assert.equal(identity.firstName, 'Marco');
+        assert.match(await frame.locator('.vs-modal').innerText(), /Hi Marco/);
+        await frame.locator('.vs-modal .vs-close').click();
+
+        // Reset to a new visitor, proving both the previous name and stage cadence are scoped/reset.
+        const visitorReset = storyPage.waitForEvent('framenavigated', {
+          predicate: navigated => navigated.parentFrame() === storyPage.mainFrame()
+        });
+        await storyPage.evaluate(() => {
+          window.fixtureContext = { sandbox: 'fixture', visitorKey: '44444444444444444444444444444444444444' };
+          window.send('reset', {});
+        });
+        await storyPage.waitForFunction(key => !Object.keys(localStorage).some(k => k.startsWith(key)), 'vuseShopper:');
+        await visitorReset;
+        let nextFrame = await storyFrame();
+        await nextFrame.locator('.batcom-agegate__button-over-age .cmp-button').click();
+        await storyPage.waitForFunction(() => window.messages.filter(m => m.type === 'pageView').length > 1);
+        const resetScope = 'vuseShopper:fixture:44444444444444444444444444444444444444:';
+        storyPrefix = resetScope;
+        assert.equal(await storyPage.evaluate(key => localStorage.getItem(key), resetScope + 'vuseIdentity'), null,
+          'New visitor reset does not carry the acknowledged first name forward');
+        assert.equal(await storyPage.evaluate(key => localStorage.getItem(key), resetScope + 'vuseCartNudges'), null,
+          'New visitor reset starts with fresh nudge cadence');
+        await openPopulatedBag(nextFrame);
+        await closeBag(nextFrame);
+        const resetBanner = nextFrame.locator('[data-vs-signin-nudge]');
+        await assertNudgeLooksNative(nextFrame, '[data-vs-signin-nudge]');
+        assert(!/Marco/.test(await resetBanner.innerText()), 'The previous visitor name is not shown to a new visitor');
+        await resetBanner.locator('[data-vs-nudge-signin]').click();
+        await nextFrame.locator('[data-vs-panel="signin"]').waitFor();
+        await nextFrame.locator('[data-vs-panel="signin"] [name="email"]').fill('luca.story@example.com');
+        await nextFrame.locator('[data-vs-panel="signin"] [name="demoPassword"]').fill(demoPassword);
+        await nextFrame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+        await storyCount('customer.submit', 4);
+        assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'A pending acknowledgement never exposes checkout help');
+        await storyAck({ ok: true, identity: { email: 'luca.story@example.com', firstName: 'Luca', lastName: 'Verdi' } });
+        await nextFrame.waitForFunction(() => document.querySelector('.vs-modal')?.innerText.includes('Hi Luca'));
+        assert.match(await nextFrame.locator('.vs-modal').innerText(), /Hi Luca/);
+        await nextFrame.locator('.vs-modal .vs-close').click();
+
+        await nextFrame.evaluate(() => window.VuseSite.openCart());
+        await nextFrame.locator('.vs-drawer.vs-open').waitFor();
+        await closeBag(nextFrame);
+        const help = nextFrame.locator('[data-vs-checkout-help]');
+        const helpCopy = await assertNudgeLooksNative(nextFrame, '[data-vs-checkout-help]');
+        assert.match(helpCopy, /Luca/);
+        assert.match(helpCopy, /checkout/i);
+        const cartBeforeCheckout = await storyCart();
+        assert(cartBeforeCheckout.length, 'Known-customer help keeps the populated bag');
+        await help.locator('[data-vs-help-checkout]').click();
+        await nextFrame.locator('[data-vs-modal] form:visible [name="street1"]').waitFor();
+        assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'Checkout replaces the help popup');
+        assert.deepEqual(await storyCart(), cartBeforeCheckout, 'The help CTA resumes checkout without clearing the bag');
+        const checkoutForm = nextFrame.locator('[data-vs-modal] form:visible');
+        await checkoutForm.locator('[name="firstName"]').fill('Luca');
+        await checkoutForm.locator('[name="lastName"]').fill('Verdi');
+        await checkoutForm.locator('[name="street1"]').fill('Via Story 8');
+        await checkoutForm.locator('[name="city"]').fill('Milano');
+        await checkoutForm.locator('[name="postalCode"]').fill('20100');
+        const country = checkoutForm.locator('[name="countryCode"]');
+        if (await country.evaluate(el => el.tagName === 'SELECT')) await country.selectOption('IT');
+        else await country.fill('IT');
+        await checkoutForm.locator('[name="email"]').fill('luca.story@example.com');
+        await checkoutForm.locator('button[type="submit"]').click();
+        await storyCount('customer.submit', 5);
+        const order = (await storyMessages('customer.submit')).at(-1);
+        assert.equal(order.payload.action, 'checkout');
+        assert((await storyCart()).length, 'Checkout keeps the bag until its acknowledgement');
+        assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'Pending checkout suppresses story nudges');
+        await storyAck({ ok: true, identity: { email: 'luca.story@example.com', firstName: 'Luca', lastName: 'Verdi' } });
+        await nextFrame.locator('[data-vs-done]').waitFor();
+        assert.equal((await storyCart()).length, 0, 'A completed checkout clears the simulated bag');
+        assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'Completed checkout does not reopen checkout help');
+        await nextFrame.locator('[data-vs-done]').click();
+        await nextFrame.evaluate(() => window.VuseSite.openCart());
+        await nextFrame.locator('.vs-drawer.vs-open').waitFor();
+        await closeBag(nextFrame);
+        assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'An empty, completed bag cannot trigger checkout help');
+        assert.equal((await storyMessages('cart.abandon')).length, 0, 'Closing a bag never emits a cart-abandon event');
+
+        const dismissVisitor = '55555555555555555555555555555555555555';
+        const dismissPrefix = 'vuseShopper:fixture:' + dismissVisitor + ':';
+        const dismissPage = await storyContext.newPage();
+        const dismissErrors = [];
+        dismissPage.on('pageerror', e => dismissErrors.push(e.message));
+        const dismissMessages = type => dismissPage.evaluate(type => window.messages.filter(m => m.type === type), type);
+        async function dismissAck(payload) {
+          const request = (await dismissMessages('customer.submit')).at(-1);
+          assert(request, 'The dismissal fixture uses an isolated fake shell acknowledgement');
+          await dismissPage.evaluate(({ payload, requestId }) => window.send('customer.result', payload, requestId), {
+            payload,
+            requestId: request.requestId
+          });
+        }
+        await dismissPage.goto(origin + '/fixture?visitor=' + dismissVisitor);
+        const dismissFrame = await storyFrameFor(dismissPage);
+        await dismissFrame.locator('.batcom-agegate__button-over-age .cmp-button').click();
+        await dismissPage.waitForFunction(() => window.messages.some(m => m.type === 'pageView'));
+        await dismissFrame.evaluate(() => window.VuseSite.openCart());
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor();
+        assert.equal(await dismissFrame.locator('[data-vs-signin-nudge]').count(), 0, 'A second empty bag stays quiet');
+        await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+        const dismissCart = () => dismissPage.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), dismissPrefix + 'vuseCart');
+        await openPopulatedBag(dismissFrame, dismissCart);
+        await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+        const dismissBanner = dismissFrame.locator('[data-vs-signin-nudge]');
+        await assertNudgeLooksNative(dismissFrame, '[data-vs-signin-nudge]');
+        await dismissBanner.locator('[data-vs-nudge-dismiss]').click();
+        assert.equal(await dismissFrame.locator('[data-vs-signin-nudge]').count(), 0, 'Dismissing the anonymous banner removes it');
+        await dismissFrame.evaluate(() => window.VuseSite.openCart());
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor();
+        await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+        assert.equal(await dismissFrame.locator('[data-vs-signin-nudge]').count(), 0, 'Dismissed anonymous suggestion does not loop');
+        await dismissFrame.evaluate(() => window.VuseSite.openAccount());
+        await dismissFrame.locator('[data-vs-panel="signin"] [name="email"]').fill('anna.story@example.com');
+        await dismissFrame.locator('[data-vs-panel="signin"] [name="demoPassword"]').fill(demoPassword);
+        await dismissFrame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+        await dismissPage.waitForFunction(() => window.messages.filter(m => m.type === 'customer.submit').length === 1);
+        await dismissAck({ ok: true, identity: { email: 'anna.story@example.com', firstName: 'Anna', lastName: 'Rossi' } });
+        await dismissFrame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
+        await dismissFrame.evaluate(() => window.VuseSite.openCart());
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor();
+        await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+        assert.match(await assertNudgeLooksNative(dismissFrame, '[data-vs-checkout-help]'), /Anna/);
+        await dismissFrame.locator('[data-vs-help-dismiss]').click();
+        assert.equal(await dismissFrame.locator('[data-vs-checkout-help]').count(), 0, 'Dismissing checkout help closes the popup');
+        await dismissFrame.evaluate(() => window.VuseSite.openCart());
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor();
+        await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
+        await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
+        assert.equal(await dismissFrame.locator('[data-vs-checkout-help]').count(), 0, 'Dismissed checkout help does not loop');
+        assert((await dismissPage.evaluate(key => JSON.parse(localStorage.getItem(key) || '[]'), dismissPrefix + 'vuseCart')).length,
+          'Dismissing either suggestion preserves the bag');
+        assert.equal((await dismissMessages('cart.abandon')).length, 0, 'The dismissal flow emits no cart-abandon event');
+        await assertStoryPasswordPrivate(dismissPage);
+        assert.deepEqual(dismissErrors, []);
+        await assertStoryPasswordPrivate();
+        assert.deepEqual(storyErrors, []);
+        assert.deepEqual(copyViolations, [], 'Customer-facing nudge copy stays natural and does not invent offers');
+      } finally {
+        await storyContext.close();
+      }
+    }
+    async function storyFrameFor(storyShellPage) {
+      await storyShellPage.waitForFunction(() => document.querySelector('iframe')?.contentWindow.VuseSite);
+      return storyShellPage.frames().find(frame => frame.url().includes('/vuse-italia-assets/'));
+    }
 
     await page.goto(origin + '/fixture?delay');
     let frame = await child();
@@ -329,6 +610,7 @@ async function main() {
     assert.equal(await frame.locator('.vs-account-name').count(), 0);
     await page.evaluate(() => window.send('reset', {}));
     await page.waitForFunction(() => !Object.keys(localStorage).some(k => k.startsWith('vuseShopper:')));
+    await testStoryNudges();
     assert.deepEqual(errors, []);
     console.log('Vuse storefront: real-CSS account tabs, demo-password privacy, acknowledgement, rejection, uncertainty, fields, preferences, checkout, scoped persistence, resume, logout and route fixtures passed.');
   } finally {

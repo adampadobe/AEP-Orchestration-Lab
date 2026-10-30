@@ -59,6 +59,8 @@ html.vs-locked, html.vs-locked body { overflow: hidden; }
 .vs-link { color: var(--vs-ink); font-weight: 700; text-decoration: underline; cursor: pointer; background: none; border: 0; font: inherit; padding: 0; }
 
 /* Cart drawer */
+.vs-drawer-backdrop { position: fixed; inset: 0; z-index: 9050; background: color-mix(in srgb, var(--vs-ink) 45%, transparent); }
+.vs-drawer-backdrop[hidden] { display: none; }
 .vs-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 9100; width: min(440px, 100%); background: #fff; color: var(--vs-ink); display: flex; flex-direction: column; box-shadow: -8px 0 30px rgba(0, 0, 0, .3); transform: translateX(100%); transition: transform .25s ease; }
 .vs-drawer.vs-open { transform: none; }
 .vs-drawer__head { display: flex; justify-content: space-between; align-items: center; padding: 22px 24px; border-bottom: 1px solid var(--vs-line); }
@@ -71,6 +73,13 @@ html.vs-locked, html.vs-locked body { overflow: hidden; }
 .vs-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 18px; margin-bottom: 16px; }
 .vs-empty { padding: 40px 0; text-align: center; color: var(--vs-muted); }
 .vs-badge { position: absolute; top: -6px; right: -8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--vs-primary); color: var(--vs-ink); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+
+/* Sign-in suggestion stays nonblocking; checkout help uses the account modal shell. */
+.vs-signin-nudge { position: fixed; z-index: 8900; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); box-sizing: border-box; width: min(780px, calc(100% - 32px)); max-height: calc(100dvh - 40px); overflow: auto; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; padding: 24px 64px 24px 24px; border: 1px solid var(--vs-line); border-radius: var(--vs-radius); background: var(--batcom-color-container-primary-light-bg, Canvas); color: var(--vs-ink); box-shadow: 0 8px 24px color-mix(in srgb, var(--vs-ink) 25%, transparent); font-size: 15px; line-height: 1.5; }
+.vs-signin-nudge h2 { margin: 0 0 6px; font-size: 22px; font-weight: 900; color: inherit; }
+.vs-signin-nudge p { margin: 0; }
+.vs-signin-nudge .vs-close { top: 8px; right: 8px; }
+.vs-signin-nudge button:focus-visible, [data-vs-checkout-help] button:focus-visible { outline: 2px solid var(--vs-ink); outline-offset: 3px; }
 
 /* Forms */
 .vs-modal [hidden] { display: none !important; }
@@ -118,6 +127,8 @@ ul.vs-scroll > li { scroll-snap-align: start; flex-shrink: 0; }
   .vs-modal { padding: 28px 20px; }
   .vs-form .vs-row { grid-template-columns: 1fr; }
   .vs-btn { min-width: 0; width: 100%; }
+  .vs-signin-nudge { grid-template-columns: 1fr; gap: 16px; padding: 22px 52px 22px 20px; }
+  .vs-signin-nudge h2 { font-size: 20px; }
 }
 
 .cmp-batcom-agegate .cmp-button:focus:not(:focus-visible) { outline: none; box-shadow: none; }

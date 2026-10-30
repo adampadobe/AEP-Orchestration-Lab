@@ -9,7 +9,8 @@
     identity: 'vuseIdentity',
     abandon: 'vuseAbandonSent',
     consent: 'vuseConsent',
-    loyalty: 'vuseLoyalty'
+    loyalty: 'vuseLoyalty',
+    nudges: 'vuseCartNudges'
   };
   var PAGE = (location.pathname.split('/').pop() || 'index.html').replace(/\.html$/, '') || 'index';
   var CURRENCY = 'EUR';
@@ -65,6 +66,7 @@
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return Promise.reject(new Error('Please enter a valid email address.'));
     if (binding && binding.toLowerCase() !== email) return Promise.reject(new Error('Use New visitor in the lab before switching to a different email.'));
     payload.email = email;
+    dismissSigninNudge();
     var requestId = 'vuse-' + crypto.randomUUID();
     return new Promise(function (resolve, reject) {
       write('uncertain', { requestId: requestId, action: payload.action });
@@ -141,15 +143,27 @@
   }
 
   /* ---------- Modal helpers ---------- */
+  var modalReturnFocus = null;
+  function restoreFocus(target) {
+    if (!target || !target.isConnected || target.closest('.vs-drawer:not(.vs-open)')) target = $('a.batcom-bff-accounticon__icon');
+    if (target && target.focus) target.focus();
+  }
   function openModal(inner, opts) {
+    var returnFocus = $('[data-vs-modal]') ? modalReturnFocus : document.activeElement;
+    if (drawer && drawer.contains(returnFocus)) returnFocus = drawerReturnFocus;
     closeModal(true);
+    closeDrawer({ suppressNudge: true, restoreFocus: false });
+    dismissSigninNudge();
+    modalReturnFocus = returnFocus;
     var b = el('<div class="vs-backdrop" data-vs-modal><div class="vs-modal' + (opts && opts.narrow ? ' vs-modal--narrow' : '') +
       '" role="dialog" aria-modal="true"><button class="vs-close" type="button" aria-label="Close">×</button></div></div>');
     var m = b.firstElementChild;
     m.insertAdjacentHTML('beforeend', inner);
+    if (opts && opts.labelledBy) m.setAttribute('aria-labelledby', opts.labelledBy);
     b.addEventListener('click', function (e) { if (e.target === b || e.target.closest('.vs-close')) closeModal(); });
     document.body.appendChild(b);
     document.documentElement.classList.add('vs-locked');
+    requestAnimationFrame(function () { if (m.isConnected) $('.vs-close', m).focus(); });
     return m;
   }
   function closeModal(replacing) {
@@ -159,10 +173,27 @@
     if (hadModal && !replacing) {
       if (drawer && drawer.classList.contains('vs-open')) view('cart', 'Your cart', 'https://www.vuse.com/it/it/checkout/cart');
       else rootView();
+      restoreFocus(modalReturnFocus);
+      modalReturnFocus = null;
     }
   }
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { if ($('[data-vs-modal]')) closeModal(); else closeDrawer(); }
+    if (e.key === 'Escape') {
+      if (pending) { e.preventDefault(); toast('Please wait for the customer submission to finish before navigating.'); return; }
+      if ($('[data-vs-modal]')) closeModal(); else closeDrawer();
+    }
+    if (e.key === 'Tab') {
+      var overlay = $('[data-vs-modal] .vs-modal') || (drawer && drawer.classList.contains('vs-open') ? drawer : null);
+      if (!overlay) return;
+      var controls = $$('button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex="0"]', overlay)
+        .filter(function (node) { return node.getClientRects().length > 0; });
+      var first = controls[0];
+      var last = controls[controls.length - 1];
+      if (first && (!overlay.contains(document.activeElement) || e.shiftKey && document.activeElement === first || !e.shiftKey && document.activeElement === last)) {
+        e.preventDefault();
+        (e.shiftKey ? last : first).focus();
+      }
+    }
   });
 
   /* ---------- Identity ---------- */
@@ -183,7 +214,7 @@
       }
     });
   }
-  function setIdentity(id) { write(KEYS.identity, id); renderAccount(); }
+  function setIdentity(id) { write(KEYS.identity, id); dismissSigninNudge(); renderAccount(); }
 
   /* ---------- Age gate ---------- */
   function initAgeGate() {
@@ -453,6 +484,7 @@
   }
   function renderBasket() {
     var count = cart().reduce(function (t, i) { return t + i.qty; }, 0);
+    if (!count) dismissSigninNudge();
     $$('.batcom-bff-minibasket').forEach(function (mb) {
       mb.classList.toggle('batcom-bff-minibasket--is-empty', count === 0);
       mb.style.position = 'relative';
@@ -463,13 +495,21 @@
     });
   }
   var drawer = null;
+  var drawerBackdrop = null;
+  var drawerReturnFocus = null;
   function openDrawer() {
+    if (pending) return;
+    dismissSigninNudge();
+    if (!drawer || !drawer.classList.contains('vs-open')) drawerReturnFocus = document.activeElement;
     view('cart', 'Your cart', 'https://www.vuse.com/it/it/checkout/cart');
     if (!drawer) {
-      drawer = el('<aside class="vs-drawer" aria-label="Cart"><div class="vs-drawer__head"><h3>Your cart</h3>' +
+      drawerBackdrop = el('<div class="vs-drawer-backdrop" hidden></div>');
+      drawerBackdrop.addEventListener('click', function () { closeDrawer(); });
+      document.body.appendChild(drawerBackdrop);
+      drawer = el('<aside class="vs-drawer" role="dialog" aria-modal="true" aria-label="Cart" inert><div class="vs-drawer__head"><h3>Your cart</h3>' +
         '<button class="vs-close" style="position:static" type="button" aria-label="Close">×</button></div>' +
         '<div class="vs-drawer__body"></div><div class="vs-drawer__foot"></div></aside>');
-      $('.vs-close', drawer).addEventListener('click', closeDrawer);
+      $('.vs-close', drawer).addEventListener('click', function () { closeDrawer(); });
       document.body.appendChild(drawer);
     }
     var items = cart();
@@ -506,13 +546,61 @@
       });
     });
     var co = $('[data-vs-checkout]', foot);
-    co && co.addEventListener('click', function () { drawer.classList.remove('vs-open'); openCheckout(); });
-    requestAnimationFrame(function () { drawer.classList.add('vs-open'); });
+    co && co.addEventListener('click', openCheckout);
+    drawerBackdrop.hidden = false;
+    drawer.inert = false;
+    document.documentElement.classList.add('vs-locked');
+    requestAnimationFrame(function () {
+      if (!drawerBackdrop.hidden) { drawer.classList.add('vs-open'); $('.vs-close', drawer).focus(); }
+    });
   }
-  function closeDrawer() {
-    if (!drawer || !drawer.classList.contains('vs-open')) return;
+  function closeDrawer(opts) {
+    if (!drawer || !drawer.classList.contains('vs-open') && (!drawerBackdrop || drawerBackdrop.hidden)) return;
+    if (pending) return;
     drawer.classList.remove('vs-open');
-    rootView();
+    drawer.inert = true;
+    drawerBackdrop.hidden = true;
+    if (!$('[data-vs-modal], .cmp-batcom-agegate.vs-open')) document.documentElement.classList.remove('vs-locked');
+    if (!opts || !opts.suppressNudge) rootView();
+    if (!opts || opts.restoreFocus !== false) restoreFocus(drawerReturnFocus);
+    if (!opts || !opts.suppressNudge) showCartNudge();
+  }
+  function dismissSigninNudge() {
+    $$('[data-vs-signin-nudge]').forEach(function (node) { node.remove(); });
+  }
+  function nudgeEligible() {
+    return !!(context && gateReady && cart().length && !pending && !read('uncertain', false) && !$('[data-vs-modal]'));
+  }
+  function showCartNudge() {
+    if (!nudgeEligible()) return;
+    var id = identity();
+    var stage = id && id.signedIn ? 'known' : 'anonymous';
+    var seen = read(KEYS.nudges, {});
+    if (seen[stage]) return;
+    seen[stage] = true;
+    write(KEYS.nudges, seen);
+    if (stage === 'anonymous') {
+      var banner = el('<section class="vs-signin-nudge" data-vs-signin-nudge aria-label="Sign-in suggestion">' +
+        '<button type="button" class="vs-close" data-vs-nudge-dismiss aria-label="Dismiss sign-in suggestion">×</button>' +
+        '<div role="status"><h2>Your bag is waiting</h2><p>Sign in to view your profile and pick up where you left off.</p></div>' +
+        '<button type="button" class="vs-btn vs-btn--sm" data-vs-nudge-signin>Sign in</button></section>');
+      document.body.appendChild(banner);
+      $('[data-vs-nudge-dismiss]', banner).addEventListener('click', function () { dismissSigninNudge(); restoreFocus(drawerReturnFocus); });
+      $('[data-vs-nudge-signin]', banner).addEventListener('click', function () { if (nudgeEligible()) openAccount('signin', true); });
+      return;
+    }
+    var m = openModal('<h2 id="vsCheckoutHelpTitle">' + esc(id.firstName ? id.firstName + ', need a hand?' : 'Need a hand?') + '</h2>' +
+      '<p>Your bag is waiting. Would you like help checking out?</p>' +
+      '<p class="vs-note">Review your bag and details, or keep exploring.</p>' +
+      '<div class="vs-actions"><button type="button" class="vs-btn vs-btn--block" data-vs-help-checkout>Continue to checkout</button>' +
+      '<button type="button" class="vs-btn vs-btn--ghost vs-btn--block" data-vs-help-dismiss>Continue shopping</button></div>',
+      { narrow: true, labelledBy: 'vsCheckoutHelpTitle' });
+    m.setAttribute('data-vs-checkout-help', '');
+    $('[data-vs-help-checkout]', m).addEventListener('click', function () {
+      if (pending || read('uncertain', false)) return;
+      openCheckout();
+    });
+    $('[data-vs-help-dismiss]', m).addEventListener('click', function () { closeModal(); });
   }
   function abandonCart() {
     var items = cart();
@@ -522,6 +610,7 @@
   }
 
   function openCheckout() {
+    if (pending || read('uncertain', false)) { toast('Resolve the pending or uncertain submission in the lab before checking out.'); return; }
     var id = identity() || {};
     var items = cart();
     if (!items.length) { toast('Add a product before checking out.'); return; }
@@ -628,7 +717,7 @@
     return out;
   }
 
-  function openAccount(initialTab) {
+  function openAccount(initialTab, showProfileAfterLogin) {
     var id = identity();
     if (id && id.signedIn) return openProfile(id);
     var m = openModal(
@@ -668,7 +757,7 @@
       var f = e.target;
       if (!validForm(f)) return;
       submitForm(f, { action: 'login', email: field(f, 'email') }, function () {
-        closeModal();
+        if (showProfileAfterLogin) openProfile(identity()); else closeModal();
         toast('Simulated sign in complete');
       });
     });
@@ -787,7 +876,7 @@
       if (!e.target.closest('.cmp-batcom-agegate')) { e.preventDefault(); toast('Complete the age check after the lab visitor is ready.'); }
       return;
     }
-    if (e.target.closest('[data-vs-modal], .vs-drawer, .cmp-batcom-agegate')) {
+    if (e.target.closest('[data-vs-modal], .vs-drawer, .vs-drawer-backdrop, [data-vs-signin-nudge], .cmp-batcom-agegate')) {
       if (e.target.closest('[data-vs-noop]')) e.preventDefault();
       return;
     }
