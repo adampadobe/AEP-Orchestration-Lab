@@ -342,6 +342,24 @@
     if (event.source !== frame.contentWindow || event.origin !== global.location.origin || event.data?.source !== 'vuse-site') return;
     const { type, payload } = event.data;
     if (type === 'site.ready') { frameReady = true; notifySiteContext(); return; }
+    if (type === 'customer.status' && typeof payload?.requestId === 'string') {
+      const completed = completedRequests.get(payload.requestId);
+      if (completed) post('customer.result', completed, payload.requestId);
+      return;
+    }
+    if (type === 'customer.recovered' && typeof payload?.requestId === 'string') {
+      const completed = completedRequests.get(payload.requestId);
+      let detail;
+      try { detail = uncertain ? JSON.parse(uncertain) : null; } catch (error) { message('Could not read delivery recovery state: ' + error.message, true); return; }
+      if (completed && !completed.uncertain && detail?.id === payload.requestId
+        && (!completed.ok || ['customer.login', 'customer.resume'].includes(detail.eventType))) {
+        uncertain = null;
+        global.sessionStorage.removeItem(uncertainKey);
+        byId('vuseUncertainDelivery').hidden = true;
+        message('The original customer submission has a confirmed result. No retry was sent.', false);
+      }
+      return;
+    }
     if (type === 'customer.uncertain' && payload?.requestId) {
       saveUncertain({ id: String(payload.requestId), eventType: 'customer.' + String(payload.action || 'submission'),
         sandbox: sandbox(), timestamp: new Date().toISOString() });
