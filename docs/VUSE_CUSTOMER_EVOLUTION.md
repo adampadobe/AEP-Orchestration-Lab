@@ -48,6 +48,10 @@ real customer data, passwords used elsewhere, or payment credentials.
    message uses the acknowledged first name. Choose **Continue to checkout** to
    resume checkout with the same bag; **Continue shopping** dismisses the
    message. Each suggestion is limited to its visitor and story stage.
+   The help also names the actual products, quantities and total in the bag.
+   Rewards copy appears only after an acknowledged explicit Join Vuse Rewards
+   choice in this visitor's storefront session. It does not imply a verified AEP
+   loyalty tier, points balance or favourite-product attribute.
 4. The storefront copy is ordinary customer-facing language, not a claim about a
    live offer or service. The browser regression runs against the captured site
    with an isolated fake shell that supplies acknowledgements; it does not call
