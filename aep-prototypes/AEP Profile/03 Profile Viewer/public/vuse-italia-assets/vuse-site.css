@@ -76,10 +76,11 @@ html.vs-locked, html.vs-locked body { overflow: hidden; }
 
 /* Sign-in suggestion stays nonblocking; checkout help uses the account modal shell. */
 .vs-signin-nudge { position: fixed; z-index: 8900; left: 50%; bottom: max(20px, env(safe-area-inset-bottom)); transform: translateX(-50%); box-sizing: border-box; width: min(780px, calc(100% - 32px)); max-height: calc(100dvh - 40px); overflow: auto; display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 20px; padding: 24px 64px 24px 24px; border: 1px solid var(--vs-line); border-radius: var(--vs-radius); background: var(--batcom-color-container-primary-light-bg, Canvas); color: var(--vs-ink); box-shadow: 0 8px 24px color-mix(in srgb, var(--vs-ink) 25%, transparent); font-size: 15px; line-height: 1.5; }
-.vs-signin-nudge h2 { margin: 0 0 6px; font-size: 22px; font-weight: 900; color: inherit; }
-.vs-signin-nudge p { margin: 0; }
-.vs-signin-nudge .vs-close { top: 8px; right: 8px; }
+.vs-signin-nudge h2 { margin: 0 0 6px; font-size: 22px; font-weight: 900; color: var(--batcom-color-accordion-title-inverted, white); }
+.vs-signin-nudge p { margin: 0; color: var(--batcom-color-accordion-title-inverted, white); }
+.vs-signin-nudge .vs-close { top: 8px; right: 8px; color: var(--batcom-color-accordion-title-inverted, white); }
 .vs-signin-nudge button:focus-visible, [data-vs-checkout-help] button:focus-visible { outline: 2px solid var(--vs-ink); outline-offset: 3px; }
+.vs-signin-nudge button:focus-visible { outline-color: var(--batcom-color-accordion-title-inverted, white); }
 
 /* Forms */
 .vs-modal [hidden] { display: none !important; }

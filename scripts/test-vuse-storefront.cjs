@@ -153,11 +153,19 @@ async function main() {
             right: rect.right,
             width: rect.width,
             viewport: document.documentElement.clientWidth,
+            headingColor: getComputedStyle(el.querySelector('h2')).color,
+            bodyColor: getComputedStyle(el.querySelector('p')).color,
+            dismissColor: getComputedStyle(el.querySelector('.vs-close') || el.closest('.vs-modal').querySelector('.vs-close')).color,
             text: el.innerText
           };
         });
         assert.equal(presentation.position, 'fixed', selector + ' uses the loaded storefront presentation CSS');
         assert.notEqual(presentation.display, 'none');
+        if (selector === '[data-vs-signin-nudge]') {
+          for (const key of ['headingColor', 'bodyColor', 'dismissColor']) {
+            assert.equal(presentation[key], 'rgb(255, 255, 255)', 'Sign-in banner ' + key + ' is white on the brand background');
+          }
+        }
         assert(presentation.left >= 0 && presentation.right <= presentation.viewport + 1,
           selector + ' stays within the mobile viewport');
         if (/\b(?:demo|fixture|fake|test)\b/i.test(presentation.text)) {

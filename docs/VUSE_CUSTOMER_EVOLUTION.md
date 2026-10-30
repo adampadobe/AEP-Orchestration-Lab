@@ -38,6 +38,8 @@ real customer data, passwords used elsewhere, or payment credentials.
    product to the bag, and close the bag drawer. With an anonymous visitor, the
    storefront presents a sign-in suggestion; choose **Sign in** to open the
    existing account flow. Dismissing the suggestion leaves the bag unchanged.
+   The banner uses white text and dismissal controls on the brand-coloured surface,
+   while its yellow action button retains a dark label.
 2. Complete sign-in with a synthetic profile and wait for the Lab shell's
    acknowledgement before continuing. Open the account/profile view to show the
    acknowledged name. A rejected or unresolved sign-in must not be presented as
