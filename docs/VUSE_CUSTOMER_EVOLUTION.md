@@ -32,6 +32,28 @@ real customer data, passwords used elsewhere, or payment credentials.
    identity and local shopper state while retaining lab configuration and recent
    email suggestions. It does not delete the previous customer's AEP history.
 
+## Bag story: sign-in, then checkout help
+
+1. Start a fresh visitor with **New visitor**, pass the age gate, add a captured
+   product to the bag, and close the bag drawer. With an anonymous visitor, the
+   storefront presents a sign-in suggestion; choose **Sign in** to open the
+   existing account flow. Dismissing the suggestion leaves the bag unchanged.
+2. Complete sign-in with a synthetic profile and wait for the Lab shell's
+   acknowledgement before continuing. Open the account/profile view to show the
+   acknowledged name. A rejected or unresolved sign-in must not be presented as
+   a known customer.
+3. Reopen the populated bag and close it. The known-customer checkout-help
+   message uses the acknowledged first name. Choose **Continue to checkout** to
+   resume checkout with the same bag; **Continue shopping** dismisses the
+   message. Each suggestion is limited to its visitor and story stage.
+4. The storefront copy is ordinary customer-facing language, not a claim about a
+   live offer or service. The browser regression runs against the captured site
+   with an isolated fake shell that supplies acknowledgements; it does not call
+   Adobe Target or AJO, prove AEP ingestion, create a subscription, or send a
+   `cart.abandon` event. Closing the bag is only the demonstrated interaction,
+   not evidence of abandonment. Existing sign-in password and checkout
+   payment/fulfilment disclosures remain in place.
+
 ## Data and consent boundaries
 
 Only allowlisted, validated fields explicitly submitted by the customer may be
