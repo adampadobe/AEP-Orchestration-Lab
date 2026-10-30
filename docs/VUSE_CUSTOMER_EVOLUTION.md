@@ -14,7 +14,11 @@ real customer data, passwords used elsewhere, or payment credentials.
 2. Complete the age gate, browse categories and open products. Page views use the
    Web SDK, while product and commerce interactions use the event generator.
    The same page view is never mirrored through both transports.
-3. Register a synthetic adult customer, or sign into an existing synthetic profile.
+3. Use **Create account** for a synthetic adult customer, or **Sign in** for an
+   existing synthetic profile. Sign in shows only email and a required, masked
+   demo-password field. Enter any made-up password: it is not checked, sent or
+   saved, and has no role in identity resolution. Create account separately shows
+   customer details and explicit preferences; the inactive form stays hidden.
    Registration and deliberately submitted profile/checkout details are written
    through the generic profile dataflow. An identity event links the submitted
    email to the **current browser ECID**, not an ECID copied from the profile.
