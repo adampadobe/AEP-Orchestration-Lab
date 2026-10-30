@@ -113,6 +113,8 @@ async function main() {
     await page.waitForTimeout(80);
     assert.equal((await messages('pageView')).length, 1, 'Repeated context does not duplicate pageviews');
 
+    await frame.waitForFunction(() => ['vuse-site.css', 'css/vuse-6f64419c.css', 'css/vuse-it-4d6d1c64.css'].every(file =>
+      Array.from(document.styleSheets).some(sheet => sheet.href && new URL(sheet.href).pathname.endsWith('/' + file) && sheet.cssRules.length > 0)));
     const stylesheets = await frame.evaluate(() => Array.from(document.styleSheets, sheet => ({
       href: sheet.href && new URL(sheet.href).pathname,
       rules: sheet.cssRules.length
