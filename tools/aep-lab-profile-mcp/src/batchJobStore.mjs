@@ -14,6 +14,16 @@ let firestore = null;
 let storeMode = 'memory';
 let initAttempted = false;
 
+function omitUndefined(value) {
+  if (Array.isArray(value)) return value.map((item) => item === undefined ? null : omitUndefined(item));
+  if (value && Object.getPrototypeOf(value) === Object.prototype) {
+    return Object.fromEntries(Object.entries(value)
+      .filter(([, item]) => item !== undefined)
+      .map(([key, item]) => [key, omitUndefined(item)]));
+  }
+  return value;
+}
+
 async function initStore() {
   if (initAttempted) return firestore;
   initAttempted = true;
@@ -46,7 +56,7 @@ export async function createBatchJob(job) {
   await initStore();
   const id = randomUUID();
   const jobType = job.jobType || 'profile_batch';
-  const record = {
+  const record = omitUndefined({
     jobId: id,
     jobType,
     status: 'queued',
@@ -57,7 +67,7 @@ export async function createBatchJob(job) {
     errors: [],
     params: job.params,
     storeMode,
-  };
+  });
 
   if (firestore) {
     await firestore.collection(COLLECTION).doc(id).set(record);
@@ -90,7 +100,7 @@ export async function updateBatchJob(jobId, patch) {
   await initStore();
   const id = String(jobId || '').trim();
   const updatedAt = new Date().toISOString();
-  const payload = { ...patch, updatedAt };
+  const payload = omitUndefined({ ...patch, updatedAt });
 
   if (firestore) {
     await firestore.collection(COLLECTION).doc(id).set(payload, { merge: true });

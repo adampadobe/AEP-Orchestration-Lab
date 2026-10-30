@@ -88,7 +88,7 @@ export function checkEdgeSendRate(keyId) {
 
 /**
  * @param {string} keyId
- * @returns {{ ok: true } | { ok: false, message: string, retryAfterSec: number }}
+ * @returns {{ ok: true, release: () => void } | { ok: false, message: string, retryAfterSec: number }}
  */
 export function checkBatchJobRate(keyId) {
   const id = String(keyId || 'unknown');
@@ -108,7 +108,13 @@ export function checkBatchJobRate(keyId) {
 
   list.push(now);
   batchJobTimestamps.set(id, list);
-  return { ok: true };
+  let released = false;
+  return { ok: true, release() {
+    if (released) return;
+    released = true;
+    const index = list.indexOf(now);
+    if (index !== -1) list.splice(index, 1);
+  } };
 }
 
 function checkWindowRate(map, keyId, maxPerMinute, label) {

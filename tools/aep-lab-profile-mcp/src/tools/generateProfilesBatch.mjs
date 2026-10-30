@@ -170,11 +170,6 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
       } = params;
       const keyId = getRequestKeyId();
 
-      const rate = checkBatchJobRate(keyId);
-      if (!rate.ok) {
-        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
-      }
-
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
@@ -266,36 +261,51 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         }
       }
 
-      const job = await createBatchJob({
-        jobType: 'profile_batch',
-        count,
-        params: {
-          sandbox: allowed.sandbox,
-          industry: norm.industry,
+      const rate = checkBatchJobRate(keyId);
+      if (!rate.ok) {
+        return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
+      }
+      let job;
+      try {
+        job = await createBatchJob({
+          jobType: 'profile_batch',
           count,
-          base_email,
-          email_pattern,
-          randomize: useRandomize,
-          segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
-          loyalty_member: loyalty_member === true,
-          last_order_details,
-          active_flight: typeof active_flight === 'boolean' ? active_flight : null,
-          delay_ms,
-          attributes,
-          append_if_existing,
-          test_profile: normalizedTest.test_profile,
-          test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
-          use_stored_prefs: useStoredPrefs,
-          dual_load_snowflake: dual_load_snowflake === true,
-          dual_load_snowflake_mode: dual_load_snowflake_mode || 'crm_generate',
-          snowflake_enrichment: snowflake_enrichment === true,
-          snowflake_event_types,
-          snowflake_table,
-          place_mode: placeCheck.place_mode || null,
-          place_area: placeCheck.place_area || null,
-          place_plan: placePlan ? placePlan.places : null,
-        },
-      });
+          params: {
+            sandbox: allowed.sandbox,
+            industry: norm.industry,
+            count,
+            base_email,
+            email_pattern,
+            randomize: useRandomize,
+            segment_hint: typeof segmentNorm === 'string' ? segmentNorm : null,
+            loyalty_member: loyalty_member === true,
+            last_order_details,
+            active_flight: typeof active_flight === 'boolean' ? active_flight : null,
+            delay_ms,
+            attributes,
+            append_if_existing,
+            test_profile: normalizedTest.test_profile,
+            test_profile_override_reason: normalizedTest.testProfileOverrideReason || null,
+            use_stored_prefs: useStoredPrefs,
+            dual_load_snowflake: dual_load_snowflake === true,
+            dual_load_snowflake_mode: dual_load_snowflake_mode || 'crm_generate',
+            snowflake_enrichment: snowflake_enrichment === true,
+            snowflake_event_types,
+            snowflake_table,
+            place_mode: placeCheck.place_mode || null,
+            place_area: placeCheck.place_area || null,
+            place_plan: placePlan ? placePlan.places : null,
+          },
+        });
+      } catch (error) {
+        rate.release();
+        console.error('[aep-lab-profile-mcp] batch job creation failed:', error);
+        writeAuditLog({
+          keyId, tool: 'lab_generate_profiles_batch', sandbox: allowed.sandbox,
+          industry: norm.industry, count, result: 'error',
+        });
+        return toolError('Could not create the batch job. No generation was started and the batch slot was released.');
+      }
 
       writeAuditLog({
         keyId,
