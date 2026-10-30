@@ -125,6 +125,11 @@ async function main() {
     assert(!JSON.stringify(registration).match(/password|cardNumber|paymentToken/));
     assert.equal(await stored('vuseIdentity'), null, 'No optimistic identity');
     assert(await frame.locator('[data-vs-panel="register"] button[type="submit"]').isDisabled());
+    await frame.locator('.vs-close').click();
+    assert(await frame.locator('[data-vs-panel="register"]').isVisible(), 'Pending submissions cannot be dismissed');
+    const pendingUrl = frame.url();
+    await frame.locator('a[href="vuse-pro.html"]').first().evaluate(link => link.click());
+    assert.equal(frame.url(), pendingUrl, 'Navigation waits for the customer acknowledgement');
     await ack({ ok: true, identity: { email: registration.payload.email, firstName: 'Giulia', lastName: 'Rossi' } }, 'wrong-request');
     await page.waitForTimeout(50);
     assert.equal(await stored('vuseIdentity'), null, 'Unmatched acknowledgements are ignored');
@@ -239,6 +244,16 @@ async function main() {
     await fill(frame, { email: registration.payload.email }, '[data-vs-panel="signin"]');
     await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
     assert.equal((await messages('customer.submit')).length, 7, 'Uncertain lock survives a page reload');
+    await waitCount('customer.uncertain', 1);
+    await page.evaluate(() => window.send('customer.reconciled', {}));
+    await frame.waitForFunction(() => document.querySelector('[data-vs-error]').textContent.includes('Previous delivery checked'));
+    assert.equal((await messages('customer.submit')).length, 7, 'Reconciliation never automatically retries');
+    assert.equal(await stored('uncertain'), false);
+    await frame.locator('[data-vs-panel="signin"] button[type="submit"]').click();
+    await waitCount('customer.submit', 8);
+    await ack({ ok: true, identity: { email: registration.payload.email, firstName: 'Giulia', lastName: 'Rossi' } });
+    await frame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
+    assert.equal((await stored('vuseIdentity')).signedIn, true, 'An explicit attempt works after reconciliation');
     assert.equal((await messages('cart.abandon')).length, 0, 'Closing/reloading is not cart abandonment');
     for (const event of await messages('pageView')) {
       assert.equal(new URL(event.payload.url).hostname, 'www.vuse.com');

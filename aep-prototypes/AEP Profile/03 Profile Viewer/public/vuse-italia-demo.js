@@ -73,6 +73,7 @@
     uncertain = JSON.stringify(detail);
     global.sessionStorage.setItem(uncertainKey, uncertain);
     byId('vuseUncertainDelivery').hidden = false;
+    byId('vuseLastAttempt').textContent = uncertain;
   }
   function logout() {
     if (customerBusy || sending || lookingUp) throw new Error('Wait for the current customer operation before signing out.');
@@ -341,6 +342,12 @@
     if (event.source !== frame.contentWindow || event.origin !== global.location.origin || event.data?.source !== 'vuse-site') return;
     const { type, payload } = event.data;
     if (type === 'site.ready') { frameReady = true; notifySiteContext(); return; }
+    if (type === 'customer.uncertain' && payload?.requestId) {
+      saveUncertain({ id: String(payload.requestId), eventType: 'customer.' + String(payload.action || 'submission'),
+        sandbox: sandbox(), timestamp: new Date().toISOString() });
+      message('A storefront submission was interrupted. Check profile activity, then explicitly allow retry in Presenter controls.', true);
+      return;
+    }
     if (type === 'logout') {
       queue = queue.then(logout).catch((error) => { message(error.message, true); });
       return;
@@ -439,8 +446,9 @@
     byId('vuseUncertainDelivery').hidden = !uncertain;
     if (uncertain) byId('vuseLastAttempt').textContent = uncertain;
     byId('vuseAllowRetry').addEventListener('click', () => {
-      if (sending) return;
+      if (sending || customerBusy || lookingUp) return;
       uncertain = null; global.sessionStorage.removeItem(uncertainKey); byId('vuseUncertainDelivery').hidden = true;
+      post('customer.reconciled', {});
       message('Another explicit attempt is allowed. The previous event may already exist; deduplication is not guaranteed.', false);
     });
   }

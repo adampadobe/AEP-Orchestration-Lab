@@ -57,6 +57,11 @@ not that Profile, Identity Service, audiences or journeys have finished processi
 If a write may have reached Adobe but its response is uncertain, the flow stops.
 Use Presenter controls to inspect/reconcile activity before explicitly allowing
 another attempt; automatic retries can create duplicate events.
+Navigation and modal dismissal wait while a customer submission is pending.
+If a browser reload interrupts the acknowledgement, the storefront reports its
+persisted uncertainty to Presenter controls. After checking AEP activity, **I
+checked activity; allow retry** clears both shell and storefront locks. It does
+not automatically replay the interrupted action.
 
 ## Measurement semantics
 
@@ -66,6 +71,16 @@ ECID does not itself generate a shell page view. Product interest, add-to-cart,
 submitted preferences and simulated purchases are separate business events.
 Presenter-triggered events are simulations, not evidence of natural navigation.
 Closing a cart or leaving a page does not prove abandonment.
+
+The event dataset's schema must also declare the emitted dimensions. The
+`apalmer` Event Tool schema has Adobe **Web Details** plus **AEP Lab - Vuse
+Customer Journey Events v1**: optional `_demoemea.public` context and
+`_demoemea.message.productListItems` fields matching `vuse-italia-events.js`.
+Generic Event Tool provisioning alone does not install this demo-specific group.
+After a schema change, verify newly stored events contain page names/URLs,
+product items and order totals; accepted receipts and event types alone do not
+prove measurement readiness. Previously discarded dimensions are not recovered
+retroactively. CJA also needs its own verified connection and data-view mapping.
 
 ## Local checks and release
 
