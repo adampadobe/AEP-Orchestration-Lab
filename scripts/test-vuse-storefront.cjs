@@ -281,6 +281,12 @@ async function main() {
         assert.match(helpCopy, /checkout/i);
         const cartBeforeCheckout = await storyCart();
         assert(cartBeforeCheckout.length, 'Known-customer help keeps the populated bag');
+        for (const item of cartBeforeCheckout) {
+          assert(helpCopy.includes(item.name), 'Help names the actual bag product, not an invented favourite');
+          assert(helpCopy.includes(item.qty + ' × '), 'Help includes the selected quantity');
+        }
+        assert(!helpCopy.includes('Vuse Rewards'), 'Unknown rewards membership is not invented');
+        assert.match(await help.locator('[data-vs-help-total]').innerText(), /Your bag total:/);
         await help.locator('[data-vs-help-checkout]').click();
         await nextFrame.locator('[data-vs-modal] form:visible [name="street1"]').waitFor();
         assert.equal(await nextFrame.locator('[data-vs-checkout-help]').count(), 0, 'Checkout replaces the help popup');
@@ -355,11 +361,19 @@ async function main() {
         await dismissPage.waitForFunction(() => window.messages.filter(m => m.type === 'customer.submit').length === 1);
         await dismissAck({ ok: true, identity: { email: 'anna.story@example.com', firstName: 'Anna', lastName: 'Rossi' } });
         await dismissFrame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
+        await dismissFrame.evaluate(() => window.VuseSite.openAccount());
+        await dismissFrame.locator('[name="dateOfBirth"]').fill('1992-06-15');
+        await dismissFrame.locator('[data-vs-loyalty]').check();
+        await dismissFrame.locator('[data-vs-save]').click();
+        await dismissPage.waitForFunction(() => window.messages.filter(m => m.type === 'customer.submit').length === 2);
+        await dismissAck({ ok: true, identity: { email: 'anna.story@example.com', firstName: 'Anna', lastName: 'Rossi' } });
+        await dismissFrame.waitForFunction(() => !document.querySelector('[data-vs-modal]'));
         await dismissFrame.evaluate(() => window.VuseSite.openCart());
         await dismissFrame.locator('.vs-drawer.vs-open').waitFor();
         await dismissFrame.locator('.vs-drawer.vs-open .vs-close').click();
         await dismissFrame.locator('.vs-drawer.vs-open').waitFor({ state: 'detached' });
         assert.match(await assertNudgeLooksNative(dismissFrame, '[data-vs-checkout-help]'), /Anna/);
+        assert.match(await dismissFrame.locator('[data-vs-checkout-help]').innerText(), /You joined Vuse Rewards/);
         await dismissFrame.locator('[data-vs-help-dismiss]').click();
         assert.equal(await dismissFrame.locator('[data-vs-checkout-help]').count(), 0, 'Dismissing checkout help closes the popup');
         await dismissFrame.evaluate(() => window.VuseSite.openCart());

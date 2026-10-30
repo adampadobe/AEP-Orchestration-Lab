@@ -589,9 +589,18 @@
       $('[data-vs-nudge-signin]', banner).addEventListener('click', function () { if (nudgeEligible()) openAccount('signin', true); });
       return;
     }
-    var m = openModal('<h2 id="vsCheckoutHelpTitle">' + esc(id.firstName ? id.firstName + ', need a hand?' : 'Need a hand?') + '</h2>' +
-      '<p>Your bag is waiting. Would you like help checking out?</p>' +
-      '<p class="vs-note">Review your bag and details, or keep exploring.</p>' +
+    var items = cart();
+    var productSummary = items.map(function (item) {
+      return '<li><strong>' + esc(String(item.qty)) + ' × ' + esc(item.name) + '</strong></li>';
+    }).join('');
+    var rewards = read(KEYS.loyalty, false) === true
+      ? '<p>You joined Vuse Rewards. Keep your next purchase connected to your account.</p>' : '';
+    var m = openModal('<h2 id="vsCheckoutHelpTitle">' + esc(id.firstName ? id.firstName + ', your picks are waiting' : 'Your picks are waiting') + '</h2>' +
+      '<p>Ready to make these yours? Your bag is saved while you explore.</p>' +
+      '<ul data-vs-help-products>' + productSummary + '</ul>' +
+      '<p data-vs-help-total><strong>Your bag total: ' + esc(money(cartTotal(items))) + '</strong></p>' +
+      rewards +
+      '<p class="vs-note">Continue to checkout to review your details and finish your order.</p>' +
       '<div class="vs-actions"><button type="button" class="vs-btn vs-btn--block" data-vs-help-checkout>Continue to checkout</button>' +
       '<button type="button" class="vs-btn vs-btn--ghost vs-btn--block" data-vs-help-dismiss>Continue shopping</button></div>',
       { narrow: true, labelledBy: 'vsCheckoutHelpTitle' });
