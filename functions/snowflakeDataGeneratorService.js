@@ -567,6 +567,9 @@ async function handleGenerateIndustryProfiles(input) {
   const schema = resolveDualLoadInsertSchema(config.table, industry);
   let conn;
   let emailAllocation;
+  const profiles = [];
+  let tableRowcounts;
+  let committed = false;
   try {
     conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
     if (cfg.warehouse) {
@@ -586,7 +589,6 @@ async function handleGenerateIndustryProfiles(input) {
       expectedBaseEmail: generationPrefs.baseEmail,
     });
     const records = [];
-    const profiles = [];
     for (let i = 0; i < count; i += 1) {
       const reserved = emailAllocation.emails[i];
       const idx = startIndex + i;
@@ -616,11 +618,30 @@ async function handleGenerateIndustryProfiles(input) {
         phoneNumber: generated.rowObject.PHONENUMBER || generated.rowObject.PRIMARYPHONE || null,
         loyaltyId: generated.rowObject.LOYALTYID || null,
         recipientId: record.parent.RECIPIENT_ID,
-        columns: record.profile,
+        columns: { ...record.profile },
       });
     }
 
-    const tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
+    tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
+    committed = true;
+    for (let offset = 0; offset < profiles.length; offset += 50) {
+      const selected = profiles.slice(offset, offset + 50);
+      const metadata = await execute(`SELECT ECID, _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP FROM ${fqTable}
+WHERE ECID IN (${selected.map(() => '?').join(', ')})`, selected.map(({ ecid }) => ecid));
+      const byEcid = new Map(metadata.map((row) => [String(readSnowflakeCell(row, 0, 'ECID')), row]));
+      if (metadata.length !== selected.length || byEcid.size !== selected.length) {
+        throw new Error('Committed seed timestamp readback did not return exactly the expected CRM identities.');
+      }
+      for (const profile of selected) {
+        const row = byEcid.get(profile.ecid);
+        if (!row) throw new Error('Committed seed timestamp readback omitted an expected CRM identity.');
+        for (const [index, column] of [[1, '_RECORDCREATEDTIMESTAMP'], [2, '_RECORDUPDATEDTIMESTAMP']]) {
+          const value = readSnowflakeCell(row, index, column);
+          if (value == null) throw new Error(`Committed seed timestamp readback omitted ${column}.`);
+          profile.columns[column] = value instanceof Date ? value.toISOString() : value;
+        }
+      }
+    }
 
     return {
       ok: true,
@@ -647,7 +668,18 @@ async function handleGenerateIndustryProfiles(input) {
       sample: profiles.slice(0, SAMPLE_SIZE).map((profile) => profile.columns),
     };
   } catch (err) {
-    const described = describeConnectError(err);
+    const described = describeConnectError(err.cause || err);
+    if (err.committed || committed) {
+      if (err.committed) described.message = `${err.message} ${described.message}`;
+      described.code = err.code || 'SEED_METADATA_READBACK_FAILED';
+      described.hints = ['The seed transaction already committed. Inspect timestamp publication for the returned identities; do not regenerate them or reuse their reserved emails.'];
+      return {
+        ok: false, committed: true, sandbox, industry, profiles,
+        tableRowcounts: err.tableRowcounts || tableRowcounts,
+        timestampPublication: { refreshedTables: err.refreshedTables, failedTable: err.failedTable },
+        error: described,
+      };
+    }
     const message = String(err && err.message || '');
     if (/does not exist|not authorized|insufficient privileges/i.test(message)) {
       described.code = 'INDUSTRY_TABLE_NOT_READY';
