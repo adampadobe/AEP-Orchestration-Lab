@@ -114,6 +114,7 @@ test('Snowflake UI displays partial DDL results, invalidates failed preview, and
     tableResults: [{ table: 'COLLEAGUE_DB.LAB.FIRST', ok: true }, { table: 'COLLEAGUE_DB.LAB.SECOND', ok: false, error: 'CREATE denied' }],
   };
   const requests = [];
+  const requestUrls = [];
   const messages = [];
   const context = {
     industryCatalog: { manifest: {} },
@@ -124,7 +125,12 @@ test('Snowflake UI displays partial DDL results, invalidates failed preview, and
     authHeaders: async () => ({ Authorization: 'test-only' }),
     readContext: () => ({}), isCurrentContext: () => true,
     contextHeaders: async () => ({ Authorization: 'test-only' }),
-    fetch: async (_url, init) => { requests.push(JSON.parse(init.body)); return { ok: false, json: async () => ({ result }) }; },
+    snowflakeApiUrl: (name) => `https://us-central1-fixture-project.cloudfunctions.net/${name}`,
+    fetch: async (url, init) => {
+      requestUrls.push(url);
+      requests.push(JSON.parse(init.body));
+      return { ok: false, json: async () => ({ result }) };
+    },
     els: { industryProvisionOut: { hidden: true, textContent: '' } },
     safeStringify: JSON.stringify, setIndustryBusy() {},
     setIndustryMessage: (message, tone) => messages.push({ message, tone }),
@@ -132,6 +138,7 @@ test('Snowflake UI displays partial DDL results, invalidates failed preview, and
   const functionSource = source.slice(source.indexOf('  function provisionIndustry(dryRun) {'), source.indexOf('  function setUpdaterMessage('));
   runInNewContext(`${functionSource}\nprovisionIndustry(false);`, context);
   await new Promise(setImmediate);
+  assert.equal(requestUrls[0], 'https://us-central1-fixture-project.cloudfunctions.net/snowflakeProvision');
   assert.equal(requests[0].confirmed, true);
   assert.equal(requests[0].preview_fingerprint, 'preview');
   assert.equal(context.els.industryProvisionOut.hidden, false);
