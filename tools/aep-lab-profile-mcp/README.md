@@ -573,6 +573,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
+| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); Snowflake calls bypass Hosting's 60-second limit. Set this separately for local function endpoints. |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
 | `AEP_LAB_MCP_BATCH_STORE` | No | `memory` for local; omit for Firestore on Cloud Run |

@@ -59,7 +59,7 @@ export async function generateSnowflakeProfiles(params, tool) {
   if (!ok) {
     return toolError(result?.error?.message || apiResult.error || 'Snowflake seeding did not confirm success.', {
       status: apiResult.status, response: apiResult.data,
-      note: 'Do not automatically retry: generation creates new identities. Inspect partial progress first.',
+      note: 'Do not automatically retry: generation creates new identities and may still commit after a timeout or gateway error. Wait for the backend request to finish, then inspect Snowflake before generating again. Never release or reuse reserved emails based only on a transport failure.',
     });
   }
   return fromLabApi(apiResult, {

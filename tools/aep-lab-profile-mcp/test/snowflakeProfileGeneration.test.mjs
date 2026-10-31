@@ -46,7 +46,7 @@ const success = {
 
 test('single-profile default seeds recipients and industry data without any AEP request', async () => {
   const { body, calls } = await invoke('lab_generate_profile', { sandbox: 'apalmer', industry: 'travel' }, () => success);
-  assert.deepEqual(calls.map(call => call.path), ['/api/snowflake/generate-industry-profiles']);
+  assert.deepEqual(calls.map(call => call.path), ['/snowflakeGenerateIndustryProfiles']);
   assert.deepEqual(calls[0].body, { sandbox: 'apalmer', industry: 'travel', count: 1 });
   assert.equal(body.target, 'snowflake');
   assert.equal(body.aep_streamed, false);
@@ -120,7 +120,7 @@ test('all six industries use the governed seed route with user-scoped authentica
       sandbox: 'apalmer', industry, target: 'snowflake',
     }, () => success);
     assert.equal(body.ok, true, industry);
-    assert.equal(calls[0].path, '/api/snowflake/generate-industry-profiles');
+    assert.equal(calls[0].path, '/snowflakeGenerateIndustryProfiles');
     assert.equal(calls[0].body.industry, industry);
     assert.equal(calls[0].headers['X-AEP-Lab-Mcp-Key'], 'test-user-key');
   }
@@ -138,7 +138,7 @@ test('preflight reports missing connection and preference fields rather than rea
 test('Snowflake preflight only reads saved config and preferences, without reserving an email', async () => {
   const { body, calls } = await invoke('lab_preflight_profile_generate', {
     sandbox: 'apalmer', industry: 'travel',
-  }, ({ path }) => path.includes('snowflake/config')
+  }, ({ path }) => path === '/snowflakeConfig'
     ? { ok: true, record: { hasCredential: true, account: 'account', user: 'user', database: 'DB', schema: 'LAB', warehouse: 'WH' } }
     : { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } });
   assert.equal(calls.length, 2);
@@ -156,7 +156,7 @@ test('explicit AEP target retains streaming and never invokes the Snowflake seed
   }, () => ({ ok: true, ecid: profile.ecid }));
   assert.equal(body.ok, true);
   assert.ok(calls.some(({ path }) => path === '/api/profile/generate'));
-  assert.ok(calls.every(({ path }) => path !== '/api/snowflake/generate-industry-profiles'));
+  assert.ok(calls.every(({ path }) => path !== '/snowflakeGenerateIndustryProfiles'));
 });
 
 test('all three tool schemas expose an explicit AEP opt-in and framework describes Snowflake default', () => {

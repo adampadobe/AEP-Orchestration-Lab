@@ -14,6 +14,25 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+### Long-running requests and gateway errors
+
+Snowflake SQL calls from the page and MCP use the direct Cloud Function URLs,
+not Firebase Hosting's `/api/snowflake/*` rewrites, which stop waiting after
+60 seconds. Seed preparation and linked writes can exceed that limit even for
+one recipient. MCP uses `AEP_LAB_FUNCTIONS_ORIGIN`; the page derives the origin
+from `firebaseDatabaseConfig.projectId` or the existing
+`window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__` override. Authentication, sandbox
+scope, static-IP egress, and the backend transaction are unchanged.
+For local MCP endpoint overrides, configure `AEP_LAB_FUNCTIONS_ORIGIN` as well
+as `AEP_LAB_API_ORIGIN`.
+
+A timeout or HTML gateway error does **not** prove a write failed: the backend
+can commit after the caller stops waiting. Never automatically regenerate,
+rewind the counter, or reuse reserved emails on that evidence. Wait for the
+backend request to finish, inspect its request logs, and look up the exact
+identity with `lab_snowflake_get_profile_by_email` or
+`lab_snowflake_get_profile_bundle` before deciding how to reconcile it.
+
 ### Shared recipient email settings
 
 **Recipient email** shows the saved base email, read-only next counter, and
