@@ -70,6 +70,7 @@ function fixture() {
       addEventListener: (name, handler) => { events[name] = handler; eventTargets[name] = 'document'; },
     },
     window: {
+      firebaseDatabaseConfig: { projectId: 'fixture-project' },
       firebase: { auth: () => auth }, confirm: () => true,
       AepProfileGenPrefsSync: {
         pull: () => readPrefs(),
@@ -86,6 +87,7 @@ function fixture() {
   };
   const instrumented = source.replace(/\}\)\(\);\s*$/, `
     globalThis.ui = { bind: bind, reset: resetWorkflowContext, reload: reloadWorkflowContext,
+      apiUrl: snowflakeApiUrl,
       history: safeGetBaseBatchHistory, append: appendBaseBatchHistory,
       load: loadProfiles, enrich: enrichSelected, generate: generateProfiles, generateClick: handleGenerateClick,
       catalog: loadIndustryCatalog, render: renderProfileRows,
@@ -96,6 +98,7 @@ function fixture() {
   context.ui.bind();
   return {
     ui: context.ui, nodes, events, eventTargets, storage, calls,
+    window: context.window,
     sandbox(value) { storage.set('aepGlobalSandboxName', value); },
     user(value) { uid = value; },
     token(fn) { token = fn; },
@@ -111,6 +114,44 @@ function fixture() {
     },
   };
 }
+
+test('Snowflake SQL URLs bypass Hosting using the configured project or existing origin override', () => {
+  const f = fixture();
+  assert.equal(f.ui.apiUrl('snowflakeGenerateIndustryProfiles'),
+    'https://us-central1-fixture-project.cloudfunctions.net/snowflakeGenerateIndustryProfiles');
+  f.window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__ = 'http://localhost:5001/project/us-central1/';
+  assert.equal(f.ui.apiUrl('snowflakeAgenticProfileBundle'),
+    'http://localhost:5001/project/us-central1/snowflakeAgenticProfileBundle');
+  delete f.window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__;
+  delete f.window.firebaseDatabaseConfig;
+  assert.throws(() => f.ui.apiUrl('snowflakeGenerateIndustryProfiles'), /configuration is required/);
+});
+
+test('every direct Snowflake page function matches an existing regional Hosting rewrite', () => {
+  const firebase = JSON.parse(readFileSync(resolve(__dirname, '../../firebase.json'), 'utf8'));
+  const hosting = Array.isArray(firebase.hosting) ? firebase.hosting[0] : firebase.hosting;
+  const routes = new Map(hosting.rewrites.filter(route => route.source.startsWith('/api/snowflake/'))
+    .map(route => [route.function.functionId, route.function.region]));
+  const direct = [...source.matchAll(/snowflakeApiUrl\('([^']+)'\)/g)].map(match => match[1]);
+  assert.ok(direct.includes('snowflakeGenerateIndustryProfiles'));
+  assert.ok(direct.includes('snowflakeAgenticProfileBundle'));
+  for (const name of direct) assert.equal(routes.get(name), 'us-central1', name);
+});
+
+test('page generation submits once to the direct seed function and does not retry a gateway failure', async () => {
+  const f = fixture();
+  await f.readyEmail();
+  f.respond(async () => ({ ok: false, status: 502, json: async () => ({ error: 'Bad Gateway' }) }));
+  f.ui.generate();
+  await flush();
+  assert.equal(f.calls.length, 1);
+  assert.equal(f.calls[0].url,
+    'https://us-central1-fixture-project.cloudfunctions.net/snowflakeGenerateIndustryProfiles');
+  assert.equal(f.calls[0].body.industry, 'retail');
+  assert.equal(f.calls[0].body.count, 1);
+  assert.equal(f.calls[0].body.sandbox, 'sandbox-a');
+  assert.equal(f.nodes.get('sfGenerateMessage').getAttribute('data-tone'), 'error');
+});
 
 test('invalid recipient counts show an error before either generation path submits', () => {
   const f = fixture();
@@ -158,7 +199,7 @@ test('sandbox sync and cross-tab sandbox changes immediately clear selected prof
     assert.equal(f.nodes.get('sfProfileBundleOut').hidden, true);
     f.ui.enrich();
     await flush();
-    assert.equal(f.calls.some(({ url }) => url.includes('enrich-profiles')), false);
+    assert.equal(f.calls.some(({ url }) => url.includes('snowflakeAgenticEnrichProfiles')), false);
   }
 });
 

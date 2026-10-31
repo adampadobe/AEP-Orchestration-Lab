@@ -1612,7 +1612,8 @@ export async function homeCommandDeleteMeeting({ id }) {
  * @param {string} params.sandbox
  */
 export async function getSnowflakeConfig({ sandbox }) {
-  return labApiRequest('/api/snowflake/config', {
+  return labApiRequest('/snowflakeConfig', {
+    origin: getLabFunctionsOrigin(),
     query: { sandbox },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 60_000,
@@ -1625,7 +1626,8 @@ export async function getSnowflakeConfig({ sandbox }) {
  * @param {string} params.sandbox
  */
 export async function snowflakeConnectionTest({ sandbox }) {
-  return labApiRequest('/api/snowflake/connection-test', {
+  return labApiRequest('/snowflakeConnectionTest', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox },
     headers: snowflakeAuthHeaders(),
@@ -1641,7 +1643,9 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
   if (industry && (table || start_index != null || use_generation_prefs === false)) {
     throw new Error('Industry CRM generation uses its governed table and shared generation preferences; legacy overrides cannot be combined with industry.');
   }
-  return labApiRequest(industry ? '/api/snowflake/generate-industry-profiles' : '/api/snowflake/generate-base-profiles', {
+  // Hosting rewrites stop waiting after 60s, even when the seed later commits.
+  return labApiRequest(industry ? '/snowflakeGenerateIndustryProfiles' : '/snowflakeGenerateBaseProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1653,7 +1657,7 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
       ...(use_generation_prefs === false ? { use_generation_prefs: false } : {}),
     },
     headers: snowflakeAuthHeaders(),
-    timeoutMs: 300_000,
+    timeoutMs: 330_000,
   });
 }
 
@@ -1662,7 +1666,8 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
  * @param {object} params
  */
 export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, industry, table, mode }) {
-  return labApiRequest('/api/snowflake/insert-profile-from-aep', {
+  return labApiRequest('/snowflakeInsertProfileFromAep', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1674,7 +1679,7 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
       ...(mode ? { mode } : {}),
     },
     headers: snowflakeAuthHeaders(),
-    timeoutMs: 120_000,
+    timeoutMs: 150_000,
   });
 }
 
@@ -1683,7 +1688,8 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
  * @param {object} params
  */
 export async function snowflakeQueryProfiles({ sandbox, industry, filter_type, time_period, limit, email, ecid }) {
-  return labApiRequest('/api/snowflake/agentic/query-profiles', {
+  return labApiRequest('/snowflakeAgenticQueryProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1704,7 +1710,8 @@ export async function snowflakeQueryProfiles({ sandbox, industry, filter_type, t
  * @param {object} params
  */
 export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables }) {
-  return labApiRequest('/api/snowflake/industry-catalog', {
+  return labApiRequest('/snowflakeIndustryCatalog', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1721,7 +1728,8 @@ export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables
  * @param {object} params
  */
 export async function snowflakeTableStructure({ sandbox, phase, include_ddl }) {
-  return labApiRequest('/api/snowflake/agentic/table-structure', {
+  return labApiRequest('/snowflakeAgenticTableStructure', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox, phase, ...(include_ddl === true ? { include_ddl: true } : {}) },
     headers: snowflakeAuthHeaders(),
@@ -1742,7 +1750,8 @@ export async function snowflakeValidateProposal({
   recipe_id,
   proposed_tables,
 }) {
-  return labApiRequest('/api/snowflake/industry-validate-proposal', {
+  return labApiRequest('/snowflakeIndustryValidateProposal', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1763,7 +1772,8 @@ export async function snowflakeValidateProposal({
  * @param {object} params
  */
 export async function snowflakeGenerateFull({ sandbox, count }) {
-  return labApiRequest('/api/snowflake/agentic/generate-full', {
+  return labApiRequest('/snowflakeAgenticGenerateFull', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox, count },
     headers: snowflakeAuthHeaders(),
@@ -1776,7 +1786,8 @@ export async function snowflakeGenerateFull({ sandbox, count }) {
  * @param {object} params
  */
 export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, event_types }) {
-  return labApiRequest('/api/snowflake/agentic/enrich-profiles', {
+  return labApiRequest('/snowflakeAgenticEnrichProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1800,7 +1811,8 @@ export async function snowflakeProfileBundle({
   crm_id,
   event_limit,
 }) {
-  return labApiRequest('/api/snowflake/agentic/profile-bundle', {
+  return labApiRequest('/snowflakeAgenticProfileBundle', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1820,7 +1832,8 @@ export async function snowflakeProfileBundle({
  * @param {{ sandbox: string, industry?: string, recipe_id: string, dry_run?: boolean, approval_id?: string, confirmed?: boolean, preview_fingerprint?: string }} params
  */
 export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run, approval_id, confirmed, preview_fingerprint }) {
-  return labApiRequest('/api/snowflake/provision', {
+  return labApiRequest('/snowflakeProvision', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
