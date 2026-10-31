@@ -33,6 +33,26 @@ backend request to finish, inspect its request logs, and look up the exact
 identity with `lab_snowflake_get_profile_by_email` or
 `lab_snowflake_get_profile_bundle` before deciding how to reconcile it.
 
+### Delta timestamps after a seed commit
+
+Generation's `runStamp` is not a commit timestamp. The shared seed writer first
+commits the parent, CRM, event, and relational/enrichment rows atomically, then
+publishes their metadata timestamps in bounded, per-table autocommit updates.
+Updates use Snowflake's UTC clock, not the caller's generation-start clock.
+New rows receive refreshed `_RECORDCREATEDTIMESTAMP` and, where present,
+`_RECORDUPDATEDTIMESTAMP` and `VERSION_TS`. Existing creation timestamps are
+preserved on replay; business/event occurrence dates and identity keys are unchanged.
+The API reads the CRM timestamps back before returning its profile samples.
+
+This addresses a long seed committing after a source run has advanced past its
+original timestamp. It is a post-commit publication step, not an exact Snowflake
+commit-time timestamp or a guarantee against every source scheduling race.
+Publication is not atomic across tables. If it fails, the API returns `ok:false`,
+`committed:true`, the committed identities/counts, and the failed/refreshed tables.
+Inspect those rows and repair metadata only; do not regenerate or reuse emails.
+Previously skipped rows require a separately reviewed timestamp repair and a
+subsequent source-flow readback. Existing AEP flow schedules/watermarks are not reset.
+
 ### Shared recipient email settings
 
 **Recipient email** shows the saved base email, read-only next counter, and

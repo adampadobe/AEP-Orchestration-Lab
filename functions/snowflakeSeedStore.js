@@ -155,6 +155,37 @@ async function withTransaction(execute, work) {
   }
 }
 
+async function refreshSeedTimestamps(execute, { table, key, rows }, batchSize) {
+  const now = "CONVERT_TIMEZONE('UTC', CURRENT_TIMESTAMP())::TIMESTAMP_NTZ";
+  const groups = new Map();
+  for (const row of rows) {
+    const normalized = Object.fromEntries(Object.entries(row).map(([column, value]) => [column.toUpperCase(), value]));
+    const columns = ['_RECORDCREATEDTIMESTAMP', '_RECORDUPDATEDTIMESTAMP', 'VERSION_TS']
+      .filter((column) => Object.hasOwn(normalized, column));
+    if (!columns.length) throw new Error(`${table} seed rows have no publication timestamp`);
+    const created = normalized._RECORDCREATEDTIMESTAMP;
+    const groupKey = JSON.stringify([columns, created]);
+    if (!groups.has(groupKey)) groups.set(groupKey, { columns, created, ids: new Set() });
+    groups.get(groupKey).ids.add(normalized[key]);
+  }
+  for (const { columns, created, ids } of groups.values()) {
+    const values = [...ids];
+    for (let offset = 0; offset < values.length; offset += batchSize) {
+      const selected = values.slice(offset, offset + batchSize);
+      const binds = [];
+      const assignments = columns.map((column) => {
+        if (column === '_RECORDCREATEDTIMESTAMP') {
+          binds.push(created instanceof Date ? created.toISOString() : created);
+          return `${column} = IFF(${column} = TO_TIMESTAMP_NTZ(?), ${now}, ${column})`;
+        }
+        return `${column} = ${now}`;
+      });
+      await execute(`UPDATE ${table} SET ${assignments.join(', ')}
+WHERE ${identifier(key)} IN (${selected.map(() => '?').join(', ')})`, [...binds, ...selected]);
+    }
+  }
+}
+
 function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, hero = false }) {
   const recipient = createRecipient({
     industry, crmId: profile.CRMID, ecid: profile.ECID, email: profile.EMAIL, index, hero,
@@ -183,13 +214,19 @@ function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, her
 async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50) {
   const config = getIndustryProfileConfig(industry);
   const counts = {};
+  const timestampTargets = [];
   const merge = async (table, key, rows) => {
     await mergeRows(execute, table, key, rows, batchSize);
     counts[table] = rows.length;
+    if (rows.length) timestampTargets.push({ table, key, rows });
   };
   await withTransaction(execute, async () => {
     await mergeRecipientRows(execute, cfg.database, records.map(({ parent }) => parent), cfg.schema);
-    counts[qualifiedRecipientTable(cfg.database, cfg.schema)] = records.length;
+    const parentTable = qualifiedRecipientTable(cfg.database, cfg.schema);
+    counts[parentTable] = records.length;
+    if (records.length) timestampTargets.push({
+      table: parentTable, key: 'RECIPIENT_ID', rows: records.map(({ parent }) => parent),
+    });
     await merge(sourceTable(cfg, config.table), 'ECID', records.map(({ profile }) => profile));
     const rel = (table) => `${identifier(cfg.database)}.REL.${table}`;
     if (industry === 'travel') {
@@ -228,6 +265,25 @@ async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50)
       }
     }
   });
+  const refreshedTables = [];
+  let failedTable = null;
+  try {
+    // Do not put the publication updates in another long-running transaction.
+    await execute('ALTER SESSION SET AUTOCOMMIT = TRUE');
+    for (const target of timestampTargets) {
+      failedTable = target.table;
+      await refreshSeedTimestamps(execute, target, Math.min(50, Math.max(1, batchSize)));
+      refreshedTables.push(target.table);
+    }
+  } catch (cause) {
+    const error = new Error(`Seed data committed, but timestamp publication failed for ${failedTable || 'the Snowflake session'}. Inspect the committed rows and repair their timestamps; do not regenerate or reuse reserved emails.`, { cause });
+    error.code = 'SEED_TIMESTAMP_REFRESH_FAILED';
+    error.committed = true;
+    error.tableRowcounts = counts;
+    error.refreshedTables = refreshedTables;
+    error.failedTable = failedTable;
+    throw error;
+  }
   return counts;
 }
 

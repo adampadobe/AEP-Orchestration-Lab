@@ -37,6 +37,11 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
         else if (options.sqlText.endsWith('.NEXTVAL AS START_INDEX')) {
           options.complete(null, null, [{ START_INDEX: crmSequence }]);
           crmSequence += 1000;
+        } else if (options.sqlText.startsWith('SELECT ECID, _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP FROM')) {
+          options.complete(null, null, options.binds.map((ecid) => ({
+            ECID: ecid, _RECORDCREATEDTIMESTAMP: '2026-10-31T19:40:50.000Z',
+            _RECORDUPDATEDTIMESTAMP: '2026-10-31T19:40:50.000Z',
+          })));
         } else options.complete(null, null, rows);
       } catch (error) {
         options.complete(error);
@@ -134,7 +139,8 @@ describe('Snowflake seed API offline integration', () => {
       assert.equal(result.emailAllocation.nextCounterN, 3);
       assert.equal(result.profiles[1].emailCounterN, 2);
       assert.equal(fixture.reservedEmailCount(), 2);
-      assert.equal(fixture.calls.at(-1).sqlText, 'COMMIT');
+      assert.match(fixture.calls.at(-1).sqlText, /^SELECT ECID, _RECORDCREATEDTIMESTAMP/);
+      assert.equal(result.profiles[0].columns._RECORDUPDATEDTIMESTAMP, '2026-10-31T19:40:50.000Z');
       assert.equal(fixture.isDestroyed(), true);
     }
   });
@@ -156,6 +162,29 @@ describe('Snowflake seed API offline integration', () => {
     assert.equal(fixture.isDestroyed(), true);
   });
 
+  for (const phase of ['publication', 'readback']) {
+    it(`returns committed identities for a ${phase} failure without regenerating or rolling back`, async () => {
+      const fixture = serviceWithConnection((sql) => {
+        if ((phase === 'publication' && sql.startsWith('UPDATE DEMO_DB.LAB.AGENTIC_FSI_PROFILE_CUSTOMER SET'))
+          || (phase === 'readback' && sql.startsWith('SELECT ECID, _RECORDCREATEDTIMESTAMP'))) {
+          throw new Error(`injected ${phase} failure`);
+        }
+        return [];
+      });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline-user', sandbox: 'test', industry: 'fsi', count: 1,
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.committed, true);
+      assert.equal(result.error.code, phase === 'publication' ? 'SEED_TIMESTAMP_REFRESH_FAILED' : 'SEED_METADATA_READBACK_FAILED');
+      assert.equal(result.profiles.length, 1);
+      assert.equal(result.tableRowcounts['DEMO_DB.LAB.AGENTIC_FSI_PROFILE_CUSTOMER'], 1);
+      assert.equal(fixture.reservedEmailCount(), 1);
+      assert.equal(fixture.calls.filter(({ sqlText }) => sqlText === 'COMMIT').length, 1);
+      assert.equal(fixture.calls.some(({ sqlText }) => sqlText === 'ROLLBACK'), false);
+      assert.equal(fixture.isDestroyed(), true);
+    });
+  }
   it('keeps legacy/custom base dual-load targets independent of the shared parent', async () => {
     for (const table of ['BASE_PROFILES', 'CUSTOM_BASE']) {
       const fixture = serviceWithConnection();

@@ -50,7 +50,7 @@ describe('Snowflake-first shared base seeding', () => {
       assert.equal(calls.some((sql) => sql.startsWith('MERGE INTO')), false);
     });
 
-    it(`writes ${industry} base, profile, and nonempty detail rows in one transaction`, async () => {
+    it(`writes ${industry} rows atomically, then publishes every nonempty table in autocommit mode`, async () => {
       const item = record(industry);
       assert.equal(item.profile.RECIPIENT_ID, item.parent.RECIPIENT_ID);
       assert.equal(item.parent.ECID, item.profile.ECID);
@@ -63,14 +63,24 @@ describe('Snowflake-first shared base seeding', () => {
         calls.push({ sql, binds }); return [];
       }, CFG, industry, [item]);
       assert.equal(calls[0].sql, 'BEGIN TRANSACTION');
-      assert.equal(calls.at(-1).sql, 'COMMIT');
+      const commitIndex = calls.findIndex(({ sql }) => sql === 'COMMIT');
+      assert.ok(commitIndex > 1);
+      assert.equal(calls[commitIndex + 1].sql, 'ALTER SESSION SET AUTOCOMMIT = TRUE');
+      const updates = calls.slice(commitIndex + 2);
+      assert.deepEqual([...new Set(updates.map(({ sql }) => sql.match(/^UPDATE (\S+)/)[1]))],
+        Object.keys(counts).filter((table) => counts[table] > 0));
+      for (const { sql, binds } of updates) {
+        assert.match(sql, /CONVERT_TIMEZONE\('UTC', CURRENT_TIMESTAMP\(\)\)/);
+        assert.match(sql, /WHERE [A-Z_0-9]+ IN \(/);
+        assert.ok(binds.length > 1);
+      }
       assert.match(calls[1].sql, /MERGE INTO DEMO_DB\.CUSTOM_SCHEMA\.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE/);
       assert.ok(calls[1].binds.includes(item.parent.RECIPIENT_ID));
       assert.ok(calls[1].sql.includes('HOMEADDRESS_CITY'));
       assert.ok(calls[1].sql.includes('PERSONALEMAIL_ADDRESS'));
       assert.ok(calls.some(({ sql }) => sql.includes(getIndustryProfileConfig(industry).table)));
       assert.ok(Object.values(counts).some((count) => count > 1));
-      assert.doesNotMatch(calls.map(({ sql }) => sql).join('\n'), /CREATE |ALTER |DROP /);
+      assert.doesNotMatch(calls.map(({ sql }) => sql).join('\n'), /CREATE |ALTER TABLE |DROP /);
       if (industry !== 'travel') {
         for (const table of listIndustryEventTables(industry)) {
           assert.ok(Object.hasOwn(counts, `DEMO_DB.CUSTOM_SCHEMA.${table.table}`));
@@ -111,8 +121,58 @@ describe('Snowflake-first shared base seeding', () => {
     }
     await writeSeedRecords(db.execute, CFG, 'fsi', [fsi]);
     await writeSeedRecords(db.execute, CFG, 'sports', [sports]);
-    assert.deepEqual(db.rows(productsTable), products);
-    assert.deepEqual(db.rows(ordersTable), orders);
+    const stableRows = (rows) => rows.map((row) => Object.fromEntries(Object.entries(row)
+      .filter(([column]) => !['_RECORDUPDATEDTIMESTAMP', 'VERSION_TS'].includes(column))));
+    assert.deepEqual(stableRows(db.rows(productsTable)), stableRows(products));
+    assert.deepEqual(stableRows(db.rows(ordersTable)), stableRows(orders));
+  });
+
+  it('publishes a 115-second late seed after the intervening source watermark for every FSI row', async () => {
+    let clock = STAMP;
+    const db = snowflakeMemoryFixture({ now: () => clock });
+    const rows = [record('fsi'), record('fsi', 1)];
+    const inputSnapshot = structuredClone(rows);
+    const watermark = '2026-10-15T12:00:29.000Z';
+    const counts = await writeSeedRecords(async (sql, binds) => {
+      const result = db.execute(sql, binds);
+      if (sql === 'COMMIT') clock = '2026-10-15T12:01:55.000Z';
+      return result;
+    }, CFG, 'fsi', rows);
+    for (const [table, count] of Object.entries(counts)) {
+      assert.equal(db.rows(table).length, count);
+      for (const row of db.rows(table)) {
+        assert.ok(row._RECORDCREATEDTIMESTAMP > watermark, table);
+        assert.equal(row._RECORDCREATEDTIMESTAMP, clock);
+        if (Object.hasOwn(row, '_RECORDUPDATEDTIMESTAMP')) {
+          assert.ok(row._RECORDUPDATEDTIMESTAMP > watermark, table);
+          assert.equal(row._RECORDUPDATEDTIMESTAMP, clock);
+        }
+      }
+    }
+    assert.deepEqual(rows, inputSnapshot, 'generation input must not be mutated');
+  });
+
+  it('reports already-committed data and partial publication without rollback or automatic retry', async () => {
+    const db = snowflakeMemoryFixture();
+    const calls = [];
+    await assert.rejects(writeSeedRecords(async (sql, binds) => {
+      calls.push(sql);
+      if (sql.startsWith('UPDATE DEMO_DB.CUSTOM_SCHEMA.AGENTIC_FSI_PROFILE_CUSTOMER SET')) {
+        throw new Error('injected timestamp update failure');
+      }
+      return db.execute(sql, binds);
+    }, CFG, 'fsi', [record('fsi')]), (error) => {
+      assert.equal(error.committed, true);
+      assert.equal(error.code, 'SEED_TIMESTAMP_REFRESH_FAILED');
+      assert.deepEqual(error.refreshedTables, ['DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE']);
+      assert.equal(error.failedTable, 'DEMO_DB.CUSTOM_SCHEMA.AGENTIC_FSI_PROFILE_CUSTOMER');
+      assert.match(error.cause.message, /injected timestamp/);
+      return true;
+    });
+    assert.equal(db.rows('DEMO_DB.CUSTOM_SCHEMA.AGENTIC_FSI_PROFILE_CUSTOMER').length, 1);
+    assert.equal(calls.filter((sql) => sql === 'COMMIT').length, 1);
+    assert.equal(calls.includes('ROLLBACK'), false);
+    assert.equal(calls.filter((sql) => sql.startsWith('UPDATE DEMO_DB.CUSTOM_SCHEMA.AGENTIC_FSI_PROFILE_CUSTOMER SET')).length, 1);
   });
 
   it('surfaces rollback failures rather than returning seed success', async () => {
