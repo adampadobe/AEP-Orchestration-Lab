@@ -1209,22 +1209,21 @@ function createProfileInfraService(config) {
     ];
 
     for (const entry of industryFieldGroups) {
-      if (entry.optional === true) continue;
+      if (entry.optional === true || entry.source === 'ootbByIndustryTag') continue;
       const r = resolveIndustryFgEntry(entry, tenantFgList, globalFgList);
-      if (r.resolved) {
-        if (r.ref) need.push(r.ref);
-        if (Array.isArray(r.refs)) for (const x of r.refs) need.push(x.ref);
-      }
+      if (!r.resolved) return false;
+      if (r.ref) need.push(r.ref);
+      if (Array.isArray(r.refs)) for (const x of r.refs) need.push(x.ref);
     }
 
     return need.every((r) => refs.has(r));
   }
 
-  function optionalFieldGroupStatus(fullSchema, tenantFgList, globalFgList) {
+  function fieldGroupStatus(fullSchema, tenantFgList, globalFgList, optional) {
     const refs = collectSchemaRefUris(fullSchema);
     const out = [];
     for (const entry of industryFieldGroups) {
-      if (entry.optional !== true) continue;
+      if (entry.source === 'ootbByIndustryTag' || (entry.optional === true) !== optional) continue;
       const r = resolveIndustryFgEntry(entry, tenantFgList, globalFgList);
       const resolvedRefs = r.resolved ? (r.ref ? [r.ref] : (r.refs || []).map((x) => x.ref)) : [];
       out.push({
@@ -2010,6 +2009,7 @@ function createProfileInfraService(config) {
     let schemaInProfileUnion = false;
     /** @type {Array<{label: string, exists: boolean, attached: boolean}>} */
     const optionalFieldGroups = [];
+    const requiredFieldGroups = [];
     if (schema) {
       const desc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schema.$id, schema['meta:altId']);
       hasDescriptor = desc.some((d) => isPrimaryEmailIdentityDescriptor(d));
@@ -2020,7 +2020,8 @@ function createProfileInfraService(config) {
           if (profileCore) {
             fieldGroupsAttached = profileFieldGroupsComplete(full, profileCore.$id, mixins, globalFgList);
           }
-          optionalFieldGroups.push(...optionalFieldGroupStatus(full, mixins, globalFgList));
+          optionalFieldGroups.push(...fieldGroupStatus(full, mixins, globalFgList, true));
+          requiredFieldGroups.push(...fieldGroupStatus(full, mixins, globalFgList, false));
         }
       }
     }
@@ -2054,6 +2055,7 @@ function createProfileInfraService(config) {
       // the paths those groups own on `attached` so records don't fail XDM
       // validation in sandboxes where step 2 has not been re-run.
       optionalFieldGroups,
+      requiredFieldGroups,
       prepSteps: {
         step1_schemaShell: !!schema,
         step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached),

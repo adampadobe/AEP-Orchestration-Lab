@@ -6,6 +6,7 @@ import { registerGenerateProfileTool } from '../src/tools/generateProfile.mjs';
 import { registerGenerateProfilesBatchTool } from '../src/tools/generateProfilesBatch.mjs';
 import { registerPreflightProfileGenerateTool } from '../src/tools/preflightProfileGenerate.mjs';
 import { getExecutionFramework } from '../src/framework/labFramework.mjs';
+import { assessIndustrySandboxConfig, buildOnboardingPlan, buildSandboxProfileConfigReport } from '../src/sandboxConfig.mjs';
 
 process.env.AEP_LAB_MCP_FIRESTORE = 'off';
 const tools = new Map();
@@ -327,4 +328,63 @@ test('all three tool schemas expose an explicit AEP opt-in and framework describ
     assert.match(config.description, /[Dd]efault target snowflake/);
   }
   assert.equal(getExecutionFramework().workflows.generate_profile.default_target, 'snowflake');
+});
+
+const readyInfra = {
+  ready: true, schemaFound: true, schemaInUnion: true,
+  datasetFound: true, datasetProfileEnabled: true, primaryEmailDescriptor: true,
+  prepSteps: { step2_fieldGroupsIdentity: true },
+};
+const savedConnection = {
+  record: { streaming: { url: 'https://example.invalid/inlet', flowId: 'flow', datasetId: 'dataset', schemaId: 'schema', xdmKey: '_demoemea' } },
+};
+
+test('sandbox config preserves required-field-group failure despite enabled schema and dataset', () => {
+  const infraStatus = { ...readyInfra, ready: false, prepSteps: { step2_fieldGroupsIdentity: false } };
+  const assessment = assessIndustrySandboxConfig({
+    sandbox: 'apalmer', industry: 'fsi', infraStatus, connectionResponse: savedConnection,
+  });
+  assert.equal(assessment.ready, false);
+  assert.equal(assessment.blockedReason, 'attach_required_field_groups_and_identity');
+  assert.match(assessment.nextAction, /Profile FSI v1/);
+  const report = buildSandboxProfileConfigReport({
+    sandbox: 'apalmer', industryFilter: ['fsi'],
+    statusAllIndustries: { fsi: infraStatus }, connectionsByIndustry: { fsi: savedConnection },
+  });
+  assert.equal(report.ready, false);
+  assert.ok(buildOnboardingPlan(report).steps.some(step => step.arguments.step === 'attachFieldGroups'));
+});
+
+test('AEP preflight blocks missing required FSI fields without consuming an email', async () => {
+  const { body, calls } = await invoke('lab_preflight_profile_generate', {
+    sandbox: 'apalmer', industry: 'fsi', target: 'aep',
+  }, ({ path }) => {
+    if (path === '/api/profile-infra/status-all') return {
+      ok: true, profileContinuation: { ready: true },
+      industries: { fsi: { ...readyInfra, ready: false, prepSteps: { step2_fieldGroupsIdentity: false } } },
+    };
+    if (path.includes('connection')) return savedConnection;
+    return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
+  });
+  assert.equal(body.ready, false);
+  assert.equal(body.canGenerate, false);
+  assert.equal(body.blockedReason, 'attach_required_field_groups_and_identity');
+  assert.ok(calls.every(({ path }) => !path.includes('next-email') && path !== '/api/profile/generate'));
+});
+
+test('AEP preflight checks continuation readiness without consuming an email or streaming', async () => {
+  for (const ready of [false, true]) {
+    const { body, calls } = await invoke('lab_preflight_profile_generate', {
+      sandbox: 'apalmer', industry: 'fsi', target: 'aep',
+    }, ({ path }) => {
+      if (path === '/api/profile-infra/status-all') return {
+        ok: true, profileContinuation: { ready }, industries: { fsi: readyInfra },
+      };
+      if (path.includes('connection')) return savedConnection;
+      return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
+    });
+    assert.equal(body.ready, ready);
+    assert.equal(body.blockedReason, ready ? null : 'MERGE_TOKEN_SECRET_UNAVAILABLE');
+    assert.ok(calls.every(({ path }) => !path.includes('next-email') && path !== '/api/profile/generate'));
+  }
 });

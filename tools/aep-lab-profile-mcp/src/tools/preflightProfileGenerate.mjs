@@ -128,6 +128,13 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         infraStatus: statusResult.data?.industries?.[norm.industry],
         connectionResponse,
       });
+      const continuationRequired = norm.industry !== 'generic';
+      const continuation = statusResult.data?.profileContinuation;
+      const continuationReady = !continuationRequired || continuation?.ready === true;
+      const ready = assessment.ready && continuationReady;
+      const blockedReason = !continuationReady
+        ? 'MERGE_TOKEN_SECRET_UNAVAILABLE'
+        : assessment.blockedReason;
 
       let sampleAttributes = null;
       let attributeKeys = [];
@@ -165,11 +172,12 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
 
       return jsonResult({
         target: 'aep',
-        ok: assessment.ready,
-        ready: assessment.ready,
+        ok: ready,
+        ready,
         sandbox: allowed.sandbox,
         industry: norm.industry,
-        canGenerate: assessment.ready && normalizedTest.test_profile !== false,
+        canGenerate: ready && normalizedTest.test_profile !== false,
+        profileContinuation: { required: continuationRequired, ready: continuationReady },
         config: assessment,
         connectionError: connectionError || undefined,
         preflight: summary,
@@ -192,12 +200,12 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
               testProfile: normalizedTest.test_profile,
             }
           : null,
-        nextAction: assessment.ready
+        nextAction: !continuationReady
+          ? 'Ask the release owner to repair the Cloud Function continuation-secret wiring before generating; no email has been reserved.'
+          : assessment.ready
           ? `Ready — lab_generate_profile sandbox ${allowed.sandbox} industry ${norm.industry} (omit email for stored prefs) randomize true`
           : assessment.nextAction,
-        blockedReason: assessment.ready
-          ? null
-          : 'lab_sandbox_profile_config reports not ready — run lab_onboard_sandbox before generate',
+        blockedReason,
       });
     },
   );

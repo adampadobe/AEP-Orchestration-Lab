@@ -7,6 +7,7 @@
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const profilePlaceContext = require('./profilePlaceContext');
 const profileUpdateRequestLog = require('./profileUpdateRequestLog');
+const { logFunctionEvent, requestCorrelationId } = require('./functionRequestLog');
 
 /**
  * @param {object} deps Shared context from index.js
@@ -268,6 +269,19 @@ function registerProfileRoutes(deps) {
           sports: sportsProfileInfraService,
         },
       });
+      let continuationReady = false;
+      try {
+        continuationReady = Boolean(ADOBE_CLIENT_SECRET.value());
+      } catch (e) {
+        logFunctionEvent('ERROR', 'profile.preflight.merge_token_secret_failed', {
+          correlationId: requestCorrelationId(req),
+          errorCode: String(e && e.code || 'MERGE_TOKEN_SECRET_UNAVAILABLE'),
+        });
+      }
+      payload.profileContinuation = {
+        ready: continuationReady,
+        code: continuationReady ? null : 'MERGE_TOKEN_SECRET_UNAVAILABLE',
+      };
       res.status(200).json(payload);
     } catch (e) {
       res.status(500).json({ error: String(e.message || e), sandbox });
