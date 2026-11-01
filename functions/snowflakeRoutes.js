@@ -3,6 +3,7 @@
  */
 
 const STATIC_EGRESS_IP = '34.58.81.28';
+const { requestCorrelationId, logFunctionEvent } = require('./functionRequestLog');
 
 function labUserResponseMeta(principal) {
   const uidStr = String((principal && principal.uid) || '');
@@ -627,6 +628,9 @@ function registerSnowflakeRoutes(deps) {
     { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 120, memory: '512MiB' },
     async (req, res) => {
       setCors(res, 'POST, OPTIONS');
+      const startedAt = Date.now();
+      const correlationId = requestCorrelationId(req);
+      res.set('x-aep-lab-correlation-id', correlationId);
       if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
       if (req.method !== 'POST') { res.status(405).json({ error: 'POST only' }); return; }
 
@@ -652,10 +656,52 @@ function registerSnowflakeRoutes(deps) {
           table: body.table,
           mode: body.mode || body.dual_load_mode,
         });
-        res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
+        if (result.ok) {
+          logFunctionEvent('INFO', 'snowflake.insert_profile_from_aep.completed', {
+            correlationId,
+            sandbox,
+            industry: String(body.industry || 'travel').trim().toLowerCase(),
+            outcome: 'success',
+            idempotent: result.idempotent === true,
+            durationMs: Date.now() - startedAt,
+          });
+        } else {
+          const error = result.error && typeof result.error === 'object' ? result.error : {};
+          logFunctionEvent('ERROR', 'snowflake.insert_profile_from_aep.failed', {
+            correlationId,
+            sandbox,
+            industry: String(body.industry || 'travel').trim().toLowerCase(),
+            phase: String(error.phase || 'unknown'),
+            errorCode: String(error.code || 'SNOWFLAKE_INSERT_FAILED'),
+            sqlState: error.sqlState ? String(error.sqlState) : null,
+            queryId: error.queryId ? String(error.queryId) : null,
+            durationMs: Date.now() - startedAt,
+          });
+        }
+        res.status(result.ok ? 200 : 400).json({
+          ok: result.ok,
+          sandbox,
+          correlationId,
+          ...(result.ok ? {} : { error: result.error }),
+          result,
+        });
       } catch (e) {
-        console.error('[snowflakeInsertProfileFromAep]', String(e && e.message || e));
-        res.status(400).json({ ok: false, error: String(e.message || e), sandbox });
+        logFunctionEvent('ERROR', 'snowflake.insert_profile_from_aep.request_failed', {
+          correlationId,
+          sandbox,
+          industry: String(body.industry || 'travel').trim().toLowerCase(),
+          errorCode: String(e && e.code || e && e.name || 'SNOWFLAKE_INSERT_REQUEST_FAILED'),
+          durationMs: Date.now() - startedAt,
+        });
+        res.status(400).json({
+          ok: false,
+          error: {
+            message: String(e && e.message || e),
+            code: String(e && e.code || ''),
+          },
+          sandbox,
+          correlationId,
+        });
       }
     },
   );

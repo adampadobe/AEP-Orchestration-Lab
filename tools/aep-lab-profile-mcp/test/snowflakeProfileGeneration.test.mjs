@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { requestContext } from '../src/requestContext.mjs';
+import { getRecentProfiles } from '../src/labApiClient.mjs';
 import { registerGenerateProfileTool } from '../src/tools/generateProfile.mjs';
 import { registerGenerateProfilesBatchTool } from '../src/tools/generateProfilesBatch.mjs';
 import { registerPreflightProfileGenerateTool } from '../src/tools/preflightProfileGenerate.mjs';
@@ -20,9 +21,12 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
   const calls = [];
   globalThis.fetch = async (url, init) => {
     calls.push({ path: new URL(url).pathname, body: init.body ? JSON.parse(init.body) : null, headers: init.headers });
+    const response = respond(calls.at(-1));
     return {
-      ok: true, status: 200, headers: new Headers({ 'Content-Type': 'application/json' }),
-      json: async () => respond(calls.at(-1)),
+      ok: response?.httpOk ?? true,
+      status: response?.httpStatus ?? 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async () => response?.body ?? response,
     };
   };
   try {
@@ -36,7 +40,9 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
   }
 }
 
-const profile = { email: 'demo+15102026-1@example.com', ecid: '12345678901234567890', crmId: 'CRM1000', recipientId: 'R-test' };
+const now = new Date();
+const today = `${String(now.getDate()).padStart(2, '0')}${String(now.getMonth() + 1).padStart(2, '0')}${now.getFullYear()}`;
+const profile = { email: `demo+${today}-1@example.com`, ecid: '12345678901234567890', crmId: 'CRM1000', recipientId: 'R-test' };
 const success = {
   ok: true, result: {
     ok: true, rowcount: 1, recipientRowcount: 1, recipientTable: 'DB.AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
@@ -135,6 +141,38 @@ test('preflight reports missing connection and preference fields rather than rea
   assert.ok(body.missingFields.includes('baseEmail'));
 });
 
+test('recent-profile sync forwards validated Adobe IMS headers when no MCP key is present', async () => {
+  const originalFetch = globalThis.fetch;
+  let request = null;
+  globalThis.fetch = async (url, init) => {
+    request = { path: new URL(url).pathname, headers: init.headers };
+    return {
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'Content-Type': 'application/json' }),
+      json: async () => ({ ok: true, items: [] }),
+    };
+  };
+  try {
+    const result = await requestContext.run({
+      keyId: 'ims-recent-profile',
+      principalAccess: { source: 'ims-enrollment', allowedSandboxes: ['apalmer'] },
+      mcpApiKey: '',
+      imsAuthHeaders: {
+        Authorization: 'Bearer test-ims-token',
+        'x-gw-ims-org-id': 'test@AdobeOrg',
+      },
+    }, () => getRecentProfiles({ sandbox: 'apalmer' }));
+    assert.equal(result.ok, true);
+    assert.equal(request.path, '/api/lab/recent-profiles');
+    assert.equal(request.headers.Authorization, 'Bearer test-ims-token');
+    assert.equal(request.headers['x-gw-ims-org-id'], 'test@AdobeOrg');
+    assert.equal(request.headers['X-AEP-Lab-Mcp-Key'], undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('Snowflake preflight only reads saved config and preferences, without reserving an email', async () => {
   const { body, calls } = await invoke('lab_preflight_profile_generate', {
     sandbox: 'apalmer', industry: 'travel',
@@ -157,6 +195,128 @@ test('explicit AEP target retains streaming and never invokes the Snowflake seed
   assert.equal(body.ok, true);
   assert.ok(calls.some(({ path }) => path === '/api/profile/generate'));
   assert.ok(calls.every(({ path }) => path !== '/snowflakeGenerateIndustryProfiles'));
+});
+
+test('dual-stream AEP generation passes the signed continuation token to the industry overlay', async () => {
+  let generateStep = 0;
+  const { body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer',
+    industry: 'fsi',
+    target: 'aep',
+    email: profile.email,
+    use_stored_prefs: false,
+    randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+  }, ({ path }) => {
+    if (path === '/api/profile/generate') {
+      generateStep += 1;
+      return {
+        ok: true,
+        ecid: profile.ecid,
+        ...(generateStep === 1 ? { appendToken: 'signed-continuation-token' } : {}),
+      };
+    }
+    return { ok: true, item: { email: profile.email } };
+  });
+  const generateCalls = calls.filter(call => call.path === '/api/profile/generate');
+  assert.equal(generateCalls.length, 2, JSON.stringify({ body, calls }));
+  assert.equal(generateCalls[0].body.issueAppendToken, true);
+  assert.equal(generateCalls[0].body.appendToken, undefined);
+  assert.equal(generateCalls[1].body.appendIfExisting, true);
+  assert.equal(generateCalls[1].body.appendToken, 'signed-continuation-token');
+  assert.equal(generateCalls[0].headers['x-aep-lab-correlation-id'], generateCalls[1].headers['x-aep-lab-correlation-id']);
+  assert.equal(body.ecid, profile.ecid);
+  assert.equal(body.correlation_id, generateCalls[0].headers['x-aep-lab-correlation-id']);
+  assert.equal(JSON.stringify(body).includes('signed-continuation-token'), false);
+});
+
+test('missing continuation token stops before overlay and marks the generic write partial', async () => {
+  const { result, body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer',
+    industry: 'fsi',
+    target: 'aep',
+    email: profile.email,
+    use_stored_prefs: false,
+    randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+  }, ({ path }) => path === '/api/profile/generate'
+    ? { ok: true, ecid: profile.ecid }
+    : { ok: true, item: {} });
+  assert.equal(result.isError, true);
+  assert.equal(body.detail.partial_success, true);
+  assert.equal(body.detail.error_code, 'DUAL_STREAM_CONTINUATION_TOKEN_MISSING');
+  assert.match(body.detail.no_retry_guidance, /Do not regenerate/);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+});
+
+test('recent-profile sync failure is partial and explicitly blocks profile regeneration', async () => {
+  const { body } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer',
+    industry: 'generic',
+    target: 'aep',
+    email: profile.email,
+    use_stored_prefs: false,
+    randomize: false,
+  }, ({ path }) => path === '/api/profile/generate'
+    ? { ok: true, ecid: profile.ecid }
+    : {
+        httpOk: false,
+        httpStatus: 403,
+        body: { ok: false, code: 'MCP_KEY_INVALID_OR_REVOKED', error: 'Invalid or revoked MCP API key.' },
+      });
+  assert.equal(body.ok, true);
+  assert.equal(body.partial_success, true);
+  assert.match(body.no_retry_guidance, /Do not regenerate/);
+  assert.equal(body.recent_profiles_sync.ok, false);
+  assert.equal(body.recent_profiles_sync.errorCode, 'MCP_KEY_INVALID_OR_REVOKED');
+});
+
+test('Snowflake 400 preserves vendor diagnostics and reports the generation as partial, not retryable', async () => {
+  const snowflakeError = {
+    message: 'SQL compilation error: invalid identifier',
+    code: '000904',
+    sqlState: '42000',
+    phase: 'insert_profile_transaction',
+  };
+  let generateStep = 0;
+  const { body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer',
+    industry: 'fsi',
+    target: 'aep',
+    email: profile.email,
+    use_stored_prefs: false,
+    randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+    dual_load_snowflake: true,
+  }, ({ path }) => {
+    if (path === '/api/profile/generate') {
+      generateStep += 1;
+      return { ok: true, ecid: profile.ecid, ...(generateStep === 1 ? { appendToken: 'signed-token' } : {}) };
+    }
+    if (path === '/api/lab/recent-profiles') {
+      return {
+        httpOk: false,
+        httpStatus: 403,
+        body: { ok: false, code: 'MCP_KEY_INVALID_OR_REVOKED', error: 'Invalid or revoked MCP API key.' },
+      };
+    }
+    if (path === '/snowflakeInsertProfileFromAep') {
+      return {
+        httpOk: false,
+        httpStatus: 400,
+        body: { ok: false, error: snowflakeError, result: { ok: false, error: snowflakeError } },
+      };
+    }
+    return { ok: true };
+  });
+  assert.equal(body.ok, true, 'AEP profile succeeded and must not be reported as a failed generate');
+  assert.equal(body.partial_success, true);
+  assert.match(body.no_retry_guidance, /Do not regenerate/);
+  assert.equal(body.snowflake.ok, false);
+  assert.deepEqual(body.snowflake.error, snowflakeError);
+  assert.equal(body.recent_profiles_sync.ok, false);
+  assert.equal(body.recent_profiles_sync.errorCode, 'MCP_KEY_INVALID_OR_REVOKED');
+  assert.equal(calls.find(call => call.path === '/snowflakeInsertProfileFromAep').headers['x-aep-lab-correlation-id'], body.correlation_id);
 });
 
 test('all three tool schemas expose an explicit AEP opt-in and framework describes Snowflake default', () => {

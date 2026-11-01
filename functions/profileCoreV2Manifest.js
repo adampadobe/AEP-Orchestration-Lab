@@ -415,7 +415,7 @@ const INDUSTRY_EXTENSIONS = {
   },
   fsi: {
     // FSI streams almost everything to root (`personalFinances.*`) or to
-    // the `industryFsi.*` subtree typed by the separate Profile FSI v2 FG.
+    // the `industryFsi.*` subtree typed by the required Profile FSI v1 FG.
     // Nothing extra needed under Profile Core v2.
   },
   media: {

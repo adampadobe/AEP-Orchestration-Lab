@@ -855,6 +855,7 @@ Object.assign(
     resolveSandboxFromQuery,
     getAdobeAccessToken,
     ADOBE_CLIENT_ID,
+    ADOBE_CLIENT_SECRET,
     ADOBE_IMS_ORG,
     schemaRegistryService,
   })

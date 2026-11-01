@@ -208,6 +208,7 @@ function describeConnectError(err) {
     message: msg,
     code: (err && (err.code || err.errno)) || null,
     sqlState: (err && err.sqlState) || null,
+    queryId: (err && (err.queryId || err.queryID)) || null,
     hints,
   };
 }

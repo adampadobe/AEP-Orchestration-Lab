@@ -1179,7 +1179,11 @@ const INDUSTRY_PLAYBOOKS = {
     ],
     tenant_paths: ['industryFsi.*'],
     root_paths: ['personalFinances.*', 'individualCharacteristics.core.creditScore'],
-    field_groups: ['Profile FSI v2', 'Personal Finance Details (root personalFinances.*)'],
+    field_groups: [
+      'Profile FSI v1 (required for industryFsi.* generator paths)',
+      'Profile FSI v2 (optional individualCharacteristics.fsi.* extension)',
+      'Personal Finance Details (root personalFinances.*)',
+    ],
     segment_hints: FSI_SEGMENT_HINTS,
     segment_semantics: {
       high_net_worth: 'Income 500k_plus, excellent credit 780+, high savings, platinum tier',
@@ -1190,7 +1194,11 @@ const INDUSTRY_PLAYBOOKS = {
     dataflow: dataflowPlaybook('fsi'),
     preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry fsi'],
     failure_modes: COMMON_FAILURE_MODES,
-    infra_prerequisites: ['fsiProfileConnections full manifest', 'Profile FSI v2 FG', 'personalFinances on schema union'],
+    infra_prerequisites: [
+      'fsiProfileConnections full manifest',
+      'required Profile FSI v1 FG for industryFsi.*',
+      'personalFinances on schema union',
+    ],
     example_prompt_chain: [
       'lab_generate_profile target aep sandbox apalmer industry fsi email fsi.hnw+001@adobetest.com randomize true segment_hint high_net_worth',
     ],

@@ -358,6 +358,31 @@ For a **Snowflake-only** demo, confirm generation preferences and the requested 
 
 For **AEP + Snowflake**, use **lab_generate_profile** or **lab_generate_profiles_batch** with `dual_load_snowflake:true`, shared generation preferences, and `snowflake_enrichment:true` for non-travel activity. Alternatively enrich existing CRM profiles using the manifest keys above. Verify non-travel joins with **lab_snowflake_get_profile_bundle** and bounded samples; use the catalog/table preview for travel, including booking details. Full travel generation/enrichment still requires the configured Python runner; saving a Snowflake connection alone does not configure it.
 
+### AEP dual-stream and partial-failure diagnostics
+
+Non-generic AEP generation streams the Generic base first and the industry-owned
+overlay second. The base response issues a short-lived, signed continuation token
+bound to its email, sandbox, and ECID; the overlay must present it and reuse that
+ECID rather than race UPS profile visibility. The MCP does not expose the token
+in its final result. If the deployed Functions revision does not return a token,
+the MCP stops before the overlay and reports a partial success; do not regenerate
+that identity.
+
+Recent-profile synchronization and Snowflake dual-load happen after AEP accepts
+the profile and are independent operations. A 403 from recent-profile sync does
+not undo the AEP profile, and a Snowflake 400 does not mean AEP generation failed.
+Each MCP generate request carries a `correlation_id` across the profile stream,
+recent-profile sync, and Snowflake insert. Cloud Function logs use structured
+events with that ID, phase, duration, and safe error metadata; Snowflake errors
+preserve vendor code, SQL state, query ID, and phase without logging credentials,
+SQL binds, email, or ECID. On partial failure, inspect the exact returned email
+and correlation ID before repair. Never automatically rerun generation.
+
+FSI personas currently stream the tenant paths `industryFsi.*`, which require
+the custom `Profile FSI v1` field group. `Profile FSI v2` is a distinct
+`individualCharacteristics.fsi.*` extension and does not type those generator
+paths; provisioning now ensures v1 and keeps v2 optional.
+
 Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
 
 `proposed_tables` remains a read-only legacy validation input; it does not authorize arbitrary table creation.

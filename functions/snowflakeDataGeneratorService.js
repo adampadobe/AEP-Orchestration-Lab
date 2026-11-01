@@ -826,17 +826,22 @@ async function handleInsertProfileFromAep(input) {
   const fqTable = fullyQualified(cfg.database, cfg.schema, tableName);
   const runStamp = new Date().toISOString();
   let conn;
+  let phase = 'connect';
   try {
     conn = await connectAsync(snowflake, connectOpts);
+    phase = 'prepare_table';
     if (!skipCreateTable) {
       await execAsync(conn, { sqlText: `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)` });
     }
+    phase = 'prepare_recipient_store';
     if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
+    phase = 'allocate_crm_id';
     const startIndex = industry
       ? await getNextSeedCrmIndex((sqlText, binds) => execAsync(conn, { sqlText, binds }), cfg, [industry])
       : await getNextCrmStartIndex(conn, fqTable);
     const crmId = `CRM${startIndex}`;
 
+    phase = 'check_existing_ecid';
     const existing = await execAsync(conn, {
       sqlText: `SELECT ${insertColumns.join(', ')} FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
       binds: [ecid],
@@ -854,23 +859,26 @@ async function handleInsertProfileFromAep(input) {
         email: existingProfile.EMAIL || email,
         index: Number(existingCrmId.match(/(\d+)$/)?.[1] || startIndex),
       }) : null;
-      if (recipient) await withSnowflakeTransaction(conn, async () => {
-        await execAsync(conn, {
-          sqlText: `UPDATE ${fqTable} SET RECIPIENT_ID = ?, PUSHTOKENS = PARSE_JSON(?) WHERE ECID = ?`,
-          binds: [recipient.recipientId, JSON.stringify(recipient.pushTokens), ecid],
+      if (recipient) {
+        phase = 'refresh_existing_recipient';
+        await withSnowflakeTransaction(conn, async () => {
+          await execAsync(conn, {
+            sqlText: `UPDATE ${fqTable} SET RECIPIENT_ID = ?, PUSHTOKENS = PARSE_JSON(?) WHERE ECID = ?`,
+            binds: [recipient.recipientId, JSON.stringify(recipient.pushTokens), ecid],
+          });
+          await mergeRecipientRows(
+            (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+            cfg.database,
+            [recipientRow(
+              recipient,
+              existingProfile,
+              runStamp,
+              existingProfile.TESTPROFILE !== false,
+            )],
+            cfg.schema,
+          );
         });
-        await mergeRecipientRows(
-          (sqlText, binds) => execAsync(conn, { sqlText, binds }),
-          cfg.database,
-          [recipientRow(
-            recipient,
-            existingProfile,
-            runStamp,
-            existingProfile.TESTPROFILE !== false,
-          )],
-          cfg.schema,
-        );
-      });
+      }
       return {
         ok: true,
         table: fqTable,
@@ -886,6 +894,7 @@ async function handleInsertProfileFromAep(input) {
       };
     }
 
+    phase = 'build_crm_row';
     const normalizedAttrs = normalizeAepAttributesForSnowflake(input.attributes);
     const testProfileAttr = getAttr(normalizedAttrs, 'testProfile');
     const testProfile = testProfileAttr === false || testProfileAttr === 'false' ? false : true;
@@ -926,6 +935,7 @@ async function handleInsertProfileFromAep(input) {
     };
 
     const placeholders = insertColumns.map(() => '?').join(', ');
+    phase = 'insert_profile_transaction';
     await withSnowflakeTransaction(conn, async () => {
       await execAsync(conn, {
         sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
@@ -953,7 +963,7 @@ async function handleInsertProfileFromAep(input) {
       sample: profileRow.rowObject,
     };
   } catch (err) {
-    return { ok: false, error: describeConnectError(err) };
+    return { ok: false, error: { ...describeConnectError(err), phase } };
   } finally {
     if (conn) await destroyAsync(conn);
   }

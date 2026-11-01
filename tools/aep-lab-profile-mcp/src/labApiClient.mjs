@@ -31,6 +31,34 @@ const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 const DEFAULT_BACKOFF_MS = [400, 900, 1800];
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
 
+function formatApiError(value) {
+  if (typeof value === 'string') return value.trim();
+  if (!value || typeof value !== 'object') return '';
+  const message = String(value.message || value.detail || '').trim();
+  const code = String(value.code || '').trim();
+  const sqlState = String(value.sqlState || value.sqlstate || '').trim();
+  if (!message && !code && !sqlState) return '';
+  const diagnostic = [code && `code ${code}`, sqlState && `SQL state ${sqlState}`]
+    .filter(Boolean)
+    .join(', ');
+  return [message, diagnostic ? `(${diagnostic})` : ''].filter(Boolean).join(' ');
+}
+
+function extractApiError(data, fallback) {
+  const candidates = [
+    data?.error,
+    data?.detail,
+    data?.message,
+    data?.result?.error,
+    data?.result?.result?.error,
+  ];
+  for (const candidate of candidates) {
+    const message = formatApiError(candidate);
+    if (message) return message;
+  }
+  return fallback;
+}
+
 async function attemptOnce(url, init, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -58,11 +86,8 @@ async function attemptOnce(url, init, timeoutMs) {
   }
 
   if (!response.ok) {
-    const detail =
-      (data && typeof data === 'object' && (data.error || data.detail || data.message)) ||
-      response.statusText ||
-      `HTTP ${response.status}`;
-    return { ok: false, status: response.status, url: url.toString(), error: String(detail), data };
+    const detail = extractApiError(data, response.statusText || `HTTP ${response.status}`);
+    return { ok: false, status: response.status, url: url.toString(), error: detail, data };
   }
 
   return { ok: true, status: response.status, url: url.toString(), data };
@@ -212,9 +237,16 @@ export async function generateProfile(params) {
   if (params.test_profile != null) {
     body.testProfile = params.test_profile;
   }
+  if (params.issue_append_token === true) {
+    body.issueAppendToken = true;
+  }
+  if (params.append_token) {
+    body.appendToken = params.append_token;
+  }
   return labApiRequest('/api/profile/generate', {
     method: 'POST',
     body,
+    headers: params.correlation_id ? { 'x-aep-lab-correlation-id': params.correlation_id } : {},
     timeoutMs: 120_000,
   });
 }
@@ -899,6 +931,8 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
 }
 
 function generationPrefsAuthHeaders() {
+  const ims = getRequestImsAuthHeaders();
+  if (ims) return ims;
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
@@ -1509,11 +1543,14 @@ export async function getRecentProfiles({ sandbox }) {
 /**
  * @param {object} body — sandbox, email, ecid, industry, source, attributes, snapshot, summaryLabel, …
  */
-export async function appendRecentProfile(body) {
+export async function appendRecentProfile(body, { correlationId } = {}) {
   return labApiRequest('/api/lab/recent-profiles', {
     method: 'POST',
     body,
-    headers: generationPrefsAuthHeaders(),
+    headers: {
+      ...generationPrefsAuthHeaders(),
+      ...(correlationId ? { 'x-aep-lab-correlation-id': correlationId } : {}),
+    },
     timeoutMs: 30_000,
   });
 }
@@ -1665,7 +1702,16 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
  * POST /api/snowflake/insert-profile-from-aep — dual-load mirror row
  * @param {object} params
  */
-export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, industry, table, mode }) {
+export async function snowflakeInsertProfileFromAep({
+  sandbox,
+  email,
+  ecid,
+  attributes,
+  industry,
+  table,
+  mode,
+  correlation_id,
+}) {
   return labApiRequest('/snowflakeInsertProfileFromAep', {
     origin: getLabFunctionsOrigin(),
     method: 'POST',
@@ -1678,7 +1724,10 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
       ...(table ? { table } : {}),
       ...(mode ? { mode } : {}),
     },
-    headers: snowflakeAuthHeaders(),
+    headers: {
+      ...snowflakeAuthHeaders(),
+      ...(correlation_id ? { 'x-aep-lab-correlation-id': correlation_id } : {}),
+    },
     timeoutMs: 150_000,
   });
 }

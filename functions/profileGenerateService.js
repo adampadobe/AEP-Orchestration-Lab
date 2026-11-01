@@ -16,6 +16,8 @@ const telecomProfileConnectionStore = require('./telecomProfileConnectionStore')
 const retailProfileConnectionStore = require('./retailProfileConnectionStore');
 const mediaProfileConnectionStore = require('./mediaProfileConnectionStore');
 const sportsProfileConnectionStore = require('./sportsProfileConnectionStore');
+const { requestCorrelationId, logFunctionEvent } = require('./functionRequestLog');
+const { createProfileMergeToken, verifyProfileMergeToken } = require('./profileMergeToken');
 
 const INDUSTRY_TO_CONNECTION_STORE = {
   generic: genericProfileConnectionStore,
@@ -80,12 +82,23 @@ function resolveGeneratePlaceContext(filteredAttrs, industryKey) {
 /**
  * @param {object} req - Firebase HTTP request
  * @param {object} res - Firebase HTTP response
- * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, clientId: string, orgId: string, geoMirror?: { recordProfilePlace: Function } }} ctx
+ * @param {{ setCors: Function, resolveSandboxForProfileBody: Function, getAdobeAccessToken: Function, getMergeTokenSecret?: Function, clientId: string, orgId: string, geoMirror?: { recordProfilePlace: Function } }} ctx
  *   geoMirror (optional) records the accepted place in the Firestore geo-hotspot mirror.
  */
 async function handleProfileGenerate(req, res, ctx) {
-  const { setCors, resolveSandboxForProfileBody, getAdobeAccessToken, clientId, orgId, geoMirror } = ctx;
+  const {
+    setCors,
+    resolveSandboxForProfileBody,
+    getAdobeAccessToken,
+    getMergeTokenSecret,
+    clientId,
+    orgId,
+    geoMirror,
+  } = ctx;
+  const startedAt = Date.now();
+  const correlationId = requestCorrelationId(req);
   setCors(res);
+  res.set('x-aep-lab-correlation-id', correlationId);
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -100,15 +113,85 @@ async function handleProfileGenerate(req, res, ctx) {
   const industryRequested = String(body.industry || '').trim().toLowerCase();
   const sandbox = resolveSandboxForProfileBody(req);
   const attributes = body.attributes && typeof body.attributes === 'object' ? body.attributes : {};
+  const appendToken = String(body.appendToken || '').trim();
+  const issueAppendToken = body.issueAppendToken === true;
   const appendIfExisting =
     body.appendIfExisting === true ||
     body.appendIfExisting === 'true' ||
     String(process.env.AEP_PROFILE_GENERATE_APPEND_IF_EXISTS || '').toLowerCase() === '1' ||
     String(process.env.AEP_PROFILE_GENERATE_APPEND_IF_EXISTS || '').toLowerCase() === 'true';
 
+  logFunctionEvent('INFO', 'profile.generate.started', {
+    correlationId,
+    sandbox,
+    industry: industryRequested || 'generic',
+    appendIfExisting,
+    attributeCount: Object.keys(attributes).length,
+    hasAppendToken: Boolean(appendToken),
+    issueAppendToken,
+  });
+
   if (!email) {
     res.status(400).json({ error: 'Email is required.' });
     return;
+  }
+
+  let mergeTokenSecret = '';
+  let continuationEcid = null;
+  if (appendToken) {
+    if (!appendIfExisting) {
+      res.status(400).json({
+        error: 'appendToken requires appendIfExisting:true.',
+        code: 'MERGE_TOKEN_REQUIRES_APPEND',
+      });
+      return;
+    }
+    try {
+      mergeTokenSecret = String(getMergeTokenSecret ? getMergeTokenSecret() : '');
+    } catch (e) {
+      logFunctionEvent('ERROR', 'profile.generate.merge_token_secret_failed', {
+        correlationId,
+        errorCode: String(e && e.code || 'MERGE_TOKEN_SECRET_UNAVAILABLE'),
+      });
+      res.status(500).json({ error: 'Profile continuation validation is unavailable.', code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+      return;
+    }
+    const verified = verifyProfileMergeToken({
+      token: appendToken,
+      email,
+      sandbox,
+      secret: mergeTokenSecret,
+    });
+    if (!verified.ok) {
+      logFunctionEvent('WARNING', 'profile.generate.merge_token_rejected', {
+        correlationId,
+        errorCode: verified.code,
+      });
+      res.status(409).json({ error: verified.error, code: verified.code });
+      return;
+    }
+    continuationEcid = verified.ecid;
+  }
+
+  if (issueAppendToken) {
+    try {
+      mergeTokenSecret = String(getMergeTokenSecret ? getMergeTokenSecret() : '');
+    } catch (e) {
+      logFunctionEvent('ERROR', 'profile.generate.merge_token_secret_failed', {
+        correlationId,
+        errorCode: String(e && e.code || 'MERGE_TOKEN_SECRET_UNAVAILABLE'),
+      });
+      res.status(500).json({ error: 'Profile continuation setup is unavailable.', code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+      return;
+    }
+    if (!mergeTokenSecret) {
+      logFunctionEvent('ERROR', 'profile.generate.merge_token_secret_failed', {
+        correlationId,
+        errorCode: 'MERGE_TOKEN_SECRET_UNAVAILABLE',
+      });
+      res.status(500).json({ error: 'Profile continuation setup is unavailable.', code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+      return;
+    }
   }
 
   const industryKeys = Object.keys(INDUSTRY_TO_CONNECTION_STORE);
@@ -131,6 +214,11 @@ async function handleProfileGenerate(req, res, ctx) {
   try {
     accessToken = await getAdobeAccessToken();
   } catch (e) {
+    logFunctionEvent('ERROR', 'profile.generate.auth_failed', {
+      correlationId,
+      errorCode: String(e && e.code || e && e.name || 'ADOBE_AUTH_FAILED'),
+      durationMs: Date.now() - startedAt,
+    });
     res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
     return;
   }
@@ -145,10 +233,12 @@ async function handleProfileGenerate(req, res, ctx) {
       industryConnection = await getter(sandbox);
     }
   } catch (lookupErr) {
-    console.warn(
-      '[profileGenerate.connection-lookup]',
-      String(lookupErr && lookupErr.message ? lookupErr.message : lookupErr).slice(0, 240),
-    );
+    logFunctionEvent('WARNING', 'profile.generate.connection_lookup_failed', {
+      correlationId,
+      sandbox,
+      industry: industryKey,
+      errorCode: String(lookupErr && lookupErr.code || lookupErr && lookupErr.name || 'CONNECTION_LOOKUP_FAILED'),
+    });
   }
 
   const persistedStreaming =
@@ -163,6 +253,12 @@ async function handleProfileGenerate(req, res, ctx) {
   const xdmKey = String(persistedStreaming.xdmKey || '_demoemea').trim();
 
   if (!streamUrl || !flowId) {
+    logFunctionEvent('WARNING', 'profile.generate.not_configured', {
+      correlationId,
+      sandbox,
+      industry: industryKey,
+      durationMs: Date.now() - startedAt,
+    });
     res.status(400).json({
       error:
         'Profile streaming is not configured for this sandbox. Save the HTTP API connection (collection URL + flow ID, and dataset/schema IDs for envelope mode) on the industry profile setup panel.',
@@ -173,7 +269,10 @@ async function handleProfileGenerate(req, res, ctx) {
   let mergeDiagnostics = null;
   let ecid = generateEcid();
   let ecidSource = 'generated';
-  if (appendIfExisting) {
+  if (continuationEcid) {
+    ecid = continuationEcid;
+    ecidSource = 'continuation_token';
+  } else if (appendIfExisting) {
     try {
       const { ecid: existingEcid, diagnostics } = await profileTableHelpers.resolveExistingEcidForProfileMerge(
         email,
@@ -187,13 +286,24 @@ async function handleProfileGenerate(req, res, ctx) {
         ecid = String(existingEcid).trim();
         ecidSource = 'existing';
       } else if (existingEcid) {
-        console.warn(
-          '[profileGenerate.appendIfExisting] Ignoring non-canonical existing ECID; Edge Network would reject it.',
-        );
+        logFunctionEvent('WARNING', 'profile.generate.existing_ecid_rejected', {
+          correlationId,
+          sandbox,
+          industry: industryKey,
+          errorCode: 'EXISTING_ECID_NON_CANONICAL',
+        });
       }
     } catch (lookupErr) {
-      mergeDiagnostics = { error: String(lookupErr.message || lookupErr), namespacesAttempted: [] };
-      console.warn('[profileGenerate.appendIfExisting]', String(lookupErr.message || lookupErr));
+      mergeDiagnostics = {
+        error: String(lookupErr && lookupErr.code || lookupErr && lookupErr.name || 'ECID_LOOKUP_FAILED'),
+        namespacesAttempted: [],
+      };
+      logFunctionEvent('WARNING', 'profile.generate.existing_ecid_lookup_failed', {
+        correlationId,
+        sandbox,
+        industry: industryKey,
+        errorCode: String(lookupErr && lookupErr.code || lookupErr && lookupErr.name || 'ECID_LOOKUP_FAILED'),
+      });
     }
   }
 
@@ -271,6 +381,13 @@ async function handleProfileGenerate(req, res, ctx) {
     });
     rawText = await streamRes.text();
   } catch (e) {
+    logFunctionEvent('ERROR', 'profile.generate.stream_request_failed', {
+      correlationId,
+      sandbox,
+      industry: industryKey,
+      errorCode: String(e && e.code || e && e.name || 'STREAM_REQUEST_FAILED'),
+      durationMs: Date.now() - startedAt,
+    });
     res.status(502).json({ error: String(e.message || e) });
     return;
   }
@@ -286,8 +403,17 @@ async function handleProfileGenerate(req, res, ctx) {
     const detail = streamErrors.length
       ? streamErrors.join(' ')
       : data.detail || data.message || data.title || `Streaming ${streamRes.status}`;
+    logFunctionEvent('ERROR', 'profile.generate.stream_rejected', {
+      correlationId,
+      sandbox,
+      industry: industryKey,
+      streamingStatus: streamRes.status,
+      streamErrorCount: streamErrors.length,
+      durationMs: Date.now() - startedAt,
+    });
     res.status(502).json({
       error: detail,
+      correlationId,
       streamingStatus: streamRes.status,
       streamingResponse: data,
       sentToAep: built.payload,
@@ -310,14 +436,38 @@ async function handleProfileGenerate(req, res, ctx) {
     ? await geoMirror.recordProfilePlace({ sandbox, email, ecid, place: demoemea.profilePlaceContext })
     : undefined;
   if (geoMirrorResult && geoMirrorResult.error) {
-    console.warn('[profileGenerate] geo mirror write failed:', geoMirrorResult.error);
+    logFunctionEvent('WARNING', 'profile.generate.geo_mirror_failed', {
+      correlationId,
+      sandbox,
+      errorCode: String(geoMirrorResult.code || 'GEO_MIRROR_WRITE_FAILED'),
+    });
   }
+
+  let mergeAppendToken;
+  if (issueAppendToken) {
+    mergeAppendToken = createProfileMergeToken({
+      email,
+      sandbox,
+      ecid,
+      secret: mergeTokenSecret,
+    });
+  }
+  logFunctionEvent('INFO', 'profile.generate.completed', {
+    correlationId,
+    sandbox,
+    industry: industryKey,
+    streamingStatus: streamRes.status,
+    ecidSource,
+    durationMs: Date.now() - startedAt,
+  });
 
   res.status(200).json({
     ok: true,
     message: `Request sent: ${email}`,
+    correlationId,
     email,
     ecid,
+    ...(mergeAppendToken ? { appendToken: mergeAppendToken } : {}),
     ecidSource,
     appendIfExisting,
     mergeDiagnostics,
