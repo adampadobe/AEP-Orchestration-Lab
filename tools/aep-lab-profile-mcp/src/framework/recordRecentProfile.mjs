@@ -22,9 +22,16 @@ export async function recordRecentProfileGenerated(params) {
   };
 
   try {
-    const apiResult = await appendRecentProfile(body);
+    const apiResult = await appendRecentProfile(body, {
+      correlationId: params.correlationId,
+    });
     if (!apiResult.ok) {
-      return { ok: false, error: apiResult.error || 'recent-profiles POST failed' };
+      return {
+        ok: false,
+        error: apiResult.error || 'recent-profiles POST failed',
+        errorCode: apiResult.data?.code || null,
+        correlationId: params.correlationId || null,
+      };
     }
     return {
       ok: true,

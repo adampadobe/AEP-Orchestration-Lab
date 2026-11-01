@@ -3,6 +3,7 @@
  */
 
 const { normalizeLdapSlug, ldapSlugFromEmail } = require('./labRtdbSlug');
+const { requestCorrelationId, logFunctionEvent } = require('./functionRequestLog');
 
 /**
  * @param {object} deps
@@ -1173,6 +1174,9 @@ function registerLabRoutes(deps) {
   /** GET/POST /api/lab/recent-profiles — shared Portal + MCP recently generated list */
   routes.labRecentProfiles = onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
     setCors(res, 'GET, POST, OPTIONS');
+    const startedAt = Date.now();
+    const correlationId = requestCorrelationId(req);
+    res.set('x-aep-lab-correlation-id', correlationId);
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
       return;
@@ -1182,6 +1186,12 @@ function registerLabRoutes(deps) {
       labWorkspaceAuthService,
     });
     if (!principal.ok) {
+      logFunctionEvent('WARNING', 'lab.recent_profiles.auth_rejected', {
+        correlationId,
+        method: req.method,
+        status: principal.status,
+        errorCode: String(principal.body && principal.body.code || 'AUTH_REJECTED'),
+      });
       res.status(principal.status).json(principal.body);
       return;
     }
@@ -1219,6 +1229,12 @@ function registerLabRoutes(deps) {
             sandbox,
             items.map((row) => ({ ...row, sandbox, source: row.source || body.source || 'portal' })),
           );
+          logFunctionEvent('INFO', 'lab.recent_profiles.appended', {
+            correlationId,
+            authSource: principal.authSource,
+            itemCount: items.length,
+            durationMs: Date.now() - startedAt,
+          });
           res.status(200).json({
             ok: true,
             items: listed.items,
@@ -1243,6 +1259,12 @@ function registerLabRoutes(deps) {
           n: body.n,
           sandbox,
         });
+        logFunctionEvent('INFO', 'lab.recent_profiles.appended', {
+          correlationId,
+          authSource: principal.authSource,
+          itemCount: 1,
+          durationMs: Date.now() - startedAt,
+        });
         res.status(200).json({
           ok: true,
           item: appended.item,
@@ -1252,6 +1274,13 @@ function registerLabRoutes(deps) {
         });
       } catch (e) {
         const status = Number(e && e.status) || 400;
+        logFunctionEvent('ERROR', 'lab.recent_profiles.append_failed', {
+          correlationId,
+          authSource: principal.authSource,
+          status,
+          errorCode: String(e && e.code || e && e.name || 'RECENT_PROFILE_APPEND_FAILED'),
+          durationMs: Date.now() - startedAt,
+        });
         res.status(status).json({ ok: false, error: String(e.message || e), sandbox });
       }
       return;

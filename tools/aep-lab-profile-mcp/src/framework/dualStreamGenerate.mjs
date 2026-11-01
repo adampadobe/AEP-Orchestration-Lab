@@ -102,6 +102,13 @@ export function planDualStreamGenerate({ industry, attributes, email }) {
     });
   }
 
+  const genericBaseStep = steps.find((step) => step.role === 'generic_base');
+  const industryOverlayStep = steps.find((step) => step.role === 'industry_overlay');
+  if (genericBaseStep && industryOverlayStep) {
+    genericBaseStep.issueAppendToken = true;
+    industryOverlayStep.requiresContinuationToken = true;
+  }
+
   if (steps.length === 0) {
     steps.push({
       step: 1,
@@ -125,6 +132,7 @@ export function planDualStreamGenerate({ industry, attributes, email }) {
  * @param {ReturnType<typeof planDualStreamGenerate>} params.plan
  * @param {boolean} [params.test_profile]
  * @param {boolean} [params.append_if_existing]
+ * @param {string} [params.correlation_id]
  */
 export async function executeGeneratePlan({
   email,
@@ -132,11 +140,13 @@ export async function executeGeneratePlan({
   plan,
   test_profile,
   append_if_existing,
+  correlation_id,
 }) {
   /** @type {Array<Record<string, unknown>>} */
   const stepResults = [];
   let lastOk = null;
   let ecid = null;
+  let continuationToken = null;
 
   for (let i = 0; i < plan.steps.length; i += 1) {
     const step = plan.steps[i];
@@ -147,6 +157,22 @@ export async function executeGeneratePlan({
           ? true
           : append_if_existing ?? false;
 
+    if (step.requiresContinuationToken && !continuationToken) {
+      return {
+        ok: false,
+        partialSuccess: true,
+        dualStream: plan.dualStream,
+        stepResults,
+        failedStep: step.step,
+        errorCode: 'DUAL_STREAM_CONTINUATION_TOKEN_MISSING',
+        error:
+          'The generic base profile was accepted, but the deployed profile function did not return a continuation token. ' +
+          'The industry overlay was not sent to avoid creating a second ECID. Do not regenerate this identity.',
+        data: lastOk?.data,
+        ecid,
+      };
+    }
+
     const apiResult = await generateProfile({
       email,
       sandbox,
@@ -154,6 +180,9 @@ export async function executeGeneratePlan({
       attributes: step.attributes,
       append_if_existing: appendForStep,
       test_profile,
+      issue_append_token: step.issueAppendToken === true,
+      append_token: step.requiresContinuationToken ? continuationToken : undefined,
+      correlation_id,
     });
 
     stepResults.push({
@@ -177,11 +206,13 @@ export async function executeGeneratePlan({
         error: apiResult.error,
         data: apiResult.data,
         ecid,
+        partialSuccess: Boolean(lastOk),
       };
     }
 
     lastOk = apiResult;
     ecid = apiResult.data?.ecid || ecid;
+    continuationToken = apiResult.data?.appendToken || continuationToken;
   }
 
   return {

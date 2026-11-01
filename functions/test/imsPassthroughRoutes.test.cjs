@@ -35,8 +35,9 @@ function request(overrides = {}) {
 function response() {
   return {
     code: 200,
+    headers: {},
     status(code) { this.code = code; return this; },
-    set() { return this; },
+    set(name, value) { this.headers[name] = value; return this; },
     json(body) { this.body = body; return this; },
     send(body) { this.body = body; return this; },
   };
@@ -217,6 +218,42 @@ test('IMS rejects conflicting body/query sandboxes and Snowflake GET-body scope 
   await cases[7][0](request({ query: {}, body: { sandbox: 'other' } }), res);
   assert.equal(res.code, 403);
   assert.equal(state.calls.length, 0);
+});
+
+test('Snowflake AEP dual-load returns structured errors with the matching correlation ID', async () => {
+  const { deps } = harness();
+  const snowflakeError = {
+    message: 'SQL compilation error',
+    code: '000904',
+    sqlState: '42000',
+    queryId: 'query-123',
+    phase: 'insert_profile_transaction',
+  };
+  deps.snowflakeDataGeneratorService = {
+    handleInsertProfileFromAep: async () => ({ ok: false, error: snowflakeError }),
+  };
+  const handler = registerSnowflakeRoutes(deps).snowflakeInsertProfileFromAep;
+  const res = response();
+  const correlationId = '11111111-1111-4111-8111-111111111111';
+  await handler(request({
+    method: 'POST',
+    headers: {
+      authorization: 'Bearer test-ims-token',
+      'x-gw-ims-org-id': 'TEST@AdobeOrg',
+      'x-gw-ims-email': 'tester@adobe.com',
+      'x-aep-lab-correlation-id': correlationId,
+    },
+    body: {
+      sandbox: 'apalmer',
+      email: 'demo@example.com',
+      ecid: '12345678901234567890123456789012345678',
+      industry: 'fsi',
+    },
+  }), res);
+  assert.equal(res.code, 400);
+  assert.equal(res.headers['x-aep-lab-correlation-id'], correlationId);
+  assert.equal(res.body.correlationId, correlationId);
+  assert.deepEqual(res.body.error, snowflakeError);
 });
 
 test('IMS Live Activity sandboxName alias cannot override the validated enrollment scope', async () => {
