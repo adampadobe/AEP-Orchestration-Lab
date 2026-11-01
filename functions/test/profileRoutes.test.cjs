@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const { registerProfileRoutes } = require('../profileRoutes');
 
 describe('registerProfileRoutes', () => {
-  it('registers B2 remainder profile proxy handlers', () => {
+  it('registers profile handlers with the bound continuation secret and read-only readiness', async () => {
+    let signingSecret = 'offline-signing-secret';
     const onRequest = (_opts, handler) => ({ __handler: handler });
     const routes = registerProfileRoutes({
       onRequest,
@@ -18,6 +19,7 @@ describe('registerProfileRoutes', () => {
       resolveSandboxForProfileBody: () => 'apalmer',
       getAdobeAccessToken: async () => 'token',
       ADOBE_CLIENT_ID: { value: () => 'client' },
+      ADOBE_CLIENT_SECRET: { value: () => signingSecret },
       ADOBE_IMS_ORG: { value: () => 'org' },
       profileTableHelpers: {},
       ipadEventProxy: { handleIpadEventPost: async () => {} },
@@ -41,7 +43,11 @@ describe('registerProfileRoutes', () => {
       serializeFirestoreRecord: (r) => r,
       CONSENT_STORE_FN_OPTS: { region: 'us-central1' },
       profileStreamingCore: {},
-      profileGenerateService: { handleProfileGenerate: async () => {} },
+      profileGenerateService: {
+        handleProfileGenerate: async (_req, _res, context) => {
+          assert.equal(context.getMergeTokenSecret(), 'offline-signing-secret');
+        },
+      },
       consentManagerLegacy: {},
       consentInfraService: {},
       profileAudiences: {},
@@ -61,6 +67,29 @@ describe('registerProfileRoutes', () => {
     ]) {
       assert.equal(typeof routes[name], 'object', `missing ${name}`);
     }
+    await routes.profileGenerateProxy.__handler({}, {});
+    let response;
+    await routes.profileInfraStatusAll.__handler({ method: 'GET', query: {}, headers: {} }, {
+      status(code) { assert.equal(code, 200); return this; },
+      json(body) { response = body; },
+    });
+    assert.deepEqual(response.profileContinuation, { ready: true, code: null });
+    assert.equal(JSON.stringify(response).includes('offline-signing-secret'), false);
+    signingSecret = '';
+    await routes.profileInfraStatusAll.__handler({ method: 'GET', query: {}, headers: {} }, {
+      status(code) { assert.equal(code, 200); return this; },
+      json(body) { response = body; },
+    });
+    assert.deepEqual(response.profileContinuation, { ready: false, code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+  });
+
+  it('production registration injects the already-bound signing secret into profile routes', () => {
+    const { readFileSync } = require('node:fs');
+    const source = readFileSync(require.resolve('../index.js'), 'utf8');
+    const registration = source.match(/registerProfileRoutes\(\{([\s\S]*?)\n  \}\)/);
+    assert.ok(registration);
+    assert.match(registration[1], /\bADOBE_CLIENT_SECRET\b/);
+    assert.match(source, /const PROFILE_FN_SECRETS = \[[^\]]*\bADOBE_CLIENT_SECRET\b/);
   });
 });
 

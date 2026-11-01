@@ -368,6 +368,15 @@ in its final result. If the deployed Functions revision does not return a token,
 the MCP stops before the overlay and reports a partial success; do not regenerate
 that identity.
 
+The token is signed and verified in Cloud Functions using the existing bound
+`ADOBE_CLIENT_SECRET`; the MCP only forwards it and needs no new signing secret
+or IAM grant. The read-only `/api/profile-infra/status-all` response exposes
+`profileContinuation.ready` without exposing the secret. AEP preflight checks
+this flag for non-generic industries without reserving an email; run preflight
+before generation.
+`MERGE_TOKEN_SECRET_UNAVAILABLE` requires checking route dependency wiring as
+well as runtime secret availability, not blindly creating a new secret.
+
 Recent-profile synchronization and Snowflake dual-load happen after AEP accepts
 the profile and are independent operations. A 403 from recent-profile sync does
 not undo the AEP profile, and a Snowflake 400 does not mean AEP generation failed.
@@ -382,6 +391,11 @@ FSI personas currently stream the tenant paths `industryFsi.*`, which require
 the custom `Profile FSI v1` field group. `Profile FSI v2` is a distinct
 `individualCharacteristics.fsi.*` extension and does not type those generator
 paths; provisioning now ensures v1 and keeps v2 optional.
+Aggregate status and MCP preflight preserve required-field-group/identity
+readiness instead of inferring it from Profile-enabled schema/dataset flags.
+Missing required groups produce `attach_required_field_groups_and_identity`;
+review and approve `attachFieldGroups` separately before running it. Legacy FSI
+cache entries without the v1 readiness contract are refreshed automatically.
 
 Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
 
