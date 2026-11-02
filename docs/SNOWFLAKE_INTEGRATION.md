@@ -397,6 +397,18 @@ Missing required groups produce `attach_required_field_groups_and_identity`;
 review and approve `attachFieldGroups` separately before running it. Legacy FSI
 cache entries without the v1 readiness contract are refreshed automatically.
 
+Primary Email identity accepts the tenant path
+`/_demoemea/identification/core/email` (or the sandbox's tenant equivalent).
+Descriptor discovery uses the Schema Registry's maximum list limit of 300,
+reads both `results`/`children` and type-keyed `xdm:descriptorIdentity` arrays,
+and follows pagination before deciding readiness. Registry request failures
+are surfaced as errors, not reported as missing identities. Cache version 2
+invalidates earlier readiness results; it changes status metadata only.
+For an explicit fresh check use `lab_sandbox_profile_config` with `refresh:true`,
+`lab_preflight_profile_generate` with `target:"aep", refresh:true` (the default),
+or `/api/profile-infra/status-all?sandbox=apalmer&refresh=1`.
+Preflight does not create profiles or consume an email counter.
+
 Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
 
 `proposed_tables` remains a read-only legacy validation input; it does not authorize arbitrary table creation.

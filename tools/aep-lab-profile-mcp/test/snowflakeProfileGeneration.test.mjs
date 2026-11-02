@@ -21,7 +21,7 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
   const originalFetch = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
-    calls.push({ path: new URL(url).pathname, body: init.body ? JSON.parse(init.body) : null, headers: init.headers });
+    calls.push({ path: new URL(url).pathname, query: new URL(url).searchParams, body: init.body ? JSON.parse(init.body) : null, headers: init.headers });
     const response = respond(calls.at(-1));
     return {
       ok: response?.httpOk ?? true,
@@ -383,8 +383,26 @@ test('AEP preflight checks continuation readiness without consuming an email or 
       if (path.includes('connection')) return savedConnection;
       return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
     });
+
     assert.equal(body.ready, ready);
     assert.equal(body.blockedReason, ready ? null : 'MERGE_TOKEN_SECRET_UNAVAILABLE');
     assert.ok(calls.every(({ path }) => !path.includes('next-email') && path !== '/api/profile/generate'));
+  }
+});
+
+test('AEP preflight bypasses cache by default and exposes an explicit refresh option', async () => {
+  for (const refresh of [undefined, true, false]) {
+    const { body, calls } = await invoke('lab_preflight_profile_generate', {
+      sandbox: 'apalmer', industry: 'generic', target: 'aep', refresh,
+    }, ({ path }) => {
+      if (path === '/api/profile-infra/status-all') return {
+        ok: true, profileContinuation: { ready: true }, industries: { generic: readyInfra },
+      };
+      if (path.includes('connection')) return savedConnection;
+      return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
+    });
+    assert.equal(body.ready, true);
+    assert.equal(calls.find(call => call.path === '/api/profile-infra/status-all').query.get('refresh'), refresh === false ? null : '1');
+    assert.ok(calls.every(call => !call.path.includes('next-email') && call.path !== '/api/profile/generate'));
   }
 });
