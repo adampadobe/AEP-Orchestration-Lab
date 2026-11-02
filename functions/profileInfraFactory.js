@@ -795,6 +795,7 @@ function createProfileInfraService(config) {
     dataflowName,
     industryFieldGroups = [],
     tenantSubtreePrefix = null,
+    requiredTenantProperties = null,
     industryDisplayName,
   } = config;
 
@@ -2038,6 +2039,7 @@ function createProfileInfraService(config) {
     /** @type {Array<{label: string, exists: boolean, attached: boolean}>} */
     const optionalFieldGroups = [];
     const requiredFieldGroups = [];
+    let requiredTenantFields = null;
     if (schema) {
       const desc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schema.$id, schema['meta:altId']);
       hasDescriptor = desc.some((d) => isPrimaryEmailIdentityDescriptor(d));
@@ -2050,12 +2052,43 @@ function createProfileInfraService(config) {
           }
           optionalFieldGroups.push(...fieldGroupStatus(full, mixins, globalFgList, true));
           requiredFieldGroups.push(...fieldGroupStatus(full, mixins, globalFgList, false));
+          if (requiredTenantProperties) {
+            const url = `${SCHEMA_REGISTRY}/tenant/schemas/${encodeURIComponent(schema['meta:altId'])}`;
+            const { res, data } = await fetchJson(url, {
+              method: 'GET',
+              headers: { ...headersXed(token, clientId, orgId, sandbox), Accept: ACCEPT_XED_FULL },
+            });
+            if (!res.ok) {
+              throw new Error(`Resolved schema field check failed: HTTP ${res.status}`);
+            }
+            const walked = walkResolvedMixinTenantTree({
+              properties: { [tenantCtx.xdmKey]: data.properties?.[tenantCtx.xdmKey] },
+            });
+            const diff = diffManifestAgainstMixin(
+              requiredTenantProperties, walked.presentPathSet, walked.presentNodeMap, new Set(),
+            );
+            const expected = walkResolvedMixinTenantTree({
+              properties: { [tenantCtx.xdmKey]: { properties: requiredTenantProperties } },
+            });
+            for (const [path, node] of expected.presentNodeMap) {
+              const actual = walked.presentNodeMap.get(path);
+              if (actual && node.type && !actual.type) {
+                diff.conflicts.push({ path, reason: `resolved field has no type; expected '${node.type}'` });
+              }
+            }
+            requiredTenantFields = {
+              ready: walked.tenantKey === tenantCtx.xdmKey && diff.needsAdd.length === 0 && diff.conflicts.length === 0,
+              missing: diff.needsAdd.map(({ path }) => path),
+              conflicts: diff.conflicts,
+            };
+          }
         }
       }
     }
 
     const datasetProfileEnabled = !!dataset && datasetHasProfileEnabledTag(dataset);
-    const ready = !!(profileCore && schema && dataset && hasDescriptor && fieldGroupsAttached);
+    const fieldsReady = !requiredTenantProperties || requiredTenantFields?.ready === true;
+    const ready = !!(profileCore && schema && dataset && hasDescriptor && fieldGroupsAttached && fieldsReady);
 
     return {
       ok: true,
@@ -2084,9 +2117,10 @@ function createProfileInfraService(config) {
       // validation in sandboxes where step 2 has not been re-run.
       optionalFieldGroups,
       requiredFieldGroups,
+      requiredTenantFields,
       prepSteps: {
         step1_schemaShell: !!schema,
-        step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached),
+        step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached && fieldsReady),
         step3_dataset: !!dataset && datasetProfileEnabled,
         step4_readyForManualHttpFlow: !!dataset,
       },

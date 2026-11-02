@@ -383,26 +383,38 @@ not undo the AEP profile, and a Snowflake 400 does not mean AEP generation faile
 Each MCP generate request carries a `correlation_id` across the profile stream,
 recent-profile sync, and Snowflake insert. Cloud Function logs use structured
 events with that ID, phase, duration, and safe error metadata; Snowflake errors
-preserve vendor code, SQL state, query ID, and phase without logging credentials,
+preserve vendor code, SQL state, query ID when supplied by the error or SDK
+statement, and phase without logging credentials,
 SQL binds, email, or ECID. On partial failure, inspect the exact returned email
 and correlation ID before repair. Never automatically rerun generation.
 
-FSI personas currently stream the tenant paths `industryFsi.*`, which require
-the custom `Profile FSI v1` field group. `Profile FSI v2` is a distinct
-`individualCharacteristics.fsi.*` extension and does not type those generator
-paths; provisioning now ensures v1 and keeps v2 optional.
+All six industry dual-load inserts serialize `PUSHTOKENS` as JSON text and
+select `PARSE_JSON(?)::ARRAY`, matching the event writer. Raw JavaScript array
+bindings can fail with `Unsupported data type 'VARIANT'`. Compilation failure
+rolls back the profile/recipient transaction; it does not undo the preceding
+AEP writes. Do not retry generation to repair this partial failure.
+
+FSI personas stream the tenant paths `industryFsi.*`, which require the
+dedicated `AEP Lab - Profile FSI Generator v1` field group. The existing tenant
+groups named `Profile FSI v1` and `Profile FSI v2` are preserved as optional
+extensions: their names do not prove they declare generator fields. In
+`apalmer`, the existing v1 defines `individualCharacteristics.fsi.*`, not
+`industryFsi.*`. Provisioning creates/attaches the dedicated group additively;
+it does not modify or detach those existing groups.
 Aggregate status and MCP preflight preserve required-field-group/identity
 readiness instead of inferring it from Profile-enabled schema/dataset flags.
+FSI readiness also checks the resolved schema's required tenant fields and
+types, exposing `requiredTenantFields.ready`, `missing`, and `conflicts`.
 Missing required groups produce `attach_required_field_groups_and_identity`;
-review and approve `attachFieldGroups` separately before running it. Legacy FSI
-cache entries without the v1 readiness contract are refreshed automatically.
+review and approve `attachFieldGroups` separately before running it. If fields
+have conflicting types, stop for schema review rather than overwriting them.
 
 Primary Email identity accepts the tenant path
 `/_demoemea/identification/core/email` (or the sandbox's tenant equivalent).
 Descriptor discovery uses the Schema Registry's maximum list limit of 300,
 reads both `results`/`children` and type-keyed `xdm:descriptorIdentity` arrays,
 and follows pagination before deciding readiness. Registry request failures
-are surfaced as errors, not reported as missing identities. Cache version 2
+are surfaced as errors, not reported as missing identities. Cache version 3
 invalidates earlier readiness results; it changes status metadata only.
 For an explicit fresh check use `lab_sandbox_profile_config` with `refresh:true`,
 `lab_preflight_profile_generate` with `target:"aep", refresh:true` (the default),

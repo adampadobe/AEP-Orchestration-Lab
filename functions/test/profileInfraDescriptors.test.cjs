@@ -103,5 +103,5 @@ it('does not forward credentials to an unexpected pagination host', async (t) =>
 });
 
 it('invalidates cached descriptor readiness from the old API contract', () => {
-  assert.equal(statusCache.CACHE_VERSION, 2);
+  assert.equal(statusCache.CACHE_VERSION, 3);
 });

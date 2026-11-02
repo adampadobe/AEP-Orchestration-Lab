@@ -21,7 +21,7 @@ const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
-function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com' } = {}) {
+function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com', failureStatementId = null } = {}) {
   const calls = [];
   let destroyed = false;
   let emailCounter = 0;
@@ -44,7 +44,7 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
           })));
         } else options.complete(null, null, rows);
       } catch (error) {
-        options.complete(error);
+        options.complete(error, { getStatementId: () => failureStatementId });
       }
     },
   };
@@ -81,6 +81,52 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('serializes array bindings for AEP dual-load across all six industries', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleInsertProfileFromAep({
+        labUser: 'offline-user', sandbox: 'test', industry,
+        email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      const insert = fixture.calls.find(({ sqlText }) => sqlText.startsWith('INSERT INTO'));
+      assert.ok(insert, industry);
+      assert.doesNotMatch(insert.sqlText, /VALUES\s*\(/);
+      assert.match(insert.sqlText, /SELECT .*PARSE_JSON\(\?\)::ARRAY/);
+      const columns = insert.sqlText.match(/\(([^)]+)\) SELECT/)[1].split(', ');
+      const tokens = JSON.parse(insert.binds[columns.indexOf('PUSHTOKENS')]);
+      assert.equal(tokens.length, 1);
+      assert.match(tokens[0], /^demo-fcm-/);
+      assert.ok(insert.binds.every((value) => !Array.isArray(value)), industry);
+      assert.ok(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'));
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+
+  it('preserves the failing statement query ID before rolling back dual-load', async () => {
+    const fixture = serviceWithConnection((sql) => {
+      if (sql.startsWith('INSERT INTO')) {
+        const error = new Error('injected compilation failure');
+        error.code = '002040';
+        error.sqlState = '42601';
+        throw error;
+      }
+      return [];
+    }, { failureStatementId: 'offline-query-id' });
+    const result = await fixture.service.handleInsertProfileFromAep({
+      labUser: 'offline-user', sandbox: 'test', industry: 'fsi',
+      email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error.queryId, 'offline-query-id');
+    assert.equal(result.error.code, '002040');
+    assert.equal(result.error.sqlState, '42601');
+    assert.equal(result.error.phase, 'insert_profile_transaction');
+    assert.equal(fixture.calls.at(-1).sqlText, 'ROLLBACK');
+    assert.equal(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'), false);
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
   it('rejects missing or stale email preferences before connecting or reserving IDs', async () => {
     for (const baseEmail of ['', 'new@example.com']) {
       const fixture = serviceWithConnection(undefined, { baseEmail });
