@@ -208,7 +208,19 @@ describe('POST /api/profile/generate geo mirror', () => {
         industry: 'fsi',
         appendIfExisting: true,
         appendToken: base.body.appendToken,
-        attributes: { 'industryFsi.creditScoreBand': 'good' },
+        attributes: {
+          'industryFsi.householdIncomeBand': '50k_100k',
+          'industryFsi.creditScoreBand': 'fair',
+          'industryFsi.lifeStage': 'student',
+          'industryFsi.employment': 'student',
+          'industryFsi.primaryBankingChannel': 'online',
+          'industryFsi.financialProducts.checking': true,
+          'industryFsi.financialProducts.savings': true,
+          'industryFsi.financialProducts.creditCard': false,
+          'industryFsi.financialProducts.mortgage': false,
+          'industryFsi.financialProducts.investment': false,
+          'industryFsi.financialProducts.loan': false,
+        },
       });
       assert.equal(overlay.statusCode, 200, JSON.stringify(overlay.body));
       assert.equal(overlay.body.ecid, base.body.ecid);
@@ -216,6 +228,19 @@ describe('POST /api/profile/generate geo mirror', () => {
       assert.equal(upsLookupCount, 0);
       assert.equal(sent.length, 2);
       assert.equal(sent[1].body.xdmEntity._demoemea.identification.core.ecid, base.body.ecid);
+      assert.deepEqual(sent[1].body.xdmEntity._demoemea.industryFsi, {
+        householdIncomeBand: '50k_100k',
+        creditScoreBand: 'fair',
+        lifeStage: 'student',
+        employment: 'student',
+        primaryBankingChannel: 'online',
+        financialProducts: {
+          checking: true, savings: true, creditCard: false,
+          mortgage: false, investment: false, loan: false,
+        },
+      });
+      assert.equal(sent[1].body.xdmEntity.identityMap.Email[0].id, 'person@example.com');
+      assert.equal(sent[1].body.xdmEntity.identityMap.ECID[0].id, base.body.ecid);
       assert.equal(JSON.stringify(sent).includes(base.body.appendToken), false);
     });
 

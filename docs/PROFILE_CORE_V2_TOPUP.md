@@ -18,6 +18,19 @@ The **top-up** fixes this. It runs during each per-industry wizard's
 contains every tenant-relative leaf that industry needs, adding missing leaves
 via add-only JSON-Patch.
 
+Travel readiness also compares the **resolved schema** against this manifest.
+An attached field group alone is not sufficient: missing hotel or flight leaves
+(including `hotel.bookingDetails.roomCost`), conflicting types, and fields with
+no declared type make `requiredTenantFields.ready` and overall readiness false.
+The aggregate status and MCP preflight carry these missing/conflicting paths.
+This intentionally blocks incomplete Travel schemas even when their optional
+field-group attachment badges look healthy. The check is read-only; an operator
+must review an additive step-2 repair separately. Readiness accepts a live
+`number` for an integer-valued manifest field because it accepts those values;
+the reverse remains blocked, and provisioning keeps its strict type-conflict
+policy. Existing types must not be overwritten, and a schema repair does not
+restore values previously discarded during ingestion.
+
 ## Where the top-up lives
 
 - `functions/profileCoreV2Manifest.js` — per-industry "required tenant leaves"

@@ -225,7 +225,7 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     assert.equal(res.body.invalidPath, '_demoemea.profilePlaceContext.countryCode');
   });
 
-  it('logs value-free request and result summaries with place row counts', async (t) => {
+  it('logs value-free request and wire summaries with correlation, never raw payloads', async (t) => {
     const lines = [];
     t.mock.method(console, 'log', (...args) => { lines.push(args); });
     const res = await post([
@@ -240,26 +240,21 @@ describe('profileUpdateProxy place context (dryRun)', () => {
     const [resultLog] = byTag('[profileUpdateProxy.result]');
     assert.ok(reqLog && resultLog, 'both log lines emitted');
     assert.equal(reqLog.updateCount, 4);
-    assert.equal(reqLog.placeRowCount, 3);
-    assert.deepEqual(reqLog.placeLeaves, ['latitude', 'longitude', 'city']);
     assert.equal(reqLog.dryRun, true);
     assert.equal(resultLog.outcome, 'dryRun');
-    assert.equal(resultLog.placeInPayload, true);
-    assert.ok(resultLog.placeLeavesInPayload.includes('geohash'));
-    assert.equal(resultLog.emailHash, reqLog.emailHash);
-    const summaryLines = lines
-      .filter((a) => a[0] !== '[profileUpdateProxy.payload]')
-      .map((a) => a.join(' '))
-      .join('\n');
+    assert.equal(resultLog.tenant.industries.generic.profilePlaceContext.present, true);
+    assert.equal(resultLog.tenant.industries.generic.profilePlaceContext.leafCount, 6);
+    assert.equal(resultLog.correlationId, reqLog.correlationId);
+    assert.equal(resultLog.correlationId, res.body.correlationId);
+    const summaryLines = lines.map((a) => a.join(' ')).join('\n');
     assert.equal(summaryLines.includes('SecretName'), false);
     assert.equal(summaryLines.includes('Riyadh'), false);
     assert.equal(summaryLines.includes('place.test@example.com'), false);
 
-    const [payloadLog] = byTag('[profileUpdateProxy.payload]');
-    assert.ok(payloadLog, 'full payload line emitted');
-    assert.equal(payloadLog.outcome, 'dryRun');
-    assert.equal(payloadLog.emailHash, reqLog.emailHash);
-    assert.deepEqual(JSON.parse(payloadLog.payloadJson), res.body.envelope, 'logs exactly what would be sent');
+    assert.equal(byTag('[profileUpdateProxy.payload]').length, 0, 'raw payload logging retired');
+    const wire = JSON.stringify(res.body.envelope);
+    assert.equal(resultLog.payloadSha256, require('node:crypto').createHash('sha256').update(wire).digest('hex'));
+    assert.equal(resultLog.payloadBytes, Buffer.byteLength(wire));
   });
 
   it('round-trips a stored profile table snapshot and re-derives a stale geohash after a lat edit', async () => {

@@ -475,8 +475,9 @@ function collectRefBlockedAncestorPaths(authoringBody) {
  *
  * The caller (`topUpProfileCoreV2`) then turns `needsAdd` into JSON-Patch
  * `add` ops targeting `/definitions/customFields/properties/_<tenant>/properties/...`.
+ * Readiness may allow integer-to-number widening; authoring remains strict.
  */
-function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refBlockedAncestorPaths) {
+function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refBlockedAncestorPaths, { allowWiderNumericTypes = false } = {}) {
   const needsAdd = [];
   const alreadyPresent = [];
   const conflicts = [];
@@ -500,6 +501,7 @@ function diffManifestAgainstMixin(manifest, presentPathSet, presentNodeMap, refB
     const lType = liveNode && liveNode.type;
     if (!mType || !lType) return true; // nothing to compare
     if (mType === lType) return true;
+    if (allowWiderNumericTypes && mType === 'integer' && lType === 'number') return true;
     return false;
   }
 
@@ -2090,6 +2092,7 @@ function createProfileInfraService(config) {
             });
             const diff = diffManifestAgainstMixin(
               requiredTenantProperties, walked.presentPathSet, walked.presentNodeMap, new Set(),
+              { allowWiderNumericTypes: true },
             );
             const expected = walkResolvedMixinTenantTree({
               properties: { [tenantCtx.xdmKey]: { properties: requiredTenantProperties } },

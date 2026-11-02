@@ -533,18 +533,14 @@
         const headOfHousehold = $('fsiHeadOfHousehold');
         if (headOfHousehold) push('personalFinances.personalTaxProfile.isHeadOfHousehold', !!headOfHousehold.checked);
 
-        const filingJointly = $('fsiTaxFilingJoint');
-        if (filingJointly && filingJointly.checked) {
-          push('personalFinances.personalTaxProfile.filingJointly', true);
-        }
-        const filingSeparately = $('fsiTaxFilingSeparate');
-        if (filingSeparately && filingSeparately.checked) {
-          push('personalFinances.personalTaxProfile.filingSeparately', true);
-        }
-        const singleFiler = $('fsiTaxFilingSingle');
-        if (singleFiler && singleFiler.checked) {
-          push('personalFinances.personalTaxProfile.singleFiler', true);
-        }
+        [
+          ['fsiTaxFilingJoint', 'filingJointly'],
+          ['fsiTaxFilingSeparate', 'filingSeparately'],
+          ['fsiTaxFilingSingle', 'singleFiler'],
+        ].forEach(([id, field]) => {
+          const el = $(id);
+          if (el) push(`personalFinances.personalTaxProfile.${field}`, !!el.checked);
+        });
       },
 
       // Pull industry fields out of a profile/table response. Profile API
