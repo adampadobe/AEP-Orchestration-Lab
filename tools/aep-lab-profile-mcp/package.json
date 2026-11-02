@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node src/server.mjs",
     "smoke": "node scripts/smoke-test.mjs",
+    "test:transport": "AEP_LAB_MCP_FIRESTORE=off node --test test/serverDiscovery.test.mjs test/serverSessionRecovery.test.mjs test/focusedToolsets.test.mjs",
     "test:phase2": "node scripts/phase2-test.mjs",
     "test:phase3": "node scripts/phase3-test.mjs",
     "test:snowflake": "node scripts/snowflake-mcp-test.mjs",

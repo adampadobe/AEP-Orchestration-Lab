@@ -113,6 +113,40 @@ or other mutations. Inspect the existing operation or records first. If a
 host keeps using a stale session after HTTP 404, reconnect its MCP connection;
 do not rotate keys or change permissions merely to recover transport state.
 
+**Recovery is a client responsibility, not a server-side retry guarantee.**
+The installed `@modelcontextprotocol/sdk` 1.29.x Streamable HTTP client surfaces
+POST HTTP 404 as `StreamableHTTPError`; it does not clear its session ID or
+automatically initialize again. SSE reconnect/backoff is not a new MCP
+handshake. Close the old client/transport, create a new pair on the same
+endpoint with the same authorized credentials, initialize, and verify
+`lab_mcp_access_info`. Refresh `tools/list`; on `/mcp/entry`, explicitly load
+the previously needed categories again and refresh the list. Do not retry
+the failed mutation as part of this recovery, even when the handshake succeeds.
+If a request timed out or its response was lost, its outcome may be unknown:
+inspect job status/readback before deciding whether another operation is safe.
+
+The registry, loaded categories, and live notification streams are process-local.
+Session affinity can reduce cross-instance misses but cannot survive process
+replacement and is not a correctness guarantee. A multi-instance/shared-session
+architecture or client retry policy requires separate review; returning 404
+does not make the deployment stateless. No deployment/scaling change is implied.
+
+**Preflight refresh discovery:** `lab_preflight_profile_generate` advertises
+optional boolean `refresh` on `/mcp`, `/mcp/profile`, and entry sessions after
+`lab_load_toolset category profile`. For `target:"aep"`, omitted/true bypasses
+cached infrastructure status; false explicitly permits the cache. It never
+creates a profile or reserves an email. If a host's native/deferred descriptor
+omits `refresh`, compare a fresh protocol `tools/list` and the access-info build,
+then reconnect/reload the host catalog. A cached host descriptor is not evidence
+that the server rejected the property; do not mutate preferences or generate a
+profile to refresh discovery.
+
+Run `npm --prefix tools/aep-lab-profile-mcp run test:transport` for offline HTTP
+discovery and real-SDK restart/routing regressions. Tests use loopback processes,
+disable Firestore/telemetry, redirect Lab API origins to a rejecting local
+fixture, and check that recovery never sends a backend request. They verify
+explicit recovery, not automatic recovery in Copilot or `mcp-remote`.
+
 For clients that do not refresh their callable catalog, **directly connect the focused endpoint(s) for the domains you actually use**, or `/mcp` for the full catalog. This also avoids the dynamic-discovery dependency in Copilot. Reconnect after changing an endpoint or installing an updated plugin; a host's deferred-tool search is not necessarily a fresh protocol-level `tools/list`.
 
 | Entry-point tool / resource | Purpose |
