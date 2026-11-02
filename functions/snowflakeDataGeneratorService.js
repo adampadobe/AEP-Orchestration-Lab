@@ -46,6 +46,7 @@ const {
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { readSnowflakeCell } = require('./snowflakeRow');
+const { structuredColumnTypes, bindSnowflakeValue } = require('./snowflakeStructuredValues');
 const prefsStore = require('./labProfileGenerationPrefsStore');
 const { createRecipient, recipientRow } = require('./snowflakeRecipientFactory');
 const { ensureRecipientTable, mergeRecipientRows, qualifiedRecipientTable } = require('./snowflakeRecipientStore');
@@ -468,13 +469,18 @@ async function handleGenerateBaseProfiles(input) {
 
     const sample = rows.slice(0, SAMPLE_SIZE).map(rowToObject);
 
-    const placeholders = COLUMNS.map(() => '?').join(', ');
-    const insertSql = `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) VALUES (${placeholders})`;
-
+    const types = structuredColumnTypes(COLUMN_DDL);
     let inserted = 0;
     for (let i = 0; i < rows.length; i += batchSize) {
       const slice = rows.slice(i, i + batchSize);
-      await execAsync(conn, { sqlText: insertSql, binds: slice });
+      const binds = [];
+      const selects = slice.map((row) => `SELECT ${row.map((value, index) => {
+        const bound = bindSnowflakeValue(value, types.get(COLUMNS[index]));
+        binds.push(bound.value);
+        return bound.expression;
+      }).join(', ')}`);
+      const insertSql = `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) ${selects.join(' UNION ALL ')}`;
+      await execAsync(conn, { sqlText: insertSql, binds });
       inserted += slice.length;
     }
 
@@ -716,6 +722,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
     return {
       schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       columns: TRAVEL_COLUMNS,
+      columnDdl: config.columnDdl,
       mapRow: mapAepAttributesToTravelProfileRow,
       generateRow: generateTravelProfileRow,
       defaultMode: 'crm_generate',
@@ -727,6 +734,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
     return {
       schemaKey: config.table,
       columns: config.columns,
+      columnDdl: config.columnDdl,
       generateRow: (input) => generateIndustryProfileRow(config.industry, input),
       defaultMode: 'crm_generate',
       skipCreateTable: true,
@@ -736,6 +744,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
   return {
     schemaKey: 'BASE_PROFILES',
     columns: COLUMNS,
+    columnDdl: COLUMN_DDL,
     mapRow: mapAepAttributesToBaseProfileRow,
     defaultMode: 'mirror',
     skipCreateTable: false,
@@ -939,12 +948,11 @@ async function handleInsertProfileFromAep(input) {
       row: insertColumns.map((column) => rowObject[column] ?? null),
     };
 
-    const expressions = insertColumns.map((column, index) =>
-      column === 'PUSHTOKENS' || Array.isArray(profileRow.row[index]) ? 'PARSE_JSON(?)::ARRAY' : '?');
-    const binds = profileRow.row.map((value, index) =>
-      insertColumns[index] === 'PUSHTOKENS' || Array.isArray(value)
-        ? (value == null ? null : JSON.stringify(value))
-        : value);
+    const types = structuredColumnTypes(insertSchema.columnDdl);
+    const values = insertColumns.map((column, index) =>
+      bindSnowflakeValue(profileRow.row[index], types.get(column)));
+    const expressions = values.map(({ expression }) => expression);
+    const binds = values.map(({ value }) => value);
     phase = 'insert_profile_transaction';
     await withSnowflakeTransaction(conn, async () => {
       await execAsync(conn, {

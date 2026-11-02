@@ -147,6 +147,7 @@ export async function executeGeneratePlan({
   let lastOk = null;
   let ecid = null;
   let continuationToken = null;
+  let geoMirror;
 
   for (let i = 0; i < plan.steps.length; i += 1) {
     const step = plan.steps[i];
@@ -194,6 +195,7 @@ export async function executeGeneratePlan({
       attributeCount: Object.keys(step.attributes || {}).length,
       samplePaths: Object.keys(step.attributes || {}).slice(0, 8),
       ecid: apiResult.data?.ecid || null,
+      geoMirror: apiResult.data?.geoMirror,
       error: apiResult.ok ? undefined : apiResult.error,
     });
 
@@ -211,6 +213,7 @@ export async function executeGeneratePlan({
     }
 
     lastOk = apiResult;
+    if (step.industry === 'generic' || step.role === 'single') geoMirror = apiResult.data?.geoMirror;
     ecid = apiResult.data?.ecid || ecid;
     continuationToken = apiResult.data?.appendToken || continuationToken;
   }
@@ -219,7 +222,7 @@ export async function executeGeneratePlan({
     ok: true,
     dualStream: plan.dualStream,
     stepResults,
-    data: lastOk?.data,
+    data: { ...lastOk?.data, ...(geoMirror ? { geoMirror } : {}) },
     ecid: lastOk?.data?.ecid || ecid,
   };
 }

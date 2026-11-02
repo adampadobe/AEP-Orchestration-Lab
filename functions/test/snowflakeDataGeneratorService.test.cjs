@@ -81,6 +81,23 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('types nullable arrays in legacy base-profile batches too', async () => {
+    const fixture = serviceWithConnection();
+    const result = await fixture.service.handleGenerateBaseProfiles({
+      labUser: 'offline-user', sandbox: 'test', count: 3, batchSize: 2,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.error));
+    const inserts = fixture.calls.filter(({ sqlText }) => sqlText.startsWith('INSERT INTO'));
+    assert.equal(inserts.length, 2);
+    for (const insert of inserts) {
+      assert.match(insert.sqlText, /PARSE_JSON\(\?\)::ARRAY/);
+      assert.doesNotMatch(insert.sqlText, /VALUES\s*\(/);
+      assert.ok(insert.binds.every((value) => !Array.isArray(value)));
+    }
+    assert.match(inserts[0].sqlText, /UNION ALL SELECT/);
+    assert.equal(result.rowcount, 3);
+  });
+
   it('serializes array bindings for AEP dual-load across all six industries', async () => {
     for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
       const fixture = serviceWithConnection();
@@ -98,6 +115,13 @@ describe('Snowflake seed API offline integration', () => {
       assert.equal(tokens.length, 1);
       assert.match(tokens[0], /^demo-fcm-/);
       assert.ok(insert.binds.every((value) => !Array.isArray(value)), industry);
+      if (industry === 'travel') {
+        const expressions = insert.sqlText.split(' SELECT ')[1].split(', ');
+        for (const column of ['FAVORITEDESTINATIONS', 'SPECIALASSISTANCE']) {
+          assert.equal(expressions[columns.indexOf(column)], 'PARSE_JSON(?)::ARRAY');
+          assert.equal(insert.binds[columns.indexOf(column)], null);
+        }
+      }
       assert.ok(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'));
       assert.equal(fixture.isDestroyed(), true);
     }

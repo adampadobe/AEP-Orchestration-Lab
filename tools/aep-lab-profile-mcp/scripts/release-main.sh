@@ -30,6 +30,7 @@ origin_main="$(git rev-parse origin/main)"
 [[ "$origin_main" == "$SHA" ]] || fail "requested SHA must equal freshly fetched origin/main (${origin_main})"
 git merge --ff-only origin/main
 [[ "$(git rev-parse HEAD)" == "$SHA" ]] || fail 'HEAD must equal the requested SHA after fast-forward'
+pr_number="$(git log -1 --format=%s | sed -nE 's/.*\(#([0-9]+)\)$/\1/p')"
 
 account="$(CLOUDSDK_ACTIVE_CONFIG_NAME=aep-orchestration gcloud --configuration=aep-orchestration --project=aep-orchestration-lab config get-value account 2>/dev/null)"
 project="$(CLOUDSDK_ACTIVE_CONFIG_NAME=aep-orchestration gcloud --configuration=aep-orchestration --project=aep-orchestration-lab config get-value project 2>/dev/null)"
@@ -77,7 +78,8 @@ before_bindings="$(binding_names "$before_json")"
 [[ -n "$before_bindings" ]] || fail 'the existing service has no runtime bindings to verify'
 
 CLOUDSDK_ACTIVE_CONFIG_NAME=aep-orchestration gcloud --configuration=aep-orchestration \
-  builds submit --tag "$IMAGE" --project=aep-orchestration-lab .
+  builds submit --config cloudbuild.yaml \
+  --substitutions "_GIT_SHA=${SHA},_PULL_REQUEST=${pr_number}" --project=aep-orchestration-lab .
 
 CLOUDSDK_ACTIVE_CONFIG_NAME=aep-orchestration gcloud --configuration=aep-orchestration \
   run services update "$SERVICE" \
@@ -121,5 +123,11 @@ PY
 revision="${readback%%$'\n'*}"
 service_url="${readback#*$'\n'}"
 
-curl --fail --silent --show-error "${service_url%/}/health" >/dev/null
+health="$(curl --fail --silent --show-error "${service_url%/}/health")"
+printf '%s' "$health" | python3 -c '
+import json, sys
+build = json.load(sys.stdin).get("build", {})
+if build.get("commitSha") != sys.argv[1] or build.get("revision") != sys.argv[2]:
+    raise SystemExit("Health build identity does not match the released SHA and revision")
+' "$SHA" "$revision"
 printf 'Cloud Run release verified: %s (%s)\n' "$revision" "$SHA"

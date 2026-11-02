@@ -420,7 +420,7 @@ const INDUSTRY_EXTENSIONS = {
   },
   media: {
     // Media streams to `subscriptions.*` (root) and `industryMedia.*`
-    // (Profile Media v1/v2 FG). Nothing extra under Profile Core v2.
+    // (dedicated AEP Lab Media Generator FG). Nothing extra under Profile Core v2.
   },
   sports: {
     // Sports streams `industrySports.*` (Profile Sports v1 FG) and the

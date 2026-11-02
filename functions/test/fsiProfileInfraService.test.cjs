@@ -86,6 +86,10 @@ describe('FSI profile field-group contract', () => {
             '@type': 'xdm:descriptorIdentity',
             'xdm:sourceSchema': schemaId, 'xdm:isPrimary': true,
             'xdm:namespace': 'Email', 'xdm:sourceProperty': '/_demoemea/identification/core/email',
+          }, {
+            '@type': 'xdm:descriptorIdentity', 'xdm:sourceSchema': schemaId,
+            'xdm:namespace': 'ECID', 'xdm:isPrimary': false,
+            'xdm:sourceProperty': '/_demoemea/identification/core/ecid',
           }] };
         } else {
           assert.fail(`Unexpected registry request: ${path}`);

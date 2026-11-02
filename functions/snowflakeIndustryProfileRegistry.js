@@ -1,6 +1,7 @@
 'use strict';
 
 const { COLUMNS: TRAVEL_COLUMNS } = require('./snowflakeTravelProfileSchema');
+const travelDefinitions = require('./snowflakeTravelTableDefinitions.json');
 const fsi = require('./snowflakeFsiProfileSchema');
 const retail = require('./snowflakeRetailProfileSchema');
 const telecom = require('./snowflakeTelecomProfileSchema');
@@ -8,7 +9,10 @@ const media = require('./snowflakeMediaProfileSchema');
 const sports = require('./snowflakeSportsProfileSchema');
 
 const INDUSTRY_CONFIG = Object.freeze({
-  travel: { industry: 'travel', table: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER', columns: TRAVEL_COLUMNS },
+  travel: {
+    industry: 'travel', table: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER', columns: TRAVEL_COLUMNS,
+    columnDdl: travelDefinitions.find(({ table }) => table === 'AGENTIC_TRAVEL_PROFILE_CUSTOMER').columnDdl,
+  },
   fsi: { industry: 'fsi', table: fsi.TABLE, columns: fsi.COLUMNS, columnDdl: fsi.COLUMN_DDL },
   retail: { industry: 'retail', table: retail.TABLE, columns: retail.COLUMNS, columnDdl: retail.COLUMN_DDL },
   telecom: { industry: 'telecom', table: telecom.TABLE, columns: telecom.COLUMNS, columnDdl: telecom.COLUMN_DDL },

@@ -30,7 +30,9 @@ test('Cloud Run release script pins both gcloud identity and project without cha
 
 test('Cloud Run release builds an immutable SHA image and updates only the image', () => {
   assert.match(script, /readonly IMAGE="gcr\.io\/\$\{PROJECT_ID\}\/\$\{SERVICE\}:\$\{SHA\}"/);
-  assert.match(script, /builds submit --tag "\$IMAGE"/);
+  assert.match(script, /builds submit --config cloudbuild.yaml/);
+  assert.match(script, /_GIT_SHA=\$\{SHA\}/);
+  assert.match(script, /_PULL_REQUEST=\$\{pr_number\}/);
   assert.match(script, /run services update[\s\S]*--image/);
   assert.match(script, /expected_image not in images/);
   assert.doesNotMatch(script, /--set-(?:env-vars|secrets|service-account|ingress|timeout|memory|concurrency|scaling)|--clear-|--env-vars-file/);
@@ -38,4 +40,20 @@ test('Cloud Run release builds an immutable SHA image and updates only the image
   assert.match(script, /100%/);
   assert.match(script, /binding names/i);
   assert.match(script, /curl[\s\S]*\/health/);
+  assert.match(script, /build\.get\("commitSha"\) != sys\.argv\[1\]/);
+  assert.match(script, /build\.get\("revision"\) != sys\.argv\[2\]/);
+});
+
+test('Cloud Build bakes the same SHA and PR metadata into the immutable image', async () => {
+  const root = join(repoRoot, 'tools', 'aep-lab-profile-mcp');
+  const [config, dockerfile] = await Promise.all([
+    readFile(join(root, 'cloudbuild.yaml'), 'utf8'),
+    readFile(join(root, 'Dockerfile'), 'utf8'),
+  ]);
+  for (const [name, substitution] of [['SHA', 'GIT_SHA'], ['PR', 'PULL_REQUEST']]) {
+    assert.ok(config.includes(`AEP_LAB_BUILD_${name}=\${_${substitution}}`));
+    assert.ok(dockerfile.includes(`ARG AEP_LAB_BUILD_${name}`));
+    assert.ok(dockerfile.includes(`ENV AEP_LAB_BUILD_${name}=$AEP_LAB_BUILD_${name}`));
+  }
+  assert.equal(config.match(/gcr\.io\/\$PROJECT_ID\/aep-lab-profile-mcp:\$\{_GIT_SHA\}/g).length, 2);
 });

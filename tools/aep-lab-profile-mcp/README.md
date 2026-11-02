@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.52.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.52.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
@@ -699,30 +699,24 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 > though the function is live — see `test/labApiRoutes.test.mjs`, which asserts every
 > literal `/api/...` path in `labApiClient.mjs` has a matching rewrite.
 
-Inspect the live service first, build an immutable image, and update **only** the image. `gcloud run services update` preserves the existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling configuration.
+Use the guarded release script from the repository root. It inspects the live
+service, builds an immutable full-SHA image with `cloudbuild.yaml`, and updates
+**only** the image, preserving environment variables, secret bindings, service
+account, ingress, timeout, memory, and scaling configuration.
 
 ```bash
-cd tools/aep-lab-profile-mcp
-
-export PROJECT_ID=aep-orchestration-lab
-export REGION=us-central1
-export SERVICE=aep-lab-profile-mcp
-export IMAGE="gcr.io/${PROJECT_ID}/${SERVICE}:$(git rev-parse --short HEAD)"
-
-gcloud run services describe "${SERVICE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}"
-
-gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}" .
-
-gcloud run services update "${SERVICE}" \
-  --image "${IMAGE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}" \
-  --platform managed
+bash tools/aep-lab-profile-mcp/scripts/release-main.sh "$(git rev-parse HEAD)"
 ```
 
-Read the service back after deployment. Confirm the intended revision receives 100% of traffic and that all expected environment-variable and secret-binding **names** remain present; never print secret values. Then verify `/health` and the affected MCP endpoints.
+`/health` and `lab_mcp_access_info` expose `build.version`, `build.commitSha`,
+`build.revision` and `build.pullRequest`. Unknown metadata is explicitly null.
+The image embeds SHA/PR at build time; revision comes from Cloud Run. The script
+also checks that health reports the requested SHA and serving revision.
+Read the affected MCP endpoints back after deployment. Never print secret values.
+
+Preflight accepts optional `refresh:boolean` and defaults to true. A client
+rejecting the argument has not invoked the tool: omission still requests a fresh
+check, while a new connection's `tools/list` should be checked independently.
 
 ### Initial provisioning or intentional full configuration change
 

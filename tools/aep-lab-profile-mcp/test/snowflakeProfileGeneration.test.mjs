@@ -402,27 +402,39 @@ test('AEP preflight bypasses cache by default and exposes an explicit refresh op
       return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
     });
 
-    test('FSI readiness cannot ignore unresolved generator fields even when attachment flags are ready', () => {
-      const assessment = assessIndustrySandboxConfig({
-        industry: 'fsi', sandbox: 'apalmer', connectionResponse: savedConnection,
-        infraStatus: { ...readyInfra, requiredTenantFields: { ready: false, missing: ['industryFsi'], conflicts: [] } },
-      });
-
-      test('FSI field type conflicts require review rather than automatic field-group attachment', () => {
-        const assessment = assessIndustrySandboxConfig({
-          industry: 'fsi', sandbox: 'apalmer', connectionResponse: savedConnection,
-          infraStatus: { ...readyInfra, prepSteps: { step2_fieldGroupsIdentity: false },
-            requiredTenantFields: { ready: false, missing: [], conflicts: [{ path: 'industryFsi.creditScoreBand', reason: 'wrong type' }] } },
-        });
-        assert.equal(assessment.ready, false);
-        assert.equal(assessment.blockedReason, 'resolve_schema_field_conflicts');
-        assert.match(assessment.nextAction, /Do not overwrite/);
-      });
-      assert.equal(assessment.ready, false);
-      assert.deepEqual(assessment.infra.requiredTenantFields.missing, ['industryFsi']);
-    });
     assert.equal(body.ready, true);
     assert.equal(calls.find(call => call.path === '/api/profile-infra/status-all').query.get('refresh'), refresh === false ? null : '1');
     assert.ok(calls.every(call => !call.path.includes('next-email') && call.path !== '/api/profile/generate'));
   }
+});
+
+for (const [industry, subtree] of [['fsi', 'industryFsi'], ['media', 'industryMedia']]) {
+  test(`${industry} readiness cannot ignore unresolved generator fields`, () => {
+    const assessment = assessIndustrySandboxConfig({
+      industry, sandbox: 'apalmer', connectionResponse: savedConnection,
+      infraStatus: { ...readyInfra, requiredTenantFields: { ready: false, missing: [subtree], conflicts: [] } },
+    });
+    assert.equal(assessment.ready, false);
+    assert.deepEqual(assessment.infra.requiredTenantFields.missing, [subtree]);
+  });
+
+  test(`${industry} field type conflicts require review rather than automatic attachment`, () => {
+    const assessment = assessIndustrySandboxConfig({
+      industry, sandbox: 'apalmer', connectionResponse: savedConnection,
+      infraStatus: { ...readyInfra, prepSteps: { step2_fieldGroupsIdentity: false },
+        requiredTenantFields: { ready: false, missing: [], conflicts: [{ path: subtree, reason: 'wrong type' }] } },
+    });
+    assert.equal(assessment.ready, false);
+    assert.equal(assessment.blockedReason, 'resolve_schema_field_conflicts');
+    assert.match(assessment.nextAction, /Do not overwrite/);
+  });
+}
+
+test('preflight assessment blocks a missing secondary ECID descriptor', () => {
+  const assessment = assessIndustrySandboxConfig({
+    industry: 'generic', sandbox: 'apalmer', connectionResponse: savedConnection,
+    infraStatus: { ...readyInfra, secondaryEcidDescriptor: false, prepSteps: { step2_fieldGroupsIdentity: false } },
+  });
+  assert.equal(assessment.ready, false);
+  assert.match(assessment.nextAction, /secondary ECID identity; keep Email primary/);
 });
