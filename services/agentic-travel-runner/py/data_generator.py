@@ -13,6 +13,7 @@ import hashlib
 from attribution_helper import AttributionHelper
 from session_journey_helper import SessionJourneyHelper
 from snowflake_settings import get_snowflake_connection_kwargs
+from snowflake_bindings import insert_rows
 
 class TravelDataGenerator:
     """Generate realistic travel data for AEP demos"""
@@ -1178,7 +1179,7 @@ ORDER BY email;
         """
         rows = [tuple(profile) + ("R-" + hashlib.sha256(str(profile[1]).encode()).hexdigest()[:32],)
                 for profile in base_profiles]
-        self.cursor.executemany(insert_sql, rows)
+        insert_rows(self.cursor, insert_sql, rows)
     
     def insert_profiles(self, profiles):
         """Insert profile data into Snowflake"""
@@ -1199,7 +1200,7 @@ ORDER BY email;
             _recordCreatedTimestamp, _recordUpdatedTimestamp, recipient_id
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, profiles)
+        insert_rows(self.cursor, insert_sql, profiles)
         
     def insert_website_events(self, events):
         """Insert website event data into Snowflake"""
@@ -1220,7 +1221,7 @@ ORDER BY email;
             CHANNEL
         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
     
     def insert_booking_events(self, bookings):
         """Insert booking event data into Snowflake"""
@@ -1246,7 +1247,7 @@ ORDER BY email;
             CHANNEL
         ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """
-        self.cursor.executemany(insert_sql, bookings)
+        insert_rows(self.cursor, insert_sql, bookings)
         self.insert_booking_segments(bookings)
         self._last_ancillary_count = self.insert_booking_ancillaries(bookings)
 

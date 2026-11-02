@@ -10,6 +10,7 @@ const { ensureRecipientTable, mergeRecipientRows, qualifiedRecipientTable } = re
 const { generateTravelRelationalRecords } = require('./snowflakeRelationalGenerator');
 const travelDefinitions = require('./snowflakeTravelTableDefinitions.json');
 const { readSnowflakeCell } = require('./snowflakeRow');
+const { structuredColumnTypes, bindSnowflakeValue } = require('./snowflakeStructuredValues');
 
 const SQL_FILES = {
   travel: '10_travel.sql', fsi: '20_fsi.sql', retail: '30_retail.sql',
@@ -114,11 +115,18 @@ async function mergeRows(execute, table, primaryKey, rows, batchSize = 50) {
   const columns = [...new Set(normalized.flatMap(Object.keys))];
   if (!columns.includes(primaryKey)) throw new Error(`${table} rows must include ${primaryKey}`);
   const updates = columns.filter((column) => ![primaryKey, '_RECORDCREATEDTIMESTAMP'].includes(column));
+  const definition = travelDefinitions.find((entry) => entry.table === table.split('.').at(-1));
+  const types = structuredColumnTypes(definition?.columnDdl);
   const chunkSize = Math.min(50, Math.max(1, batchSize));
   for (let offset = 0; offset < normalized.length; offset += chunkSize) {
     const binds = [];
     const selects = normalized.slice(offset, offset + chunkSize).map((row) => `SELECT ${columns.map((column) => {
       const value = row[column];
+      if (types.has(column)) {
+        const bound = bindSnowflakeValue(value, types.get(column));
+        binds.push(bound.value);
+        return `${bound.expression} AS ${column}`;
+      }
       if (value == null) return `NULL AS ${column}`;
       if (Array.isArray(value) || (typeof value === 'object' && !(value instanceof Date))) {
         binds.push(JSON.stringify(value));

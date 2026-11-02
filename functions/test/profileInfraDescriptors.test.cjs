@@ -2,11 +2,13 @@
 
 const { it } = require('node:test');
 const assert = require('node:assert/strict');
-const { createProfileInfraService, BASE_PROFILE_FIELD_GROUP_REFS } = require('../profileInfraFactory');
+const { createProfileInfraService, BASE_PROFILE_FIELD_GROUP_REFS, isSecondaryEcidIdentityDescriptor } = require('../profileInfraFactory');
 const { projectStatusFlags } = require('../profileInfraStatusAll');
 const statusCache = require('../profileInfraStatusCache');
+const { buildCompositeSubtreeFromManifest } = require('../profileInfraFactory');
+const { getManifestForIndustry } = require('../profileCoreV2Manifest');
 
-async function statusWithDescriptors(t, descriptorResponse) {
+async function statusWithDescriptors(t, descriptorResponse, { ecid = true } = {}) {
   const schemaId = 'https://ns.adobe.com/demoemea/schemas/descriptor-test';
   const schemaAlt = '_demoemea.schemas.descriptor-test';
   const coreId = 'https://ns.adobe.com/demoemea/mixins/core-test';
@@ -27,6 +29,10 @@ async function statusWithDescriptors(t, descriptorResponse) {
     if (parsed.pathname.endsWith('/tenant/descriptors')) {
       assert.ok(Number(parsed.searchParams.get('limit')) <= 300);
       response = descriptorResponse(parsed, descriptor);
+      if (ecid && !response.httpError) response.results = [...(response.results || []), {
+        ...descriptor, 'xdm:namespace': 'ECID', 'xdm:isPrimary': false,
+        'xdm:sourceProperty': '/_demoemea/identification/core/ecid',
+      }];
     } else if (parsed.pathname.endsWith('/tenant/schemas')) {
       response = { results: [schema] };
     } else if (parsed.pathname.includes('/tenant/schemas/')) {
@@ -103,5 +109,78 @@ it('does not forward credentials to an unexpected pagination host', async (t) =>
 });
 
 it('invalidates cached descriptor readiness from the old API contract', () => {
-  assert.equal(statusCache.CACHE_VERSION, 3);
+  assert.equal(statusCache.CACHE_VERSION, 4);
 });
+
+it('blocks email-only infrastructure rather than claiming ECID lookup is ready', async (t) => {
+  const { status } = await statusWithDescriptors(t, (_url, descriptor) => ({ results: [descriptor] }), { ecid: false });
+  assert.equal(status.primaryEmailDescriptor, true);
+  assert.equal(status.secondaryEcidDescriptor, false);
+  assert.equal(status.prepSteps.step2_fieldGroupsIdentity, false);
+  assert.equal(status.ready, false);
+  assert.equal(projectStatusFlags(status).secondaryEcidDescriptor, false);
+});
+
+it('requires the exact tenant ECID descriptor and keeps Email primary', () => {
+  const descriptor = {
+    '@type': 'xdm:descriptorIdentity', 'xdm:namespace': 'ECID', 'xdm:isPrimary': false,
+    'xdm:sourceProperty': '/_example/identification/core/ecid',
+  };
+  assert.equal(isSecondaryEcidIdentityDescriptor(descriptor, '_example'), true);
+  for (const change of [
+    { 'xdm:isPrimary': true }, { 'xdm:namespace': 'Email' },
+    { 'xdm:sourceProperty': '/_other/identification/core/ecid' },
+    { '@type': 'xdm:descriptorOneToOne' },
+  ]) assert.equal(isSecondaryEcidIdentityDescriptor({ ...descriptor, ...change }, '_example'), false);
+});
+
+for (const existingNamespaces of [[], ['Email'], ['Email', 'ECID']]) {
+  it(`provisions only missing identities with major sourceVersion when existing: ${existingNamespaces.join(',')}`, async (t) => {
+    const schemaId = 'https://ns.adobe.com/example/schemas/identity-test';
+    const coreId = 'https://ns.adobe.com/example/mixins/core-test';
+    const schema = {
+      title: 'Identity provisioning test', $id: schemaId, 'meta:altId': '_example.schemas.identity-test',
+      version: '1.4',
+      allOf: ['https://ns.adobe.com/xdm/context/profile', ...BASE_PROFILE_FIELD_GROUP_REFS, coreId]
+        .map(($ref) => ({ $ref })),
+    };
+    const core = { title: 'Profile Core v2', $id: coreId, 'meta:altId': '_example.mixins.core-test',
+      version: '1.3', properties: { _example: buildCompositeSubtreeFromManifest(getManifestForIndustry('generic'), '') } };
+    const descriptor = (namespace) => ({
+      '@type': 'xdm:descriptorIdentity', 'xdm:sourceSchema': schemaId,
+      'xdm:namespace': namespace, 'xdm:isPrimary': namespace === 'Email',
+      'xdm:sourceProperty': `/_example/identification/core/${namespace.toLowerCase()}`,
+    });
+    const created = [];
+    t.mock.method(statusCache, 'invalidateStatusCache', async () => {});
+    t.mock.method(globalThis, 'fetch', async (url, init) => {
+      const path = new URL(url).pathname;
+      let body;
+      if (init.method === 'POST' && path.endsWith('/tenant/descriptors')) {
+        body = JSON.parse(init.body);
+        assert.equal(body['xdm:sourceVersion'], 1);
+        assert.deepEqual({ ...body, 'xdm:sourceVersion': undefined, 'xdm:property': undefined },
+          { ...descriptor(body['xdm:namespace']), 'xdm:sourceVersion': undefined, 'xdm:property': undefined });
+        created.push(body);
+      } else {
+        assert.equal(init.method, 'GET', 'the already-attached field groups must not change');
+        if (path.endsWith('/tenant/schemas')) body = { results: [schema] };
+        else if (path.includes('/tenant/schemas/')) body = schema;
+        else if (path.endsWith('/tenant/fieldgroups')) body = { results: [core] };
+        else if (path.includes('/tenant/fieldgroups/')) body = core;
+        else if (path.endsWith('/global/fieldgroups')) body = { results: [] };
+        else if (path.endsWith('/tenant/descriptors')) body = { results: existingNamespaces.map(descriptor) };
+        else assert.fail(`Unexpected registry request: ${path}`);
+      }
+      return { ok: true, status: 200, json: async () => body };
+    });
+    const service = createProfileInfraService({ industryKey: 'generic', schemaTitle: schema.title,
+      datasetName: 'Identity test dataset', dataflowName: 'Identity test flow' });
+    const result = await service.runStep('offline', 'token', 'client', 'org', 'attachFieldGroups');
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.descriptorOk, true);
+    assert.equal(result.ecidDescriptorOk, true);
+    assert.deepEqual(created.map((body) => body['xdm:namespace']),
+      ['Email', 'ECID'].filter((namespace) => !existingNamespaces.includes(namespace)));
+  });
+}

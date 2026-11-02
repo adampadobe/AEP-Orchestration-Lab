@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.52.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.52.1). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, using Adobe Firefly media or Photoshop, InDesign, Substance 3D, Express, and Illustrator production workflows, audience geo-insights, or reading lab execution framework / industry playbooks.
@@ -12,7 +12,7 @@ metadata:
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.52.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.52.1** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
 This plugin installs the complete 218-tool `lab-all` connection plus seventeen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `lab-dps` (`/mcp/decisioning`), `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-geo-insights` (`/mcp/geo-insights`), `aep-lab-commerce`, `lab-aco` (`/mcp/commerce-optimizer`), `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-figma` (`/mcp/figma`, Figma REST API through a server-held token; read-only apart from a confirmation-gated comment post). Geo insights combines live weather and AEP Query Service audience hotspots in one focused endpoint, returns aggregates only, and suppresses cells below k=10. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
 

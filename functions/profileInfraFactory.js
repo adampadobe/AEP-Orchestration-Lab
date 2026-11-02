@@ -253,7 +253,7 @@ function extractAepErrorMessage(data, fallback) {
  * Detect Adobe's "already exists" error variants, including the case where
  * the duplicate signal is buried inside `report.additionalDetails[].errorReason`
  * under a generic top-level title like "Descriptor validation error" or
- * "Schema validation error". Used for idempotency in createPrimaryEmailDescriptor
+ * "Schema validation error". Used for idempotency in createProfileIdentityDescriptor
  * and other wizard creators.
  */
 function looksLikeAlreadyExists(messageOrError) {
@@ -317,6 +317,13 @@ function collectDescriptorResults(data) {
     }
   }
   return out;
+}
+
+function isSecondaryEcidIdentityDescriptor(descriptor, xdmKey) {
+  return descriptor['@type'] === 'xdm:descriptorIdentity'
+    && String(descriptor['xdm:namespace'] || '').toLowerCase() === 'ecid'
+    && descriptor['xdm:isPrimary'] === false
+    && descriptor['xdm:sourceProperty'] === `/${xdmKey}/identification/core/ecid`;
 }
 
 function flattenDatasets(pages) {
@@ -1298,17 +1305,17 @@ function createProfileInfraService(config) {
     return [];
   }
 
-  async function createPrimaryEmailDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, xdmKey) {
+  async function createProfileIdentityDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, xdmKey, namespace) {
     const tenant = String(xdmKey || '_demoemea').replace(/^_/, '');
-    const sourceProperty = `/_${tenant}/identification/core/email`;
+    const sourceProperty = `/_${tenant}/identification/core/${namespace === 'ECID' ? 'ecid' : 'email'}`;
     const body = {
       '@type': 'xdm:descriptorIdentity',
       'xdm:sourceSchema': schemaId,
       'xdm:sourceVersion': sourceVersion,
       'xdm:sourceProperty': sourceProperty,
-      'xdm:namespace': 'Email',
+      'xdm:namespace': namespace,
       'xdm:property': 'xdm:code',
-      'xdm:isPrimary': true,
+      'xdm:isPrimary': namespace === 'Email',
     };
     const url = `${SCHEMA_REGISTRY}/tenant/descriptors`;
     const base = {
@@ -1333,10 +1340,10 @@ function createProfileInfraService(config) {
       lastStatus = res.status;
       lastErr = extractAepErrorMessage(data, res.statusText);
       if (res.status !== 415 && !/unsupported media type/i.test(String(lastErr))) {
-        throw new Error(`Create identity descriptor failed (HTTP ${res.status}): ${lastErr}`);
+        throw new Error(`Create ${namespace} identity descriptor failed (HTTP ${res.status}): ${lastErr}`);
       }
     }
-    throw new Error(`Create identity descriptor failed (HTTP ${lastStatus}): ${lastErr}`);
+    throw new Error(`Create ${namespace} identity descriptor failed (HTTP ${lastStatus}): ${lastErr}`);
   }
 
   /**
@@ -1718,19 +1725,19 @@ function createProfileInfraService(config) {
       patchApplied = true;
       full = (await getSchemaByAltId(token, clientId, orgId, sandbox, metaAltId)) || full;
     }
-    const sourceVersion = Number(full.version) || 1;
+    const sourceVersion = Math.trunc(Number(full.version)) || 1;
     const existingDesc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, metaAltId);
     const hasPrimaryEmail = existingDesc.some((d) => isPrimaryEmailIdentityDescriptor(d));
     let descriptorOk = hasPrimaryEmail;
     if (!hasPrimaryEmail) {
       try {
-        await createPrimaryEmailDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey);
+        await createProfileIdentityDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey, 'Email');
         descriptorOk = true;
       } catch (e) {
         // Idempotency: if AEP rejects because the descriptor already exists
         // (we missed it in the pre-check above due to filter encoding /
         // shape variance), treat that as success. Now that
-        // createPrimaryEmailDescriptor surfaces the buried
+        // createProfileIdentityDescriptor surfaces the buried
         // `report.additionalDetails[].errorReason`, the duplicate signal
         // ("Descriptor with id <…> already exists", under a generic
         // top-level title like "Descriptor validation error") arrives in
@@ -1744,9 +1751,22 @@ function createProfileInfraService(config) {
         }
       }
     }
+    let ecidDescriptorOk = existingDesc.some((d) => isSecondaryEcidIdentityDescriptor(d, tenantCtx.xdmKey));
+    if (!ecidDescriptorOk) {
+      try {
+        await createProfileIdentityDescriptor(token, clientId, orgId, sandbox, schemaId, sourceVersion, tenantCtx.xdmKey, 'ECID');
+        ecidDescriptorOk = true;
+      } catch (e) {
+        if (!looksLikeAlreadyExists(String(e.message || e))) throw e;
+        const refreshed = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, metaAltId);
+        ecidDescriptorOk = refreshed.some((d) => isSecondaryEcidIdentityDescriptor(d, tenantCtx.xdmKey));
+        if (!ecidDescriptorOk) throw e;
+      }
+    }
     return {
       patchApplied,
       descriptorOk,
+      ecidDescriptorOk,
       fullSchema: full,
       resolvedIndustry: planResult.resolvedIndustry,
       skippedOptional: planResult.skippedOptional,
@@ -1952,11 +1972,11 @@ function createProfileInfraService(config) {
       created && created.length ? ` (created in this sandbox: ${created.map((c) => c.title).join(', ')})` : '';
     const parts = [];
     if (!patchApplied) {
-      parts.push(`Field groups were already present; primary Email identity checked${createdFragment}.`);
+      parts.push(`Field groups were already present; primary Email and secondary ECID identities checked${createdFragment}.`);
     } else {
       const labels = [...BASE_PROFILE_FIELD_GROUP_LABELS];
       for (const r of resolvedIndustry) labels.push(r.label);
-      parts.push(`Field groups attached and primary Email identity set (${labels.join(' + ')})${createdFragment}.`);
+      parts.push(`Field groups attached and primary Email + secondary ECID identities set (${labels.join(' + ')})${createdFragment}.`);
     }
     if (topUp && !topUp.skipped) {
       if (topUp.added && topUp.added.length) {
@@ -2034,6 +2054,7 @@ function createProfileInfraService(config) {
     }
 
     let hasDescriptor = false;
+    let hasEcidDescriptor = false;
     let fieldGroupsAttached = false;
     let schemaInProfileUnion = false;
     /** @type {Array<{label: string, exists: boolean, attached: boolean}>} */
@@ -2043,6 +2064,7 @@ function createProfileInfraService(config) {
     if (schema) {
       const desc = await listDescriptorsForSchema(token, clientId, orgId, sandbox, schema.$id, schema['meta:altId']);
       hasDescriptor = desc.some((d) => isPrimaryEmailIdentityDescriptor(d));
+      hasEcidDescriptor = desc.some((d) => isSecondaryEcidIdentityDescriptor(d, tenantCtx.xdmKey));
       if (schema['meta:altId']) {
         const full = await getSchemaByAltId(token, clientId, orgId, sandbox, schema['meta:altId']);
         if (full) {
@@ -2088,7 +2110,7 @@ function createProfileInfraService(config) {
 
     const datasetProfileEnabled = !!dataset && datasetHasProfileEnabledTag(dataset);
     const fieldsReady = !requiredTenantProperties || requiredTenantFields?.ready === true;
-    const ready = !!(profileCore && schema && dataset && hasDescriptor && fieldGroupsAttached && fieldsReady);
+    const ready = !!(profileCore && schema && dataset && hasDescriptor && hasEcidDescriptor && fieldGroupsAttached && fieldsReady);
 
     return {
       ok: true,
@@ -2108,6 +2130,7 @@ function createProfileInfraService(config) {
       schemaId: schema?.$id || null,
       schemaMetaAltId: schema?.['meta:altId'] || null,
       primaryEmailDescriptor: hasDescriptor,
+      secondaryEcidDescriptor: hasEcidDescriptor,
       datasetFound: !!dataset,
       datasetId: dataset?.id || null,
       datasetProfileEnabled,
@@ -2120,7 +2143,7 @@ function createProfileInfraService(config) {
       requiredTenantFields,
       prepSteps: {
         step1_schemaShell: !!schema,
-        step2_fieldGroupsIdentity: !!(schema && fieldGroupsAttached && fieldsReady),
+        step2_fieldGroupsIdentity: !!(schema && hasDescriptor && hasEcidDescriptor && fieldGroupsAttached && fieldsReady),
         step3_dataset: !!dataset && datasetProfileEnabled,
         step4_readyForManualHttpFlow: !!dataset,
       },
@@ -2176,7 +2199,7 @@ function createProfileInfraService(config) {
           message:
             `Schema shell created (Profile class only). Run step 2 to attach the standard Profile field groups${
               industryFieldGroups.length ? ` plus the ${displayName}-specific field group(s) when present in this sandbox` : ''
-            } + primary Email identity.`,
+            } + primary Email and secondary ECID identities.`,
         };
       }
 
@@ -2258,6 +2281,7 @@ function createProfileInfraService(config) {
           profileCoreMixinId: profileCore.$id,
           patchApplied: ar.patchApplied,
           descriptorOk: ar.descriptorOk,
+          ecidDescriptorOk: ar.ecidDescriptorOk,
           industryFieldGroupsResolved: ar.resolvedIndustry,
           industryFieldGroupsSkipped: ar.skippedOptional.map((s) => ({
             label: s.entry.label || (s.entry.match && s.entry.match.source) || s.entry.$id || 'unknown',
@@ -2616,6 +2640,7 @@ module.exports = {
   // probe at scripts/verify-profile-core-v2-topup.mjs and for unit tests.
   walkResolvedMixinTenantTree,
   collectRefBlockedAncestorPaths,
+  isSecondaryEcidIdentityDescriptor,
   diffManifestAgainstMixin,
   buildCompositeSubtreeFromManifest,
   buildTopUpJsonPatchOps,

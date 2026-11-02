@@ -388,9 +388,15 @@ statement, and phase without logging credentials,
 SQL binds, email, or ECID. On partial failure, inspect the exact returned email
 and correlation ID before repair. Never automatically rerun generation.
 
-All six industry dual-load inserts serialize `PUSHTOKENS` as JSON text and
-select `PARSE_JSON(?)::ARRAY`, matching the event writer. Raw JavaScript array
-bindings can fail with `Unsupported data type 'VARIANT'`. Compilation failure
+Industry dual-load and Travel seed inserts use declared column types for
+`ARRAY`, `OBJECT` and `VARIANT`, including null values, through
+`PARSE_JSON(?)::<TYPE>`. The sixteen Travel table contracts are audited, including
+`FAVORITEDESTINATIONS`, `SPECIALASSISTANCE` and event item arrays; the Python
+runner uses equivalent typed SELECT expressions. Legacy loyalty/preferences
+`PUSHTOKENS` columns remain text by design. Lab readback preserves arrays and
+objects instead of coercing arrays to comma-separated strings.
+Raw JavaScript array bindings can fail with `Unsupported data type 'VARIANT'`.
+Compilation failure
 rolls back the profile/recipient transaction; it does not undo the preceding
 AEP writes. Do not retry generation to repair this partial failure.
 
@@ -405,6 +411,10 @@ Aggregate status and MCP preflight preserve required-field-group/identity
 readiness instead of inferring it from Profile-enabled schema/dataset flags.
 FSI readiness also checks the resolved schema's required tenant fields and
 types, exposing `requiredTenantFields.ready`, `missing`, and `conflicts`.
+Media applies the same checks to its dedicated
+`AEP Lab - Profile Media Generator v1` group and all twelve `industryMedia`
+fields. Existing `Profile Media v1/v2` groups are optional extensions, not proof
+that those generator paths exist.
 Missing required groups produce `attach_required_field_groups_and_identity`;
 review and approve `attachFieldGroups` separately before running it. If fields
 have conflicting types, stop for schema review rather than overwriting them.
@@ -414,12 +424,26 @@ Primary Email identity accepts the tenant path
 Descriptor discovery uses the Schema Registry's maximum list limit of 300,
 reads both `results`/`children` and type-keyed `xdm:descriptorIdentity` arrays,
 and follows pagination before deciding readiness. Registry request failures
-are surfaced as errors, not reported as missing identities. Cache version 3
+are surfaced as errors, not reported as missing identities. A secondary ECID
+descriptor must designate `/_demoemea/identification/core/ecid` (or its tenant
+equivalent), namespace `ECID`, with `isPrimary:false`; carrying an ECID field or
+setting a payload identity entry alone does not establish that schema identity.
+The approved attach step adds missing descriptors without replacing primary
+Email. Read-only status exposes `secondaryEcidDescriptor`. Cache version 4
 invalidates earlier readiness results; it changes status metadata only.
 For an explicit fresh check use `lab_sandbox_profile_config` with `refresh:true`,
 `lab_preflight_profile_generate` with `target:"aep", refresh:true` (the default),
 or `/api/profile-infra/status-all?sandbox=apalmer&refresh=1`.
 Preflight does not create profiles or consume an email counter.
+If a client rejects `refresh` before invoking preflight, omit that optional
+argument: the default is still a fresh check. Reconnect and verify the discovered
+tool schema separately; do not present a client-side rejection as a passed check.
+
+Two-step generation reports the Generic step's place mirror result; an industry
+overlay intentionally lacking place must not replace it with `no_place`. The
+streaming envelope retains the bare tenant alias (`demoemea` alongside
+`_demoemea`) for legacy Data Prep mappings. It is not a second profile write;
+removing it requires auditing those mappings first.
 
 Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
 

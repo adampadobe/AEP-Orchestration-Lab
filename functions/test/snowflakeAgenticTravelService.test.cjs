@@ -89,6 +89,17 @@ describe('legacy full generation allocator guard', () => {
 });
 
 describe('snowflakeAgenticTravelService query profiles', () => {
+  it('preserves ARRAY and nested OBJECT values in profile readback', () => {
+    const row = {
+      PUSHTOKENS: ['demo-fcm-one', 'demo-fcm-two'],
+      FAVORITEDESTINATIONS: ['Paris'],
+      SPECIALASSISTANCE: [],
+    };
+    const profile = mapTravelProfileRow(row);
+    assert.deepEqual(profile.columns.PUSHTOKENS, row.PUSHTOKENS);
+    assert.deepEqual(profile.columns.FAVORITEDESTINATIONS, ['Paris']);
+    assert.deepEqual(profile.columns.SPECIALASSISTANCE, []);
+  });
   it('TRAVEL_PROFILE_COLUMNS matches travel schema', () => {
     assert.deepEqual(TRAVEL_PROFILE_COLUMNS, COLUMNS);
     assert.ok(COLUMNS.includes('FIRSTNAME'));

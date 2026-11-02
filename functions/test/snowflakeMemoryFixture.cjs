@@ -49,7 +49,7 @@ function snowflakeMemoryFixture({ now = () => new Date().toISOString() } = {}) {
       const selects = sql.slice(sql.indexOf('USING (') + 7, sql.indexOf(') source'));
       let bindIndex = 0;
       for (const select of selects.split('\nUNION ALL\n')) {
-        const source = Object.fromEntries([...select.matchAll(/(PARSE_JSON\(\?\)|\?|NULL) AS ([A-Z_0-9]+)/g)]
+        const source = Object.fromEntries([...select.matchAll(/(PARSE_JSON\(\?\)(?:::(?:ARRAY|VARIANT|OBJECT))?|\?|NULL) AS ([A-Z_0-9]+)/g)]
           .map(([, expression, column]) => {
             const value = expression === 'NULL' ? null : binds[bindIndex++];
             return [column, expression.startsWith('PARSE_JSON') ? JSON.parse(value) : value];

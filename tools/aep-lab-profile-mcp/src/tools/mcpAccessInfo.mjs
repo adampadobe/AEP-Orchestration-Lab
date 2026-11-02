@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getPrincipalAccess, getRequestKeyId } from '../requestContext.mjs';
 import { jsonResult } from './helpers.mjs';
+import { getBuildInfo } from '../buildInfo.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -27,6 +28,7 @@ export function registerMcpAccessInfoTool(mcpServer) {
 
       return jsonResult({
         ok: true,
+        build: getBuildInfo(),
         keyId,
         allowedSandboxes: access?.allowedSandboxes || [],
         principalLabel: access?.principalLabel || null,

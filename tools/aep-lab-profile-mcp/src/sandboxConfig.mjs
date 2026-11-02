@@ -131,6 +131,7 @@ export function assessInfraStatus(status) {
   const infraReady = schemaFound && schemaInUnion && datasetFound && datasetProfileEnabled
     && status.ready !== false
     && status.primaryEmailDescriptor !== false
+    && status.secondaryEcidDescriptor !== false
     && status.requiredTenantFields?.ready !== false
     && status.prepSteps?.step2_fieldGroupsIdentity !== false;
 
@@ -146,6 +147,7 @@ export function assessInfraStatus(status) {
     prepSteps: status.prepSteps || null,
     requiredFieldGroups: status.requiredFieldGroups || [],
     requiredTenantFields: status.requiredTenantFields || null,
+    secondaryEcidDescriptor: status.secondaryEcidDescriptor ?? null,
     nextSteps: Array.isArray(status.nextSteps) ? status.nextSteps : null,
     error: null,
   };
@@ -184,6 +186,11 @@ export function assessIndustrySandboxConfig({ industry, sandbox, infraStatus, co
     nextAction = `After approval, run lab_provision_profile_infra_step with sandbox ${sandbox}, industry ${industry}, step attachFieldGroups.`
       + (industry === 'fsi'
         ? ' FSI requires AEP Lab - Profile FSI Generator v1 and resolved industryFsi fields; existing Profile FSI v1/v2 are not substitutes. Inspect requiredTenantFields for missing paths or type conflicts before provisioning.'
+        : industry === 'media'
+          ? ' Media requires AEP Lab - Profile Media Generator v1 and resolved industryMedia fields; existing Profile Media v1/v2 are not substitutes.'
+          : '')
+      + (infra.secondaryEcidDescriptor === false
+        ? ' The tenant identification.core.ecid path must be a secondary ECID identity; keep Email primary.'
         : '');
   } else if (infra.datasetFound && !infra.datasetProfileEnabled) {
     missingSteps.push('enable_profile_on_dataset');

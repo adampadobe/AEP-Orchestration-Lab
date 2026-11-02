@@ -27,6 +27,7 @@ import { registerFrameworkResources } from './resources/frameworkResources.mjs';
 import { registerMcpGuideResources } from './resources/mcpGuideResources.mjs';
 import { installToolAnnotations } from './toolAnnotations.mjs';
 import { installUsageTelemetry } from './usageTelemetry.mjs';
+import { getBuildInfo } from './buildInfo.mjs';
 import {
   registerFocusedAudienceTools,
   registerFocusedAjoCleanupTools,
@@ -231,6 +232,7 @@ async function main() {
       service: 'aep-lab-profile-mcp',
       version: MCP_VERSION,
       labOrigin: getLabApiOrigin(),
+      build: getBuildInfo(),
       allowedSandboxes: cfg.allowedSandboxes,
       authentication: ['api-key', 'adobe-ims'],
       mcpEndpoints: ENDPOINTS.map(({ path, toolset }) => ({ path, toolset })),

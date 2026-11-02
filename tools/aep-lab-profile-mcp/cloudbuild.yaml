@@ -1,0 +1,15 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - AEP_LAB_BUILD_SHA=${_GIT_SHA}
+      - --build-arg
+      - AEP_LAB_BUILD_PR=${_PULL_REQUEST}
+      - --tag
+      - gcr.io/$PROJECT_ID/aep-lab-profile-mcp:${_GIT_SHA}
+      - .
+images:
+  - gcr.io/$PROJECT_ID/aep-lab-profile-mcp:${_GIT_SHA}
+substitutions:
+  _PULL_REQUEST: ''

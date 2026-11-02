@@ -13,6 +13,7 @@ import time
 import random
 import snowflake.connector
 from snowflake_settings import get_snowflake_connection_kwargs
+from snowflake_bindings import insert_rows
 
 app = Flask(__name__)
 
@@ -658,7 +659,7 @@ def enrich_profiles_background(profiles, event_types):
                             CHANNEL
                         ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
-                    generator.cursor.executemany(insert_query, website_events)
+                    insert_rows(generator.cursor, insert_query, website_events)
                     generator.conn.commit()
                     result['website_events'] = len(website_events)
                     print(f"Inserted {len(website_events)} website events successfully")

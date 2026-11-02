@@ -163,8 +163,11 @@ function serializeCellValue(val) {
   if (val == null) return null;
   if (typeof val === 'bigint') return val.toString();
   if (val instanceof Date) return val.toISOString();
+  if (Array.isArray(val)) return val.map(serializeCellValue);
   if (typeof val === 'object' && typeof val.toJSON === 'function') return val.toJSON();
-  if (typeof val === 'object' && typeof val.toString === 'function') return String(val);
+  if (typeof val === 'object') return Object.fromEntries(
+    Object.entries(val).map(([key, value]) => [key, serializeCellValue(value)]),
+  );
   return val;
 }
 
