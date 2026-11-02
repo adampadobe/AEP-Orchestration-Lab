@@ -2,12 +2,11 @@
  * AEP Lab "FSI (Financial Services) Profile" wizard — thin config wrapper
  * around `profileInfraFactory`.
  *
- * Field-group strategy (verified against three sandboxes — apalmer, kirkham, prod)
+ * Field-group strategy
  * --------------------------------------------------------------------------------
- *   1. Custom tenant FG `Profile FSI v1` types the generator's `industryFsi.*`
- *      payload and is required. `Profile FSI v2` is a separate extension under
- *      `individualCharacteristics.fsi.*`; its presence does not type v1 paths.
- *      Keep v2 attached when present, and create v1 when it is absent.
+ *   1. Dedicated FG `AEP Lab - Profile FSI Generator v1` types `industryFsi.*`.
+ *      Existing Profile FSI v1/v2 groups can describe different tenant fields.
+ *      Preserve them; do not infer generator compatibility from their titles.
  *   2. OOTB `profile-personal-finance-details` (Adobe Profile-class).
  *   3. OOTB `profile-personal-tax-profile-details` (Adobe Profile-class).
  *   4. ootbByIndustryTag — discovers any other Profile-class /global FGs whose
@@ -15,7 +14,7 @@
  *      Adobe doesn't populate that tag) whose title matches finance/tax/banking
  *      keywords. The two curated $ids above are deduped automatically.
  *
- * Only Adobe OOTB additions are optional. The custom v1 group is required so
+ * The dedicated generator group and its resolved field types are required so
  * provisioning cannot report success while the generator's tenant paths are
  * untyped and silently dropped.
  */
@@ -27,14 +26,14 @@ const FSI_PROFILE_DATASET_NAME = 'AEP Lab - FSI Profile - Dataset';
 const FSI_PROFILE_HTTP_DATAFLOW_NAME = 'AEP Lab - FSI Profile - Dataflow';
 
 /**
- * Body of the auto-created `Profile FSI v1` tenant field group. Top-level
+ * Body of the dedicated lab generator field group. Top-level
  * keys live directly under `_<tenant>` (added by the factory), so they
  * appear at runtime as `_<tenant>.industryFsi.*` — exactly the paths the
  * UI module `profile-generation-fsi.js` streams to. Properties typed as
  * string for the band/segment scalars (today rendered as select-of-band
  * labels) and boolean for product-holding flags.
  */
-const PROFILE_FSI_V1_PROPERTIES = {
+const PROFILE_FSI_GENERATOR_PROPERTIES = {
   industryFsi: {
     type: 'object',
     title: 'AEP Lab FSI industry attributes',
@@ -61,15 +60,15 @@ const PROFILE_FSI_V1_PROPERTIES = {
   },
 };
 
-const PROFILE_FSI_V1_FIELD_GROUP = {
+const PROFILE_FSI_GENERATOR_FIELD_GROUP = {
   source: 'tenantTitlePattern',
-  match: /^Profile FSI v1$/i,
+  match: /^AEP Lab - Profile FSI Generator v1$/i,
   optional: false,
-  label: 'Profile FSI v1 (industryFsi generator paths)',
+  label: 'AEP Lab - Profile FSI Generator v1 (industryFsi generator paths)',
   createIfMissing: {
-    title: 'Profile FSI v1',
+    title: 'AEP Lab - Profile FSI Generator v1',
     description: 'AEP Orchestration Lab — auto-created Profile-class field group for the FSI industry profile pipeline.',
-    properties: PROFILE_FSI_V1_PROPERTIES,
+    properties: PROFILE_FSI_GENERATOR_PROPERTIES,
   },
 };
 
@@ -91,7 +90,13 @@ const service = createProfileInfraService({
     'AEP Lab FSI Profile streaming dataset (Profile-enabled). Sourced via HTTP API streaming for FSI-industry sample profile generation in this lab.',
   dataflowName: FSI_PROFILE_HTTP_DATAFLOW_NAME,
   industryFieldGroups: [
-    PROFILE_FSI_V1_FIELD_GROUP,
+    PROFILE_FSI_GENERATOR_FIELD_GROUP,
+    {
+      source: 'tenantTitlePattern',
+      match: /^Profile FSI v1$/i,
+      optional: true,
+      label: 'Profile FSI v1 (existing tenant extension)',
+    },
     PROFILE_FSI_V2_FIELD_GROUP,
     // Note the URI shape: `/xdm/mixins/profile-personal-finance-details` (NO
     // `/profile/` segment). The WITH-`/profile/` variant 404s in /global —
@@ -107,6 +112,7 @@ const service = createProfileInfraService({
     },
   ],
   tenantSubtreePrefix: 'industryFsi',
+  requiredTenantProperties: PROFILE_FSI_GENERATOR_PROPERTIES,
 });
 
 module.exports = {
@@ -114,7 +120,7 @@ module.exports = {
   FSI_PROFILE_SCHEMA_TITLE,
   FSI_PROFILE_DATASET_NAME,
   FSI_PROFILE_HTTP_DATAFLOW_NAME,
-  PROFILE_FSI_V1_PROPERTIES,
-  PROFILE_FSI_V1_FIELD_GROUP,
+  PROFILE_FSI_GENERATOR_PROPERTIES,
+  PROFILE_FSI_GENERATOR_FIELD_GROUP,
   PROFILE_FSI_V2_FIELD_GROUP,
 };

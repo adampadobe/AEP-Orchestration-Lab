@@ -1180,7 +1180,8 @@ const INDUSTRY_PLAYBOOKS = {
     tenant_paths: ['industryFsi.*'],
     root_paths: ['personalFinances.*', 'individualCharacteristics.core.creditScore'],
     field_groups: [
-      'Profile FSI v1 (required for industryFsi.* generator paths)',
+      'AEP Lab - Profile FSI Generator v1 (required for industryFsi.* generator paths)',
+      'Profile FSI v1 (optional existing tenant extension; not a generator contract)',
       'Profile FSI v2 (optional individualCharacteristics.fsi.* extension)',
       'Personal Finance Details (root personalFinances.*)',
     ],
@@ -1196,7 +1197,7 @@ const INDUSTRY_PLAYBOOKS = {
     failure_modes: COMMON_FAILURE_MODES,
     infra_prerequisites: [
       'fsiProfileConnections full manifest',
-      'required Profile FSI v1 FG for industryFsi.*',
+      'required AEP Lab - Profile FSI Generator v1 FG plus resolved industryFsi.* field types',
       'personalFinances on schema union',
     ],
     example_prompt_chain: [

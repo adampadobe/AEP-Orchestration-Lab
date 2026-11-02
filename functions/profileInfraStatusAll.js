@@ -92,6 +92,7 @@ function projectStatusFlags(status) {
     primaryEmailDescriptor: status.primaryEmailDescriptor === true,
     prepSteps: status.prepSteps || null,
     requiredFieldGroups: status.requiredFieldGroups || [],
+    requiredTenantFields: status.requiredTenantFields || null,
     schemaFound: !!status.schemaFound,
     // Prefer the May 2026 alias; fall back to the legacy field for safety.
     schemaInUnion: !!(status.schemaInUnion ?? status.schemaInProfileUnion),
@@ -132,9 +133,11 @@ async function resolveOneIndustry({ key, svc, sandbox, token, clientId, orgId, b
       // belt-and-braces try/catch in case the helper changes shape.
       cached = null;
     }
-    // FSI cache entries from before v1 became required cannot prove readiness.
+    // Older FSI entries prove attachment only, not the generator field contract.
     const cacheHasCurrentContract = key !== 'fsi'
-      || cached?.payload?.requiredFieldGroups?.some((group) => group.label === 'Profile FSI v1 (industryFsi generator paths)');
+      || (cached?.payload?.requiredTenantFields
+        && cached.payload.requiredFieldGroups?.some((group) =>
+          group.label === 'AEP Lab - Profile FSI Generator v1 (industryFsi generator paths)'));
     if (cached && cached.payload && cacheHasCurrentContract) {
       const flags = projectStatusFlags(cached.payload);
       flags.cached = true;

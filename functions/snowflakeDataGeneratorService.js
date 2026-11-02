@@ -241,8 +241,13 @@ function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
     conn.execute({
       ...options,
-      complete(err, _stmt, rows) {
-        if (err) reject(err);
+      complete(err, stmt, rows) {
+        if (err) {
+          if (!err.queryId && !err.queryID && stmt && typeof stmt.getStatementId === 'function') {
+            err.queryId = stmt.getStatementId() || null;
+          }
+          reject(err);
+        }
         else resolve(rows || []);
       },
     });
@@ -934,12 +939,17 @@ async function handleInsertProfileFromAep(input) {
       row: insertColumns.map((column) => rowObject[column] ?? null),
     };
 
-    const placeholders = insertColumns.map(() => '?').join(', ');
+    const expressions = insertColumns.map((column, index) =>
+      column === 'PUSHTOKENS' || Array.isArray(profileRow.row[index]) ? 'PARSE_JSON(?)::ARRAY' : '?');
+    const binds = profileRow.row.map((value, index) =>
+      insertColumns[index] === 'PUSHTOKENS' || Array.isArray(value)
+        ? (value == null ? null : JSON.stringify(value))
+        : value);
     phase = 'insert_profile_transaction';
     await withSnowflakeTransaction(conn, async () => {
       await execAsync(conn, {
-        sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
-        binds: profileRow.row,
+        sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) SELECT ${expressions.join(', ')}`,
+        binds,
       });
       if (recipient) await mergeRecipientRows(
         (sqlText, binds) => execAsync(conn, { sqlText, binds }),

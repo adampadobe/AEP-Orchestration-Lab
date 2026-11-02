@@ -131,6 +131,7 @@ export function assessInfraStatus(status) {
   const infraReady = schemaFound && schemaInUnion && datasetFound && datasetProfileEnabled
     && status.ready !== false
     && status.primaryEmailDescriptor !== false
+    && status.requiredTenantFields?.ready !== false
     && status.prepSteps?.step2_fieldGroupsIdentity !== false;
 
   return {
@@ -144,6 +145,7 @@ export function assessInfraStatus(status) {
     ready: status.ready ?? infraReady,
     prepSteps: status.prepSteps || null,
     requiredFieldGroups: status.requiredFieldGroups || [],
+    requiredTenantFields: status.requiredTenantFields || null,
     nextSteps: Array.isArray(status.nextSteps) ? status.nextSteps : null,
     error: null,
   };
@@ -174,9 +176,15 @@ export function assessIndustrySandboxConfig({ industry, sandbox, infraStatus, co
   } else if (!infra.schemaFound || !infra.datasetFound) {
     missingSteps.push('provision_infra');
     nextAction = `Run lab_provision_profile_infra_step with sandbox ${sandbox}, industry ${industry}, step all_core.`;
+  } else if (infra.requiredTenantFields?.conflicts?.length) {
+    missingSteps.push('resolve_schema_field_conflicts');
+    nextAction = 'Review requiredTenantFields.conflicts against the resolved schema. Do not overwrite existing field types or automatically provision a conflicting field group.';
   } else if (infra.prepSteps?.step2_fieldGroupsIdentity === false) {
     missingSteps.push('attach_required_field_groups_and_identity');
-    nextAction = `After approval, run lab_provision_profile_infra_step with sandbox ${sandbox}, industry ${industry}, step attachFieldGroups (FSI requires Profile FSI v1; v2 is not a substitute).`;
+    nextAction = `After approval, run lab_provision_profile_infra_step with sandbox ${sandbox}, industry ${industry}, step attachFieldGroups.`
+      + (industry === 'fsi'
+        ? ' FSI requires AEP Lab - Profile FSI Generator v1 and resolved industryFsi fields; existing Profile FSI v1/v2 are not substitutes. Inspect requiredTenantFields for missing paths or type conflicts before provisioning.'
+        : '');
   } else if (infra.datasetFound && !infra.datasetProfileEnabled) {
     missingSteps.push('enable_profile_on_dataset');
     nextAction = `Run lab_enable_profile with sandbox ${sandbox}, industry ${industry}.`;

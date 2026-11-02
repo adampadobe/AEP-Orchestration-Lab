@@ -346,7 +346,7 @@ test('sandbox config preserves required-field-group failure despite enabled sche
   });
   assert.equal(assessment.ready, false);
   assert.equal(assessment.blockedReason, 'attach_required_field_groups_and_identity');
-  assert.match(assessment.nextAction, /Profile FSI v1/);
+  assert.match(assessment.nextAction, /AEP Lab - Profile FSI Generator v1/);
   const report = buildSandboxProfileConfigReport({
     sandbox: 'apalmer', industryFilter: ['fsi'],
     statusAllIndustries: { fsi: infraStatus }, connectionsByIndustry: { fsi: savedConnection },
@@ -400,6 +400,26 @@ test('AEP preflight bypasses cache by default and exposes an explicit refresh op
       };
       if (path.includes('connection')) return savedConnection;
       return { ok: true, prefs: { baseEmail: 'demo@example.com', nextScaledEmail: profile.email } };
+    });
+
+    test('FSI readiness cannot ignore unresolved generator fields even when attachment flags are ready', () => {
+      const assessment = assessIndustrySandboxConfig({
+        industry: 'fsi', sandbox: 'apalmer', connectionResponse: savedConnection,
+        infraStatus: { ...readyInfra, requiredTenantFields: { ready: false, missing: ['industryFsi'], conflicts: [] } },
+      });
+
+      test('FSI field type conflicts require review rather than automatic field-group attachment', () => {
+        const assessment = assessIndustrySandboxConfig({
+          industry: 'fsi', sandbox: 'apalmer', connectionResponse: savedConnection,
+          infraStatus: { ...readyInfra, prepSteps: { step2_fieldGroupsIdentity: false },
+            requiredTenantFields: { ready: false, missing: [], conflicts: [{ path: 'industryFsi.creditScoreBand', reason: 'wrong type' }] } },
+        });
+        assert.equal(assessment.ready, false);
+        assert.equal(assessment.blockedReason, 'resolve_schema_field_conflicts');
+        assert.match(assessment.nextAction, /Do not overwrite/);
+      });
+      assert.equal(assessment.ready, false);
+      assert.deepEqual(assessment.infra.requiredTenantFields.missing, ['industryFsi']);
     });
     assert.equal(body.ready, true);
     assert.equal(calls.find(call => call.path === '/api/profile-infra/status-all').query.get('refresh'), refresh === false ? null : '1');
