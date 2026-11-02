@@ -17,6 +17,7 @@ const retailProfileConnectionStore = require('./retailProfileConnectionStore');
 const mediaProfileConnectionStore = require('./mediaProfileConnectionStore');
 const sportsProfileConnectionStore = require('./sportsProfileConnectionStore');
 const { requestCorrelationId, logFunctionEvent } = require('./functionRequestLog');
+const { summarizeProfileStreamWire, summarizeProfileStreamReceipt, safeIndustry } = require('./profileStreamDiagnostics');
 const { createProfileMergeToken, verifyProfileMergeToken } = require('./profileMergeToken');
 
 const INDUSTRY_TO_CONNECTION_STORE = {
@@ -123,8 +124,7 @@ async function handleProfileGenerate(req, res, ctx) {
 
   logFunctionEvent('INFO', 'profile.generate.started', {
     correlationId,
-    sandbox,
-    industry: industryRequested || 'generic',
+    industry: safeIndustry(industryRequested || 'generic'),
     appendIfExisting,
     attributeCount: Object.keys(attributes).length,
     hasAppendToken: Boolean(appendToken),
@@ -151,7 +151,7 @@ async function handleProfileGenerate(req, res, ctx) {
     } catch (e) {
       logFunctionEvent('ERROR', 'profile.generate.merge_token_secret_failed', {
         correlationId,
-        errorCode: String(e && e.code || 'MERGE_TOKEN_SECRET_UNAVAILABLE'),
+        errorCode: 'MERGE_TOKEN_SECRET_UNAVAILABLE',
       });
       res.status(500).json({ error: 'Profile continuation validation is unavailable.', code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
       return;
@@ -179,7 +179,7 @@ async function handleProfileGenerate(req, res, ctx) {
     } catch (e) {
       logFunctionEvent('ERROR', 'profile.generate.merge_token_secret_failed', {
         correlationId,
-        errorCode: String(e && e.code || 'MERGE_TOKEN_SECRET_UNAVAILABLE'),
+        errorCode: 'MERGE_TOKEN_SECRET_UNAVAILABLE',
       });
       res.status(500).json({ error: 'Profile continuation setup is unavailable.', code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
       return;
@@ -216,7 +216,7 @@ async function handleProfileGenerate(req, res, ctx) {
   } catch (e) {
     logFunctionEvent('ERROR', 'profile.generate.auth_failed', {
       correlationId,
-      errorCode: String(e && e.code || e && e.name || 'ADOBE_AUTH_FAILED'),
+      errorCode: 'ADOBE_AUTH_FAILED',
       durationMs: Date.now() - startedAt,
     });
     res.status(500).json({ error: 'Auth failed', detail: String(e.message || e) });
@@ -235,9 +235,8 @@ async function handleProfileGenerate(req, res, ctx) {
   } catch (lookupErr) {
     logFunctionEvent('WARNING', 'profile.generate.connection_lookup_failed', {
       correlationId,
-      sandbox,
       industry: industryKey,
-      errorCode: String(lookupErr && lookupErr.code || lookupErr && lookupErr.name || 'CONNECTION_LOOKUP_FAILED'),
+      errorCode: 'CONNECTION_LOOKUP_FAILED',
     });
   }
 
@@ -255,7 +254,6 @@ async function handleProfileGenerate(req, res, ctx) {
   if (!streamUrl || !flowId) {
     logFunctionEvent('WARNING', 'profile.generate.not_configured', {
       correlationId,
-      sandbox,
       industry: industryKey,
       durationMs: Date.now() - startedAt,
     });
@@ -288,7 +286,6 @@ async function handleProfileGenerate(req, res, ctx) {
       } else if (existingEcid) {
         logFunctionEvent('WARNING', 'profile.generate.existing_ecid_rejected', {
           correlationId,
-          sandbox,
           industry: industryKey,
           errorCode: 'EXISTING_ECID_NON_CANONICAL',
         });
@@ -300,9 +297,8 @@ async function handleProfileGenerate(req, res, ctx) {
       };
       logFunctionEvent('WARNING', 'profile.generate.existing_ecid_lookup_failed', {
         correlationId,
-        sandbox,
         industry: industryKey,
-        errorCode: String(lookupErr && lookupErr.code || lookupErr && lookupErr.name || 'ECID_LOOKUP_FAILED'),
+        errorCode: 'ECID_LOOKUP_FAILED',
       });
     }
   }
@@ -370,6 +366,24 @@ async function handleProfileGenerate(req, res, ctx) {
   );
 
   const headers = profileStreamingCore.buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
+  let wireBody;
+  try {
+    wireBody = JSON.stringify(built.payload);
+  } catch (e) {
+    logFunctionEvent('ERROR', 'profile.generate.stream_request_failed', {
+      correlationId, requestCorrelationId: correlationId, industry: safeIndustry(industryKey),
+      outcome: 'transport-failed', errorCode: 'STREAM_SERIALIZATION_FAILED',
+    });
+    res.status(502).json({ error: String(e.message || e), correlationId });
+    return;
+  }
+  const streamDiagnostics = {
+    correlationId,
+    requestCorrelationId: correlationId,
+    industry: safeIndustry(industryKey),
+    ...summarizeProfileStreamWire(wireBody, { flowId, datasetId, schemaId, xdmKey }),
+  };
+  logFunctionEvent('INFO', 'profile.generate.stream_pre_send', streamDiagnostics);
 
   let streamRes;
   let rawText;
@@ -377,18 +391,17 @@ async function handleProfileGenerate(req, res, ctx) {
     streamRes = await fetch(streamUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify(built.payload),
+      body: wireBody,
     });
     rawText = await streamRes.text();
   } catch (e) {
     logFunctionEvent('ERROR', 'profile.generate.stream_request_failed', {
-      correlationId,
-      sandbox,
-      industry: industryKey,
-      errorCode: String(e && e.code || e && e.name || 'STREAM_REQUEST_FAILED'),
+      ...streamDiagnostics,
+      outcome: 'transport-failed',
+      errorCode: 'STREAM_REQUEST_FAILED',
       durationMs: Date.now() - startedAt,
     });
-    res.status(502).json({ error: String(e.message || e) });
+    res.status(502).json({ error: String(e.message || e), correlationId });
     return;
   }
 
@@ -398,17 +411,18 @@ async function handleProfileGenerate(req, res, ctx) {
   );
 
   const redacted = profileStreamingCore.redactedProfileDcsRequestHeaders(headers);
+  const receiptDiagnostics = summarizeProfileStreamReceipt(data, {
+    status: streamRes.status, errorCount: streamErrors.length, warningCount: streamWarnings.length,
+  });
 
   if (!streamRes.ok || streamErrors.length > 0) {
     const detail = streamErrors.length
       ? streamErrors.join(' ')
       : data.detail || data.message || data.title || `Streaming ${streamRes.status}`;
     logFunctionEvent('ERROR', 'profile.generate.stream_rejected', {
-      correlationId,
-      sandbox,
-      industry: industryKey,
-      streamingStatus: streamRes.status,
-      streamErrorCount: streamErrors.length,
+      ...streamDiagnostics,
+      ...receiptDiagnostics,
+      outcome: 'rejected',
       durationMs: Date.now() - startedAt,
     });
     res.status(502).json({
@@ -431,6 +445,12 @@ async function handleProfileGenerate(req, res, ctx) {
     });
     return;
   }
+  logFunctionEvent('INFO', 'profile.generate.stream_accepted', {
+    ...streamDiagnostics,
+    ...receiptDiagnostics,
+    outcome: 'accepted',
+    upsVerified: false,
+  });
 
   const geoMirrorResult = geoMirror
     ? await geoMirror.recordProfilePlace({ sandbox, email, ecid, place: demoemea.profilePlaceContext })
@@ -438,8 +458,7 @@ async function handleProfileGenerate(req, res, ctx) {
   if (geoMirrorResult && geoMirrorResult.error) {
     logFunctionEvent('WARNING', 'profile.generate.geo_mirror_failed', {
       correlationId,
-      sandbox,
-      errorCode: String(geoMirrorResult.code || 'GEO_MIRROR_WRITE_FAILED'),
+      errorCode: 'GEO_MIRROR_WRITE_FAILED',
     });
   }
 
@@ -454,7 +473,6 @@ async function handleProfileGenerate(req, res, ctx) {
   }
   logFunctionEvent('INFO', 'profile.generate.completed', {
     correlationId,
-    sandbox,
     industry: industryKey,
     streamingStatus: streamRes.status,
     ecidSource,

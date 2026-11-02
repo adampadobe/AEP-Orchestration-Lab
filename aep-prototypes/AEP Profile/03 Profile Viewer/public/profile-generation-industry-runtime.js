@@ -70,6 +70,20 @@
     if (!arr || !arr.length) return '';
     return arr[Math.floor(Math.random() * arr.length)];
   }
+  async function buildAndSubmitUpdates(buildUpdates, submitUpdates) {
+    let updates;
+    try {
+      updates = buildUpdates();
+    } catch (error) {
+      return { error, phase: 'build' };
+    }
+    if (!updates.length) return { updates, empty: true };
+    try {
+      return { updates, result: await submitUpdates(updates) };
+    } catch (error) {
+      return { updates, error, phase: 'submit' };
+    }
+  }
   function randomFirstNameForGender(genderVal) {
     const g = String(genderVal || '').toLowerCase();
     if (g === 'male') return randomPick(RANDOM_MALE_FIRST);
@@ -1796,11 +1810,7 @@
         }
       }
 
-      try {
-        industryHooks.buildUpdates({ push, trimVal });
-      } catch (e) {
-        warn('industry buildUpdates threw:', e && e.message);
-      }
+      industryHooks.buildUpdates({ push, trimVal });
 
       if (markTestProfileEl && markTestProfileEl.checked) {
         updates.push({ path: 'xdm:testProfile', value: true, valueType: 'boolean' });
@@ -2134,16 +2144,26 @@
       }
       const streaming = ensureStreamingReady();
       if (!streaming) return;
-      const updates = buildUpdatesFromForm(email);
-      if (!updates.length) {
-        setMessage(messageEl, `No fields to update — fill identity, mobile phone, Customer Analytics, or ${displayName} fields.`, 'warning');
-        return;
-      }
       updateProfileBtn.disabled = true;
       setMessage(messageEl, `Updating ${email}…`, '');
       try {
         const dryRun = !!(dryRunEl && dryRunEl.checked);
-        const { res, data } = await postProfileUpdate(email, updates, streaming, dryRun);
+        const submission = await buildAndSubmitUpdates(
+          () => buildUpdatesFromForm(email),
+          (updates) => postProfileUpdate(email, updates, streaming, dryRun),
+        );
+        if (submission.error) {
+          const errorMessage = submission.phase === 'build'
+            ? `Could not build ${displayName} profile fields. No update was sent.${submission.error.message ? ` ${submission.error.message}` : ''}`
+            : submission.error.message || 'Network error';
+          setMessage(messageEl, errorMessage, 'error');
+          return;
+        }
+        if (submission.empty) {
+          setMessage(messageEl, `No fields to update — fill identity, mobile phone, Customer Analytics, or ${displayName} fields.`, 'warning');
+          return;
+        }
+        const { res, data } = submission.result;
         if (!res.ok) {
           setMessage(messageEl, data.error || `Update failed (HTTP ${res.status}).`, 'error');
           return;
@@ -2201,13 +2221,25 @@
           }
           lastEmail = email;
           try {
-            applyRandomCustomerPersonaForGenerate(n);
-            const updates = buildUpdatesFromForm(email);
-            if (!updates.length) {
+            const submission = await buildAndSubmitUpdates(
+              () => {
+                applyRandomCustomerPersonaForGenerate(n);
+                return buildUpdatesFromForm(email);
+              },
+              (updates) => postProfileUpdate(email, updates, streaming, dryRun),
+            );
+            if (submission.error) {
+              const detail = submission.error.message ? ` ${submission.error.message}` : '';
+              lastError = submission.phase === 'build'
+                ? `Could not build ${displayName} profile fields. No update was sent.${detail}`
+                : submission.error.message || 'Network error';
+              break;
+            }
+            if (submission.empty) {
               lastError = 'Could not build profile fields after randomization — check form configuration.';
               break;
             }
-            const { res, data } = await postProfileUpdate(email, updates, streaming, dryRun);
+            const { res, data } = submission.result;
             if (!res.ok) {
               lastError = data.error || `HTTP ${res.status}`;
               break;
@@ -2641,6 +2673,7 @@
       safeSelectValues,
       randomBetween,
       randomPick,
+      buildAndSubmitUpdates,
       resolveGenderOptionValue,
       pickBinaryGenderForGenerate,
       applyBinaryGenderForGenerate,

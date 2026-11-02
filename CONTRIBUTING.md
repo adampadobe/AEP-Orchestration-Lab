@@ -897,6 +897,33 @@ Cross-cutting helpers belong in small modules (`adobeAuth.js`, `adobePlatform.js
 `httpCors.js`, `firestoreSerialize.js`); keep new route glue out of `index.js`
 when a domain-specific `*Routes.js` file is clearer.
 
+### Profile streaming diagnostics and privacy
+
+Profile generation and updates serialize each outgoing DCS body once. The shared
+`functions/profileStreamDiagnostics.js` helper inspects that exact wire string,
+which is also submitted to `fetch`. Logs contain its UTF-8 byte count, SHA-256,
+validated target flow/dataset/schema IDs, envelope header/body schema references
+and schema content types, and bounded structural counts for the seven industries.
+FSI's eleven known generator leaves have presence/type diagnostics; `false` and
+`0` are present, not missing. Caller-supplied property names are never emitted.
+
+Correlate `profile.generate.stream_*` / `profile.update.stream_*` pre-send,
+accepted, rejected and transport-failure events using `requestCorrelationId`
+(also `correlationId` and response header `x-aep-lab-correlation-id`). Updates
+return the correlation ID in dry-run and streaming result bodies. Validated
+Adobe `xactionId`, `inletId`, `receivedTimeMs`, synchronous-validation state and
+error/warning counts support read-only AEP ingestion investigation. Unsupported
+identifier formats are logged as `null`, not copied into logs.
+
+`[profileUpdateProxy.request]` and dry-run `[profileUpdateProxy.result]` are
+value-free summaries. The former raw `[profileUpdateProxy.payload]` log is
+retired: never log raw payloads/responses, masked email addresses, individual
+identity hashes, arbitrary paths/keys, freeform upstream errors, collection URLs
+or credentials. The full-wire digest is not a hash of individual field values.
+HTTP debug responses retain their existing contract; do not copy them into logs.
+An accepted receipt means **inlet acceptance, not UPS verification**. These
+diagnostics add no retry/replay behavior.
+
 ### AJO content templates (HTML) via platform API
 
 **Create templates and fragments from your terminal against `platform.adobe.io`** (IMS bearer + correct vendor `Content-Type` / `Accept`). **Do not** add Firebase-only flows to create AJO content templates or fragments for this lab’s authoring work — see **`docs/AJO_CONTENT_TEMPLATE_API.md`** (policy section). Use **`npm run ajo:create-content-template`** (`scripts/create-ajo-content-template.mjs`) for HTML email templates, or curl/scripts mirroring Campaign Orchestration’s AJO folders.

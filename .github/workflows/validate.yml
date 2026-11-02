@@ -86,7 +86,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
 
       - name: Verify profile identity, industry fields and release identity (offline)
-        run: node --test functions/test/profileInfraDescriptors.test.cjs functions/test/profileIdentityReadback.test.cjs functions/test/profileGenerateService.test.cjs functions/test/profileRoutes.test.cjs functions/test/fsiProfileInfraService.test.cjs functions/test/mediaProfileInfraService.test.cjs tools/aep-lab-profile-mcp/test/buildInfo.test.mjs tools/aep-lab-profile-mcp/test/dualStreamGenerate.test.mjs tools/aep-lab-profile-mcp/test/releaseMainScript.test.mjs
+        run: node --test functions/test/profileInfraDescriptors.test.cjs functions/test/profileIdentityReadback.test.cjs functions/test/profileGenerateService.test.cjs functions/test/profileRoutes.test.cjs functions/test/profileStreamDiagnostics.test.cjs functions/test/profileStreamObservability.test.cjs functions/test/profileUpdateRequestLog.test.cjs functions/test/profileGenerationUpdates.test.cjs functions/test/fsiProfileInfraService.test.cjs functions/test/mediaProfileInfraService.test.cjs functions/test/travelActiveFlightSchema.test.cjs tools/aep-lab-profile-mcp/test/buildInfo.test.mjs tools/aep-lab-profile-mcp/test/dualStreamGenerate.test.mjs tools/aep-lab-profile-mcp/test/releaseMainScript.test.mjs
 
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones

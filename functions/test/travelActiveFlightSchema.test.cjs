@@ -17,8 +17,14 @@ const {
   TRAVEL_PROFILE_V1_PROPERTIES,
   TRAVEL_PROFILE_V2_PROPERTIES,
   TRAVEL_INDUSTRY_FIELD_GROUPS,
+  TRAVEL_PROFILE_SCHEMA_TITLE,
+  runStatus,
 } = require('../travelProfileInfraService');
-const { resolveIndustryFgEntry } = require('../profileInfraFactory');
+const {
+  resolveIndustryFgEntry, BASE_PROFILE_FIELD_GROUP_REFS, buildCompositeSubtreeFromManifest,
+  diffManifestAgainstMixin, walkResolvedMixinTenantTree,
+} = require('../profileInfraFactory');
+const { projectStatusFlags } = require('../profileInfraStatusAll');
 
 const NOW = Date.parse('2026-07-20T12:00:00Z');
 
@@ -92,6 +98,80 @@ describe('travel active-flight schema contract', () => {
         if (!path.startsWith('travelReservations.')) continue;
         assertCompatible(path, leafAt(manifest, path), value);
       }
+    }
+  });
+
+  describe('Travel resolved-schema readiness', () => {
+    for (const state of ['missing room cost', 'missing flight subtree', 'wrong type', 'narrow numeric type',
+      'unknown type', 'wider numeric type', 'ready']) {
+      it(`checks the generator manifest when ${state}`, async (t) => {
+        const schemaId = 'https://ns.adobe.com/demoemea/schemas/travel-test';
+        const coreId = 'https://ns.adobe.com/demoemea/mixins/core-test';
+        const schema = {
+          title: TRAVEL_PROFILE_SCHEMA_TITLE, $id: schemaId,
+          'meta:altId': '_demoemea.schemas.travel-test',
+        };
+        const tenant = structuredClone(buildCompositeSubtreeFromManifest(getManifestForIndustry('travel'), ''));
+        const booking = tenant.properties.hotel.properties.bookingDetails.properties;
+        if (state === 'missing room cost') delete booking.roomCost;
+        if (state === 'missing flight subtree') delete tenant.properties.travelReservations;
+        if (state === 'wrong type') booking.roomCost.type = 'string';
+        if (state === 'narrow numeric type') booking.roomCost.type = 'integer';
+        if (state === 'unknown type') delete booking.roomCost.type;
+        if (state === 'wider numeric type') booking.totalNights.type = 'number';
+        t.mock.method(globalThis, 'fetch', async (url, init) => {
+          assert.equal(init.method, 'GET', 'readiness must never repair infrastructure');
+          const path = new URL(url).pathname;
+          let body;
+          if (path.endsWith('/tenant/schemas')) body = { results: [schema] };
+          else if (path.includes('/tenant/schemas/')) {
+            body = {
+              ...schema, 'meta:immutableTags': ['union'],
+              allOf: [
+                'https://ns.adobe.com/xdm/context/profile', ...BASE_PROFILE_FIELD_GROUP_REFS, coreId,
+                'https://ns.adobe.com/xdm/mixins/profile/travel-preferences',
+              ].map(($ref) => ({ $ref })),
+              properties: { _demoemea: tenant },
+            };
+          } else if (path.endsWith('/tenant/fieldgroups')) {
+            body = { results: [{ title: 'Profile Core v2', $id: coreId }] };
+          } else if (path.endsWith('/global/fieldgroups')) body = { results: [] };
+          else if (path.endsWith('/dataSets')) {
+            body = { results: [{ id: 'travel-dataset', schemaRef: { id: schemaId }, tags: { unifiedProfile: ['enabled:true'] } }] };
+          } else if (path.endsWith('/tenant/descriptors')) {
+            body = { results: ['Email', 'ECID'].map((namespace) => ({
+              '@type': 'xdm:descriptorIdentity', 'xdm:sourceSchema': schemaId,
+              'xdm:namespace': namespace, 'xdm:isPrimary': namespace === 'Email',
+              'xdm:sourceProperty': `/_demoemea/identification/core/${namespace.toLowerCase()}`,
+            })) };
+          } else assert.fail(`Unexpected registry request: ${path}`);
+          return { ok: true, status: 200, json: async () => body };
+        });
+        const status = await runStatus('offline', 'token', 'client', 'org');
+        assert.equal(status.ok, true);
+        const ready = state === 'ready' || state === 'wider numeric type';
+        assert.equal(status.ready, ready, JSON.stringify(status));
+        assert.equal(status.prepSteps.step2_fieldGroupsIdentity, ready);
+        assert.equal(status.requiredTenantFields.ready, ready);
+        if (state === 'missing room cost') {
+          assert.deepEqual(status.requiredTenantFields.missing, ['hotel.bookingDetails.roomCost']);
+        }
+        if (state === 'missing flight subtree') {
+          assert.deepEqual(status.requiredTenantFields.missing, ['travelReservations']);
+        }
+        if (['wrong type', 'narrow numeric type', 'unknown type'].includes(state)) {
+          assert.equal(status.requiredTenantFields.conflicts[0].path, 'hotel.bookingDetails.roomCost');
+        }
+        if (state === 'wider numeric type') {
+          const walked = walkResolvedMixinTenantTree({ properties: { _demoemea: tenant } });
+          const strictDiff = diffManifestAgainstMixin(
+            getManifestForIndustry('travel'), walked.presentPathSet, walked.presentNodeMap, new Set(),
+          );
+          assert.ok(strictDiff.conflicts.some(({ path }) => path === 'hotel.bookingDetails.totalNights'),
+            'provisioning must retain its strict type-conflict policy');
+        }
+        assert.deepEqual(projectStatusFlags(status).requiredTenantFields, status.requiredTenantFields);
+      });
     }
   });
 

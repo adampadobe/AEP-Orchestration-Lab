@@ -7,6 +7,7 @@
 const { createProfileIndustryRoutes } = require('./createProfileIndustryRoutes');
 const profilePlaceContext = require('./profilePlaceContext');
 const profileUpdateRequestLog = require('./profileUpdateRequestLog');
+const { summarizeProfileStreamReceipt } = require('./profileStreamDiagnostics');
 const { logFunctionEvent, requestCorrelationId } = require('./functionRequestLog');
 
 /**
@@ -310,6 +311,9 @@ function registerProfileRoutes(deps) {
  */
 routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   setCors(res);
+  const correlationId = requestCorrelationId(req);
+  if (typeof res.set === 'function') res.set('x-aep-lab-correlation-id', correlationId);
+  else if (typeof res.setHeader === 'function') res.setHeader('x-aep-lab-correlation-id', correlationId);
   if (req.method === 'OPTIONS') {
     res.status(204).send('');
     return;
@@ -342,7 +346,11 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   }
   console.log(
     '[profileUpdateProxy.request]',
-    JSON.stringify(profileUpdateRequestLog.summarizeProfileUpdateRequest({ email, updates, sandbox, dryRun, hasConsent })),
+    JSON.stringify({
+      correlationId,
+      requestCorrelationId: correlationId,
+      ...profileUpdateRequestLog.summarizeProfileUpdateRequest({ updates, dryRun, hasConsent }),
+    }),
   );
   const ecidForPayload = ecid.length >= 10 ? ecid : '';
   if (hasConsent && updates.length > 0) {
@@ -402,8 +410,8 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
       '[profileUpdateProxy.connection-lookup]',
       JSON.stringify({
         industry: industryKey,
-        sandbox,
-        error: String(lookupErr && lookupErr.message ? lookupErr.message : lookupErr).slice(0, 240),
+        correlationId,
+        errorCode: 'CONNECTION_LOOKUP_FAILED',
       }),
     );
   }
@@ -690,27 +698,33 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     payloadFormat = built.format;
   }
 
+  let wireBody;
+  try {
+    wireBody = JSON.stringify(payload);
+  } catch (e) {
+    logFunctionEvent('ERROR', 'profile.update.stream_request_failed', {
+      correlationId, requestCorrelationId: correlationId, industry: industryKey,
+      outcome: 'transport-failed', errorCode: 'STREAM_SERIALIZATION_FAILED',
+    });
+    res.status(502).json({ error: String(e.message || e), correlationId });
+    return;
+  }
   const payloadLogSummary = {
-    emailHash: profileUpdateRequestLog.emailHash(email),
-    sandbox,
+    correlationId,
+    requestCorrelationId: correlationId,
     dryRun,
     industry: industryKey,
-    payloadFormat,
     streamPayloadProfile: streamPayloadProfileLabel,
-    datasetId: datasetId || null,
-    ...profileUpdateRequestLog.summarizeProfileUpdatePayload(payload, xdmKey || '_demoemea'),
+    ...profileUpdateRequestLog.buildPayloadLogEntry({
+      wireBody, target: { flowId, datasetId, schemaId, xdmKey: xdmKey || '_demoemea' },
+    }),
   };
 
   if (dryRun) {
     console.log('[profileUpdateProxy.result]', JSON.stringify({ ...payloadLogSummary, outcome: 'dryRun' }));
-    console.log(
-      '[profileUpdateProxy.payload]',
-      JSON.stringify(
-        profileUpdateRequestLog.buildPayloadLogEntry({ emailHash: payloadLogSummary.emailHash, outcome: 'dryRun', payload }),
-      ),
-    );
     res.status(200).json({
       ok: true,
+      correlationId,
       dryRun: true,
       payloadFormat,
       streamPayloadProfile: streamPayloadProfileLabel,
@@ -733,6 +747,7 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
   }
 
   const headers = profileStreamingCore.buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
+  logFunctionEvent('INFO', 'profile.update.stream_pre_send', payloadLogSummary);
 
   let streamRes;
   let rawText;
@@ -740,38 +755,33 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     streamRes = await fetch(streamUrl, {
       method: 'POST',
       headers,
-      body: JSON.stringify(payload),
+      body: wireBody,
     });
     rawText = await streamRes.text();
   } catch (e) {
-    res.status(502).json({ error: String(e.message || e) });
+    logFunctionEvent('ERROR', 'profile.update.stream_request_failed', {
+      ...payloadLogSummary, outcome: 'transport-failed', errorCode: 'STREAM_REQUEST_FAILED',
+    });
+    res.status(502).json({ error: String(e.message || e), correlationId });
     return;
   }
 
   const { parsed: data, streamErrors, streamWarnings } = profileStreamingCore.parseStreamingCollectionResponse(streamRes.status, rawText);
 
-  console.log(
-    '[profileUpdateProxy.result]',
-    JSON.stringify({
-      ...payloadLogSummary,
-      outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
-      streamingStatus: streamRes.status,
+  const rejected = !streamRes.ok || streamErrors.length > 0;
+  logFunctionEvent(rejected ? 'ERROR' : 'INFO', `profile.update.stream_${rejected ? 'rejected' : 'accepted'}`, {
+    ...payloadLogSummary,
+    ...summarizeProfileStreamReceipt(data, {
+      status: streamRes.status,
+      errorCount: streamErrors.length, warningCount: streamWarnings.length,
     }),
-  );
-  console.log(
-    '[profileUpdateProxy.payload]',
-    JSON.stringify(
-      profileUpdateRequestLog.buildPayloadLogEntry({
-        emailHash: payloadLogSummary.emailHash,
-        outcome: !streamRes.ok || streamErrors.length > 0 ? 'streamFailed' : 'streamed',
-        payload,
-        streamingResponse: data,
-      }),
-    ),
-  );
+    outcome: rejected ? 'rejected' : 'accepted',
+    upsVerified: false,
+  });
 
   if (!streamRes.ok || streamErrors.length > 0) {
     res.status(502).json({
+      correlationId,
       error: streamErrors.length ? streamErrors.join(' ') : 'Streaming failed',
       streamingStatus: streamRes.status,
       streamingResponse: data,
@@ -792,11 +802,14 @@ routes.profileUpdateProxy = onRequest(profileFnOpts, async (req, res) => {
     ? await geoMirror.recordProfilePlace({ sandbox, email, ecid: ecidForPayload, place: demoemea.profilePlaceContext })
     : undefined;
   if (geoMirrorResult && geoMirrorResult.error) {
-    console.warn('[profileUpdateProxy] geo mirror write failed:', geoMirrorResult.error);
+    logFunctionEvent('WARNING', 'profile.update.geo_mirror_failed', {
+      correlationId, errorCode: 'GEO_MIRROR_WRITE_FAILED',
+    });
   }
 
   res.status(200).json({
     ok: true,
+    correlationId,
     message: successMessage,
     ...(consentMode === 'preserve' ? {
       accepted: true,

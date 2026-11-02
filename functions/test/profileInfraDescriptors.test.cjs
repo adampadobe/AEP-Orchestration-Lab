@@ -110,7 +110,7 @@ it('does not forward credentials to an unexpected pagination host', async (t) =>
 });
 
 it('invalidates cached descriptor readiness from the old API contract', () => {
-  assert.equal(statusCache.CACHE_VERSION, 5);
+  assert.equal(statusCache.CACHE_VERSION, 6);
 });
 
 it('blocks schemas that discard the outgoing identityMap even when both descriptors exist', async (t) => {

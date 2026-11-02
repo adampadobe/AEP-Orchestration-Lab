@@ -25,7 +25,8 @@
  * return shapes.
  */
 
-const { createProfileInfraService } = require('./profileInfraFactory');
+const { createProfileInfraService, buildCompositeSubtreeFromManifest } = require('./profileInfraFactory');
+const { getManifestForIndustry } = require('./profileCoreV2Manifest');
 
 const TRAVEL_PROFILE_SCHEMA_TITLE = 'AEP Lab - Travel Profile - Schema';
 const TRAVEL_PROFILE_DATASET_NAME = 'AEP Lab - Travel Profile - Dataset';
@@ -276,6 +277,7 @@ const service = createProfileInfraService({
     'AEP Lab Travel Profile streaming dataset (Profile-enabled). Sourced via HTTP API streaming for Travel-industry sample profile generation in this lab.',
   dataflowName: TRAVEL_PROFILE_HTTP_DATAFLOW_NAME,
   industryFieldGroups: TRAVEL_INDUSTRY_FIELD_GROUPS,
+  requiredTenantProperties: buildCompositeSubtreeFromManifest(getManifestForIndustry('travel'), '').properties,
   tenantSubtreePrefix: 'travel',
 });
 
