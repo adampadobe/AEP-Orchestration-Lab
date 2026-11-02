@@ -101,6 +101,18 @@ Configure `aep-lab-entry` as a lightweight companion connection: it describes th
 
 **Dynamic discovery requires notification delivery and a client refresh.** POST responses remain JSON; authenticated `GET` requests open the same session's SSE notification stream. Sessions are bound to their initializing principal and endpoint. Earlier server builds returned HTTP 405 for GET, so a successful `lab_load_toolset` changed the server catalog without delivering `notifications/tools/list_changed` to the client. Explicit protocol-level `tools/list` still returned the added tools. This transport failure does not establish that a host ignores delivered notifications.
 
+**Lost sessions are not authentication failures.** Sessions live in the serving
+process and can be lost when a revision is replaced, a process restarts, or a
+request reaches another instance. Authenticated POSTs carrying an unknown
+`Mcp-Session-Id` return HTTP 404, as required by the Streamable HTTP protocol,
+so clients can send a new `initialize` request without that header. Requests
+missing a required session ID still return HTTP 400. Principal and endpoint
+binding checks remain enforced. Reinitialization does not recover the outcome
+of an interrupted tool call: never automatically replay generation, deletion,
+or other mutations. Inspect the existing operation or records first. If a
+host keeps using a stale session after HTTP 404, reconnect its MCP connection;
+do not rotate keys or change permissions merely to recover transport state.
+
 For clients that do not refresh their callable catalog, **directly connect the focused endpoint(s) for the domains you actually use**, or `/mcp` for the full catalog. This also avoids the dynamic-discovery dependency in Copilot. Reconnect after changing an endpoint or installing an updated plugin; a host's deferred-tool search is not necessarily a fresh protocol-level `tools/list`.
 
 | Entry-point tool / resource | Purpose |

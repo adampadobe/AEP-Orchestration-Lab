@@ -70,6 +70,11 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   assert.equal((await fetch(`${origin}/mcp/entry`, { headers: { ...streamHeaders, 'mcp-session-id': 'unknown' } })).status, 404);
   assert.equal((await fetch(`${origin}/mcp/profile`, { headers: streamHeaders })).status, 404);
   assert.equal((await post('/mcp/profile', 'tools/list', {}, session)).status, 400);
+  const missingSession = await post('/mcp/entry', 'tools/list', {});
+  assert.equal(missingSession.status, 400, 'A request without a session must initialize first');
+  const lostSession = await post('/mcp/entry', 'tools/list', {}, 'unknown');
+  assert.equal(lostSession.status, 404, 'A lost session must trigger client reinitialization, not HTTP 400');
+  assert.match((await lostSession.json()).error.message, /initialize without mcp-session-id/);
   const stream = await fetch(`${origin}/mcp/entry`, { headers: streamHeaders, signal: streamAbort.signal });
   assert.equal(stream.status, 200);
   assert.match(stream.headers.get('content-type'), /text\/event-stream/);
@@ -108,4 +113,24 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   const access = await post('/mcp', 'tools/call', { name: 'lab_mcp_access_info', arguments: {} },
     full.headers.get('mcp-session-id'));
   assert.deepEqual(JSON.parse((await access.json()).result.content[0].text).build, expectedBuild);
+  const fullSession = full.headers.get('mcp-session-id');
+  const ended = await fetch(`${origin}/mcp`, {
+    method: 'DELETE', headers: { ...headers, 'mcp-session-id': fullSession },
+  });
+  assert.equal(ended.status, 200);
+  const staleCall = await post('/mcp', 'tools/call', { name: 'lab_mcp_access_info', arguments: {} }, fullSession);
+  assert.equal(staleCall.status, 404);
+  assert.match((await staleCall.json()).error.message, /Do not automatically replay mutating tool calls/);
+  const fresh = await post('/mcp', 'initialize', {
+    protocolVersion: '2025-11-25', capabilities: {},
+    clientInfo: { name: 'offline-reconnected-test', version: '1' },
+  });
+  assert.equal(fresh.status, 200);
+  await fresh.json();
+  const freshSession = fresh.headers.get('mcp-session-id');
+  assert.ok(freshSession);
+  assert.notEqual(freshSession, fullSession);
+  const recoveredAccess = await post('/mcp', 'tools/call', { name: 'lab_mcp_access_info', arguments: {} }, freshSession);
+  assert.equal(recoveredAccess.status, 200);
+  assert.deepEqual(JSON.parse((await recoveredAccess.json()).result.content[0].text).build, expectedBuild);
 });

@@ -328,7 +328,13 @@ async function main() {
             await transport.handleRequest(req, res, req.body);
             return;
           } else {
-            jsonRpcError(res, 400, 'Bad Request: no valid MCP session. Send initialize without mcp-session-id.');
+            jsonRpcError(
+              res,
+              sessionId ? 404 : 400,
+              sessionId
+                ? 'MCP session expired or was lost. Start a new session by sending initialize without mcp-session-id. Do not automatically replay mutating tool calls.'
+                : 'Bad Request: no valid MCP session. Send initialize without mcp-session-id.',
+            );
             return;
           }
 
