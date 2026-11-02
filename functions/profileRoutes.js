@@ -145,7 +145,11 @@ function registerProfileRoutes(deps) {
         }
         res.status(200).json(payload);
       } catch (e) {
-        res.status(500).json({ error: String(e.message || e) });
+        res.status(e.code === 'UPS_ENTITY_NOT_FOUND' ? 404 : 500).json({
+          error: String(e.message || e),
+          code: e.code || 'UPS_FAILED',
+          stage: 'profile_access',
+        });
       }
     }
   );

@@ -463,6 +463,9 @@ async function handleProfileGenerate(req, res, ctx) {
 
   res.status(200).json({
     ok: true,
+    accepted: true,
+    upsVerified: false,
+    receipt: { stage: 'inlet-accepted', upsVerified: false, retrySafe: false },
     message: `Request sent: ${email}`,
     correlationId,
     email,

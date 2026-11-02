@@ -96,6 +96,9 @@ describe('POST /api/profile/generate place context', () => {
       attributes: { ...RIYADH, 'person.name.firstName': 'Noura' },
     });
     assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    assert.equal(res.body.accepted, true);
+    assert.equal(res.body.upsVerified, false);
+    assert.deepEqual(res.body.receipt, { stage: 'inlet-accepted', upsVerified: false, retrySafe: false });
     const entity = sent.body.xdmEntity;
     assert.deepEqual(entity._demoemea.profilePlaceContext, {
       latitude: 24.7743,

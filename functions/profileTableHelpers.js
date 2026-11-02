@@ -290,6 +290,18 @@ function buildProfileAccessHints(entityPayload, entity, rows) {
     : false;
   return {
     mergePolicyFromUps,
+    identityNamespaces: Object.keys(entity?.identityMap || {}),
+    identityMapHasEmail: Object.entries(entity?.identityMap || {}).some(
+      ([namespace, values]) => namespace.toLowerCase() === 'email'
+        && Array.isArray(values) && values.some((identity) => typeof identity?.id === 'string' && identity.id.trim()),
+    ),
+    identityMapHasEcid: Object.entries(entity?.identityMap || {}).some(
+      ([namespace, values]) => namespace.toLowerCase() === 'ecid'
+        && Array.isArray(values) && values.some((identity) => typeof identity?.id === 'string' && identity.id.trim()),
+    ),
+    sourceDatasetIds: Array.isArray(entityPayload?.sources)
+      ? entityPayload.sources.filter((source) => typeof source === 'string' && /^[a-f0-9]{24}$/i.test(source))
+      : [],
     upsRootHasXdmTestProfileKey,
     upsRootHasBareTestProfileKey,
     profileTableHasXdmTestProfileRow,
@@ -422,6 +434,7 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
   let lastMessage = null;
   let sawOkEmpty = false;
   let sawFailure = false;
+  let sawEntityNotFound = false;
   for (const entityIdNS of entityIdNsList) {
     const qs = new URLSearchParams({
       'schema.name': '_xdm.context.profile',
@@ -439,9 +452,10 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
       throw new Error('Profile Access returned errors; absence is not confirmed.');
     }
     if (!res.ok) {
-      if (strictRead && res.status === 404 && data['error-code'] === 'UPLIB-201001-404'
+      if (res.status === 404 && data['error-code'] === 'UPLIB-201001-404'
         && data.title === 'Entity not found.' && Number(data.status) === 404) {
-        sawOkEmpty = true;
+        sawEntityNotFound = true;
+        if (strictRead) sawOkEmpty = true;
         continue;
       }
       sawFailure = true;
@@ -453,6 +467,11 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
     sawOkEmpty = true;
   }
   if (sawOkEmpty && (!strictRead || !sawFailure)) return {};
+  if (sawEntityNotFound && !sawFailure) {
+    const err = new Error('Entity not found. Ingestion or identity indexing may still be pending; retry reads only, not profile generation.');
+    err.code = 'UPS_ENTITY_NOT_FOUND';
+    throw err;
+  }
   const err = new Error(lastMessage || 'Profile not found');
   err.code = 'UPS_FAILED';
   throw err;

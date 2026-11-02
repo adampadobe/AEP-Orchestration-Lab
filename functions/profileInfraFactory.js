@@ -130,6 +130,7 @@ const BASE_PROFILE_FIELD_GROUP_REFS = [
   'https://ns.adobe.com/xdm/context/profile-preferences-details',
   /** OOTB "Profile test details" — `xdm:testProfile` on the Profile union record (adobe/xdm profile-test-profile.schema.json). */
   'https://ns.adobe.com/xdm/context/profile-test-profile',
+  'https://ns.adobe.com/xdm/context/identitymap',
 ];
 
 /** Human-readable labels for the success message (order matches BASE_PROFILE_FIELD_GROUP_REFS plus Profile Core v2 prepended). */
@@ -141,6 +142,7 @@ const BASE_PROFILE_FIELD_GROUP_LABELS = [
   'Consent and Preference Details',
   'Preference Details',
   'Profile test details',
+  'IdentityMap',
 ];
 
 const STEP_NAMES = Object.freeze(['createSchema', 'attachFieldGroups', 'createDataset', 'httpFlow']);
