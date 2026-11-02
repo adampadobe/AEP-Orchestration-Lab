@@ -53,7 +53,7 @@ const COLLECTION = 'profileInfraStatusCache';
  * Useful if a future change broadens the projection or fixes a bug in
  * the cached payload shape.
  */
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 /**
  * Max staleness safety net. If `lastChecked` is older than this, we

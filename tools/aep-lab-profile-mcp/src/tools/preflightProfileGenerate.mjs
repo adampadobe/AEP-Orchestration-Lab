@@ -44,6 +44,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
           .optional()
           .describe('Sample scaled email for persona preview — omit to use nextScaledEmail from generation prefs'),
         randomize: z.boolean().optional().describe('Preview randomize persona attribute keys (default true)'),
+        refresh: z.boolean().optional().describe('AEP target: bypass cached infrastructure status (default true). No profile or email is created.'),
         segment_hint: z.string().optional(),
         test_profile: z.boolean().optional(),
         test_profile_override_reason: z.string().optional(),
@@ -59,6 +60,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         segment_hint,
         test_profile,
         test_profile_override_reason,
+        refresh,
       } = params;
       const allowed = assertSandboxAllowed(sandbox);
       if (!allowed.ok) {
@@ -103,7 +105,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         email: previewEmail,
       });
 
-      const statusResult = await profileInfraStatusAll({ sandbox: allowed.sandbox, refresh: true });
+      const statusResult = await profileInfraStatusAll({ sandbox: allowed.sandbox, refresh: refresh !== false });
       if (!statusResult.ok) {
         return toolError(statusResult.error || 'Failed to fetch profile infra status', {
           status: statusResult.status,

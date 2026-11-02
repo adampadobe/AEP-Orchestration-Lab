@@ -54,7 +54,12 @@ describe('FSI profile field-group contract', () => {
         } else if (path.endsWith('/dataSets')) {
           body = { results: [{ id: 'dataset-test', schemaRef: { id: schemaId }, tags: { unifiedProfile: ['enabled:true'] } }] };
         } else if (path.endsWith('/tenant/descriptors')) {
-          body = { results: [{ 'xdm:sourceSchema': schemaId, 'xdm:isPrimary': true, 'xdm:sourceProperty': '/_demoemea/identification/core/email' }] };
+          assert.ok(Number(new URL(url).searchParams.get('limit')) <= 300);
+          body = { 'xdm:descriptorIdentity': [{
+            '@type': 'xdm:descriptorIdentity',
+            'xdm:sourceSchema': schemaId, 'xdm:isPrimary': true,
+            'xdm:namespace': 'Email', 'xdm:sourceProperty': '/_demoemea/identification/core/email',
+          }] };
         } else {
           assert.fail(`Unexpected registry request: ${path}`);
         }

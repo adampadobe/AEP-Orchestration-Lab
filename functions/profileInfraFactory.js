@@ -309,8 +309,12 @@ function descriptorSourceSchemaMatches(src, schemaId, schemaMetaAltId) {
 function collectDescriptorResults(data) {
   if (!data || typeof data !== 'object') return [];
   const out = [];
-  for (const x of [...(data.results || []), ...(data.children || [])]) {
-    if (x && typeof x === 'object') out.push(x);
+  for (const [key, values] of Object.entries(data)) {
+    if (key !== 'results' && key !== 'children' && !key.startsWith('xdm:descriptor')) continue;
+    if (!Array.isArray(values)) continue;
+    for (const descriptor of values) {
+      if (descriptor && typeof descriptor === 'object') out.push(descriptor);
+    }
   }
   return out;
 }
@@ -1239,11 +1243,11 @@ function createProfileInfraService(config) {
 
   async function listDescriptorsForSchema(token, clientId, orgId, sandbox, schemaId, schemaMetaAltId) {
     const filterBySchema = (uri) =>
-      `${SCHEMA_REGISTRY}/tenant/descriptors?limit=500&property=${encodeURIComponent(`xdm:sourceSchema==${uri}`)}`;
+      `${SCHEMA_REGISTRY}/tenant/descriptors?limit=300&property=${encodeURIComponent(`xdm:sourceSchema==${uri}`)}`;
     const startUrls = [];
     if (schemaId) startUrls.push(filterBySchema(schemaId));
     if (schemaMetaAltId && schemaMetaAltId !== schemaId) startUrls.push(filterBySchema(schemaMetaAltId));
-    startUrls.push(`${SCHEMA_REGISTRY}/tenant/descriptors?limit=500`);
+    startUrls.push(`${SCHEMA_REGISTRY}/tenant/descriptors?limit=300`);
     const acceptOrder = ['application/vnd.adobe.xdm+json', 'application/vnd.adobe.xdm-v2+json'];
     const baseHeaders = {
       Authorization: `Bearer ${token}`,
@@ -1251,21 +1255,45 @@ function createProfileInfraService(config) {
       'x-gw-ims-org-id': orgId,
       'x-sandbox-name': sandbox,
     };
+    let completedList = false;
+    let lastError = 'No descriptor list response.';
     for (const accept of acceptOrder) {
       for (const startUrl of startUrls) {
-        const { res, data } = await fetchJson(startUrl, {
-          method: 'GET',
-          headers: { ...baseHeaders, Accept: accept },
-        });
-        if (!res.ok) continue;
-        const merged = collectDescriptorResults(data);
-        const filtered = merged.filter((d) => {
-          if (!d) return false;
-          return descriptorSourceSchemaMatches(d['xdm:sourceSchema'], schemaId, schemaMetaAltId);
-        });
-        if (filtered.length > 0) return filtered;
+        const merged = [];
+        const visited = new Set();
+        let url = startUrl;
+        while (url) {
+          if (visited.has(url) || visited.size >= 100) {
+            throw new Error('Descriptor list pagination did not complete.');
+          }
+          visited.add(url);
+          const { res, data } = await fetchJson(url, {
+            method: 'GET',
+            headers: { ...baseHeaders, Accept: accept },
+          });
+          if (!res.ok) {
+            lastError = `HTTP ${res.status}: ${extractAepErrorMessage(data, res.statusText)}`;
+            break;
+          }
+          merged.push(...collectDescriptorResults(data));
+          const next = data._links?.next?.href || data._page?.next;
+          if (!next) {
+            completedList = true;
+            const filtered = merged.filter((d) =>
+              descriptorSourceSchemaMatches(d['xdm:sourceSchema'], schemaId, schemaMetaAltId));
+            if (filtered.length > 0) return filtered;
+            break;
+          }
+          const nextUrl = new URL(next, url);
+          if (nextUrl.origin !== 'https://platform.adobe.io'
+            || nextUrl.pathname !== '/data/foundation/schemaregistry/tenant/descriptors') {
+            throw new Error('Descriptor list returned an unexpected pagination URL.');
+          }
+          url = nextUrl.href;
+        }
       }
     }
+    if (!completedList) throw new Error(`Descriptor list failed: ${lastError}`);
     return [];
   }
 
