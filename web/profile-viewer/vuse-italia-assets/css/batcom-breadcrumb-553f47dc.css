@@ -1,0 +1,80 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@media only screen and (max-width: 767px) {
+  .cmp-breadcrumb { display: none; }
+}
+
+.cmp-breadcrumb--showOnMobileToggle { display: block; }
+
+.cmp-breadcrumb__item { position: relative; display: inline-flex; align-items: center; padding-inline-end: 25px; }
+
+.batcom-container--primary-dark .cmp-breadcrumb__item, .batcom-container--secondary-dark .cmp-breadcrumb__item { --batcom-color-breadcrumb-default: var(--batcom-color-breadcrumb-default-inverted); --batcom-color-breadcrumb-active: var(--batcom-color-breadcrumb-active-inverted); --batcom-color-breadcrumb-hover: var(--batcom-color-breadcrumb-hover-inverted); --batcom-color-breadcrumb-focus: var(--batcom-color-breadcrumb-focus-inverted); --batcom-color-breadcrumb-pressed: var(--batcom-color-breadcrumb-pressed-inverted); --batcom-color-breadcrumb-arrow-default: var(--batcom-color-breadcrumb-arrow-default-inverted); }
+
+.cmp-breadcrumb__item span, .cmp-breadcrumb__item-link { color: var(--batcom-color-breadcrumb-default); text-decoration: none; min-height: 24px; }
+
+.cmp-breadcrumb__item span:hover, .cmp-breadcrumb__item-link:hover { color: var(--batcom-color-breadcrumb-hover); text-decoration: none; }
+
+.cmp-breadcrumb__item span:focus, .cmp-breadcrumb__item-link:focus { color: var(--batcom-color-breadcrumb-focus); }
+
+.cmp-breadcrumb__item span:active, .cmp-breadcrumb__item-link:active { color: var(--batcom-color-breadcrumb-pressed); }
+
+.cmp-breadcrumb__item--active span { color: var(--batcom-color-breadcrumb-active); }
+
+.cmp-breadcrumb__item--active span:hover { color: var(--batcom-color-breadcrumb-active); }
+
+.cmp-breadcrumb__item::after { border-style: solid; border-width: 2px 2px 0px 0px; content: ""; display: inline-block; height: 9px; position: absolute; right: 8px; top: 7px; transform: rotate(45deg); width: 9px; }
+
+.cmp-breadcrumb__item:last-of-type::after { display: none; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-breadcrumb__item--nonVisible { display: none; }
+}
+
+.cmp-breadcrumb__item--visible { vertical-align: top; }
+
+@media only screen and (max-width: 767px) {
+  .cmp-breadcrumb__item--visible { display: inline-flex; }
+}
+
+.cmp-breadcrumb__item--visible.ellipsis { line-height: 24px; margin-left: 3px; }
+
+.batcom-horizontal-alignment--left .cmp-breadcrumb, .batcom-horizontal-alignment--center .cmp-breadcrumb, .batcom-horizontal-alignment--right .cmp-breadcrumb { display: flex; justify-content: flex-start; gap: 8px; }
+
+.batcom-horizontal-alignment--center .cmp-breadcrumb { justify-content: center; }
+
+.batcom-horizontal-alignment--right .cmp-breadcrumb { justify-content: flex-end; }
+
+.batcom-text-transform--uppercase .cmp-breadcrumb { text-transform: uppercase; }
+
+.batcom-text-transform--lowercase .cmp-breadcrumb { text-transform: lowercase; }

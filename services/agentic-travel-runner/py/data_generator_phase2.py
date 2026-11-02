@@ -14,6 +14,7 @@ import sys
 import uuid
 from attribution_helper import AttributionHelper
 from session_journey_helper import SessionJourneyHelper
+from snowflake_bindings import insert_rows
 
 class Phase2DataGenerator:
     """Generate Phase 2 data: loyalty, preferences, and events"""
@@ -282,7 +283,7 @@ LIMIT 5;
         
         # Add timestamps to each record
         loyalty_data_with_ts = [record + (current_ts, current_ts) for record in loyalty_data]
-        self.cursor.executemany(sql, loyalty_data_with_ts)
+        insert_rows(self.cursor, sql, loyalty_data_with_ts)
     
     def generate_preferences(self, base_profiles):
         """Generate preference profiles"""
@@ -344,7 +345,7 @@ LIMIT 5;
         
         # Add timestamps to each record
         pref_data_with_ts = [record + (current_ts, current_ts) for record in pref_data]
-        self.cursor.executemany(sql, pref_data_with_ts)
+        insert_rows(self.cursor, sql, pref_data_with_ts)
     
     def generate_mobile_events(self, base_profiles, events_per_profile=2):
         """Generate mobile app events with proper funnel - matches complete AEP schema"""
@@ -559,7 +560,7 @@ LIMIT 5;
         # Add ancillary columns (NULL), CHANNEL, and _RECORDCREATEDTIMESTAMP = actual insert time (AEP incremental load)
         insert_ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         mobile_events_with_ts = [record + (None, None, None, 'mobile', insert_ts,) for record in mobile_events]
-        self.cursor.executemany(sql, mobile_events_with_ts)
+        insert_rows(self.cursor, sql, mobile_events_with_ts)
     
     def generate_call_centre_events(self, base_profiles, events_per_profile=1):
         """Generate call centre events with correct timezone"""
@@ -655,7 +656,7 @@ LIMIT 5;
         # Add CHANNEL and _RECORDCREATEDTIMESTAMP = actual insert time (AEP incremental load)
         insert_ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         call_events_with_ts = [record + ('callcentre', insert_ts,) for record in call_events]
-        self.cursor.executemany(sql, call_events_with_ts)
+        insert_rows(self.cursor, sql, call_events_with_ts)
     
     def generate_checkin_events(self, base_profiles, events_per_profile=1):
         """Generate check-in events with correct timezone"""
@@ -760,7 +761,7 @@ LIMIT 5;
         # record[13] is CHECKIN_METHOD
         insert_ts = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
         checkin_events_with_ts = [record + (None, None, None, None, None, None, None, get_checkin_channel(record[13]), insert_ts,) for record in checkin_events]
-        self.cursor.executemany(sql, checkin_events_with_ts)
+        insert_rows(self.cursor, sql, checkin_events_with_ts)
     
     def generate_and_insert_all(self, base_profiles, start_index):
         """Generate and insert all Phase 2 data"""

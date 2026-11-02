@@ -76,7 +76,20 @@ function getSelectedGeneratorTarget() {
     : null;
 }
 
+var armcomVisitorSendCount = 0;
+var armcomResetInitialPageViewSuppressed = false;
+function armcomVisitorBlocked() {
+  return window.AepDemoVisitorReset
+    ? window.AepDemoVisitorReset.isBlocked()
+    : !!sessionStorage.getItem('aep-demo-visitor-reset-v1');
+}
 async function sendArmcomMobileExperienceEvent(payload) {
+  if (armcomVisitorBlocked()) return false;
+  if (payload?.eventType === 'armcom.mobile.page.view' && !armcomResetInitialPageViewSuppressed &&
+    window.AepDemoVisitorReset?.isResetPage()) {
+    armcomResetInitialPageViewSuppressed = true;
+    return false;
+  }
   var p = payload && typeof payload === 'object' ? payload : {};
   var ecidEl = document.getElementById('infoEcid');
   var ecidText = ecidEl ? String(ecidEl.textContent || '').trim() : '';
@@ -103,6 +116,7 @@ async function sendArmcomMobileExperienceEvent(payload) {
     typeof window.AepDemoGeneratorTargets !== 'undefined' && window.AepDemoGeneratorTargets.augmentGeneratorPostBody
       ? window.AepDemoGeneratorTargets.augmentGeneratorPostBody(body)
       : body;
+  armcomVisitorSendCount++;
   try {
     var res = await fetch('/api/events/generator', {
       method: 'POST',
@@ -112,6 +126,7 @@ async function sendArmcomMobileExperienceEvent(payload) {
     var data = await res.json().catch(function () {
       return {};
     });
+    if (armcomVisitorBlocked()) return false;
     if (!res.ok) {
       setArmcomMessage(data.error || data.message || 'Request failed.', 'error');
       return false;
@@ -125,10 +140,16 @@ async function sendArmcomMobileExperienceEvent(payload) {
   } catch (err) {
     setArmcomMessage(err.message || 'Network error', 'error');
     return false;
+  } finally {
+    armcomVisitorSendCount--;
   }
 }
 
 window.addEventListener('message', function (ev) {
+  if (armcomVisitorBlocked()) {
+    if (ev.data?.payload?.eventType === 'armcom.mobile.page.view') armcomResetInitialPageViewSuppressed = true;
+    return;
+  }
   if (!armcomMobileFrame || !armcomMobileFrame.contentWindow || ev.source !== armcomMobileFrame.contentWindow) return;
   if (!ev.data || ev.data.source !== 'armcom-mobile-lab') return;
   if (ev.data.type === 'armcom-experience-event') {

@@ -3,6 +3,8 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const genericProfileConnectionStore = require('../genericProfileConnectionStore');
+const fsiProfileConnectionStore = require('../fsiProfileConnectionStore');
+const profileTableHelpers = require('../profileTableHelpers');
 const { handleProfileGenerate } = require('../profileGenerateService');
 const { encodeGeohash } = require('../profilePlaceContext');
 
@@ -23,6 +25,7 @@ function ctx(overrides = {}) {
     setCors: () => {},
     resolveSandboxForProfileBody: () => 'apalmer',
     getAdobeAccessToken: async () => 'token',
+    getMergeTokenSecret: () => 'offline-test-secret',
     clientId: 'client',
     orgId: 'org@AdobeOrg',
     ...overrides,
@@ -162,6 +165,68 @@ describe('POST /api/profile/generate geo mirror', () => {
       datasetId: 'ds-1',
       schemaId: 'https://ns.adobe.com/demoemea/schemas/x',
     },
+  });
+
+  describe('POST /api/profile/generate continuation token', () => {
+    const connection = async () => ({
+      streaming: {
+        url: 'https://dcs.adobedc.net/collection/abc',
+        flowId: 'flow-1',
+        datasetId: 'ds-1',
+        schemaId: 'https://ns.adobe.com/demoemea/schemas/x',
+      },
+    });
+
+    it('reuses the generic ECID for the industry overlay without an UPS lookup', async (t) => {
+      t.mock.method(genericProfileConnectionStore, 'get', connection);
+      t.mock.method(fsiProfileConnectionStore, 'get', connection);
+      let upsLookupCount = 0;
+      t.mock.method(profileTableHelpers, 'resolveExistingEcidForProfileMerge', async () => {
+        upsLookupCount += 1;
+        return { ecid: null, diagnostics: { namespacesAttempted: [] } };
+      });
+      const sent = [];
+      t.mock.method(globalThis, 'fetch', async (_url, init) => {
+        sent.push(JSON.parse(init.body));
+        return { ok: true, status: 200, text: async () => '{}' };
+      });
+
+      const base = await generate({
+        email: 'person@example.com',
+        industry: 'generic',
+        issueAppendToken: true,
+        attributes: { 'personalEmail.address': 'person@example.com' },
+      });
+      assert.equal(base.statusCode, 200, JSON.stringify(base.body));
+      assert.equal(typeof base.body.appendToken, 'string');
+
+      const overlay = await generate({
+        email: 'person@example.com',
+        industry: 'fsi',
+        appendIfExisting: true,
+        appendToken: base.body.appendToken,
+        attributes: { 'industryFsi.creditScoreBand': 'good' },
+      });
+      assert.equal(overlay.statusCode, 200, JSON.stringify(overlay.body));
+      assert.equal(overlay.body.ecid, base.body.ecid);
+      assert.equal(overlay.body.ecidSource, 'continuation_token');
+      assert.equal(upsLookupCount, 0);
+      assert.equal(sent.length, 2);
+      assert.equal(sent[1].body.xdmEntity._demoemea.identification.core.ecid, base.body.ecid);
+      assert.equal(JSON.stringify(sent).includes(base.body.appendToken), false);
+    });
+
+    it('rejects a continuation token whose email/sandbox scope does not match', async (t) => {
+      const res = await generate({
+        email: 'other@example.com',
+        industry: 'fsi',
+        appendIfExisting: true,
+        appendToken: 'invalid.token',
+        attributes: { 'industryFsi.creditScoreBand': 'good' },
+      });
+      assert.equal(res.statusCode, 409);
+      assert.equal(res.body.code, 'MERGE_TOKEN_INVALID');
+    });
   });
 
   function recordingMirror(result = { written: true, collection: 'labGeoProfilePlaces', docId: 'apalmer__h' }) {

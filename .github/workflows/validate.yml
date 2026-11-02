@@ -62,6 +62,9 @@ jobs:
       - name: Verify demo workspace APIs and UI regressions
         run: node --test functions/test/demo*.test.cjs
 
+      - name: Verify Vuse safe profile snapshots and additive schema manifest (offline)
+        run: node --test functions/test/profileConsentPreserve.test.cjs functions/test/vuseProfilePreferencesManifest.test.cjs
+
       - name: Install MCP dependencies
         working-directory: tools/aep-lab-profile-mcp
         run: npm ci
@@ -72,14 +75,20 @@ jobs:
       - name: Verify MCP dispatch telemetry and existing authentication/tool registration
         run: node --test tools/aep-lab-profile-mcp/test/usageTelemetry.test.mjs tools/aep-lab-profile-mcp/test/imsAuth.test.mjs tools/aep-lab-profile-mcp/test/requestLogging.test.mjs tools/aep-lab-profile-mcp/test/toolAnnotations.test.mjs tools/aep-lab-profile-mcp/test/focusedToolsets.test.mjs tools/aep-lab-profile-mcp/test/travelActiveFlight.test.mjs
 
+      - name: Verify MCP batch persistence and admission quotas (offline)
+        run: npm --prefix tools/aep-lab-profile-mcp run test:batch-jobs
+
       - name: Verify governed dataset and schema cleanup (offline)
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/platformCleanup*.test.cjs tools/aep-lab-profile-mcp/test/platformCleanupTools.test.mjs tools/aep-lab-profile-mcp/test/serverDiscovery.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
-          node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs
+          node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs tools/aep-lab-profile-mcp/test/snowflakeApiTransport.test.mjs
           npm run verify:snowflake-industry-manifest
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
+
+      - name: Verify profile identity, industry fields and release identity (offline)
+        run: node --test functions/test/profileInfraDescriptors.test.cjs functions/test/fsiProfileInfraService.test.cjs functions/test/mediaProfileInfraService.test.cjs tools/aep-lab-profile-mcp/test/buildInfo.test.mjs tools/aep-lab-profile-mcp/test/dualStreamGenerate.test.mjs tools/aep-lab-profile-mcp/test/releaseMainScript.test.mjs
 
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones
@@ -126,3 +135,5 @@ jobs:
         run: npm run test:riyadh-air
       - name: Exercise TUI decisioning scenarios and preview channels (local only)
         run: npm run test:tui-browser
+      - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
+        run: npm run test:vuse-italia

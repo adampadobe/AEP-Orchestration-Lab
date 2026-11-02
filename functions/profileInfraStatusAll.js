@@ -88,6 +88,12 @@ function projectStatusFlags(status) {
     };
   }
   return {
+    ready: status.ready === true,
+    primaryEmailDescriptor: status.primaryEmailDescriptor === true,
+    secondaryEcidDescriptor: status.secondaryEcidDescriptor === true,
+    prepSteps: status.prepSteps || null,
+    requiredFieldGroups: status.requiredFieldGroups || [],
+    requiredTenantFields: status.requiredTenantFields || null,
     schemaFound: !!status.schemaFound,
     // Prefer the May 2026 alias; fall back to the legacy field for safety.
     schemaInUnion: !!(status.schemaInUnion ?? status.schemaInProfileUnion),
@@ -128,7 +134,14 @@ async function resolveOneIndustry({ key, svc, sandbox, token, clientId, orgId, b
       // belt-and-braces try/catch in case the helper changes shape.
       cached = null;
     }
-    if (cached && cached.payload) {
+    const fieldContractLabel = {
+      fsi: 'AEP Lab - Profile FSI Generator v1 (industryFsi generator paths)',
+      media: 'AEP Lab - Profile Media Generator v1 (industryMedia generator paths)',
+    }[key];
+    const cacheHasCurrentContract = typeof cached?.payload?.secondaryEcidDescriptor === 'boolean'
+      && (!fieldContractLabel || (cached.payload.requiredTenantFields
+        && cached.payload.requiredFieldGroups?.some((group) => group.label === fieldContractLabel)));
+    if (cached && cached.payload && cacheHasCurrentContract) {
       const flags = projectStatusFlags(cached.payload);
       flags.cached = true;
       flags.lastChecked = cached.lastChecked instanceof Date ? cached.lastChecked.toISOString() : null;

@@ -538,15 +538,12 @@ function bindProfileDrawerCopyButtonsOnce() {
   profileDrawerCopyButtonsBound = true;
 }
 
-function isArmcomDemoDrawerPage() {
-  if (typeof document === 'undefined' || !document.body) return false;
-  return (
-    document.body.classList.contains('armcom-demo-page') ||
-    document.body.classList.contains('armcom-mobile-demo-page')
-  );
-}
-
 let profileDrawerEcidResetBound = false;
+let drawerVisitorRevision = 0;
+
+function isVisitorResetBlocked() {
+  return !!(global.AepDemoVisitorReset && global.AepDemoVisitorReset.isBlocked());
+}
 
 function resolveProfileDrawerEcidRow() {
   const byClass = document.querySelector('.aep-profile-drawer-identity-row--ecid');
@@ -561,7 +558,7 @@ function resolveProfileDrawerEcidRow() {
 function ensureProfileDrawerEcidResetButton() {
   const existingWrap = document.getElementById('profileDrawerEcidResetWrap');
   const existingBtn = document.getElementById('profileDrawerResetEcid');
-  if (!isArmcomDemoDrawerPage()) {
+  if (!global.AepDemoVisitorReset) {
     if (existingWrap) existingWrap.hidden = true;
     return;
   }
@@ -617,11 +614,17 @@ async function handleProfileDrawerEcidResetClick(btn) {
   const priorLabel = btn.textContent;
   btn.textContent = 'Resetting…';
   try {
-    if (global.ArmcomEcidReset && typeof global.ArmcomEcidReset.reset === 'function') {
-      await global.ArmcomEcidReset.reset();
-    } else {
-      clearDrawerVisitorState();
+    if (!global.AepDemoVisitorReset) throw new Error('Visitor reset is not loaded on this page.');
+    await global.AepDemoVisitorReset.reset();
+  } catch (error) {
+    labLog('error', 'visitor reset failed', { message: error.message });
+    const status = document.getElementById('aepLabVisitorResetStatus');
+    if (status) {
+      status.hidden = false;
+      const text = status.querySelector('span');
+      if (text) text.textContent = error.message;
     }
+    else if (typeof _config.messageSetter === 'function') _config.messageSetter(error.message, 'error');
   } finally {
     btn.disabled = false;
     btn.classList.remove('is-busy');
@@ -631,6 +634,7 @@ async function handleProfileDrawerEcidResetClick(btn) {
 
 function clearDrawerVisitorState() {
   profileContextVersion++;
+  ++drawerVisitorRevision;
   stopEventsPoll();
   closeProfileDrawerEventsStoryModal();
   closeIdentityGraphModal();
@@ -4054,6 +4058,14 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
  */
 async function loadProfileDataForDrawer(email, options) {
   const opts = options || {};
+  if (isVisitorResetBlocked()) {
+    const message = 'Visitor identity is being reset or has changed. Reload or finish reset before profile lookup.';
+    labLog('warn', message, {});
+    if (typeof opts.onUserMessage === 'function') opts.onUserMessage(message, 'error');
+    else if (typeof _config.messageSetter === 'function') _config.messageSetter(message, 'error');
+    return false;
+  }
+  const visitorRevision = drawerVisitorRevision;
   const emailTrim = String(email || '').trim();
   if (!emailTrim) {
     labLog('warn', 'profile lookup skipped — empty identifier', {});
@@ -4090,6 +4102,7 @@ async function loadProfileDataForDrawer(email, options) {
     );
     const data = await res.json();
     if (!isCurrentDrawerContext(version)) return false;
+    if (visitorRevision !== drawerVisitorRevision || isVisitorResetBlocked()) return false;
     if (!res.ok) {
       if (notifyUser) {
         let errMsg = String(data.message || data.error || 'Profile request failed.');
@@ -4158,6 +4171,7 @@ async function loadProfileDataForDrawer(email, options) {
       fetchProfileEventsList(emailTrim, ns),
     ]);
     if (!isCurrentDrawerContext(version)) return false;
+    if (visitorRevision !== drawerVisitorRevision || isVisitorResetBlocked()) return false;
     const eventsForTimeline = filterDrawerEventsForTimeline(eventsAll);
     const events = visibleDrawerEventsForPanel(eventsAll, 5);
     const eventsStory = eventsForTimeline.slice(0, DRAWER_EVENTS_STORY_MAX);
@@ -4308,6 +4322,8 @@ function refreshDrawerEventsForIdentity(identifier, namespaceOverride) {
 }
 
 async function updateDrawerEventsForIdentity(identifier, namespaceOverride) {
+  if (isVisitorResetBlocked()) return;
+  const visitorRevision = drawerVisitorRevision;
   const id = String(identifier || '').trim();
   if (!id) return;
   cacheDomRefs();
@@ -4318,6 +4334,7 @@ async function updateDrawerEventsForIdentity(identifier, namespaceOverride) {
       : getNamespaceForDrawer(id);
   let eventsAll = await fetchProfileEventsList(id, ns);
   if (!isCurrentDrawerContext(version)) return;
+  if (visitorRevision !== drawerVisitorRevision || isVisitorResetBlocked()) return;
   if (
     !eventsAll.length &&
     lastLookedUpProfile &&
@@ -4334,6 +4351,7 @@ async function updateDrawerEventsForIdentity(identifier, namespaceOverride) {
     if (altId && altNs && (altId !== id || altNs !== ns)) {
       const retry = await fetchProfileEventsList(altId, altNs);
       if (!isCurrentDrawerContext(version)) return;
+      if (visitorRevision !== drawerVisitorRevision || isVisitorResetBlocked()) return;
       if (retry.length) eventsAll = retry;
     }
   }
@@ -4651,6 +4669,8 @@ function applyBrowserEcidResolved(ecid, options) {
  * @param {{ ecid?: string|null, skipEvents?: boolean, skipConnectingHint?: boolean, force?: boolean }} [opts]
  */
 async function refreshBrowserEcidFromAlloyInner(opts) {
+  if (isVisitorResetBlocked()) return;
+  const visitorRevision = drawerVisitorRevision;
   const options = opts && typeof opts === 'object' ? opts : {};
   cacheDomRefs();
 
@@ -4685,6 +4705,7 @@ async function refreshBrowserEcidFromAlloyInner(opts) {
     return;
   }
 
+  if (visitorRevision !== drawerVisitorRevision || isVisitorResetBlocked()) return;
   applyBrowserEcidResolved(ecid, options);
 }
 
@@ -4882,6 +4903,9 @@ const api = {
 
 global.AepProfileDrawer = api;
 global.DemoProfileDrawer = api;
+global.addEventListener('aep-demo-visitor-reset-ready', ensureProfileDrawerEcidResetButton);
+global.addEventListener('aep-demo-visitor-reset-start', clearDrawerVisitorState);
+global.addEventListener('aep-demo-visitor-invalidated', clearDrawerVisitorState);
 
 global.addEventListener('pageshow', function (ev) {
   if (!ev || !ev.persisted) return;

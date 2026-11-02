@@ -31,6 +31,34 @@ const RETRYABLE_STATUSES = new Set([429, 502, 503, 504]);
 const DEFAULT_BACKOFF_MS = [400, 900, 1800];
 const SAFE_METHODS = new Set(['GET', 'HEAD']);
 
+function formatApiError(value) {
+  if (typeof value === 'string') return value.trim();
+  if (!value || typeof value !== 'object') return '';
+  const message = String(value.message || value.detail || '').trim();
+  const code = String(value.code || '').trim();
+  const sqlState = String(value.sqlState || value.sqlstate || '').trim();
+  if (!message && !code && !sqlState) return '';
+  const diagnostic = [code && `code ${code}`, sqlState && `SQL state ${sqlState}`]
+    .filter(Boolean)
+    .join(', ');
+  return [message, diagnostic ? `(${diagnostic})` : ''].filter(Boolean).join(' ');
+}
+
+function extractApiError(data, fallback) {
+  const candidates = [
+    data?.error,
+    data?.detail,
+    data?.message,
+    data?.result?.error,
+    data?.result?.result?.error,
+  ];
+  for (const candidate of candidates) {
+    const message = formatApiError(candidate);
+    if (message) return message;
+  }
+  return fallback;
+}
+
 async function attemptOnce(url, init, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -58,11 +86,8 @@ async function attemptOnce(url, init, timeoutMs) {
   }
 
   if (!response.ok) {
-    const detail =
-      (data && typeof data === 'object' && (data.error || data.detail || data.message)) ||
-      response.statusText ||
-      `HTTP ${response.status}`;
-    return { ok: false, status: response.status, url: url.toString(), error: String(detail), data };
+    const detail = extractApiError(data, response.statusText || `HTTP ${response.status}`);
+    return { ok: false, status: response.status, url: url.toString(), error: detail, data };
   }
 
   return { ok: true, status: response.status, url: url.toString(), data };
@@ -212,9 +237,16 @@ export async function generateProfile(params) {
   if (params.test_profile != null) {
     body.testProfile = params.test_profile;
   }
+  if (params.issue_append_token === true) {
+    body.issueAppendToken = true;
+  }
+  if (params.append_token) {
+    body.appendToken = params.append_token;
+  }
   return labApiRequest('/api/profile/generate', {
     method: 'POST',
     body,
+    headers: params.correlation_id ? { 'x-aep-lab-correlation-id': params.correlation_id } : {},
     timeoutMs: 120_000,
   });
 }
@@ -899,6 +931,8 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
 }
 
 function generationPrefsAuthHeaders() {
+  const ims = getRequestImsAuthHeaders();
+  if (ims) return ims;
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
@@ -1509,11 +1543,14 @@ export async function getRecentProfiles({ sandbox }) {
 /**
  * @param {object} body — sandbox, email, ecid, industry, source, attributes, snapshot, summaryLabel, …
  */
-export async function appendRecentProfile(body) {
+export async function appendRecentProfile(body, { correlationId } = {}) {
   return labApiRequest('/api/lab/recent-profiles', {
     method: 'POST',
     body,
-    headers: generationPrefsAuthHeaders(),
+    headers: {
+      ...generationPrefsAuthHeaders(),
+      ...(correlationId ? { 'x-aep-lab-correlation-id': correlationId } : {}),
+    },
     timeoutMs: 30_000,
   });
 }
@@ -1612,7 +1649,8 @@ export async function homeCommandDeleteMeeting({ id }) {
  * @param {string} params.sandbox
  */
 export async function getSnowflakeConfig({ sandbox }) {
-  return labApiRequest('/api/snowflake/config', {
+  return labApiRequest('/snowflakeConfig', {
+    origin: getLabFunctionsOrigin(),
     query: { sandbox },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 60_000,
@@ -1625,7 +1663,8 @@ export async function getSnowflakeConfig({ sandbox }) {
  * @param {string} params.sandbox
  */
 export async function snowflakeConnectionTest({ sandbox }) {
-  return labApiRequest('/api/snowflake/connection-test', {
+  return labApiRequest('/snowflakeConnectionTest', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox },
     headers: snowflakeAuthHeaders(),
@@ -1641,7 +1680,9 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
   if (industry && (table || start_index != null || use_generation_prefs === false)) {
     throw new Error('Industry CRM generation uses its governed table and shared generation preferences; legacy overrides cannot be combined with industry.');
   }
-  return labApiRequest(industry ? '/api/snowflake/generate-industry-profiles' : '/api/snowflake/generate-base-profiles', {
+  // Hosting rewrites stop waiting after 60s, even when the seed later commits.
+  return labApiRequest(industry ? '/snowflakeGenerateIndustryProfiles' : '/snowflakeGenerateBaseProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1653,7 +1694,7 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
       ...(use_generation_prefs === false ? { use_generation_prefs: false } : {}),
     },
     headers: snowflakeAuthHeaders(),
-    timeoutMs: 300_000,
+    timeoutMs: 330_000,
   });
 }
 
@@ -1661,8 +1702,18 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
  * POST /api/snowflake/insert-profile-from-aep — dual-load mirror row
  * @param {object} params
  */
-export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attributes, industry, table, mode }) {
-  return labApiRequest('/api/snowflake/insert-profile-from-aep', {
+export async function snowflakeInsertProfileFromAep({
+  sandbox,
+  email,
+  ecid,
+  attributes,
+  industry,
+  table,
+  mode,
+  correlation_id,
+}) {
+  return labApiRequest('/snowflakeInsertProfileFromAep', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1673,8 +1724,11 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
       ...(table ? { table } : {}),
       ...(mode ? { mode } : {}),
     },
-    headers: snowflakeAuthHeaders(),
-    timeoutMs: 120_000,
+    headers: {
+      ...snowflakeAuthHeaders(),
+      ...(correlation_id ? { 'x-aep-lab-correlation-id': correlation_id } : {}),
+    },
+    timeoutMs: 150_000,
   });
 }
 
@@ -1683,7 +1737,8 @@ export async function snowflakeInsertProfileFromAep({ sandbox, email, ecid, attr
  * @param {object} params
  */
 export async function snowflakeQueryProfiles({ sandbox, industry, filter_type, time_period, limit, email, ecid }) {
-  return labApiRequest('/api/snowflake/agentic/query-profiles', {
+  return labApiRequest('/snowflakeAgenticQueryProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1704,7 +1759,8 @@ export async function snowflakeQueryProfiles({ sandbox, industry, filter_type, t
  * @param {object} params
  */
 export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables }) {
-  return labApiRequest('/api/snowflake/industry-catalog', {
+  return labApiRequest('/snowflakeIndustryCatalog', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1721,7 +1777,8 @@ export async function snowflakeIndustryCatalog({ sandbox, industry, check_tables
  * @param {object} params
  */
 export async function snowflakeTableStructure({ sandbox, phase, include_ddl }) {
-  return labApiRequest('/api/snowflake/agentic/table-structure', {
+  return labApiRequest('/snowflakeAgenticTableStructure', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox, phase, ...(include_ddl === true ? { include_ddl: true } : {}) },
     headers: snowflakeAuthHeaders(),
@@ -1742,7 +1799,8 @@ export async function snowflakeValidateProposal({
   recipe_id,
   proposed_tables,
 }) {
-  return labApiRequest('/api/snowflake/industry-validate-proposal', {
+  return labApiRequest('/snowflakeIndustryValidateProposal', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1763,7 +1821,8 @@ export async function snowflakeValidateProposal({
  * @param {object} params
  */
 export async function snowflakeGenerateFull({ sandbox, count }) {
-  return labApiRequest('/api/snowflake/agentic/generate-full', {
+  return labApiRequest('/snowflakeAgenticGenerateFull', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: { sandbox, count },
     headers: snowflakeAuthHeaders(),
@@ -1776,7 +1835,8 @@ export async function snowflakeGenerateFull({ sandbox, count }) {
  * @param {object} params
  */
 export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, event_types }) {
-  return labApiRequest('/api/snowflake/agentic/enrich-profiles', {
+  return labApiRequest('/snowflakeAgenticEnrichProfiles', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1800,7 +1860,8 @@ export async function snowflakeProfileBundle({
   crm_id,
   event_limit,
 }) {
-  return labApiRequest('/api/snowflake/agentic/profile-bundle', {
+  return labApiRequest('/snowflakeAgenticProfileBundle', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,
@@ -1820,7 +1881,8 @@ export async function snowflakeProfileBundle({
  * @param {{ sandbox: string, industry?: string, recipe_id: string, dry_run?: boolean, approval_id?: string, confirmed?: boolean, preview_fingerprint?: string }} params
  */
 export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run, approval_id, confirmed, preview_fingerprint }) {
-  return labApiRequest('/api/snowflake/provision', {
+  return labApiRequest('/snowflakeProvision', {
+    origin: getLabFunctionsOrigin(),
     method: 'POST',
     body: {
       sandbox,

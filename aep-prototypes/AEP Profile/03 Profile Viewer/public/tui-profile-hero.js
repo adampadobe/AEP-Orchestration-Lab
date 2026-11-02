@@ -1,6 +1,7 @@
 (function (global) {
   'use strict';
   const doc = document, $ = id => doc.getElementById(id);
+  let selectTab = () => {};
   function classic() {
     try {
       const mode = new URLSearchParams(location.search).get('tuiDrawer');
@@ -50,7 +51,8 @@
     const copy = $('tuiCopyEcid');
     copy.disabled = !values || ['Not loaded', 'Not set'].includes(text('profileDrawerDesktopId'));
     if (!values) {
-      $('tuiPhTab-0').click();
+      // Avoid a synthetic click: shared document click handlers treat it as an outside click.
+      selectTab(0);
       doc.querySelector('.tui-copy-feedback').textContent = '';
     }
   }
@@ -136,7 +138,7 @@
       }
       details.append(panel);
     });
-    select(0);
+    selectTab = select; select(0);
     hero.append(head, kpis, details); inner.prepend(hero); doc.body.classList.add('decisioning-profile-hero');
     let scheduled = false;
     const schedule = () => {

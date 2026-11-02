@@ -197,30 +197,6 @@
       }
     }
 
-    /** Best-effort clear of Experience Platform Web SDK identity cookie(s). HttpOnly cookies cannot be cleared from script. */
-    function clearAdobeKndctrIdentityCookiesBestEffort() {
-      if (typeof document === 'undefined') return;
-      try {
-        const names = new Set();
-        document.cookie.split(';').forEach(function (part) {
-          const name = part.split('=')[0].trim();
-          if (/^kndctr_.*_AdobeOrg_identity$/.test(name)) names.add(name);
-        });
-        const expire = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        const host = typeof window !== 'undefined' && window.location ? window.location.hostname || '' : '';
-        names.forEach(function (name) {
-          document.cookie = name + '=; Max-Age=0; path=/; ' + expire;
-          if (host) {
-            document.cookie = name + '=; Max-Age=0; path=/; domain=' + host + '; ' + expire;
-            const dot = host.indexOf('.') !== -1 ? host.replace(/^www\./, '') : '';
-            if (dot && dot !== host) document.cookie = name + '=; Max-Age=0; path=/; domain=.' + dot + '; ' + expire;
-          }
-        });
-      } catch (_) {
-        /* ignore */
-      }
-    }
-
     /**
      * Logs whether visitor ECID matches Adobe’s Web SDK flow (Edge issues ECID; SDK stores `kndctr_*_AdobeOrg_identity`).
      * @param {string} ecid
@@ -297,6 +273,40 @@
 
     /** Incremented when the demo resets visitor ECID so async mint work does not repersist after storage clear. */
     let omAnonymousEcidMintGeneration = 0;
+    let omVisitorRequests = 0;
+
+    function omVisitorBlocked() {
+      return !!global.AepDemoVisitorReset?.isBlocked();
+    }
+
+    async function omVisitorEventFetch(url, options) {
+      if (omVisitorBlocked()) throw new Error('Visitor reset is unverified. Finish it before sending events.');
+      omVisitorRequests++;
+      try {
+        const response = await fetch(url, options);
+        if (omVisitorBlocked()) throw new Error('This visitor was invalidated while the request was in progress.');
+        return response;
+      } finally { omVisitorRequests--; }
+    }
+
+    global.AepDemoVisitorReset?.registerAdapter({
+      beforeReset() {
+        if (omVisitorRequests || document.getElementById('queryProfileBtn')?.disabled) throw new Error('Wait for the current Old Mutual operation before resetting the visitor.');
+      },
+      invalidate() {
+        omAnonymousEcidMintGeneration++;
+        omAnonymousEcidMintPromise = null;
+        if (typeof clearAbandonBasketTimer === 'function') clearAbandonBasketTimer();
+        for (const key of [OM_SESSION_PROFILE_EMAIL_KEY, OM_ANONYMOUS_ECID_KEY, OM_ECID_SOURCE_KEY, OM_BUSINESS_QUOTE_PACKAGE_KEY]) sessionStorage.removeItem(key);
+        if (customerEmail) customerEmail.value = '';
+        if (infoEcid) infoEcid.textContent = '—';
+      },
+      afterReset({ ecid }) {
+        sessionStorage.setItem(OM_ANONYMOUS_ECID_KEY, ecid);
+        sessionStorage.setItem(OM_ECID_SOURCE_KEY, 'adobe-web-sdk');
+        if (infoEcid) infoEcid.textContent = ecid;
+      },
+    });
 
     /**
      * First successful writer wins — avoids a late mint from a discarded tab overwriting ECID after navigation.
@@ -305,6 +315,7 @@
      * @returns {string|null}
      */
     function persistOmAnonymousEcidIfUnset(ecid, sourceKey) {
+      if (omVisitorBlocked()) return null;
       const id = String(ecid || '').trim();
       if (!id || !/^\d+$/.test(id) || id.length < 10) return null;
       try {
@@ -331,7 +342,7 @@
       const genAtMint = omAnonymousEcidMintGeneration;
 
       function mintStale() {
-        return genAtMint !== omAnonymousEcidMintGeneration;
+        return omVisitorBlocked() || genAtMint !== omAnonymousEcidMintGeneration;
       }
 
       function discardStalePersist() {
@@ -388,6 +399,7 @@
      * @param {{ allowMint?: boolean }} [opts]
      */
     async function ensureAnonymousEcid(opts) {
+      if (omVisitorBlocked()) return null;
       const options = opts && typeof opts === 'object' ? opts : {};
       const denyMint = options.allowMint === false;
 
@@ -431,67 +443,11 @@
       }
     }
 
-    /**
-     * Demo: clear session visitor ECID, best-effort clear Adobe `kndctr_*_AdobeOrg_identity`, remint (Web SDK or `/api/ecid/anonymous`).
-     * Does not log out email session — refreshes drawer so the bar reflects the new visitor ECID when logged in.
-     */
+    /** Use the shared reload-and-verify reset; server-generated ECIDs cannot verify browser identity. */
     async function resetOmVisitorEcidDemo() {
       if (!document.body || !document.body.classList.contains('oldmutual-demo-page')) return;
-
-      omAnonymousEcidMintGeneration += 1;
-      omAnonymousEcidMintPromise = null;
-      try {
-        sessionStorage.removeItem(OM_ANONYMOUS_ECID_KEY);
-        sessionStorage.removeItem(OM_ECID_SOURCE_KEY);
-      } catch (_) {
-        /* ignore */
-      }
-      clearAdobeKndctrIdentityCookiesBestEffort();
-      if (infoEcid) infoEcid.textContent = '—';
-
-      await ensureAnonymousEcid();
-      applyAnonymousEcidToBarIfNeeded();
-
-      let savedEmail = '';
-      try {
-        savedEmail = sessionStorage.getItem(OM_SESSION_PROFILE_EMAIL_KEY) || '';
-      } catch (_) {
-        /* ignore */
-      }
-
-      let ecid = getEcidForExperienceEvent();
-      if (!ecid) {
-        try {
-          const s = sessionStorage.getItem(OM_ANONYMOUS_ECID_KEY);
-          if (s && /^\d+$/.test(s) && s.length >= 10) ecid = s;
-        } catch (_) {
-          /* ignore */
-        }
-      }
-
-      if (
-        savedEmail.trim() &&
-        window.AepProfileDrawer &&
-        typeof window.AepProfileDrawer.loadProfileDataForDrawer === 'function'
-      ) {
-        await window.AepProfileDrawer.loadProfileDataForDrawer(savedEmail.trim(), {
-          onUserMessage: (msg, type) => {
-            if (type === 'error') setRaceMessage(msg, type);
-          },
-          addEmailOnSuccess: false,
-        });
-      } else if (
-        ecid &&
-        window.AepProfileDrawer &&
-        typeof window.AepProfileDrawer.loadVisitorProfileDataForDrawer === 'function'
-      ) {
-        await window.AepProfileDrawer.loadVisitorProfileDataForDrawer(ecid, { onUserMessage: () => {} });
-      }
-
-      setRaceMessage(
-        'Visitor ECID reset for this tab. If Launch/Web SDK still shows the old ECID, clear site data or use a fresh profile.',
-        'success',
-      );
+      if (!global.AepDemoVisitorReset) throw new Error('Shared browser visitor reset is unavailable on this page.');
+      return global.AepDemoVisitorReset.reset();
     }
 
     /**
@@ -510,7 +466,7 @@
         channel: demoExperienceChannel(),
       };
       if (ecid) body.ecid = ecid;
-      const res = await fetch('/api/events/generator', {
+      const res = await omVisitorEventFetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(augmentOmGeneratorPostBody(body)),
@@ -565,6 +521,7 @@
 
     queryProfileBtn &&
       queryProfileBtn.addEventListener('click', async () => {
+        if (omVisitorBlocked()) return;
         clearAbandonBasketTimer();
         const email = getEmail().trim();
         if (!email) {
@@ -582,7 +539,7 @@
             onUserMessage: setRaceMessage,
             addEmailOnSuccess: true,
           });
-          if (!result.ok) return;
+          if (!result.ok || omVisitorBlocked()) return;
 
           try {
             sessionStorage.setItem(OM_SESSION_PROFILE_EMAIL_KEY, email.trim());
@@ -710,7 +667,7 @@
           if (usePackageAsWebPageDetailsName && pkgSel) body.webPageDetailsName = pkgSel;
           if (ecid) body.ecid = ecid;
 
-          const res = await fetch('/api/events/generator', {
+          const res = await omVisitorEventFetch('/api/events/generator', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(augmentOmGeneratorPostBody(body)),
@@ -802,7 +759,7 @@
         };
         if (ecidForSend) body.ecid = ecidForSend;
 
-        const res = await fetch('/api/events/generator', {
+        const res = await omVisitorEventFetch('/api/events/generator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(augmentOmGeneratorPostBody(body)),
@@ -880,7 +837,7 @@
         };
         if (ecid) body.ecid = ecid;
 
-        const res = await fetch('/api/events/generator', {
+        const res = await omVisitorEventFetch('/api/events/generator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(augmentOmGeneratorPostBody(body)),
@@ -1217,6 +1174,7 @@
 
     /** Rehydrate email + drawer after navigating between Old Mutual demo pages (same tab). */
     (function restoreOmSessionProfileAcrossPages() {
+      if (omVisitorBlocked()) return;
       if (!document.body || !document.body.classList.contains('oldmutual-demo-page')) return;
       let saved;
       try {
@@ -1305,6 +1263,7 @@
       }
 
       window.addEventListener('load', () => {
+        if (omVisitorBlocked() || global.AepDemoVisitorReset?.isResetPage()) return;
         window.setTimeout(() => {
           void (async () => {
             await ensureAnonymousEcid();

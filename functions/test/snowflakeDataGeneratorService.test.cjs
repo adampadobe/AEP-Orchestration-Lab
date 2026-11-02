@@ -21,7 +21,7 @@ const { scaleEmail } = require('../labProfileGenerationPrefsStore');
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
-function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com' } = {}) {
+function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com', failureStatementId = null } = {}) {
   const calls = [];
   let destroyed = false;
   let emailCounter = 0;
@@ -37,9 +37,14 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
         else if (options.sqlText.endsWith('.NEXTVAL AS START_INDEX')) {
           options.complete(null, null, [{ START_INDEX: crmSequence }]);
           crmSequence += 1000;
+        } else if (options.sqlText.startsWith('SELECT ECID, _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP FROM')) {
+          options.complete(null, null, options.binds.map((ecid) => ({
+            ECID: ecid, _RECORDCREATEDTIMESTAMP: '2026-10-31T19:40:50.000Z',
+            _RECORDUPDATEDTIMESTAMP: '2026-10-31T19:40:50.000Z',
+          })));
         } else options.complete(null, null, rows);
       } catch (error) {
-        options.complete(error);
+        options.complete(error, { getStatementId: () => failureStatementId });
       }
     },
   };
@@ -76,6 +81,76 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('types nullable arrays in legacy base-profile batches too', async () => {
+    const fixture = serviceWithConnection();
+    const result = await fixture.service.handleGenerateBaseProfiles({
+      labUser: 'offline-user', sandbox: 'test', count: 3, batchSize: 2,
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.error));
+    const inserts = fixture.calls.filter(({ sqlText }) => sqlText.startsWith('INSERT INTO'));
+    assert.equal(inserts.length, 2);
+    for (const insert of inserts) {
+      assert.match(insert.sqlText, /PARSE_JSON\(\?\)::ARRAY/);
+      assert.doesNotMatch(insert.sqlText, /VALUES\s*\(/);
+      assert.ok(insert.binds.every((value) => !Array.isArray(value)));
+    }
+    assert.match(inserts[0].sqlText, /UNION ALL SELECT/);
+    assert.equal(result.rowcount, 3);
+  });
+
+  it('serializes array bindings for AEP dual-load across all six industries', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleInsertProfileFromAep({
+        labUser: 'offline-user', sandbox: 'test', industry,
+        email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      const insert = fixture.calls.find(({ sqlText }) => sqlText.startsWith('INSERT INTO'));
+      assert.ok(insert, industry);
+      assert.doesNotMatch(insert.sqlText, /VALUES\s*\(/);
+      assert.match(insert.sqlText, /SELECT .*PARSE_JSON\(\?\)::ARRAY/);
+      const columns = insert.sqlText.match(/\(([^)]+)\) SELECT/)[1].split(', ');
+      const tokens = JSON.parse(insert.binds[columns.indexOf('PUSHTOKENS')]);
+      assert.equal(tokens.length, 1);
+      assert.match(tokens[0], /^demo-fcm-/);
+      assert.ok(insert.binds.every((value) => !Array.isArray(value)), industry);
+      if (industry === 'travel') {
+        const expressions = insert.sqlText.split(' SELECT ')[1].split(', ');
+        for (const column of ['FAVORITEDESTINATIONS', 'SPECIALASSISTANCE']) {
+          assert.equal(expressions[columns.indexOf(column)], 'PARSE_JSON(?)::ARRAY');
+          assert.equal(insert.binds[columns.indexOf(column)], null);
+        }
+      }
+      assert.ok(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'));
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+
+  it('preserves the failing statement query ID before rolling back dual-load', async () => {
+    const fixture = serviceWithConnection((sql) => {
+      if (sql.startsWith('INSERT INTO')) {
+        const error = new Error('injected compilation failure');
+        error.code = '002040';
+        error.sqlState = '42601';
+        throw error;
+      }
+      return [];
+    }, { failureStatementId: 'offline-query-id' });
+    const result = await fixture.service.handleInsertProfileFromAep({
+      labUser: 'offline-user', sandbox: 'test', industry: 'fsi',
+      email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error.queryId, 'offline-query-id');
+    assert.equal(result.error.code, '002040');
+    assert.equal(result.error.sqlState, '42601');
+    assert.equal(result.error.phase, 'insert_profile_transaction');
+    assert.equal(fixture.calls.at(-1).sqlText, 'ROLLBACK');
+    assert.equal(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'), false);
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
   it('rejects missing or stale email preferences before connecting or reserving IDs', async () => {
     for (const baseEmail of ['', 'new@example.com']) {
       const fixture = serviceWithConnection(undefined, { baseEmail });
@@ -134,7 +209,8 @@ describe('Snowflake seed API offline integration', () => {
       assert.equal(result.emailAllocation.nextCounterN, 3);
       assert.equal(result.profiles[1].emailCounterN, 2);
       assert.equal(fixture.reservedEmailCount(), 2);
-      assert.equal(fixture.calls.at(-1).sqlText, 'COMMIT');
+      assert.match(fixture.calls.at(-1).sqlText, /^SELECT ECID, _RECORDCREATEDTIMESTAMP/);
+      assert.equal(result.profiles[0].columns._RECORDUPDATEDTIMESTAMP, '2026-10-31T19:40:50.000Z');
       assert.equal(fixture.isDestroyed(), true);
     }
   });
@@ -156,6 +232,29 @@ describe('Snowflake seed API offline integration', () => {
     assert.equal(fixture.isDestroyed(), true);
   });
 
+  for (const phase of ['publication', 'readback']) {
+    it(`returns committed identities for a ${phase} failure without regenerating or rolling back`, async () => {
+      const fixture = serviceWithConnection((sql) => {
+        if ((phase === 'publication' && sql.startsWith('UPDATE DEMO_DB.LAB.AGENTIC_FSI_PROFILE_CUSTOMER SET'))
+          || (phase === 'readback' && sql.startsWith('SELECT ECID, _RECORDCREATEDTIMESTAMP'))) {
+          throw new Error(`injected ${phase} failure`);
+        }
+        return [];
+      });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline-user', sandbox: 'test', industry: 'fsi', count: 1,
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.committed, true);
+      assert.equal(result.error.code, phase === 'publication' ? 'SEED_TIMESTAMP_REFRESH_FAILED' : 'SEED_METADATA_READBACK_FAILED');
+      assert.equal(result.profiles.length, 1);
+      assert.equal(result.tableRowcounts['DEMO_DB.LAB.AGENTIC_FSI_PROFILE_CUSTOMER'], 1);
+      assert.equal(fixture.reservedEmailCount(), 1);
+      assert.equal(fixture.calls.filter(({ sqlText }) => sqlText === 'COMMIT').length, 1);
+      assert.equal(fixture.calls.some(({ sqlText }) => sqlText === 'ROLLBACK'), false);
+      assert.equal(fixture.isDestroyed(), true);
+    });
+  }
   it('keeps legacy/custom base dual-load targets independent of the shared parent', async () => {
     for (const table of ['BASE_PROFILES', 'CUSTOM_BASE']) {
       const fixture = serviceWithConnection();

@@ -125,7 +125,7 @@ test('Snowflake schema export forwards opt-in and returns exact DDL under user-k
     assert.equal(seen[0].init.headers['X-AEP-Lab-Mcp-Key'], 'test-user-key');
     assert.equal(seen[2].init.headers.Authorization, imsAuthHeaders.Authorization);
     assert.equal(seen[2].init.headers['X-AEP-Lab-Mcp-Key'], undefined);
-    for (const call of seen) assert.ok(call.url.endsWith('/api/snowflake/agentic/table-structure'));
+    for (const call of seen) assert.ok(call.url.endsWith('/snowflakeAgenticTableStructure'));
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -147,7 +147,7 @@ test('Snowflake setup preserves preview and confirmation fields for key and IMS 
   globalThis.fetch = async (url, init) => {
     const body = JSON.parse(init.body);
     seen.push({ url: String(url), init, body });
-    const result = String(url).endsWith('/validate-proposal') ? { validation: { errors: [] } } : {
+    const result = String(url).endsWith('/snowflakeIndustryValidateProposal') ? { validation: { errors: [] } } : {
       dry_run: body.dry_run !== false, executed: body.dry_run === false,
       requiresConfirmation: true, preview_fingerprint: 'confirmed-target',
       tables: ['COLLEAGUE_DB.LAB.AGENTIC_TRAVEL_PROFILE_CUSTOMER'],
@@ -195,8 +195,8 @@ test('MCP industry batch generation uses the UI endpoint and returns identity se
   globalThis.fetch = async (url, init) => {
     const body = JSON.parse(init.body);
     seen.push({ url: String(url), init, body });
-    const result = String(url).endsWith('/validate-proposal') ? { validation: { errors: [] } } :
-      String(url).endsWith('/enrich-profiles') ? { profileResults, insertedRowCount: 12 } :
+    const result = String(url).endsWith('/snowflakeIndustryValidateProposal') ? { validation: { errors: [] } } :
+      String(url).endsWith('/snowflakeAgenticEnrichProfiles') ? { profileResults, insertedRowCount: 12 } :
       { industry: body.industry, rowcount: 1, profiles, table: 'COLLEAGUE_DB.LAB.CRM', sample: [] };
     return { ok: true, status: 200, headers: new Headers({ 'Content-Type': 'application/json' }), json: async () => ({ ok: true, result }) };
   };
@@ -213,12 +213,12 @@ test('MCP industry batch generation uses the UI endpoint and returns identity se
           })).content[0].text);
           assert.equal(result.industry, industry);
           assert.deepEqual(result.profiles, [{ email: profiles[0].email, ecid: '123', crmId: 'CRM1' }]);
-          assert.ok(seen.at(-1).url.endsWith('/api/snowflake/generate-industry-profiles'));
+          assert.ok(seen.at(-1).url.endsWith('/snowflakeGenerateIndustryProfiles'));
           assert.equal(seen.at(-1).body.industry, industry);
         });
       }
       await handlers.lab_snowflake_generate_base_profiles({ sandbox: 'colleague', count: 1 });
-      assert.ok(seen.at(-1).url.endsWith('/api/snowflake/generate-base-profiles'));
+      assert.ok(seen.at(-1).url.endsWith('/snowflakeGenerateBaseProfiles'));
       const previous = seen.length;
       assert.equal((await handlers.lab_snowflake_generate_base_profiles({
         sandbox: 'colleague', industry: 'retail', table: 'BASE_PROFILES',

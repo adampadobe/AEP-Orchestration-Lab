@@ -8,7 +8,7 @@ const { chromium } = require('playwright');
 
 const root = path.resolve(__dirname, '../web');
 const screenshotPages = new Set(['sky-demo.html', 'etihad-demo.html', 'riyadh-air-demo.html',
-  'social/linkedin.html', 'etihad-mobile-demo.html', 'fnb-demo.html', 'call-center-demo.html']);
+  'social/linkedin.html', 'etihad-mobile-demo.html', 'fnb-demo.html', 'call-center-demo.html', 'vuse-italia-demo.html']);
 
 async function consumers(dir) {
   const files = [];
@@ -74,6 +74,10 @@ async function main() {
         assert.equal(await page.evaluate(() => window.envBar.MANIFEST_VERSION), manifest.manifestVersion, relative);
         assert.equal(await page.locator('script[src*="shared/env-bar.js"]').count(), 1, relative + ': one loader');
         const mode = config.mode;
+        assert.equal(await page.locator('#aepLabNewVisitorBtn').count(), 1, relative + ': shared visitor reset action');
+        assert.equal(await page.evaluate(() => typeof window.AepDemoVisitorReset.reset), 'function', relative + ': one shared reset controller');
+        assert.equal(await page.evaluate(() => typeof window.AepDemoVisitorAdapters.register), 'function', relative + ': cross-demo visitor cleanup loaded');
+        assert.equal(await page.evaluate(() => typeof window.envBar.resetVisitor), 'function', relative + ': reset API');
         if (mode === 'shell' || mode === 'journey') {
           assert.equal(await page.locator('#aepDemoEnvSection').count(), 1, relative + ': one shared configuration');
           assert.equal(await page.locator('.lab-env-toolbar').count(), 1, relative + ': one toolbar');
@@ -119,8 +123,40 @@ async function main() {
                 assert.equal(await page.evaluate(() => document.body.hasAttribute('data-lab-menu-user-open')), false);
                 await page.evaluate(() => window.EnvBarCompact.closeOverlay({ force: true }));
               }
+              if (relative === 'vuse-italia-demo.html') {
+                const launcher = page.locator('#vusePresenterLauncher');
+                const style = await launcher.evaluate((element) => {
+                  const css = getComputedStyle(element), box = element.getBoundingClientRect();
+                  return { radius: css.borderRadius, width: box.width, height: box.height, x: box.x, right: box.right };
+                });
+                assert.equal(style.radius, '50%', 'Vuse presenter matches circular midrail controls');
+                assert.equal(style.width, style.height);
+                assert(style.x >= 0 && style.right <= width, 'Vuse presenter fits viewport');
+                assert.equal(await launcher.locator('svg').count(), 1, 'Same presentation icon as Riyadh Air');
+              }
             }
           }
+        }
+        if (relative === 'vuse-italia-demo.html') {
+          await page.evaluate(() => {
+            window.dispatchEvent(new StorageEvent('storage', {
+              key: 'aep-demo-visitor-invalidated-v1',
+              newValue: JSON.stringify({ id: 'fixture-other-tab', oldEcid: '1'.repeat(38), orgId: 'fixture' }),
+            }));
+          });
+          await page.locator('#aepLabVisitorResetStatus').waitFor({ state: 'visible' });
+          assert.equal(await page.evaluate(() => window.AepDemoVisitorReset.isBlocked()), true);
+          assert.equal(await page.locator('iframe:not([inert])').count(), 0, 'Invalidated iframe cannot receive interaction');
+          const submitted = await page.evaluate(() => {
+            const form = document.createElement('form');
+            document.body.appendChild(form);
+            const event = new Event('submit', { bubbles: true, cancelable: true });
+            form.dispatchEvent(event);
+            form.remove();
+            return !event.defaultPrevented;
+          });
+          assert.equal(submitted, false, 'Invalidated visitor cannot submit via keyboard');
+          assert.equal(await page.locator('#aepLabVisitorResetStatus button').isVisible(), true, 'Reload recovery remains available');
         }
         console.log('OK ' + relative + ' (' + mode + ')');
       } catch (error) {

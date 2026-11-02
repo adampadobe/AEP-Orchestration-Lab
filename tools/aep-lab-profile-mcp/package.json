@@ -1,7 +1,7 @@
 {
   "name": "aep-lab-profile-mcp",
   "private": true,
-  "version": "3.52.0",
+  "version": "3.52.1",
   "description": "Streamable HTTP MCP server for AEP Orchestration Lab profile tools (Coworker)",
   "type": "module",
   "engines": {
@@ -15,6 +15,7 @@
     "test:snowflake": "node scripts/snowflake-mcp-test.mjs",
     "test:snowflake-catalog": "node scripts/snowflake-catalog-mcp-test.mjs",
     "test:batch-sequence": "node scripts/batch-sequence-test.mjs",
+    "test:batch-jobs": "node --experimental-test-module-mocks --test test/batchJobs.test.mjs",
     "test:minimal-guardrails": "node scripts/minimal-event-guardrails-test.mjs",
     "test:brand-scrape-offline": "node scripts/brand-scrape-offline-test.mjs"
   },

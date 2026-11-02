@@ -99,7 +99,7 @@ const RAW_PATH_OWNERSHIP = [
   // ----- FSI -------------------------------------------------------------
   // Tenant subtree: `_<tenant>.industryFsi.*` (operator-context dropdowns
   // + financialProducts toggles, declared in the auto-created
-  // `Profile FSI v1` tenant FG — see fsiProfileInfraService.js).
+  // `AEP Lab - Profile FSI Generator v1` FG — see fsiProfileInfraService.js).
   // Tenant subtree: `_<tenant>.individualCharacteristics.fsi.*` is reserved
   // for any FSI-specific Profile Core extension; Generic claims the
   // `.core.*` slot.

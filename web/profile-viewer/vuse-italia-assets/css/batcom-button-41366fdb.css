@@ -1,0 +1,287 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-outline: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-container--primary-dark .cmp-button, .batcom-container--secondary-dark .cmp-button, .batcom-container--tertiary-dark .cmp-button { --batcom-button-outline: var(--batcom-color-button-outline-inverted, #0761cd); }
+
+.cmp-button { display: inline-flex; font-size: var(--batcom-typography-button-size-mobile); line-height: var(--batcom-typography-button-line-height-mobile); font-family: var(--batcom-typography-button-family); font-weight: var(--batcom-typography-button-weight); text-align: center; align-items: center; justify-content: center; border-radius: var(--batcom-layout-button-primary-border-radius); cursor: pointer; background-color: var(--batcom-button-bg); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border); padding: 10px 20px; color: var(--batcom-button-text) !important; text-decoration: none !important; }
+
+@media only screen and (min-width: 1024px) {
+  .cmp-button { --batcom-typography-button-size-mobile: var(--batcom-typography-button-size-desktop); --batcom-typography-button-line-height-mobile: var(--batcom-typography-button-line-height-desktop); }
+}
+
+.cmp-button span { color: var(--batcom-button-text); }
+
+@media (hover: hover) {
+  .cmp-button:hover { background-color: var(--batcom-button-bg-hover); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border-hover); color: var(--batcom-button-text-hover) !important; text-decoration: none !important; }
+  .cmp-button:hover span { color: var(--batcom-button-text-hover); }
+  .cmp-button:hover .cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon-hover); }
+}
+
+.cmp-button__text + .cmp-button__svg { margin-left: 15px; display: inline-flex; align-items: center; justify-content: center; padding: var(--batcom-layout-spacing-xxs, 4px) 0; }
+
+.cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon); filter: none; }
+
+.cmp-button__svg svg { height: 16px; }
+
+.cmp-button__svg .cmp-button__svg svg { height: 20px; }
+
+.cmp-button:focus { outline: transparent; }
+
+.cmp-button:focus-visible { outline: 2px solid var(--batcom-button-outline); outline-offset: 4px; }
+
+.batcom-button .cmp-button, .batcom-button--primary .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); }
+
+.batcom-container--primary-dark .batcom-button .cmp-button, .batcom-container--secondary-dark .batcom-button .cmp-button, .batcom-container--tertiary-dark .batcom-button .cmp-button, .batcom-container--bg-black .batcom-button .cmp-button, .batcom-container--primary-dark .batcom-button--primary .cmp-button, .batcom-container--secondary-dark .batcom-button--primary .cmp-button, .batcom-container--tertiary-dark .batcom-button--primary .cmp-button, .batcom-container--bg-black .batcom-button--primary .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-primary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-primary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-button .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-button--primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button--primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button--primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-button--primary .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-primary-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button .cmp-button option, .batcom-container--secondary-dark .batcom-button .cmp-button option, .batcom-container--tertiary-dark .batcom-button .cmp-button option, .batcom-container--bg-black .batcom-button .cmp-button option, .batcom-container--primary-dark .batcom-button--primary .cmp-button option, .batcom-container--secondary-dark .batcom-button--primary .cmp-button option, .batcom-container--tertiary-dark .batcom-button--primary .cmp-button option, .batcom-container--bg-black .batcom-button--primary .cmp-button option { --batcom-button-text: var(--batcom-color-button-primary-text); color: var(--batcom-button-text, #000) !important; }
+
+.batcom-button.batcom-button--secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-secondary-text); --batcom-button-text-hover: var(--batcom-color-button-secondary-text-hover); --batcom-button-bg: var(--batcom-color-button-secondary-bg); --batcom-button-bg-hover: var(--batcom-color-button-secondary-bg-hover); --batcom-button-border: var(--batcom-color-button-secondary-border); --batcom-button-border-hover: var(--batcom-color-button-secondary-border-hover); --batcom-button-icon: var(--batcom-color-button-secondary-text); --batcom-button-icon-hover: var(--batcom-color-button-secondary-text-hover); --batcom-layout-button-primary-border-radius: var(--batcom-layout-button-secondary-border-radius); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--secondary .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--secondary .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-secondary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-secondary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-secondary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-secondary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-secondary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-secondary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--secondary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button.batcom-button--secondary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button.batcom-button--secondary .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-secondary-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-secondary-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--secondary .cmp-button option, .batcom-container--secondary-dark .batcom-button.batcom-button--secondary .cmp-button option, .batcom-container--tertiary-dark .batcom-button.batcom-button--secondary .cmp-button option { --batcom-button-text: var(--batcom-color-button-secondary-text); color: var(--batcom-button-text, #000) !important; }
+
+.batcom-button.batcom-button--tertiary .cmp-button { --batcom-button-text: var(--batcom-color-button-tertiary-text, #fff); --batcom-button-text-hover: var(--batcom-color-button-tertiary-text-hover, #fff); --batcom-button-bg: var(--batcom-color-button-tertiary-bg, #000); --batcom-button-bg-hover: var(--batcom-color-button-tertiary-bg-hover, #000); --batcom-button-border: var(--batcom-color-button-tertiary-border, #000); --batcom-button-border-hover: var(--batcom-color-button-tertiary-border-hover, #000); }
+
+.batcom-button.batcom-button--teal .cmp-button { --batcom-button-text: var(--batcom-color-button-teal-text, #fff); --batcom-button-text-hover: var(--batcom-color-button-teal-text-hover, #fff); --batcom-button-bg: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-bg-hover: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-border: var(--batcom-color-button-teal-bg, #027f9c); --batcom-button-border-hover: var(--batcom-color-button-teal-bg, #027f9c); }
+
+.batcom-button.batcom-button--teal-secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-teal-secondary-text, #027f9c); --batcom-button-text-hover: var(--batcom-color-button-teal-secondary-text-hover, #027f9c); --batcom-button-bg: var(--batcom-color-button-teal-secondary-bg, transparent); --batcom-button-bg-hover: var(--batcom-color-button-teal-secondary-bg, transparent); --batcom-button-border: var(--batcom-color-button-teal-secondary-bg, #027f9c); --batcom-button-border-hover: var(--batcom-color-button-teal-secondary-bg, #027f9c); }
+
+.batcom-button.batcom-button--disabled .cmp-button { --batcom-button-text: var(--batcom-color-button-disabled-text); --batcom-button-text-hover: var(--batcom-color-button-disabled-text-hover); --batcom-button-bg: var(--batcom-color-button-disabled-bg); --batcom-button-bg-hover: var(--batcom-color-button-disabled-bg-hover); --batcom-button-border: var(--batcom-color-button-disabled-border); --batcom-button-border-hover: var(--batcom-color-button-disabled-border-hover); --batcom-button-icon: var(--batcom-color-button-disabled-text); --batcom-button-icon-hover: var(--batcom-color-button-disabled-text-hover); --batcom-layout-button-primary-border-radius: var(--batcom-layout-button-disabled-border-radius); cursor: not-allowed; pointer-events: none; }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--disabled .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--disabled .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--disabled .cmp-button { --batcom-button-text: var(--batcom-color-button-disabled-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-disabled-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-disabled-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-disabled-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-disabled-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-disabled-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--disabled .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button.batcom-button--disabled .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button.batcom-button--disabled .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-disabled-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-disabled-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--disabled .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--disabled .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--disabled .cmp-button { cursor: not-allowed; }
+
+.batcom-container--secondary-light .batcom-button.batcom-button--disabled .cmp-button { --batcom-button-text: var(--batcom-color-button-disabled-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-disabled-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-disabled-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-disabled-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-disabled-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-disabled-border-hover-inverted); }
+
+.batcom-container--secondary-light .batcom-button.batcom-button--disabled .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-disabled-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-disabled-text-hover-inverted); }
+
+.batcom-container--secondary-light .batcom-button.batcom-button--disabled .cmp-button { cursor: not-allowed; }
+
+.batcom-button.batcom-button--link .cmp-button { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: none; padding: 0px; }
+
+.batcom-button.batcom-button--link .cmp-button .cmp-button__svg { margin-left: 0px; }
+
+.batcom-button.batcom-button--link .cmp-button:hover .cmp-button__icon { animation: 2s ease-in-out 0s infinite normal none running bounce-arrow; }
+
+@keyframes bounce-arrow { 
+  0% { transform: translate(0px); }
+  50% { transform: translate(10px); }
+  100% { transform: translate(0px); }
+}
+
+.batcom-button.batcom-button--link .cmp-button { --batcom-button-text: var(--batcom-color-button-link-text); --batcom-button-text-hover: var(--batcom-color-button-link-text-hover); --batcom-button-icon: var(--batcom-color-button-link-text); --batcom-button-icon-hover: var(--batcom-color-button-link-text-hover); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--link .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--link .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--link .cmp-button { --batcom-button-text: var(--batcom-color-button-link-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-link-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--link .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button.batcom-button--link .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button.batcom-button--link .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-link-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-link-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button, .batcom-container--bg-black .batcom-button.batcom-button--link-disable-inversion .cmp-button { --batcom-button-text: var(--batcom-color-button-link-text); --batcom-button-text-hover: var(--batcom-color-button-link-text-hover); --batcom-button-outline: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button.batcom-button--link-disable-inversion .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-button.batcom-button--link-disable-inversion .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-link-text); --batcom-button-icon-hover: var(--batcom-color-button-link-text-hover); }
+
+.batcom-button.batcom-button--vuse-pro { margin-top: 24px; }
+
+.batcom-button.batcom-button--vuse-pro .cmp-button { text-decoration: none; border: 2px solid rgb(255, 255, 255); background: none; font-size: 14px; border-radius: 50px; padding: 6px 0px; letter-spacing: 1px; width: 100%; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-button.batcom-button--vuse-pro .cmp-button { width: auto; padding: 10px 24px; }
+}
+
+.batcom-button.batcom-button--vuse-pro .cmp-button span { color: rgb(255, 255, 255); font-size: 12px; line-height: 16px; letter-spacing: 1px; font-weight: 500; font-family: var(--batcom-font-face-3-name, "Gotham-Bold"); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-button.batcom-button--vuse-pro .cmp-button span { font-weight: 700; }
+}
+
+.batcom-button.batcom-button--rewards-footer-link .cmp-button { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: none; padding: 0px; }
+
+.batcom-button.batcom-button--rewards-footer-link .cmp-button .cmp-button__svg { margin-left: 0px; }
+
+.batcom-button.batcom-button--rewards-footer-link .cmp-button:hover .cmp-button__icon { animation: 2s ease-in-out 0s infinite normal none running bounce-arrow; }
+
+@keyframes bounce-arrow { 
+  0% { transform: translate(0px); }
+  50% { transform: translate(10px); }
+  100% { transform: translate(0px); }
+}
+
+.batcom-button.batcom-button--rewards-footer-link .cmp-button { --batcom-button-text: var(--batcom-color-button-link-text); --batcom-button-text-hover: var(--batcom-color-button-link-text-hover); --batcom-button-icon: var(--batcom-color-button-link-text); --batcom-button-icon-hover: var(--batcom-color-button-link-text-hover); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button, .batcom-container--secondary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button, .batcom-container--tertiary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button { --batcom-button-text: var(--batcom-color-button-link-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-link-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button.batcom-button--rewards-footer-link .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-link-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-link-text-hover-inverted); }
+
+.batcom-button.batcom-button--rewards-footer-link .cmp-button { font-family: var(--batcom-font-face-1-name, sans-serif); font-size: 14px; margin: 0px 12px; text-decoration: underline !important; }
+
+.batcom-button .cmp-button.loading svg { display: none; }
+
+.batcom-button .cmp-button.loading > span { filter: blur(2px); }
+
+.batcom-button .cmp-button.loading::after { content: ""; position: absolute; width: 32px; height: 32px; top: 50%; left: 50%; margin-top: -16px; margin-left: -16px; background-color: var(--batcom-button-text); mask-image: url("../img/spinner-f93f3b03.svg"); mask-size: contain; mask-repeat: no-repeat; mask-position: center center; animation: 2s linear 0s infinite normal none running spin; }
+
+.batcom-button .cmp-button.loading { position: relative; }
+
+.batcom-button .cmp-button.batcom-is-success { position: relative; }
+
+.batcom-button .cmp-button.batcom-is-success > span { filter: blur(2px); }
+
+.batcom-button .cmp-button.batcom-is-success::after { content: ""; position: absolute; width: 45px; height: 45px; top: 50%; left: 50%; margin-top: -22.5px; margin-left: -22.5px; background-color: rgb(0, 0, 0); mask-image: url("../img/checkmark-32c01ec1.gif"); mask-size: contain; mask-repeat: no-repeat; mask-position: center center; }
+
+.batcom-button { text-align: var(--batcom-button-text-align, left); }
+
+.batcom-button--left { --batcom-button-text-align: left; }
+
+.batcom-button--center { --batcom-button-text-align: center; }
+
+.batcom-button--right { --batcom-button-text-align: right; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-button--fullWidth-mobile .cmp-button { margin-left: auto; margin-right: auto; width: 100%; }
+}
+
+@media only screen and (min-width: 768px) {
+  .batcom-button--fullWidth-desktop .cmp-button { margin-left: auto; margin-right: auto; width: 100%; }
+}
+
+@media only screen and (max-width: 1023px) {
+  .batcom-button--fullWidth-tablet .cmp-button { margin-left: auto; margin-right: auto; width: 100%; }
+}
+
+.batcom-button--fullWidth .cmp-button { margin-left: auto; margin-right: auto; width: 100%; }
+
+.batcom-button .cmp-button__text { font-weight: var(--batcom-typography-button-weight); }
+
+.batcom-button--meganav-brand-button .cmp-button { width: 100%; padding: 16px 24px; display: flex; flex-direction: row-reverse; justify-content: space-between; align-items: center; background-color: transparent; border: 0px; }
+
+.batcom-button--meganav-brand-button .cmp-button__svg svg { height: 24px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-button--meganav-brand-button .cmp-button { justify-content: flex-end; }
+}
+
+.batcom-button--meganav-brand-button .cmp-button__text { color: var(--batcom-color-palette-text-title, #000); }
+
+.batcom-button--meganav-brand-button .cmp-button__icon { margin-left: 0px; margin-right: 32px; }
+
+.batcom-button--meganav-brand-button .cmp-button:hover span, .batcom-button--meganav-brand-button .cmp-button:hover .cmp-button__svg :is(svg, g, path) { color: var(--batcom-color-palette-text-title, #000); fill: var(--batcom-color-palette-text-title, #000); }
+
+.batcom-button--myglo-no-border-primary .cmp-button, .batcom-button--myglo-no-border-secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); }
+
+.batcom-container--primary-dark .batcom-button--myglo-no-border-primary .cmp-button, .batcom-container--secondary-dark .batcom-button--myglo-no-border-primary .cmp-button, .batcom-container--tertiary-dark .batcom-button--myglo-no-border-primary .cmp-button, .batcom-container--bg-black .batcom-button--myglo-no-border-primary .cmp-button, .batcom-container--primary-dark .batcom-button--myglo-no-border-secondary .cmp-button, .batcom-container--secondary-dark .batcom-button--myglo-no-border-secondary .cmp-button, .batcom-container--tertiary-dark .batcom-button--myglo-no-border-secondary .cmp-button, .batcom-container--bg-black .batcom-button--myglo-no-border-secondary .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-primary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-primary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button--myglo-no-border-primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button--myglo-no-border-primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button--myglo-no-border-primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-button--myglo-no-border-primary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-button--myglo-no-border-secondary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-button--myglo-no-border-secondary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-button--myglo-no-border-secondary .cmp-button .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-button--myglo-no-border-secondary .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-primary-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-button--myglo-no-border-primary .cmp-button option, .batcom-container--secondary-dark .batcom-button--myglo-no-border-primary .cmp-button option, .batcom-container--tertiary-dark .batcom-button--myglo-no-border-primary .cmp-button option, .batcom-container--bg-black .batcom-button--myglo-no-border-primary .cmp-button option, .batcom-container--primary-dark .batcom-button--myglo-no-border-secondary .cmp-button option, .batcom-container--secondary-dark .batcom-button--myglo-no-border-secondary .cmp-button option, .batcom-container--tertiary-dark .batcom-button--myglo-no-border-secondary .cmp-button option, .batcom-container--bg-black .batcom-button--myglo-no-border-secondary .cmp-button option { --batcom-button-text: var(--batcom-color-button-primary-text); color: var(--batcom-button-text, #000) !important; }
+
+.batcom-button--myglo-no-border-primary .cmp-button, .batcom-button--myglo-no-border-secondary .cmp-button { border: 0px; border-radius: 4px; padding: 10px 4px; }
+
+.batcom-button--myglo-no-border-primary .cmp-button span, .batcom-button--myglo-no-border-secondary .cmp-button span { font-size: 16px; font-weight: 700; font-family: var(--batcom-font-face-3-name, "Gotham-Bold"); }
+
+.batcom-button--myglo-no-border-primary .cmp-button { background: var(--batcom-color-button-myglo-no-border-primary-button-bg, #fff); }
+
+.batcom-button--myglo-no-border-primary .cmp-button span { color: var(--batcom-color-button-myglo-no-border-primary-button-text, #000); }
+
+.batcom-button--myglo-no-border-secondary .cmp-button { background: var(--batcom-color-button-myglo-no-border-secondary-button-bg, #fff); }
+
+.batcom-button--myglo-no-border-secondary .cmp-button span { color: var(--batcom-color-button-myglo-no-border-secondary-button-text, #0369a1); }
+
+.batcom-button--vuse-pro-sticky-cta .cmp-button { background: var(--batcom-color-button-primary-bg); padding: 8px 24px; border-radius: 80px; border: 0px; }
+
+@media only screen and (min-width: 480px) {
+  .batcom-button--vuse-pro-sticky-cta .cmp-button { min-width: 500px; min-height: 40px; }
+}
+
+.batcom-button--vuse-pro-sticky-cta .cmp-button__text { font-family: var(--batcom-font-face-3-name); font-size: 12px; font-weight: 700; line-height: 16px; letter-spacing: 1px; color: rgb(39, 38, 38); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-button--vuse-meganav { border-bottom: 1px solid rgb(255, 255, 255); padding: 16px; margin: 0px; text-align: left; width: 100%; }
+  .batcom-button--vuse-meganav:has(.meganav-back-btn) { border: 0px; }
+}
+
+.batcom-button--vuse-meganav .cmp-button { border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background: none; padding: 0px; flex-direction: row-reverse; gap: 16px; position: relative; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-button--vuse-meganav .cmp-button { width: 100%; justify-content: flex-end; }
+}
+
+.batcom-button--vuse-meganav .cmp-button__text { font-family: var(--batcom-font-face-2-name, "Gotham-Medium"); font-weight: 500; font-size: 20px; line-height: 120%; letter-spacing: 0%; color: var(--batcom-color-button-header-meganav-text, #fff); text-transform: none; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-button--vuse-meganav .cmp-button__text { font-size: 16px; }
+}
+
+.batcom-button--vuse-meganav .cmp-button__icon { margin-left: 0px; }
+
+.batcom-button--vuse-meganav .cmp-button__icon :is(svg, g, path) { height: 100%; fill: var(--batcom-color-button-header-meganav-icon, #fff); }
+
+.batcom-button--vuse-meganav .cmp-button:not(.meganav-back-btn)::after { content: ""; position: absolute; width: 18px; height: 12px; right: -34px; mask-image: url("../img/arrow-right-link-button-25685e7e.svg"); mask-size: contain; mask-repeat: no-repeat; background-color: var(--batcom-color-button-header-meganav-icon, #fff); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-button--vuse-meganav .cmp-button:not(.meganav-back-btn)::after { right: 0px; }
+}
+
+.batcom-button--vuse-meganav .cmp-button.meganav-back-btn { flex-direction: row; justify-content: flex-start; }
+
+.batcom-button--vuse-meganav .cmp-button.meganav-back-btn::after { display: none; }
+
+.batcom-button--vuse-meganav .cmp-button.meganav-back-btn .cmp-button__text { font-size: 20px; }
+
+.batcom-button--vuse-meganav .cmp-button.meganav-back-btn::before { content: ""; width: 18px; height: 14px; mask-image: url("../img/chevron-left-vuse-d38ddd00.svg"); mask-size: contain; mask-repeat: no-repeat; background-color: var(--batcom-color-button-header-meganav-icon, #fff); }
+
+body .batcom-button--velo-meganav-link-with-arrow .cmp-button { background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; padding: 0px; align-items: center; gap: 8px; min-height: 32px; display: flex; justify-content: flex-start; }
+
+@media only screen and (max-width: 1023px) {
+  body .batcom-button--velo-meganav-link-with-arrow .cmp-button { gap: 5px; min-height: 24px; }
+}
+
+body .batcom-button--velo-meganav-link-with-arrow .cmp-button__text { font-weight: 700; font-size: 14px; line-height: 120%; font-family: var(--batcom-typography-h1-family); letter-spacing: 0px; color: var(--batcom-color-button-header-meganav-text, #fff); text-transform: none; }
+
+@media only screen and (max-width: 1023px) {
+  body .batcom-button--velo-meganav-link-with-arrow .cmp-button__text { font-weight: 500; font-family: var(--batcom-font-face-5-name, var(--batcom-typography-body-family)); }
+}
+
+body .batcom-button--velo-meganav-link-with-arrow .cmp-button::after { content: ""; display: inline-block; width: 17.85px; height: 12.35px; mask: url("../img/arrow-right-navigation-dada3fcf.svg") center center / contain no-repeat; background-color: var(--batcom-color-button-header-meganav-arrow, #fff); }
+
+@media only screen and (min-width: 1024px) {
+  body .batcom-button--velo-meganav-link-with-arrow .cmp-button:hover::after { transform: translateX(3px); }
+}

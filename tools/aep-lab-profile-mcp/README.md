@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.52.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.52.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
@@ -446,6 +446,14 @@ Base personas for all **7 industries** (generic, travel, fsi, retail, telecom, m
 - **`lab_generate_profiles_batch`**: optional `segment_hint`, `delay_ms` (0–5000, overrides env).
 - **`lab_onboard_sandbox`** `mode=execute_all`: queues **`onboard_all`** job — provisions all not-ready industries sequentially; poll **`lab_batch_job_status`** (same store as batch).
 - Job store: Firestore **`mcpProfileBatchJobs`** on Cloud Run; `AEP_LAB_MCP_BATCH_STORE=memory` locally.
+- Optional undefined fields are omitted recursively from job records and progress
+  updates; explicit `false`, `0`, empty strings and `null` are retained. Undefined
+  array entries become `null` so item positions do not shift.
+- AEP profile batches validate inputs and stored preferences before reserving a
+  rate-limit slot. A failed job-record write releases that reservation and starts
+  no worker. Accepted jobs retain their slot even if later generation fails.
+  The job record is required execution state, not optional telemetry: persistence
+  failures remain explicit errors rather than starting an untracked batch.
 
 ### Rate limits (Phase 3, in-memory per instance)
 
@@ -565,6 +573,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
+| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); Snowflake calls bypass Hosting's 60-second limit. Set this separately for local function endpoints. |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
 | `AEP_LAB_MCP_BATCH_STORE` | No | `memory` for local; omit for Firestore on Cloud Run |
@@ -593,6 +602,7 @@ Tests:
 AEP_LAB_MCP_API_KEY='local-smoke-test-key' npm run smoke
 AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=off npm run test:phase2
 AEP_LAB_MCP_API_KEY='test' AEP_LAB_MCP_BATCH_STORE=memory AEP_LAB_MCP_FIRESTORE=off npm run test:phase3
+npm run test:batch-jobs # mocked Firestore/worker; no cloud writes or quota consumption
 ```
 
 ## Adobe AI Coworker setup
@@ -689,30 +699,24 @@ Cloud Run service account needs **Cloud Datastore User** for Firestore collectio
 > though the function is live — see `test/labApiRoutes.test.mjs`, which asserts every
 > literal `/api/...` path in `labApiClient.mjs` has a matching rewrite.
 
-Inspect the live service first, build an immutable image, and update **only** the image. `gcloud run services update` preserves the existing environment variables, secret bindings, service account, ingress, timeout, memory, and scaling configuration.
+Use the guarded release script from the repository root. It inspects the live
+service, builds an immutable full-SHA image with `cloudbuild.yaml`, and updates
+**only** the image, preserving environment variables, secret bindings, service
+account, ingress, timeout, memory, and scaling configuration.
 
 ```bash
-cd tools/aep-lab-profile-mcp
-
-export PROJECT_ID=aep-orchestration-lab
-export REGION=us-central1
-export SERVICE=aep-lab-profile-mcp
-export IMAGE="gcr.io/${PROJECT_ID}/${SERVICE}:$(git rev-parse --short HEAD)"
-
-gcloud run services describe "${SERVICE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}"
-
-gcloud builds submit --tag "${IMAGE}" --project "${PROJECT_ID}" .
-
-gcloud run services update "${SERVICE}" \
-  --image "${IMAGE}" \
-  --region "${REGION}" \
-  --project "${PROJECT_ID}" \
-  --platform managed
+bash tools/aep-lab-profile-mcp/scripts/release-main.sh "$(git rev-parse HEAD)"
 ```
 
-Read the service back after deployment. Confirm the intended revision receives 100% of traffic and that all expected environment-variable and secret-binding **names** remain present; never print secret values. Then verify `/health` and the affected MCP endpoints.
+`/health` and `lab_mcp_access_info` expose `build.version`, `build.commitSha`,
+`build.revision` and `build.pullRequest`. Unknown metadata is explicitly null.
+The image embeds SHA/PR at build time; revision comes from Cloud Run. The script
+also checks that health reports the requested SHA and serving revision.
+Read the affected MCP endpoints back after deployment. Never print secret values.
+
+Preflight accepts optional `refresh:boolean` and defaults to true. A client
+rejecting the argument has not invoked the tool: omission still requests a fresh
+check, while a new connection's `tools/list` should be checked independently.
 
 ### Initial provisioning or intentional full configuration change
 

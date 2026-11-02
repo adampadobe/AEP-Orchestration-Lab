@@ -26,8 +26,17 @@ const consumers = [...htmlFiles(pv), path.join(root, 'functions/brandScraperProf
 const changed = [];
 for (const filename of consumers) {
   const before = fs.readFileSync(filename, 'utf8');
-  const after = before.replace(/(<script\b[^>]*\bsrc=["'][^"']*shared\/env-bar\.js)(?:\?[^"']*)?(["'])/g,
+  let after = before.replace(/(<script\b[^>]*\bsrc=["'][^"']*shared\/env-bar\.js)(?:\?[^"']*)?(["'])/g,
     '$1?v=' + manifest.manifestVersion + '$2');
+  if (before.includes('shared/env-bar.js') && manifest.assets.visitorReset) {
+    after = after.replace(/(<script\b[^>]*\bsrc=["'][^"']*aep-profile-drawer\.js)(?:\?[^"']*)?(["'])/g,
+      '$1?v=' + manifest.assets.visitorReset + '$2');
+    after = after.replace(/(<script\b[^>]*\bsrc=["'][^"']*(?:vuse-italia-demo|riyadh-air-demo|armcom-demo|armcom-mobile-demo|armcom-ecid-reset|fnb-demo|oldmutual-demo|navigator-global-demo)\.js)(?:\?[^"']*)?(["'])/g,
+      (_match, prefix, suffix) => {
+        const name = prefix.match(/([^/"]+)\.js$/)?.[1];
+        return prefix + '?v=' + (manifest.pageAssets?.[name] || manifest.assets.visitorReset) + suffix;
+      });
+  }
   if (before === after) continue;
   changed.push(path.relative(root, filename));
   if (write) fs.writeFileSync(filename, after);

@@ -3,7 +3,7 @@
 const assert = require('node:assert/strict');
 
 // Models only the parameterized SQL emitted by the seed/enrichment writers.
-function snowflakeMemoryFixture() {
+function snowflakeMemoryFixture({ now = () => new Date().toISOString() } = {}) {
   let tables = new Map();
   let snapshot;
   let sequenceNext = 1000;
@@ -25,13 +25,31 @@ function snowflakeMemoryFixture() {
     }
     if (sql === 'COMMIT') { snapshot = undefined; return []; }
     if (sql === 'ROLLBACK') { tables = snapshot; snapshot = undefined; return []; }
+    if (sql.startsWith('UPDATE ') && sql.includes('CURRENT_TIMESTAMP()')) {
+      assert.equal(snapshot, undefined, 'timestamp publication must run after commit in autocommit mode');
+      const table = sql.match(/^UPDATE (\S+)/)[1];
+      const key = sql.match(/WHERE ([A-Z_0-9]+) IN/)[1];
+      const columns = [...sql.matchAll(/(_RECORDCREATEDTIMESTAMP|_RECORDUPDATEDTIMESTAMP|VERSION_TS) = /g)]
+        .map((match) => match[1]);
+      const created = columns.includes('_RECORDCREATEDTIMESTAMP') ? binds[0] : undefined;
+      const ids = columns.includes('_RECORDCREATEDTIMESTAMP') ? binds.slice(1) : binds;
+      const timestamp = now();
+      let count = 0;
+      for (const row of rows(table).filter((row) => ids.includes(row[key]))) {
+        for (const column of columns) {
+          if (column !== '_RECORDCREATEDTIMESTAMP' || row[column] === created) row[column] = timestamp;
+        }
+        count += 1;
+      }
+      return [{ 'number of rows updated': count }];
+    }
     if (sql.startsWith('MERGE INTO ')) {
       const table = sql.match(/^MERGE INTO (\S+)/)[1];
       const key = sql.match(/ON target\.([A-Z_0-9]+) = source\.\1/)[1];
       const selects = sql.slice(sql.indexOf('USING (') + 7, sql.indexOf(') source'));
       let bindIndex = 0;
       for (const select of selects.split('\nUNION ALL\n')) {
-        const source = Object.fromEntries([...select.matchAll(/(PARSE_JSON\(\?\)|\?|NULL) AS ([A-Z_0-9]+)/g)]
+        const source = Object.fromEntries([...select.matchAll(/(PARSE_JSON\(\?\)(?:::(?:ARRAY|VARIANT|OBJECT))?|\?|NULL) AS ([A-Z_0-9]+)/g)]
           .map(([, expression, column]) => {
             const value = expression === 'NULL' ? null : binds[bindIndex++];
             return [column, expression.startsWith('PARSE_JSON') ? JSON.parse(value) : value];

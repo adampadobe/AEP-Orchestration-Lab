@@ -422,7 +422,8 @@ async function compareAndWriteConfig(context, expected, desired, deps) {
   const result = await deps.database.ref(`ajoLookups/${context.workspaceSlug}`).transaction((root) => {
     if (digest(configValues(root || {})) !== digest(expected)) {
       conflict = true;
-      return;
+      // A cold local cache yields null first; return it so RTDB reruns with the server value instead of aborting.
+      return root === null ? null : undefined;
     }
     const next = { ...(root || {}) };
     desired.forEach(({ path, value }) => {

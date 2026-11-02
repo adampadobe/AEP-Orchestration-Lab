@@ -433,12 +433,12 @@ const INDUSTRY_EXTENSIONS = {
   },
   fsi: {
     // FSI streams almost everything to root (`personalFinances.*`) or to
-    // the `industryFsi.*` subtree typed by the separate Profile FSI v2 FG.
+    // `industryFsi.*`, typed by the dedicated AEP Lab FSI Generator FG.
     // Nothing extra needed under Profile Core v2.
   },
   media: {
     // Media streams to `subscriptions.*` (root) and `industryMedia.*`
-    // (Profile Media v1/v2 FG). Nothing extra under Profile Core v2.
+    // (dedicated AEP Lab Media Generator FG). Nothing extra under Profile Core v2.
   },
   sports: {
     // Sports streams `industrySports.*` (Profile Sports v1 FG) and the
@@ -453,7 +453,17 @@ const INDUSTRY_EXTENSIONS = {
     // Telecom v1 FG). Nothing extra under Profile Core v2.
   },
   generic: {
-    // Generic is the baseline — no additions beyond the shared set.
+    // Vuse explicit form preferences. Optional booleans: absent is unknown; no global opt-in.
+    // Applied only by the existing additive Generic schema top-up after operator approval.
+    'preferences.brands.vuse.email': BOOLEAN_LEAF('Vuse email preference'),
+    'preferences.brands.vuse.sms': BOOLEAN_LEAF('Vuse SMS preference'),
+    'preferences.brands.vuse.whatsapp': BOOLEAN_LEAF('Vuse WhatsApp preference'),
+    'preferences.brands.velo.email': BOOLEAN_LEAF('Velo email preference'),
+    'preferences.brands.velo.sms': BOOLEAN_LEAF('Velo SMS preference'),
+    'preferences.brands.velo.whatsapp': BOOLEAN_LEAF('Velo WhatsApp preference'),
+    'preferences.brands.glo.email': BOOLEAN_LEAF('glo email preference'),
+    'preferences.brands.glo.sms': BOOLEAN_LEAF('glo SMS preference'),
+    'preferences.brands.glo.whatsapp': BOOLEAN_LEAF('glo WhatsApp preference'),
   },
 };
 

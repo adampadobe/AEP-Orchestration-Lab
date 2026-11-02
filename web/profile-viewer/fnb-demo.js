@@ -287,30 +287,6 @@ function hasAdobeKndctrIdentityCookie() {
   }
 }
 
-/** Best-effort clear of Experience Platform Web SDK identity cookie(s). HttpOnly cookies cannot be cleared from script. */
-function clearAdobeKndctrIdentityCookiesBestEffort() {
-  if (typeof document === 'undefined') return;
-  try {
-    const names = new Set();
-    document.cookie.split(';').forEach(function (part) {
-      const name = part.split('=')[0].trim();
-      if (/^kndctr_.*_AdobeOrg_identity$/.test(name)) names.add(name);
-    });
-    const expire = 'expires=Thu, 01 Jan 1970 00:00:00 GMT';
-    const host = typeof window !== 'undefined' && window.location ? window.location.hostname || '' : '';
-    names.forEach(function (name) {
-      document.cookie = name + '=; Max-Age=0; path=/; ' + expire;
-      if (host) {
-        document.cookie = name + '=; Max-Age=0; path=/; domain=' + host + '; ' + expire;
-        const dot = host.indexOf('.') !== -1 ? host.replace(/^www\./, '') : '';
-        if (dot && dot !== host) document.cookie = name + '=; Max-Age=0; path=/; domain=.' + dot + '; ' + expire;
-      }
-    });
-  } catch (_) {
-    /* ignore */
-  }
-}
-
 /**
  * Logs whether visitor ECID matches Adobe’s Web SDK flow (Edge issues ECID; SDK stores `kndctr_*_AdobeOrg_identity`).
  * @param {string} ecid
@@ -387,6 +363,49 @@ let fnbAnonymousEcidMintPromise = null;
 
 /** Incremented when the demo resets visitor ECID so async mint work does not repersist after storage clear. */
 let fnbAnonymousEcidMintGeneration = 0;
+let fnbVisitorRequests = 0;
+
+function fnbVisitorBlocked() {
+  return window.AepDemoVisitorReset
+    ? window.AepDemoVisitorReset.isBlocked()
+    : !!sessionStorage.getItem('aep-demo-visitor-reset-v1');
+}
+
+async function fnbVisitorEventFetch(url, options) {
+  if (fnbVisitorBlocked()) throw new Error('Visitor reset is unverified. Finish it before sending events.');
+  fnbVisitorRequests++;
+  try {
+    const response = await fetch(url, options);
+    if (fnbVisitorBlocked()) throw new Error('This visitor was invalidated while the request was in progress.');
+    return response;
+  } finally { fnbVisitorRequests--; }
+}
+
+function registerFnbVisitorAdapter() {
+  if (!window.AepDemoVisitorReset) return;
+  window.AepDemoVisitorReset.registerAdapter({
+    beforeReset() {
+      if (fnbVisitorRequests || queryProfileBtn?.disabled) throw new Error('Wait for the current FNB operation before resetting the visitor.');
+    },
+    invalidate() {
+      fnbAnonymousEcidMintGeneration++;
+      fnbAnonymousEcidMintPromise = null;
+      clearAbandonBasketTimer();
+      selectedFnbBusinessAccountPackage = '';
+      for (const key of [FNB_SESSION_PROFILE_EMAIL_KEY, FNB_ANONYMOUS_ECID_KEY, FNB_ECID_SOURCE_KEY, FNB_BUSINESS_ACCOUNT_PACKAGE_KEY]) sessionStorage.removeItem(key);
+      if (customerEmail) customerEmail.value = '';
+      if (infoEcid) infoEcid.textContent = '—';
+    },
+    afterReset({ ecid }) {
+      sessionStorage.setItem(FNB_ANONYMOUS_ECID_KEY, ecid);
+      sessionStorage.setItem(FNB_ECID_SOURCE_KEY, 'adobe-web-sdk');
+      if (infoEcid) infoEcid.textContent = ecid;
+    },
+  });
+}
+if (window.envBar && typeof window.envBar.ready === 'function') {
+  window.envBar.ready().then(registerFnbVisitorAdapter).catch((error) => console.error('FNB visitor adapter failed:', error));
+}
 
 /**
  * First successful writer wins — avoids a late mint from a discarded home tab overwriting ECID after navigation.
@@ -395,6 +414,7 @@ let fnbAnonymousEcidMintGeneration = 0;
  * @returns {string|null}
  */
 function persistFnbAnonymousEcidIfUnset(ecid, sourceKey) {
+  if (fnbVisitorBlocked()) return null;
   const id = String(ecid || '').trim();
   if (!id || !/^\d+$/.test(id) || id.length < 10) return null;
   try {
@@ -421,7 +441,7 @@ async function mintFnbAnonymousEcidOnce() {
   const genAtMint = fnbAnonymousEcidMintGeneration;
 
   function mintStale() {
-    return genAtMint !== fnbAnonymousEcidMintGeneration;
+    return fnbVisitorBlocked() || genAtMint !== fnbAnonymousEcidMintGeneration;
   }
 
   function discardStalePersist() {
@@ -478,6 +498,7 @@ async function mintFnbAnonymousEcidOnce() {
  * @param {{ allowMint?: boolean }} [opts]
  */
 async function ensureAnonymousEcid(opts) {
+  if (fnbVisitorBlocked()) return null;
   const options = opts && typeof opts === 'object' ? opts : {};
   const denyMint = options.allowMint === false;
 
@@ -521,67 +542,12 @@ function applyAnonymousEcidToBarIfNeeded() {
   }
 }
 
-/**
- * Demo: clear session visitor ECID, best-effort clear Adobe `kndctr_*_AdobeOrg_identity`, remint (Web SDK or `/api/ecid/anonymous`).
- * Does not log out email session — refreshes drawer so the bar reflects the new visitor ECID when logged in.
- */
+/** Use the shared reload-and-verify reset; a server-generated ECID is not browser identity proof. */
 async function resetFnbVisitorEcidDemo() {
   if (!document.body || !document.body.classList.contains('fnb-demo-page')) return;
-
-  fnbAnonymousEcidMintGeneration += 1;
-  fnbAnonymousEcidMintPromise = null;
-  try {
-    sessionStorage.removeItem(FNB_ANONYMOUS_ECID_KEY);
-    sessionStorage.removeItem(FNB_ECID_SOURCE_KEY);
-  } catch (_) {
-    /* ignore */
-  }
-  clearAdobeKndctrIdentityCookiesBestEffort();
-  if (infoEcid) infoEcid.textContent = '—';
-
-  await ensureAnonymousEcid();
-  applyAnonymousEcidToBarIfNeeded();
-
-  let savedEmail = '';
-  try {
-    savedEmail = sessionStorage.getItem(FNB_SESSION_PROFILE_EMAIL_KEY) || '';
-  } catch (_) {
-    /* ignore */
-  }
-
-  let ecid = getEcidForExperienceEvent();
-  if (!ecid) {
-    try {
-      const s = sessionStorage.getItem(FNB_ANONYMOUS_ECID_KEY);
-      if (s && /^\d+$/.test(s) && s.length >= 10) ecid = s;
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
-  if (
-    savedEmail.trim() &&
-    window.AepProfileDrawer &&
-    typeof window.AepProfileDrawer.loadProfileDataForDrawer === 'function'
-  ) {
-    await window.AepProfileDrawer.loadProfileDataForDrawer(savedEmail.trim(), {
-      onUserMessage: (msg, type) => {
-        if (type === 'error') setRaceMessage(msg, type);
-      },
-      addEmailOnSuccess: false,
-    });
-  } else if (
-    ecid &&
-    window.AepProfileDrawer &&
-    typeof window.AepProfileDrawer.loadVisitorProfileDataForDrawer === 'function'
-  ) {
-    await window.AepProfileDrawer.loadVisitorProfileDataForDrawer(ecid, { onUserMessage: () => {} });
-  }
-
-  setRaceMessage(
-    'Visitor ECID reset for this tab. If Launch/Web SDK still shows the old ECID, clear site data or use a fresh profile.',
-    'success',
-  );
+  if (window.envBar && typeof window.envBar.ready === 'function') await window.envBar.ready();
+  if (!window.AepDemoVisitorReset) throw new Error('Shared browser visitor reset is unavailable on this page.');
+  return window.AepDemoVisitorReset.reset();
 }
 
 /**
@@ -600,7 +566,7 @@ async function sendApplicationLoginExperienceEvent(email) {
     channel: demoExperienceChannel(),
   };
   if (ecid) body.ecid = ecid;
-  const res = await fetch('/api/events/generator', {
+  const res = await fnbVisitorEventFetch('/api/events/generator', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(augmentFnbGeneratorPostBody(body)),
@@ -668,6 +634,7 @@ function bootFnbGeneratorTargets() {
 
 queryProfileBtn &&
   queryProfileBtn.addEventListener('click', async () => {
+    if (fnbVisitorBlocked()) return;
     clearAbandonBasketTimer();
     const email = getEmail().trim();
     if (!email) {
@@ -685,7 +652,7 @@ queryProfileBtn &&
         onUserMessage: setRaceMessage,
         addEmailOnSuccess: true,
       });
-      if (!result.ok) return;
+      if (!result.ok || fnbVisitorBlocked()) return;
 
       try {
         sessionStorage.setItem(FNB_SESSION_PROFILE_EMAIL_KEY, email.trim());
@@ -794,7 +761,7 @@ async function sendRaceEvent(eventTypeName, includeEventRegistration) {
       if (usePackageAsWebPageDetailsName && pkgSel) body.webPageDetailsName = pkgSel;
       if (ecid) body.ecid = ecid;
 
-      const res = await fetch('/api/events/generator', {
+      const res = await fnbVisitorEventFetch('/api/events/generator', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(augmentFnbGeneratorPostBody(body)),
@@ -886,7 +853,7 @@ async function sendFnbWebPageViewEvent(opts) {
     };
     if (ecidForSend) body.ecid = ecidForSend;
 
-    const res = await fetch('/api/events/generator', {
+    const res = await fnbVisitorEventFetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(augmentFnbGeneratorPostBody(body)),
@@ -964,7 +931,7 @@ async function sendFnbAccountApplicationCompleteEvent(product) {
     };
     if (ecid) body.ecid = ecid;
 
-    const res = await fetch('/api/events/generator', {
+    const res = await fnbVisitorEventFetch('/api/events/generator', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(augmentFnbGeneratorPostBody(body)),
@@ -1263,6 +1230,7 @@ fnbResetVisitorEcidBtn &&
 
 /** Rehydrate email + drawer after navigating between FNB demo pages (same tab). */
 (function restoreFnbSessionProfileAcrossPages() {
+  if (fnbVisitorBlocked()) return;
   if (!document.body || !document.body.classList.contains('fnb-demo-page')) return;
   let saved;
   try {
@@ -1322,6 +1290,7 @@ fnbResetVisitorEcidBtn &&
 
 (function initFnbDemoPageViewOnLoad() {
   const body = document.body;
+  if (fnbVisitorBlocked() || window.AepDemoVisitorReset?.isResetPage()) return;
   if (!body || !body.classList.contains('fnb-demo-page')) return;
 
   function pageViewSpec() {

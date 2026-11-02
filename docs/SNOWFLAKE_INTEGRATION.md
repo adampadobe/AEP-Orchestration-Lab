@@ -14,6 +14,45 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+### Long-running requests and gateway errors
+
+Snowflake SQL calls from the page and MCP use the direct Cloud Function URLs,
+not Firebase Hosting's `/api/snowflake/*` rewrites, which stop waiting after
+60 seconds. Seed preparation and linked writes can exceed that limit even for
+one recipient. MCP uses `AEP_LAB_FUNCTIONS_ORIGIN`; the page derives the origin
+from `firebaseDatabaseConfig.projectId` or the existing
+`window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__` override. Authentication, sandbox
+scope, static-IP egress, and the backend transaction are unchanged.
+For local MCP endpoint overrides, configure `AEP_LAB_FUNCTIONS_ORIGIN` as well
+as `AEP_LAB_API_ORIGIN`.
+
+A timeout or HTML gateway error does **not** prove a write failed: the backend
+can commit after the caller stops waiting. Never automatically regenerate,
+rewind the counter, or reuse reserved emails on that evidence. Wait for the
+backend request to finish, inspect its request logs, and look up the exact
+identity with `lab_snowflake_get_profile_by_email` or
+`lab_snowflake_get_profile_bundle` before deciding how to reconcile it.
+
+### Delta timestamps after a seed commit
+
+Generation's `runStamp` is not a commit timestamp. The shared seed writer first
+commits the parent, CRM, event, and relational/enrichment rows atomically, then
+publishes their metadata timestamps in bounded, per-table autocommit updates.
+Updates use Snowflake's UTC clock, not the caller's generation-start clock.
+New rows receive refreshed `_RECORDCREATEDTIMESTAMP` and, where present,
+`_RECORDUPDATEDTIMESTAMP` and `VERSION_TS`. Existing creation timestamps are
+preserved on replay; business/event occurrence dates and identity keys are unchanged.
+The API reads the CRM timestamps back before returning its profile samples.
+
+This addresses a long seed committing after a source run has advanced past its
+original timestamp. It is a post-commit publication step, not an exact Snowflake
+commit-time timestamp or a guarantee against every source scheduling race.
+Publication is not atomic across tables. If it fails, the API returns `ok:false`,
+`committed:true`, the committed identities/counts, and the failed/refreshed tables.
+Inspect those rows and repair metadata only; do not regenerate or reuse emails.
+Previously skipped rows require a separately reviewed timestamp repair and a
+subsequent source-flow readback. Existing AEP flow schedules/watermarks are not reset.
+
 ### Shared recipient email settings
 
 **Recipient email** shows the saved base email, read-only next counter, and
@@ -318,6 +357,93 @@ Verifier: `npm run verify:snowflake-industry-manifest` (manifest ↔ recipe regi
 For a **Snowflake-only** demo, confirm generation preferences and the requested count, then call **lab_snowflake_generate_base_profiles** with explicit `industry` and `count` after provisioning. This selects the same `/api/snowflake/generate-industry-profiles` CRM generator as the UI and returns compact `profiles` identity selectors for **lab_snowflake_enrich_profiles**. Omit `industry` only for the legacy `BASE_PROFILES` generator; do not combine industry mode with a `table` override or legacy email preferences. This path does not create AEP profiles.
 
 For **AEP + Snowflake**, use **lab_generate_profile** or **lab_generate_profiles_batch** with `dual_load_snowflake:true`, shared generation preferences, and `snowflake_enrichment:true` for non-travel activity. Alternatively enrich existing CRM profiles using the manifest keys above. Verify non-travel joins with **lab_snowflake_get_profile_bundle** and bounded samples; use the catalog/table preview for travel, including booking details. Full travel generation/enrichment still requires the configured Python runner; saving a Snowflake connection alone does not configure it.
+
+### AEP dual-stream and partial-failure diagnostics
+
+Non-generic AEP generation streams the Generic base first and the industry-owned
+overlay second. The base response issues a short-lived, signed continuation token
+bound to its email, sandbox, and ECID; the overlay must present it and reuse that
+ECID rather than race UPS profile visibility. The MCP does not expose the token
+in its final result. If the deployed Functions revision does not return a token,
+the MCP stops before the overlay and reports a partial success; do not regenerate
+that identity.
+
+The token is signed and verified in Cloud Functions using the existing bound
+`ADOBE_CLIENT_SECRET`; the MCP only forwards it and needs no new signing secret
+or IAM grant. The read-only `/api/profile-infra/status-all` response exposes
+`profileContinuation.ready` without exposing the secret. AEP preflight checks
+this flag for non-generic industries without reserving an email; run preflight
+before generation.
+`MERGE_TOKEN_SECRET_UNAVAILABLE` requires checking route dependency wiring as
+well as runtime secret availability, not blindly creating a new secret.
+
+Recent-profile synchronization and Snowflake dual-load happen after AEP accepts
+the profile and are independent operations. A 403 from recent-profile sync does
+not undo the AEP profile, and a Snowflake 400 does not mean AEP generation failed.
+Each MCP generate request carries a `correlation_id` across the profile stream,
+recent-profile sync, and Snowflake insert. Cloud Function logs use structured
+events with that ID, phase, duration, and safe error metadata; Snowflake errors
+preserve vendor code, SQL state, query ID when supplied by the error or SDK
+statement, and phase without logging credentials,
+SQL binds, email, or ECID. On partial failure, inspect the exact returned email
+and correlation ID before repair. Never automatically rerun generation.
+
+Industry dual-load and Travel seed inserts use declared column types for
+`ARRAY`, `OBJECT` and `VARIANT`, including null values, through
+`PARSE_JSON(?)::<TYPE>`. The sixteen Travel table contracts are audited, including
+`FAVORITEDESTINATIONS`, `SPECIALASSISTANCE` and event item arrays; the Python
+runner uses equivalent typed SELECT expressions. Legacy loyalty/preferences
+`PUSHTOKENS` columns remain text by design. Lab readback preserves arrays and
+objects instead of coercing arrays to comma-separated strings.
+Raw JavaScript array bindings can fail with `Unsupported data type 'VARIANT'`.
+Compilation failure
+rolls back the profile/recipient transaction; it does not undo the preceding
+AEP writes. Do not retry generation to repair this partial failure.
+
+FSI personas stream the tenant paths `industryFsi.*`, which require the
+dedicated `AEP Lab - Profile FSI Generator v1` field group. The existing tenant
+groups named `Profile FSI v1` and `Profile FSI v2` are preserved as optional
+extensions: their names do not prove they declare generator fields. In
+`apalmer`, the existing v1 defines `individualCharacteristics.fsi.*`, not
+`industryFsi.*`. Provisioning creates/attaches the dedicated group additively;
+it does not modify or detach those existing groups.
+Aggregate status and MCP preflight preserve required-field-group/identity
+readiness instead of inferring it from Profile-enabled schema/dataset flags.
+FSI readiness also checks the resolved schema's required tenant fields and
+types, exposing `requiredTenantFields.ready`, `missing`, and `conflicts`.
+Media applies the same checks to its dedicated
+`AEP Lab - Profile Media Generator v1` group and all twelve `industryMedia`
+fields. Existing `Profile Media v1/v2` groups are optional extensions, not proof
+that those generator paths exist.
+Missing required groups produce `attach_required_field_groups_and_identity`;
+review and approve `attachFieldGroups` separately before running it. If fields
+have conflicting types, stop for schema review rather than overwriting them.
+
+Primary Email identity accepts the tenant path
+`/_demoemea/identification/core/email` (or the sandbox's tenant equivalent).
+Descriptor discovery uses the Schema Registry's maximum list limit of 300,
+reads both `results`/`children` and type-keyed `xdm:descriptorIdentity` arrays,
+and follows pagination before deciding readiness. Registry request failures
+are surfaced as errors, not reported as missing identities. A secondary ECID
+descriptor must designate `/_demoemea/identification/core/ecid` (or its tenant
+equivalent), namespace `ECID`, with `isPrimary:false`; carrying an ECID field or
+setting a payload identity entry alone does not establish that schema identity.
+The approved attach step adds missing descriptors without replacing primary
+Email. Read-only status exposes `secondaryEcidDescriptor`. Cache version 4
+invalidates earlier readiness results; it changes status metadata only.
+For an explicit fresh check use `lab_sandbox_profile_config` with `refresh:true`,
+`lab_preflight_profile_generate` with `target:"aep", refresh:true` (the default),
+or `/api/profile-infra/status-all?sandbox=apalmer&refresh=1`.
+Preflight does not create profiles or consume an email counter.
+If a client rejects `refresh` before invoking preflight, omit that optional
+argument: the default is still a fresh check. Reconnect and verify the discovered
+tool schema separately; do not present a client-side rejection as a passed check.
+
+Two-step generation reports the Generic step's place mirror result; an industry
+overlay intentionally lacking place must not replace it with `no_place`. The
+streaming envelope retains the bare tenant alias (`demoemea` alongside
+`_demoemea`) for legacy Data Prep mappings. It is not a second profile write;
+removing it requires auditing those mappings first.
 
 Start with a small batch, inspect representative rows, then scale in bounded batches, honoring returned rate-limit hints. Identity keys are shared; operational profile data and correlated activity are synthetic. Realistic conditions intentionally leave some tables empty for individual profiles (for example, non-bettors have no betting rows). Non-travel activity uses deterministic generation IDs; each table's INSERT chunks commit together so a failed chunk can be retried without silently skipping earlier partial rows. Do not run concurrent enrichment for the same identities, or automatically retry a profile-generation request: profile generation creates new identities and is not idempotent.
 

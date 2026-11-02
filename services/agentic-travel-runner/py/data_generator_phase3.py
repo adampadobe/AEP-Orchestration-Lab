@@ -6,6 +6,7 @@ Adds in-journey event data: disruption, in-flight, hotel, loyalty transactions, 
 
 from datetime import datetime, timedelta
 import random
+from snowflake_bindings import insert_rows
 
 class Phase3DataGenerator:
     """Generate Phase 3 in-journey event data with realistic values"""
@@ -701,7 +702,7 @@ class Phase3DataGenerator:
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
         return len(events)
     
     def insert_inflight_events(self, events):
@@ -719,7 +720,7 @@ class Phase3DataGenerator:
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
         return len(events)
     
     def insert_hotel_events(self, events):
@@ -739,7 +740,7 @@ class Phase3DataGenerator:
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
         return len(events)
     
     def insert_loyalty_transactions(self, events):
@@ -758,7 +759,7 @@ class Phase3DataGenerator:
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                       %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
         return len(events)
     
     def insert_pos_events(self, events):
@@ -781,7 +782,7 @@ class Phase3DataGenerator:
                       %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         # Events already include all required columns (funnel, ancillary, channel, timestamp)
-        self.cursor.executemany(insert_sql, events)
+        insert_rows(self.cursor, insert_sql, events)
         return len(events)
     
     # ========================================

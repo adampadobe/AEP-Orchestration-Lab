@@ -1179,7 +1179,12 @@ const INDUSTRY_PLAYBOOKS = {
     ],
     tenant_paths: ['industryFsi.*'],
     root_paths: ['personalFinances.*', 'individualCharacteristics.core.creditScore'],
-    field_groups: ['Profile FSI v2', 'Personal Finance Details (root personalFinances.*)'],
+    field_groups: [
+      'AEP Lab - Profile FSI Generator v1 (required for industryFsi.* generator paths)',
+      'Profile FSI v1 (optional existing tenant extension; not a generator contract)',
+      'Profile FSI v2 (optional individualCharacteristics.fsi.* extension)',
+      'Personal Finance Details (root personalFinances.*)',
+    ],
     segment_hints: FSI_SEGMENT_HINTS,
     segment_semantics: {
       high_net_worth: 'Income 500k_plus, excellent credit 780+, high savings, platinum tier',
@@ -1190,7 +1195,11 @@ const INDUSTRY_PLAYBOOKS = {
     dataflow: dataflowPlaybook('fsi'),
     preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry fsi'],
     failure_modes: COMMON_FAILURE_MODES,
-    infra_prerequisites: ['fsiProfileConnections full manifest', 'Profile FSI v2 FG', 'personalFinances on schema union'],
+    infra_prerequisites: [
+      'fsiProfileConnections full manifest',
+      'required AEP Lab - Profile FSI Generator v1 FG plus resolved industryFsi.* field types',
+      'personalFinances on schema union',
+    ],
     example_prompt_chain: [
       'lab_generate_profile target aep sandbox apalmer industry fsi email fsi.hnw+001@adobetest.com randomize true segment_hint high_net_worth',
     ],
@@ -1252,14 +1261,14 @@ const INDUSTRY_PLAYBOOKS = {
     ],
     tenant_paths: ['industryMedia.*'],
     root_paths: ['subscriptions.*'],
-    field_groups: ['Profile Media v1/v2', 'Subscription Details (root subscriptions.*)'],
+    field_groups: ['AEP Lab - Profile Media Generator v1 (industryMedia generator paths)', 'Subscription Details (root subscriptions.*)'],
     segment_hints: [],
     testProfile: TEST_PROFILE_PLAYBOOK,
     language: LANGUAGE_PLAYBOOK,
     dataflow: dataflowPlaybook('media'),
     preflight: ['lab_sandbox_profile_config sandbox {sandbox} industry media'],
     failure_modes: COMMON_FAILURE_MODES,
-    infra_prerequisites: ['mediaProfileConnections full manifest'],
+    infra_prerequisites: ['mediaProfileConnections full manifest', 'Resolved industryMedia generator fields with correct types', 'Primary Email and secondary ECID identities'],
   },
   sports: {
     label: 'Sports & venues',

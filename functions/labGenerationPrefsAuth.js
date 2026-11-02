@@ -24,7 +24,11 @@ async function resolveGenerationPrefsPrincipal(req, deps) {
       return {
         ok: false,
         status: 403,
-        body: { ok: false, error: 'Invalid or revoked MCP API key.' },
+        body: {
+          ok: false,
+          error: 'Invalid or revoked MCP API key.',
+          code: 'MCP_KEY_INVALID_OR_REVOKED',
+        },
       };
     }
     return {

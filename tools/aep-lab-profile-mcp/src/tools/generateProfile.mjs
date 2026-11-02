@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
 import { executeGeneratePlan, planDualStreamGenerate } from '../framework/dualStreamGenerate.mjs';
@@ -159,6 +160,7 @@ export function registerGenerateProfileTool(mcpServer) {
       } = params;
       const started = Date.now();
       const keyId = getRequestKeyId();
+      const correlationId = randomUUID();
 
       const rate = checkGenerateRate(keyId);
       if (!rate.ok) {
@@ -314,6 +316,7 @@ export function registerGenerateProfileTool(mcpServer) {
         plan: generatePlan,
         append_if_existing,
         test_profile: normalized.test_profile,
+        correlation_id: correlationId,
       });
 
       writeAuditLog({
@@ -346,6 +349,7 @@ export function registerGenerateProfileTool(mcpServer) {
           ecid,
           industry: norm.industry,
           attributes: normalized.attributes,
+          correlationId,
           ...hints,
         });
 
@@ -358,6 +362,7 @@ export function registerGenerateProfileTool(mcpServer) {
             industry: norm.industry,
             table: snowflake_table,
             mode: dual_load_snowflake_mode || 'crm_generate',
+            correlation_id: correlationId,
           });
           snowflakeDualLoad = {
             requested: true,
@@ -369,7 +374,9 @@ export function registerGenerateProfileTool(mcpServer) {
             email: resolvedEmail,
             ecid: String(ecid),
             emailSource: emailResolved.use_stored_prefs ? 'labProfileGenerationPrefs' : 'custom_scaled',
-            error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error,
+            error: sfResult.ok
+              ? null
+              : sfResult.data?.error || sfResult.data?.result?.error || sfResult.error,
           };
           if (sfResult.ok && snowflake_enrichment === true) {
             if (norm.industry === 'travel') {
@@ -419,9 +426,26 @@ export function registerGenerateProfileTool(mcpServer) {
             status: apiResult.data?.streamingStatus || 502,
             error: apiResult.error || 'Generate failed',
             data: apiResult.data,
+            partialSuccess: apiResult.partialSuccess === true,
+            errorCode: apiResult.errorCode,
           };
+      const failedFollowUps = [
+        recentSync?.ok === false ? 'recent-profile sync' : null,
+        snowflakeDualLoad?.ok === false ? 'Snowflake dual-load' : null,
+      ].filter(Boolean);
 
       return fromLabApi(labApiShape, {
+        correlation_id: correlationId,
+        error_code: apiResult.errorCode || undefined,
+        partial_success:
+          (apiResult.ok && failedFollowUps.length > 0)
+          || apiResult.partialSuccess === true,
+        no_retry_guidance:
+          (apiResult.ok && failedFollowUps.length > 0)
+            ? `AEP profile generation succeeded but ${failedFollowUps.join(' and ')} failed. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
+            : (apiResult.partialSuccess === true
+              ? 'The generic base profile succeeded but the industry overlay was not completed. Do not regenerate this identity.'
+              : undefined),
         target: 'aep',
         sandbox: allowed.sandbox,
         industry: norm.industry,

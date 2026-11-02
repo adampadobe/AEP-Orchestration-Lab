@@ -13,6 +13,7 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
     env: {
       ...process.env, HOST: '127.0.0.1', PORT: '0',
       AEP_LAB_MCP_API_KEY: key, AEP_LAB_MCP_FIRESTORE: 'off', AEP_LAB_MCP_USAGE_ENABLED: 'false',
+      AEP_LAB_BUILD_SHA: 'a'.repeat(40), AEP_LAB_BUILD_PR: '362', K_REVISION: 'offline-00160-test',
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -38,6 +39,9 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
     t.signal.addEventListener('abort', () => reject(new Error('Server startup timed out')), { once: true });
   });
   let id = 0;
+  const expectedBuild = { version: '3.52.1', commitSha: 'a'.repeat(40),
+    revision: 'offline-00160-test', pullRequest: 362 };
+  assert.deepEqual((await (await fetch(`${origin}/health`)).json()).build, expectedBuild);
   const headers = {
     'X-AEP-Lab-Mcp-Key': key, 'Content-Type': 'application/json',
     Accept: 'application/json, text/event-stream',
@@ -101,4 +105,7 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   for (const name of names.filter((name) => name.startsWith('lab_platform_asset_'))) {
     assert.ok(fullNames.includes(name), 'Full endpoint must expose cleanup at initialization');
   }
+  const access = await post('/mcp', 'tools/call', { name: 'lab_mcp_access_info', arguments: {} },
+    full.headers.get('mcp-session-id'));
+  assert.deepEqual(JSON.parse((await access.json()).result.content[0].text).build, expectedBuild);
 });

@@ -1,0 +1,62 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-bff-accounticon { margin-left: 16px; text-align: center; }
+
+.batcom-bff-accounticon__icon { cursor: pointer; display: block; text-align: center; }
+
+.batcom-bff-accounticon__icon:hover { color: var(--batcom-color-header-anchor-hover); stroke: var(--batcom-color-header-anchor-hover); }
+
+.batcom-bff-accounticon__icon.open + .batcom-bff-accounticon__nav { display: block; z-index: 14; }
+
+.batcom-bff-accounticon__icon__img { display: inline-block; width: 16px; height: 16px; transform: translateY(8px); }
+
+.batcom-bff-accounticon__icon__label { display: block; font-family: var(--batcom-font-face-1-name); font-weight: 325; font-size: 0.75rem; line-height: 1.375rem; margin-top: 8px; text-transform: none; }
+
+.batcom-bff-accounticon__nav { position: absolute; right: -20px; width: max-content; background-color: rgb(255, 255, 255); padding: 5px 20px; display: none; z-index: 4; }
+
+.batcom-bff-accounticon__nav--item { padding: 5px 40px 5px 0px; cursor: pointer; text-align: left; }
+
+.batcom-bff-accounticon__nav--item:nth-child(2) { border-bottom: 1px solid rgb(0, 0, 0); }
+
+.batcom-bff-accounticon__nav--item-link { color: rgb(0, 0, 0); font-family: var(--batcom-font-face-1-name); font-weight: 800; }
+
+.batcom-bff-accounticon__nav--item-link:visited { color: rgb(0, 0, 0); }
+
+.batcom-bff-accounticon__nav--item a:hover { color: var(--batcom-color-body-text); }
+
+.batcom-bff-accounticon .signed-in { display: none; }
+
+.batcom-bff-accounticon.authenticated .signed-in { display: block; }
+
+.batcom-bff-accounticon.authenticated .signed-out { display: none; }

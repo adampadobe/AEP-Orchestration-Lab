@@ -2,12 +2,11 @@
  * AEP Lab "FSI (Financial Services) Profile" wizard — thin config wrapper
  * around `profileInfraFactory`.
  *
- * Field-group strategy (verified against three sandboxes — apalmer, kirkham, prod)
+ * Field-group strategy
  * --------------------------------------------------------------------------------
- *   1. Custom tenant FG `Profile FSI v2` (preferred when present — richer typing).
- *      `Profile FSI v1` is auto-created via createIfMissing if neither v1 nor v2
- *      exists, so a fresh sandbox bootstraps to a typed FG instead of falling
- *      through to the tenant subtree fallback only.
+ *   1. Dedicated FG `AEP Lab - Profile FSI Generator v1` types `industryFsi.*`.
+ *      Existing Profile FSI v1/v2 groups can describe different tenant fields.
+ *      Preserve them; do not infer generator compatibility from their titles.
  *   2. OOTB `profile-personal-finance-details` (Adobe Profile-class).
  *   3. OOTB `profile-personal-tax-profile-details` (Adobe Profile-class).
  *   4. ootbByIndustryTag — discovers any other Profile-class /global FGs whose
@@ -15,9 +14,9 @@
  *      Adobe doesn't populate that tag) whose title matches finance/tax/banking
  *      keywords. The two curated $ids above are deduped automatically.
  *
- * All entries are `optional: true` so a sandbox missing any one of them still
- * lets step 2 succeed; the UI continues to stream into `_<tenant>.industryFsi.*`
- * (Profile Core v2 tenant subtree) regardless of which layer resolves.
+ * The dedicated generator group and its resolved field types are required so
+ * provisioning cannot report success while the generator's tenant paths are
+ * untyped and silently dropped.
  */
 
 const { createProfileInfraService } = require('./profileInfraFactory');
@@ -27,14 +26,14 @@ const FSI_PROFILE_DATASET_NAME = 'AEP Lab - FSI Profile - Dataset';
 const FSI_PROFILE_HTTP_DATAFLOW_NAME = 'AEP Lab - FSI Profile - Dataflow';
 
 /**
- * Body of the auto-created `Profile FSI v1` tenant field group. Top-level
+ * Body of the dedicated lab generator field group. Top-level
  * keys live directly under `_<tenant>` (added by the factory), so they
  * appear at runtime as `_<tenant>.industryFsi.*` — exactly the paths the
  * UI module `profile-generation-fsi.js` streams to. Properties typed as
  * string for the band/segment scalars (today rendered as select-of-band
  * labels) and boolean for product-holding flags.
  */
-const PROFILE_FSI_V1_PROPERTIES = {
+const PROFILE_FSI_GENERATOR_PROPERTIES = {
   industryFsi: {
     type: 'object',
     title: 'AEP Lab FSI industry attributes',
@@ -61,6 +60,25 @@ const PROFILE_FSI_V1_PROPERTIES = {
   },
 };
 
+const PROFILE_FSI_GENERATOR_FIELD_GROUP = {
+  source: 'tenantTitlePattern',
+  match: /^AEP Lab - Profile FSI Generator v1$/i,
+  optional: false,
+  label: 'AEP Lab - Profile FSI Generator v1 (industryFsi generator paths)',
+  createIfMissing: {
+    title: 'AEP Lab - Profile FSI Generator v1',
+    description: 'AEP Orchestration Lab — auto-created Profile-class field group for the FSI industry profile pipeline.',
+    properties: PROFILE_FSI_GENERATOR_PROPERTIES,
+  },
+};
+
+const PROFILE_FSI_V2_FIELD_GROUP = {
+  source: 'tenantTitlePattern',
+  match: /^Profile FSI v2$/i,
+  optional: true,
+  label: 'Profile FSI v2 (individualCharacteristics.fsi extension)',
+};
+
 const service = createProfileInfraService({
   industryKey: 'fsi',
   industryDisplayName: 'FSI',
@@ -72,17 +90,14 @@ const service = createProfileInfraService({
     'AEP Lab FSI Profile streaming dataset (Profile-enabled). Sourced via HTTP API streaming for FSI-industry sample profile generation in this lab.',
   dataflowName: FSI_PROFILE_HTTP_DATAFLOW_NAME,
   industryFieldGroups: [
+    PROFILE_FSI_GENERATOR_FIELD_GROUP,
     {
       source: 'tenantTitlePattern',
-      match: /^Profile FSI( v\d+)?$/i,
+      match: /^Profile FSI v1$/i,
       optional: true,
-      label: 'Profile FSI (custom tenant FG)',
-      createIfMissing: {
-        title: 'Profile FSI v1',
-        description: 'AEP Orchestration Lab — auto-created Profile-class field group for the FSI industry profile pipeline.',
-        properties: PROFILE_FSI_V1_PROPERTIES,
-      },
+      label: 'Profile FSI v1 (existing tenant extension)',
     },
+    PROFILE_FSI_V2_FIELD_GROUP,
     // Note the URI shape: `/xdm/mixins/profile-personal-finance-details` (NO
     // `/profile/` segment). The WITH-`/profile/` variant 404s in /global —
     // verified against apalmer Apr 2026. This was a stale URI in the original
@@ -97,6 +112,7 @@ const service = createProfileInfraService({
     },
   ],
   tenantSubtreePrefix: 'industryFsi',
+  requiredTenantProperties: PROFILE_FSI_GENERATOR_PROPERTIES,
 });
 
 module.exports = {
@@ -104,4 +120,7 @@ module.exports = {
   FSI_PROFILE_SCHEMA_TITLE,
   FSI_PROFILE_DATASET_NAME,
   FSI_PROFILE_HTTP_DATAFLOW_NAME,
+  PROFILE_FSI_GENERATOR_PROPERTIES,
+  PROFILE_FSI_GENERATOR_FIELD_GROUP,
+  PROFILE_FSI_V2_FIELD_GROUP,
 };

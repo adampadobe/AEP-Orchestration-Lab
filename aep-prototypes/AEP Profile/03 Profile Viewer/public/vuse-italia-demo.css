@@ -1,0 +1,34 @@
+.vuse-italia-demo-page .vuse-presenter-launcher {
+  position: fixed; right: var(--lab-env-midrail-right, .85rem);
+  top: calc(50% + 3 * var(--lab-env-midrail-slot, 2.55rem)); transform: translateY(-50%); z-index: 7152;
+  display: grid; place-items: center; padding: 0;
+  width: var(--lab-env-midrail-btn-size, 2rem); height: var(--lab-env-midrail-btn-size, 2rem); border-radius: 50%;
+  background: var(--dash-surface); color: var(--dash-blue); border: 1px solid var(--dash-border);
+  box-shadow: var(--dash-shadow);
+  cursor: pointer;
+}
+.vuse-presenter-launcher:hover { background: var(--dash-hover); }
+.vuse-presenter-launcher:focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 3px; }
+.vuse-presenter {
+  width: min(45rem, calc(100vw - 2rem)); max-height: 85vh; padding: 0;
+  background: var(--dash-surface); color: var(--dash-text); border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius); box-shadow: var(--dash-shadow);
+}
+.vuse-presenter::backdrop { background: color-mix(in srgb, var(--dash-text) 45%, transparent); }
+.vuse-presenter header { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--dash-border); }
+.vuse-presenter h2 { margin: 0; font-size: 1.15rem; }
+.vuse-presenter-body { padding: 1rem; }
+.vuse-presenter label { display: block; margin-top: .75rem; }
+.vuse-presenter input, .vuse-presenter textarea {
+  display: block; width: 100%; box-sizing: border-box; padding: .6rem; margin: .4rem 0;
+  background: var(--dash-input-bg); color: var(--dash-text); border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm);
+}
+.vuse-presenter button { background: var(--dash-surface-alt); color: var(--dash-text); border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); padding: .5rem .75rem; margin: .25rem; cursor: pointer; }
+.vuse-presenter button:hover { background: var(--dash-hover); }
+.vuse-presenter button:disabled { opacity: .5; cursor: wait; }
+.vuse-presenter pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: .75rem; background: var(--dash-surface-alt); color: var(--dash-text-secondary); border-radius: var(--dash-radius-sm); }
+.vuse-presenter li { margin: .5rem 0; }
+.vuse-presenter [data-error="true"] { color: var(--dash-error-text); }
+.vuse-italia-demo-page.aep-bc-modal-open .mod-demo-site-frame { visibility: visible; }
+.vuse-italia-demo-page:not(.aep-bc-launcher-on) #brand-concierge-mount-host { display: none !important; }
+.vuse-italia-demo-page.site-clone-bc-modal-armed #siteCloneBcFab.site-clone-bc-fab { display: flex !important; }

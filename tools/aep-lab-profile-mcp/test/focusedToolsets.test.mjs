@@ -59,6 +59,11 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
           await server.connect(serverTransport);
           await client.connect(clientTransport);
           const { tools } = await client.listTools();
+          if (id === 'aep-lab-profiles' || id === 'aep-lab-general') {
+            const preflight = tools.find((tool) => tool.name === 'lab_preflight_profile_generate');
+            assert.equal(preflight.inputSchema.properties.refresh.type, 'boolean');
+            assert.equal(preflight.inputSchema.required?.includes('refresh') ?? false, false);
+          }
           const names = tools.map((tool) => tool.name);
           assert.equal(names.length, contexts.find((context) => context.id === id).toolCount, id);
           assert.equal(new Set(names).size, names.length, `${id} has no duplicate tools`);

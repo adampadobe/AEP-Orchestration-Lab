@@ -46,6 +46,7 @@ const {
 const { buildSnowflakeConnectOptions, describeConnectError } = require('./snowflakeService');
 const { TRAVEL_MANIFEST } = require('./snowflakeIndustryManifest');
 const { readSnowflakeCell } = require('./snowflakeRow');
+const { structuredColumnTypes, bindSnowflakeValue } = require('./snowflakeStructuredValues');
 const prefsStore = require('./labProfileGenerationPrefsStore');
 const { createRecipient, recipientRow } = require('./snowflakeRecipientFactory');
 const { ensureRecipientTable, mergeRecipientRows, qualifiedRecipientTable } = require('./snowflakeRecipientStore');
@@ -241,8 +242,13 @@ function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
     conn.execute({
       ...options,
-      complete(err, _stmt, rows) {
-        if (err) reject(err);
+      complete(err, stmt, rows) {
+        if (err) {
+          if (!err.queryId && !err.queryID && stmt && typeof stmt.getStatementId === 'function') {
+            err.queryId = stmt.getStatementId() || null;
+          }
+          reject(err);
+        }
         else resolve(rows || []);
       },
     });
@@ -463,13 +469,18 @@ async function handleGenerateBaseProfiles(input) {
 
     const sample = rows.slice(0, SAMPLE_SIZE).map(rowToObject);
 
-    const placeholders = COLUMNS.map(() => '?').join(', ');
-    const insertSql = `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) VALUES (${placeholders})`;
-
+    const types = structuredColumnTypes(COLUMN_DDL);
     let inserted = 0;
     for (let i = 0; i < rows.length; i += batchSize) {
       const slice = rows.slice(i, i + batchSize);
-      await execAsync(conn, { sqlText: insertSql, binds: slice });
+      const binds = [];
+      const selects = slice.map((row) => `SELECT ${row.map((value, index) => {
+        const bound = bindSnowflakeValue(value, types.get(COLUMNS[index]));
+        binds.push(bound.value);
+        return bound.expression;
+      }).join(', ')}`);
+      const insertSql = `INSERT INTO ${fqTable} (${COLUMNS.join(', ')}) ${selects.join(' UNION ALL ')}`;
+      await execAsync(conn, { sqlText: insertSql, binds });
       inserted += slice.length;
     }
 
@@ -567,6 +578,9 @@ async function handleGenerateIndustryProfiles(input) {
   const schema = resolveDualLoadInsertSchema(config.table, industry);
   let conn;
   let emailAllocation;
+  const profiles = [];
+  let tableRowcounts;
+  let committed = false;
   try {
     conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
     if (cfg.warehouse) {
@@ -586,7 +600,6 @@ async function handleGenerateIndustryProfiles(input) {
       expectedBaseEmail: generationPrefs.baseEmail,
     });
     const records = [];
-    const profiles = [];
     for (let i = 0; i < count; i += 1) {
       const reserved = emailAllocation.emails[i];
       const idx = startIndex + i;
@@ -616,11 +629,30 @@ async function handleGenerateIndustryProfiles(input) {
         phoneNumber: generated.rowObject.PHONENUMBER || generated.rowObject.PRIMARYPHONE || null,
         loyaltyId: generated.rowObject.LOYALTYID || null,
         recipientId: record.parent.RECIPIENT_ID,
-        columns: record.profile,
+        columns: { ...record.profile },
       });
     }
 
-    const tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
+    tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
+    committed = true;
+    for (let offset = 0; offset < profiles.length; offset += 50) {
+      const selected = profiles.slice(offset, offset + 50);
+      const metadata = await execute(`SELECT ECID, _RECORDCREATEDTIMESTAMP, _RECORDUPDATEDTIMESTAMP FROM ${fqTable}
+WHERE ECID IN (${selected.map(() => '?').join(', ')})`, selected.map(({ ecid }) => ecid));
+      const byEcid = new Map(metadata.map((row) => [String(readSnowflakeCell(row, 0, 'ECID')), row]));
+      if (metadata.length !== selected.length || byEcid.size !== selected.length) {
+        throw new Error('Committed seed timestamp readback did not return exactly the expected CRM identities.');
+      }
+      for (const profile of selected) {
+        const row = byEcid.get(profile.ecid);
+        if (!row) throw new Error('Committed seed timestamp readback omitted an expected CRM identity.');
+        for (const [index, column] of [[1, '_RECORDCREATEDTIMESTAMP'], [2, '_RECORDUPDATEDTIMESTAMP']]) {
+          const value = readSnowflakeCell(row, index, column);
+          if (value == null) throw new Error(`Committed seed timestamp readback omitted ${column}.`);
+          profile.columns[column] = value instanceof Date ? value.toISOString() : value;
+        }
+      }
+    }
 
     return {
       ok: true,
@@ -647,7 +679,18 @@ async function handleGenerateIndustryProfiles(input) {
       sample: profiles.slice(0, SAMPLE_SIZE).map((profile) => profile.columns),
     };
   } catch (err) {
-    const described = describeConnectError(err);
+    const described = describeConnectError(err.cause || err);
+    if (err.committed || committed) {
+      if (err.committed) described.message = `${err.message} ${described.message}`;
+      described.code = err.code || 'SEED_METADATA_READBACK_FAILED';
+      described.hints = ['The seed transaction already committed. Inspect timestamp publication for the returned identities; do not regenerate them or reuse their reserved emails.'];
+      return {
+        ok: false, committed: true, sandbox, industry, profiles,
+        tableRowcounts: err.tableRowcounts || tableRowcounts,
+        timestampPublication: { refreshedTables: err.refreshedTables, failedTable: err.failedTable },
+        error: described,
+      };
+    }
     const message = String(err && err.message || '');
     if (/does not exist|not authorized|insufficient privileges/i.test(message)) {
       described.code = 'INDUSTRY_TABLE_NOT_READY';
@@ -679,6 +722,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
     return {
       schemaKey: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER',
       columns: TRAVEL_COLUMNS,
+      columnDdl: config.columnDdl,
       mapRow: mapAepAttributesToTravelProfileRow,
       generateRow: generateTravelProfileRow,
       defaultMode: 'crm_generate',
@@ -690,6 +734,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
     return {
       schemaKey: config.table,
       columns: config.columns,
+      columnDdl: config.columnDdl,
       generateRow: (input) => generateIndustryProfileRow(config.industry, input),
       defaultMode: 'crm_generate',
       skipCreateTable: true,
@@ -699,6 +744,7 @@ function resolveDualLoadInsertSchema(tableName, industry) {
   return {
     schemaKey: 'BASE_PROFILES',
     columns: COLUMNS,
+    columnDdl: COLUMN_DDL,
     mapRow: mapAepAttributesToBaseProfileRow,
     defaultMode: 'mirror',
     skipCreateTable: false,
@@ -794,17 +840,22 @@ async function handleInsertProfileFromAep(input) {
   const fqTable = fullyQualified(cfg.database, cfg.schema, tableName);
   const runStamp = new Date().toISOString();
   let conn;
+  let phase = 'connect';
   try {
     conn = await connectAsync(snowflake, connectOpts);
+    phase = 'prepare_table';
     if (!skipCreateTable) {
       await execAsync(conn, { sqlText: `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)` });
     }
+    phase = 'prepare_recipient_store';
     if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
+    phase = 'allocate_crm_id';
     const startIndex = industry
       ? await getNextSeedCrmIndex((sqlText, binds) => execAsync(conn, { sqlText, binds }), cfg, [industry])
       : await getNextCrmStartIndex(conn, fqTable);
     const crmId = `CRM${startIndex}`;
 
+    phase = 'check_existing_ecid';
     const existing = await execAsync(conn, {
       sqlText: `SELECT ${insertColumns.join(', ')} FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
       binds: [ecid],
@@ -822,23 +873,26 @@ async function handleInsertProfileFromAep(input) {
         email: existingProfile.EMAIL || email,
         index: Number(existingCrmId.match(/(\d+)$/)?.[1] || startIndex),
       }) : null;
-      if (recipient) await withSnowflakeTransaction(conn, async () => {
-        await execAsync(conn, {
-          sqlText: `UPDATE ${fqTable} SET RECIPIENT_ID = ?, PUSHTOKENS = PARSE_JSON(?) WHERE ECID = ?`,
-          binds: [recipient.recipientId, JSON.stringify(recipient.pushTokens), ecid],
+      if (recipient) {
+        phase = 'refresh_existing_recipient';
+        await withSnowflakeTransaction(conn, async () => {
+          await execAsync(conn, {
+            sqlText: `UPDATE ${fqTable} SET RECIPIENT_ID = ?, PUSHTOKENS = PARSE_JSON(?) WHERE ECID = ?`,
+            binds: [recipient.recipientId, JSON.stringify(recipient.pushTokens), ecid],
+          });
+          await mergeRecipientRows(
+            (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+            cfg.database,
+            [recipientRow(
+              recipient,
+              existingProfile,
+              runStamp,
+              existingProfile.TESTPROFILE !== false,
+            )],
+            cfg.schema,
+          );
         });
-        await mergeRecipientRows(
-          (sqlText, binds) => execAsync(conn, { sqlText, binds }),
-          cfg.database,
-          [recipientRow(
-            recipient,
-            existingProfile,
-            runStamp,
-            existingProfile.TESTPROFILE !== false,
-          )],
-          cfg.schema,
-        );
-      });
+      }
       return {
         ok: true,
         table: fqTable,
@@ -854,6 +908,7 @@ async function handleInsertProfileFromAep(input) {
       };
     }
 
+    phase = 'build_crm_row';
     const normalizedAttrs = normalizeAepAttributesForSnowflake(input.attributes);
     const testProfileAttr = getAttr(normalizedAttrs, 'testProfile');
     const testProfile = testProfileAttr === false || testProfileAttr === 'false' ? false : true;
@@ -893,11 +948,16 @@ async function handleInsertProfileFromAep(input) {
       row: insertColumns.map((column) => rowObject[column] ?? null),
     };
 
-    const placeholders = insertColumns.map(() => '?').join(', ');
+    const types = structuredColumnTypes(insertSchema.columnDdl);
+    const values = insertColumns.map((column, index) =>
+      bindSnowflakeValue(profileRow.row[index], types.get(column)));
+    const expressions = values.map(({ expression }) => expression);
+    const binds = values.map(({ value }) => value);
+    phase = 'insert_profile_transaction';
     await withSnowflakeTransaction(conn, async () => {
       await execAsync(conn, {
-        sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) VALUES (${placeholders})`,
-        binds: profileRow.row,
+        sqlText: `INSERT INTO ${fqTable} (${insertColumns.join(', ')}) SELECT ${expressions.join(', ')}`,
+        binds,
       });
       if (recipient) await mergeRecipientRows(
         (sqlText, binds) => execAsync(conn, { sqlText, binds }),
@@ -921,7 +981,7 @@ async function handleInsertProfileFromAep(input) {
       sample: profileRow.rowObject,
     };
   } catch (err) {
-    return { ok: false, error: describeConnectError(err) };
+    return { ok: false, error: { ...describeConnectError(err), phase } };
   } finally {
     if (conn) await destroyAsync(conn);
   }

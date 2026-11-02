@@ -282,6 +282,7 @@
      * One-time experience event so Alan's sandbox UPS has an entity for this ECID (ingestion delay still applies).
      */
     async function sendNavigatorProfileSeedToUps(ecid) {
+      if (global.AepDemoVisitorReset?.isBlocked() || global.AepDemoVisitorReset?.isResetPage()) return;
       const ecidDigits = String(ecid || '').replace(/\D/g, '');
       if (ecidDigits.length < 10) return;
       let sk = '';
@@ -293,6 +294,7 @@
       if (sk === ecidDigits) return;
 
       const okTargets = await waitForNavigatorGeneratorTargets(12000);
+      if (global.AepDemoVisitorReset?.isBlocked() || global.AepDemoVisitorReset?.isResetPage()) return;
       if (!okTargets) return;
 
       const emailOverride = navigatorGlobalBootstrapEmailForEcid(ecidDigits);
@@ -526,6 +528,7 @@
      */
     /** @returns {Promise<boolean>} */
     async function sendNavigatorGlobalExperienceEvent(opts) {
+      if (global.AepDemoVisitorReset?.isBlocked()) return false;
       let emailForEvent =
         opts.emailOverride != null && String(opts.emailOverride).trim()
           ? String(opts.emailOverride).trim()

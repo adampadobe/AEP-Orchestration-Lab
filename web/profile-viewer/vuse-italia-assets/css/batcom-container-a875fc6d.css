@@ -1,0 +1,1282 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-container--border-radius-small { border-radius: 4px; }
+
+.batcom-container--border-radius-medium { border-radius: 16px; }
+
+.batcom-container--border-radius-large { border-radius: 30px; }
+
+.batcom-container--padding-large, .batcom-container--padding-large.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--primary-light:where(:not(.batcom-container--background-full-page-width)) { padding: 1.875rem; }
+
+.batcom-container--padding-xl .cmp-container { padding: 56px; }
+
+.batcom-container--padding-xl.batcom-container--primary-light .cmp-container { padding: 36px; }
+
+.batcom-container--noSpacing .cmp-container { padding: 0px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--padding-x60-desktop { padding: 60px 0px; }
+}
+
+.batcom-container--children-horizontal-scroll > .cmp-container, .batcom-container--children-horizontal-hidden-scroll > .cmp-container { width: 100%; overflow: hidden; position: relative; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul { display: flex; overflow-x: scroll; scrollbar-width: none; flex-flow: row; cursor: pointer; justify-content: flex-start; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul::-webkit-scrollbar, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul::-webkit-scrollbar, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser)::-webkit-scrollbar, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon)::-webkit-scrollbar, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul::-webkit-scrollbar, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul::-webkit-scrollbar { display: none; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser).justify-content-center, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon).justify-content-center, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul.justify-content-center, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul.justify-content-center, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser).justify-content-center, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon).justify-content-center, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul.justify-content-center, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul.justify-content-center { justify-content: center; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { flex: 0 0 auto; width: auto; padding: 6px; cursor: pointer; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div a:focus-visible, .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div a:focus-visible, .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li a:focus-visible { outline-offset: 1px; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: 50px; }
+
+.columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-xs, 8px); }
+
+@media only screen and (min-width: 768px) {
+  .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-s, 16px); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-m, 24px); }
+}
+
+.columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 240px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 340px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-horizontal .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 454px; }
+}
+
+.columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 203px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 213px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-square .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 282px; }
+}
+
+.columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 203px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 213px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .columncontrol--product-highlight-vertical .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 340px; }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 240px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 340px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 454px; }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-xs, 8px); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-s, 16px); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-landscape > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-m, 24px); }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 203px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 213px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 282px; }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-xs, 8px); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-s, 16px); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-square > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-m, 24px); }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 203px; padding: 0px; flex-basis: var(--column-width); width: var(--column-width); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 213px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li { --column-width: 340px; }
+}
+
+.batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-xs, 8px); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-s, 16px); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .batcom-container--children-horizontal-hidden-scroll.batcom-container--children-size-portrait > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: var(--batcom-layout-spacing-m, 24px); }
+}
+
+.batcom-container--children-horizontal-scroll .scrollbar, .batcom-container--children-horizontal-hidden-scroll .scrollbar, .batcom-container--children-horizontal-scroll-carousel .scrollbar { --scrollbar-height: 3px; width: 100%; height: var(--scrollbar-height); background: var(--batcom-color-container-scrollbar-bg, #dedede); position: relative; border-radius: 4px; display: none; }
+
+.batcom-container--children-horizontal-scroll .scrollbar--visible, .batcom-container--children-horizontal-hidden-scroll .scrollbar--visible, .batcom-container--children-horizontal-scroll-carousel .scrollbar--visible { display: block; }
+
+.columncontrol--product-highlight .batcom-container--children-horizontal-scroll .scrollbar, .columncontrol--product-highlight .batcom-container--children-horizontal-hidden-scroll .scrollbar, .columncontrol--product-highlight .batcom-container--children-horizontal-scroll-carousel .scrollbar { bottom: var(--scrollbar-height); }
+
+.batcom-container--children-horizontal-scroll .thumb, .batcom-container--children-horizontal-hidden-scroll .thumb, .batcom-container--children-horizontal-scroll-carousel .thumb { height: 100%; background: var(--batcom-color-container-scrollbar, #254aa2); border-radius: 4px; position: absolute; left: 0px; cursor: pointer; }
+
+.batcom-container--primary-dark .batcom-container--children-horizontal-scroll .thumb, .batcom-container--secondary-dark .batcom-container--children-horizontal-scroll .thumb, .batcom-container--tertiary-dark .batcom-container--children-horizontal-scroll .thumb, .batcom-container--bg-black .batcom-container--children-horizontal-scroll .thumb, .batcom-container--primary-dark .batcom-container--children-horizontal-hidden-scroll .thumb, .batcom-container--secondary-dark .batcom-container--children-horizontal-hidden-scroll .thumb, .batcom-container--tertiary-dark .batcom-container--children-horizontal-hidden-scroll .thumb, .batcom-container--bg-black .batcom-container--children-horizontal-hidden-scroll .thumb, .batcom-container--primary-dark .batcom-container--children-horizontal-scroll-carousel .thumb, .batcom-container--secondary-dark .batcom-container--children-horizontal-scroll-carousel .thumb, .batcom-container--tertiary-dark .batcom-container--children-horizontal-scroll-carousel .thumb, .batcom-container--bg-black .batcom-container--children-horizontal-scroll-carousel .thumb { background: var(--batcom-color-container-scrollbar-inverted, #fff200); }
+
+.batcom-container--children-horizontal-hidden-scroll .scrollbar--visible { display: none; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container { }
+
+.batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:focus-visible { outline-offset: -2px; outline: currentcolor solid 2px; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow { overflow: visible; width: auto; padding: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; margin: 0px; appearance: none; background: transparent; color: inherit; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; font-size: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; -webkit-font-smoothing: inherit; line-height: normal; }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow { display: flex; align-items: center; justify-content: center; position: absolute; inset-block-start: 50%; transform: translateY(-50%); z-index: 1; width: 32px; aspect-ratio: 1 / 1; border-radius: 50%; cursor: pointer; background-color: var(--batcom-color-container-scroll-button-bg, var(--batcom-color-palette-interactive-overlay-default, rgba(39, 38, 38, 0.2392156863))); }
+
+.batcom-container--primary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow, .batcom-container--secondary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow, .batcom-container--tertiary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow, .batcom-container--bg-black .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow { background-color: var(--batcom-color-container-scroll-button-bg-inverted, var(--batcom-color-palette-surface-neutral-option-1, #fff)); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow { width: 48px; }
+}
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow::after { content: ""; width: 8px; height: 15px; mask-image: url("../img/chevron-right-9ff388b2.svg"); mask-size: contain; mask-repeat: no-repeat; mask-position: center center; background-color: var(--batcom-color-container-scroll-button-icon, var(--batcom-color-palette-icon-on-brand-primary, #272626)); }
+
+.batcom-container--primary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow::after, .batcom-container--secondary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow::after, .batcom-container--tertiary-dark .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow::after, .batcom-container--bg-black .batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow::after { background-color: var(--batcom-color-container-scroll-button-icon-inverted, var(--batcom-color-palette-icon-on-brand-primary, #272626)); }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow--prev { inset-inline-start: var(--batcom-layout-spacing-xs, 8px); }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow--prev::after { transform: rotate(180deg); }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow--next { inset-inline-end: var(--batcom-layout-spacing-xs, 8px); }
+
+.batcom-container--children-horizontal-scroll > .cmp-container .batcom-container__scroll-arrow:disabled { opacity: 0.4; cursor: default; }
+
+.cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul { overflow-x: visible; display: block; }
+
+.cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div, .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > li, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > div, .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > li { width: 100%; padding: 0px; cursor: unset; }
+
+.cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-hidden-scroll > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > li:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > div:not(:first-child), .cq-Editable-dom .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > li:not(:first-child) { margin-left: 0px; }
+
+.batcom-container--children-horizontal-scroll-carousel { display: grid; }
+
+.batcom-container--children-horizontal-scroll-carousel > .cmp-container { width: 100%; overflow: hidden; position: relative; }
+
+.batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser), .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon), .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+
+.batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul::-webkit-scrollbar { display: none; }
+
+.batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser).justify-content-center, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon).justify-content-center, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul.justify-content-center, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul.justify-content-center { justify-content: center; }
+
+.batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser)::before, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser)::after, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon)::before, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon)::after, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul::before, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul::after, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul::before, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul::after { content: none; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser), .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon), .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul { display: flex; overflow-x: scroll; scrollbar-width: none; flex-flow: row; gap: 14px; }
+  .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon)::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul::-webkit-scrollbar, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul::-webkit-scrollbar { display: none; }
+}
+
+@media only screen and (min-width: 768px) and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > div, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-teaser) > li, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > div, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid:has(.batcom-icon) > li, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > div, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-linklist ul > li, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > div, .batcom-container--children-horizontal-scroll-carousel > .cmp-container > .aem-Grid .batcom-list ul > li { flex: 0 0 auto; }
+}
+
+.batcom-container--children-horizontal-scroll-carousel .scrollbar { display: none; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll-carousel .scrollbar { margin-top: 24px; }
+}
+
+.batcom-container--children-horizontal-scroll-carousel .scrollbar--visible { display: none; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--children-horizontal-scroll-carousel .scrollbar--visible { display: block; }
+}
+
+.batcom-container--children-horizontal-scroll-carousel .batcom-container__scroll-hint-container { color: var(--batcom-color-teaser-offset-text); text-align: center; text-transform: capitalize; margin: 24px auto; }
+
+.batcom-container--children-horizontal-scroll-carousel .batcom-container__scroll-hint-container svg { display: block; margin: 0px auto; }
+
+.batcom-container--hero-product-carousel { --hpc-accent: #6e2c30; --hpc-glow: #80d59a; --hpc-transition-speed: 650ms; --hpc-text-transition-speed: 900ms; --hpc-compare-cta-bg: var(--batcom-color-campaign-theme-brand-primary); position: relative; overflow: hidden; background: var(--batcom-color-campaign-theme-black); color: var(--batcom-color-campaign-theme-white); min-height: 560px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel { min-height: 400px; }
+}
+
+.batcom-container--hero-product-carousel.cmp-container, .batcom-container--hero-product-carousel > .cmp-container { padding: 0px; margin: 0px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc { display: grid; grid-template-columns: 1fr; gap: 36px; align-items: center; max-width: 1200px; margin: 0px auto; min-height: 560px; }
+
+@media (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc { padding: 60px 24px; }
+}
+
+@media (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc { grid-template-columns: 1fr 1fr; min-height: 400px; padding: 60px 24px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc { grid-template-columns: 1fr 566px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__glow { position: absolute; inset: 0px; background: radial-gradient(ellipse 107% 100% at 94.24% 52.75%, var(--hpc-glow) 0%, var(--batcom-color-campaign-theme-black) 50%); opacity: 0.35; transition: opacity var(--hpc-transition-speed) ease; pointer-events: none; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__text { position: relative; order: 2; min-height: 320px; padding-top: 48px; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__text { padding-top: 0px; }
+}
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__text { order: 0; min-height: 400px; width: 100%; max-width: none; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy { position: absolute; inset: 0px; opacity: 0; transform: translateY(10px); pointer-events: none; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy--active { position: relative; inset: auto; opacity: 1; transform: translateY(0px); pointer-events: auto; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h1, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h2, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h3 { margin: 0px 0px 18px; font-size: 40px; font-weight: 700; letter-spacing: 0.5px; line-height: 1.1; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h1, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h2, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h3 { font-size: 38px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h1, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h2, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h3 { font-size: 46px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h1 span, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h2 span, .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text h3 span { font-weight: 300; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text img { padding-bottom: 10px; max-width: 226px; max-height: 40px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text img { padding-bottom: 10px; max-width: 283px; max-height: 50px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text img { padding-bottom: 20px; max-width: 210px; max-height: 50px; }
+}
+
+@media (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text img { display: block; margin-left: auto; margin-right: auto; max-width: 226px; max-height: 40px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text .sub { display: inherit; padding-bottom: 10px; font-size: 16px; text-align: center; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text .sub { display: inline-block; font-size: 20px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text .sub { display: inline-block; font-size: 20px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text ul { list-style: none; margin: 0px 0px 32px; padding: 0px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text li { position: relative; padding-left: 22px; font-size: 16px; font-weight: 566; line-height: 2.1; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .cmp-text li::before { content: ""; position: absolute; left: 0px; top: 12px; width: 8px; height: 8px; border-radius: 50%; background: var(--batcom-color-campaign-theme-brand-primary); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta { flex-direction: row; gap: 16px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button { width: 100%; justify-content: center; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button { width: auto; max-width: 100%; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button { width: 186px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button.hpc-button-orange { background: var(--hpc-compare-cta-bg); border-width: medium; border-style: none; border-color: currentcolor; border-image: none; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button.hpc-button-white { background: none; border: 2px solid var(--batcom-color-campaign-theme-white); color: var(--batcom-color-campaign-theme-white); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button .cmp-button__text { color: var(--batcom-color-campaign-theme-black); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__copy .batcom-hpc__cta .cmp-button:hover .cmp-button__text { color: var(--batcom-color-campaign-theme-black); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__media { position: relative; order: 1; height: 200px; z-index: 1; }
+
+@media (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__media { max-height: 216px; max-width: 364px; }
+}
+
+@media (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__media { width: 100%; max-width: 420px; justify-self: center; height: 400px; }
+}
+
+@media (min-width: 992px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__media { max-width: 566px; max-height: 400px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__stage { position: absolute; inset: 0px 52px; touch-action: pan-y; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__stage { inset: 0px 30px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product { position: absolute; top: 50%; left: 50%; width: 200px; max-height: 100%; cursor: pointer; transition: transform var(--hpc-transition-speed) ease, opacity var(--hpc-transition-speed) ease, filter var(--hpc-transition-speed) ease; will-change: transform, opacity, filter; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.no-anim { transition: none; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__product .cmp-image, .batcom-container--hero-product-carousel .batcom-hpc__product img { display: block; max-width: 200px; max-height: 178px; object-fit: contain; margin: 0px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product .cmp-image, .batcom-container--hero-product-carousel .batcom-hpc__product img { max-width: 200px; max-height: 300px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product .cmp-image, .batcom-container--hero-product-carousel .batcom-hpc__product img { max-width: 200px; max-height: 400px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product .cmp-image__image, .batcom-container--hero-product-carousel .batcom-hpc__product img { border-radius: 28px; pointer-events: none; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.is-center { transform: translate(-50%, -50%) scale(1); opacity: 1; filter: none; z-index: 3; }
+
+@media (min-width: 768px) and (max-width: 991px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-center { transform: translate(-50%, -50%) scale(0.75); }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.is-left { z-index: 2; }
+
+@media (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-left { transform: translate(-90%, -50%) scale(0.65); }
+}
+
+@media (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-left { transform: translate(-90%, -50%) scale(0.5); }
+}
+
+@media (min-width: 992px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-left { transform: translate(-130%, -50%) scale(0.65); }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.is-right { z-index: 2; }
+
+@media (max-width: 767px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-right { transform: translate(-10%, -50%) scale(0.65); }
+}
+
+@media (min-width: 768px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-right { transform: translate(-10%, -50%) scale(0.5); }
+}
+
+@media (min-width: 992px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-right { transform: translate(30%, -50%) scale(0.65); }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.is-hidden-left { transform: translate(-90%, -50%) scale(0.65); opacity: 0; z-index: 1; pointer-events: none; }
+
+@media (min-width: 992px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-hidden-left { transform: translate(-110%, -50%) scale(0.75); }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__product.is-hidden-right { transform: translate(-10%, -50%) scale(0.65); opacity: 0; z-index: 1; pointer-events: none; }
+
+@media (min-width: 992px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product.is-hidden-right { transform: translate(10%, -50%) scale(0.75); }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; border-radius: 50%; background: var(--batcom-color-campaign-theme-hpc-arrow-bg); color: var(--hpc-accent); font-size: 18px; line-height: 1; cursor: pointer; z-index: 5; transition: background 0.2s; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__arrow:hover { background: var(--batcom-color-campaign-theme-hpc-arrow-hover); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__arrow:focus-visible { outline: 2px solid var(--batcom-color-campaign-theme-white); outline-offset: 2px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__arrow--prev { left: 0px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__arrow--next { right: 0px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__dots { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); display: flex; align-items: center; gap: 20px; z-index: 5; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--hero-product-carousel .batcom-hpc__dots { bottom: 20px; }
+}
+
+.batcom-container--hero-product-carousel .batcom-hpc__dot { width: 8px; height: 8px; padding: 0px; box-sizing: content-box; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; border-radius: 50%; background: var(--batcom-color-campaign-theme-hpc-dot-bg); cursor: pointer; transition: width 0.35s, background 0.35s, box-shadow 0.35s; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__dot:focus-visible { outline: 2px solid var(--batcom-color-campaign-theme-white); outline-offset: 2px; }
+
+.batcom-container--hero-product-carousel .batcom-hpc__dot--active { width: 32px; border-radius: 999px; background: var(--batcom-color-campaign-theme-brand-primary-hover); box-shadow: 0 0 8px 0 var(--batcom-color-campaign-theme-brand-primary-hover); }
+
+.batcom-container--hero-product-carousel .batcom-hpc__sr-status { position: absolute; width: 1px; height: 1px; padding: 0px; margin: -1px; overflow: hidden; clip: rect(0px, 0px, 0px, 0px); white-space: nowrap; border: 0px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .batcom-container--hero-product-carousel .batcom-hpc__product, .batcom-container--hero-product-carousel .batcom-hpc__copy, .batcom-container--hero-product-carousel .batcom-hpc__glow, .batcom-container--hero-product-carousel .batcom-hpc__dot { transition: none; }
+}
+
+.batcom-container__children-align-bottom > .aem-Grid { align-items: flex-end; }
+
+.batcom-container.batcom-container--vuseqr-disclaimer { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--batcom-layout-spacing-m, 16px)); z-index: 5; inset-inline: var(--batcom-layout-container-padding-mobile, 20px); }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.batcom-container--vuseqr-disclaimer { inset-inline: var(--batcom-layout-container-padding-desktop, 40px); }
+}
+
+.batcom-container.batcom-container--vuseqr-disclaimer { border-radius: 4px; box-sizing: border-box; }
+
+.batcom-container.batcom-container--vuseqr-disclaimer, .batcom-container.batcom-container--vuseqr-disclaimer.aem-GridColumn, .responsivegrid .batcom-container.batcom-container--vuseqr-disclaimer.aem-GridColumn { width: auto; padding: var(--batcom-layout-spacing-m, 16px); }
+
+.batcom-container.batcom-container--vuseqr-disclaimer { background-color: rgba(0, 0, 0, 0.8); backdrop-filter: blur(20px); box-shadow: rgba(0, 0, 0, 0.1) 0px 8px 26px 0px; }
+
+.aem-AuthorLayer-Edit .batcom-container.batcom-container--vuseqr-disclaimer, .aem-AuthorLayer-initial .batcom-container.batcom-container--vuseqr-disclaimer { position: static; inset-inline: unset; width: auto; bottom: auto; z-index: auto; margin-bottom: 20px; }
+
+.batcom-container:has(.batcom-header--vuse-meganav) { --batcom-color-container-primary-dark-bg: rgb(0, 0, 0); }
+
+.batcom-container { --batcom-layout-container-padding: var(--batcom-layout-container-padding-mobile); }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container { --batcom-layout-container-padding: var(--batcom-layout-container-padding-desktop); }
+}
+
+.batcom-container { position: relative; }
+
+.batcom-container--primary-light { background-color: var(--batcom-color-container-primary-light-bg); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-primary-light-bg), var(--batcom-color-container-primary-light-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--primary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark { background-color: var(--batcom-color-container-primary-dark-bg); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-primary-dark-bg), var(--batcom-color-container-primary-dark-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--primary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light { background-color: var(--batcom-color-container-secondary-light-bg); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-secondary-light-bg), var(--batcom-color-container-secondary-light-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--secondary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark { background-color: var(--batcom-color-container-secondary-dark-bg); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-secondary-dark-bg), var(--batcom-color-container-secondary-dark-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--secondary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light { background-color: var(--batcom-color-container-tertiary-light-bg); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-tertiary-light-bg), var(--batcom-color-container-tertiary-light-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--tertiary-light.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark { background-color: var(--batcom-color-container-tertiary-dark-bg); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container { background-image: linear-gradient(var(--batcom-color-container-tertiary-dark-bg), var(--batcom-color-container-tertiary-dark-bg)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--tertiary-dark.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white { background-color: rgb(255, 255, 255); }
+
+.batcom-container--white-border-radius { border-radius: var(--batcom-layout-container-border-radius, 10px); }
+
+.batcom-container--white.batcom-container--bicolored-container { background-image: linear-gradient(rgb(255, 255, 255), rgb(255, 255, 255)); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--white.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--primary-light:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--primary-dark:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--secondary-light:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--secondary-dark:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--tertiary-light:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--tertiary-dark:where(:not(.batcom-container--background-full-page-width)) { padding: var(--batcom-layout-container-padding); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width { padding: var(--batcom-layout-container-padding); margin-left: calc(-0.5 * var(--batcom-layout-content-left-right-margin)); width: 100vw; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width { margin-left: calc(50% - 50vw); padding: var(--batcom-layout-container-padding) calc(50vw - var(--batcom-layout-content-max-width) / 2); }
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width:not(.batcom-container--noSpacing) > .cmp-container, .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width > .cmp-container { width: calc(100vw - var(--batcom-layout-content-left-right-margin) * 2); max-width: var(--batcom-layout-content-max-width); margin: 0px auto; }
+}
+
+@media only screen and (max-width: 1023px) {
+  .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width { padding-right: calc(0.5 * var(--batcom-layout-content-left-right-margin)); padding-left: calc(0.5 * var(--batcom-layout-content-left-right-margin)); }
+  .blog-article .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width .batcom-container--narrow-page-width { width: 100vw; }
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width:has(.no-horizantal-padding-mobile) { padding-inline: 0px; }
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width:has(.no-vertical-padding-mobile) { padding-block: 0px; }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--background-full-page-width:has(.no-padding-mobile) { padding: 0px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width { padding: var(--batcom-layout-container-padding); margin-left: calc(50% - 50vw); width: 100vw; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width.batcom-container--padding-large { padding: 62px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width.batcom-container--padding-medium { padding: 40px 20px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width.batcom-container--padding-medium { padding: 40px 62px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width.batcom-container--padding-medium p span { line-height: 18px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-page-width:has(#trial-address-not-registered, #trial-address-approved, #trial-address-pending, #trial-address-rejected) { padding: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-width-no-padding { margin-left: calc(50% - 50vw); width: 100vw; }
+
+@media only screen and (min-width: 1680px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--floating-teaser-container { max-width: 1376px; margin-left: auto; margin-right: auto; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-width-no-mobile-padding { padding: 0px; margin-left: calc(50% - 50vw); width: 100vw; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--full-width-no-mobile-padding { padding: 0px 56px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--narrow-page-width { --batcom-layout-narrow-max-width: 883px; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--narrow-page-width { width: var(--batcom-layout-narrow-max-width); padding: 62px 107px; margin-left: calc(50% - var(--batcom-layout-narrow-max-width) * 0.5); margin-top: -200px; }
+}
+
+@media only screen and (max-width: 1023px) {
+  .blog-article .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--narrow-page-width { width: calc(100% + var(--batcom-layout-content-left-right-margin)); padding: 0 var(--batcom-layout-container-padding); }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing.batcom-container--full-page-width { padding-top: 0px; padding-bottom: 0px; }
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing:not(.batcom-container--full-page-width) { padding: 0px; }
+  .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing { padding: 0 calc(0.5 * var(--batcom-layout-content-left-right-margin)); }
+}
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing { padding: 0px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing:not(.batcom-container--background-full-page-width) > .cmp-container { max-width: 100%; width: auto; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noSpacing.batcom-sticky > .cmp-container { width: 100%; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noVerticalSpacing { padding-top: 0px; padding-bottom: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--moreVerticalSpacing { padding-top: var(--batcom-layout-container-top-padding); }
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noHorizontalSpacing { padding-left: 0px; padding-right: 0px; margin-left: 0px; }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noPaddingMobile { padding: 0px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeSpacing { padding: 32px 16px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeSpacing { padding: 40px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeSpacing:has(.no-padding-bottom) { padding-bottom: 0px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeSpacing:has(.no-padding-bottom) { padding-bottom: 8px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--xxlHorizontalSpacing { padding: 16px 16px 20px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--xxlHorizontalSpacing { padding: 0px 80px 70px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width { padding: var(--batcom-layout-container-vuse-padding-mobile-top) var(--batcom-layout-container-vuse-padding-mobile-right) var(--batcom-layout-container-vuse-padding-mobile-bottom) var(--batcom-layout-container-vuse-padding-mobile-left); margin-left: calc(50% - 50vw); margin-bottom: var(--batcom-layout-container-vuse-margin-bottom); width: 100vw; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width { padding: var(--batcom-layout-container-vuse-padding-desktop); }
+}
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width:has(.no-padding-mobile) { padding-left: 0px; padding-right: 0px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width.batcom-container--padding-medium { padding: var(--batcom-layout-container-vuse-medium-padding-top-bottom-desktop) var(--batcom-layout-container-vuse-padding-desktop); }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width:has(.disclaimer-padding) { padding: 24px var(--batcom-layout-container-vuse-padding-mobile-right) 24px var(--batcom-layout-container-vuse-padding-mobile-left); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width:has(.comparison-banner-layout) { overflow: hidden; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-full-page-width:has(.comparison-banner-layout) .swiper { overflow: visible; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width { padding: var(--batcom-layout-container-velo-full-width-mobile-padding-block, 24px) var(--batcom-layout-container-velo-full-width-mobile-padding-inline, 20px); margin-left: calc(50% - 50vw); width: 100vw; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width { padding: var(--batcom-layout-container-velo-full-width-tab-padding-block, 24px) var(--batcom-layout-container-velo-full-width-tab-padding-inline, 32px); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width { padding: var(--batcom-layout-container-velo-full-width-desktop-padding-block, 40px) var(--batcom-layout-container-velo-full-width-desktop-padding-inline, 64px); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width { overflow: hidden; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width.batcom-container--noSpacing { padding: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width.batcom-container--noVerticalSpacing { padding-block: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-full-width.batcom-container--noHorizontalSpacing { padding-inline: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--noVerticalPadding { padding-block: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--mediumTopBottomPadding { padding-block: var(--batcom-layout-container-medium-vertical-padding-desktop); }
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--mediumTopBottomPadding { padding-block: var(--batcom-layout-container-medium-vertical-padding-mobile); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeTopBottomPadding { padding-block: var(--batcom-layout-container-large-vertical-padding-desktop); }
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--largeTopBottomPadding { padding-block: var(--batcom-layout-container-large-vertical-padding-mobile); }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--range-exploration { padding-top: var(--batcom-layout-container-range-exploration-top-margin); padding-bottom: var(--batcom-layout-container-range-exploration-bottom-margin); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--flavour-table { padding: var(--batcom-layout-content-flavour-table-top-bottom-padding, 80px) calc(50vw - var(--batcom-layout-content-flavour-table-max-width, 1372px) / 2); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--flavour-table { padding: var(--batcom-layout-content-flavour-table-padding-mobile, 0); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--flavour-table.batcom-container--background-full-page-width > .cmp-container { max-width: var(--batcom-layout-content-flavour-table-max-width, 1372px); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav { width: 100vw; padding: 40px 64px; }
+
+@media only screen and (max-width: 1023px) {
+  .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav { padding: 0px 20px; }
+  .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav > .cmp-container > .aem-Grid { display: flex; flex-direction: column; }
+  .cmp-experiencefragment--header .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav > .cmp-container > .aem-Grid > .batcom-teaser--meganav-vuse { margin-top: 32px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .columncontrol__column { --batcom-layout-column-control-gutter: 24px; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon ~ .batcom-icon:has(.meganav-icon-link) { margin-top: 24px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link { padding: 24px 16px; position: relative; width: 100%; border-bottom: 1px solid rgba(255, 255, 255, 0.6); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link .batcom-icon__link { width: 100%; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link .batcom-icon__link:hover { color: var(--batcom-color-anchor-inverted); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link .batcom-icon__wrapper { flex-direction: row-reverse; gap: 16px; justify-content: flex-end; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link .batcom-icon__wrapper::after { content: ""; position: absolute; width: 18px; height: 12px; right: 16px; mask-image: url("../img/arrow-right-link-button-25685e7e.svg"); mask-size: contain; mask-repeat: no-repeat; background-color: rgb(255, 255, 255); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--vuse-meganav .batcom-icon.meganav-icon-link .batcom-icon__label { font-weight: 500; font-size: 20px; line-height: 120%; letter-spacing: 0%; font-family: var(--batcom-font-face-2-name, "Gotham-Medium"); }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav { width: 100vw; padding: 32px 64px; margin-left: var(--batcom-layout-container-velo-meganav-margin-left, 0); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav { padding: var(--batcom-layout-container-velo-meganav-top-padding-mobile, 20px) 20px 20px; width: 100%; min-height: calc(100dvh - var(--velo-flyout-header-height) - var(--batcom-layout-container-sticky-height-bottom-mobile)); display: flex; flex-direction: column; }
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav > .cmp-container, .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav > .cmp-container > .aem-Grid { display: flex; flex-direction: column; height: 100%; flex-grow: 1; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .columncontrol__base--withColumnDividers .columncontrol__column:first-child::after { content: ""; border: 1px solid rgb(255, 242, 0); position: absolute; height: 100%; top: 0px; right: 40px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .batcom-container--text-vertically-centered .cmp-container { display: flex; flex-direction: column; justify-content: center; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .batcom-sticky-bottom { position: relative; height: auto; left: 0px; padding: 0px 0px 20px; margin-top: auto; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .columncontrol__base.velo-header-min-height .columncontrol__wrapper { min-height: var(--batcom-layout-container-velo-header-min-height-desktop, 259.47px); }
+}
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .batcom-separator.separator { margin: 20.5px 0px 24px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .batcom-text--velo-header-meganav-title .cmp-text p { padding: 0px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-container--velo-meganav .batcom-text--velo-header-meganav-title .cmp-text p span.top-bottom-padding { padding: 8px 0px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--half-float.batcom-container { margin-top: calc(var(--batcom-layout-container-float-distance-tablet) * -1); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--half-float.batcom-container { margin-top: calc(var(--batcom-layout-container-float-distance-desktop) * -1); }
+}
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--float-over.batcom-container { position: relative; height: 0px; }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--float-over-desktop-only.batcom-container { position: relative; height: 0px; }
+}
+
+.batcom-container--titled { height: 370px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--titled { height: 350px; }
+}
+
+.batcom-container--titled.batcom-rainbow-border::after { content: ""; position: absolute; bottom: 0px; left: 0px; height: 7px; width: 100%; display: block; background: linear-gradient(90deg, rgb(14, 43, 99) 30.479%, rgba(0, 0, 0, 0) 30.479%), linear-gradient(90deg, rgb(0, 79, 159) 52.158%, rgba(0, 0, 0, 0) 52.158%), linear-gradient(90deg, rgb(0, 177, 235) 64.729%, rgba(0, 0, 0, 0) 64.729%), linear-gradient(90deg, rgb(239, 125, 0) 73.225%, rgba(0, 0, 0, 0) 73.225%), linear-gradient(90deg, rgb(255, 187, 0) 79.628%, rgba(0, 0, 0, 0) 79.629%), linear-gradient(90deg, rgb(80, 175, 71) 86.692%, rgba(0, 0, 0, 0) 86.692%), linear-gradient(90deg, rgb(175, 202, 11) 92.03%, rgba(0, 0, 0, 0) 92.03%), linear-gradient(90deg, rgb(90, 50, 138) 97.009%, rgba(0, 0, 0, 0) 97.009%), linear-gradient(90deg, rgb(231, 37, 130) 100%, rgba(0, 0, 0, 0) 100%); }
+
+.batcom-container--titled > .cmp-container { padding: 0px 5.6vw; display: flex; height: 100%; align-items: flex-end; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container--titled > .cmp-container { align-items: center; }
+}
+
+.batcom-container--titled > .cmp-container > .aem-Grid { margin: 55px 0px 16px; }
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky { position: fixed; z-index: 6; padding-top: 0px; padding-bottom: 0px; display: flex; align-items: center; overflow: hidden; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky { inset: auto 0px; }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-top { top: 0px; height: var(--batcom-layout-container-sticky-height-top-mobile); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-top { height: var(--batcom-layout-container-sticky-height-top-tablet); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-top { height: var(--batcom-layout-container-sticky-height-top-desktop); }
+}
+
+.batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-bottom { bottom: 0px; height: var(--batcom-layout-container-sticky-height-bottom-mobile); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-bottom { height: var(--batcom-layout-container-sticky-height-bottom-tablet); }
+}
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container.aem-GridColumn.container.responsivegrid.batcom-sticky-bottom { height: var(--batcom-layout-container-sticky-height-bottom-desktop); }
+}
+
+.batcom-container--border-radius { border-radius: var(--batcom-layout-container-round-corners-border-radius); overflow: hidden; }
+
+.batcom-container--border-radius:has(.batcom-container--localizzazione-ita) { border-radius: var(--batcom-layout-container-localization-round-corners-border-radius, 22.65px); }
+
+@media only screen and (min-width: 768px) and (max-width: 1023px) {
+  .batcom-container--border-radius:has(.batcom-container--localizzazione-ita) { border-radius: var(--batcom-layout-container-localization-round-corners-border-radius-tablet, 29.31px); }
+}
+
+@media only screen and (max-width: 767px) {
+  .batcom-container--border-radius:has(.batcom-container--localizzazione-ita) { border-radius: var(--batcom-layout-container-localization-round-corners-border-radius-mobile, 15px); }
+}
+
+.batcom-container--gradient-1 { background: var(--batcom-color-container-gradient-bg-1); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container { background-image: var(--batcom-color-container-gradient-bg-1); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--gradient-1.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2 { background: var(--batcom-color-container-gradient-bg-2); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container { background-image: var(--batcom-color-container-gradient-bg-2); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--gradient-2.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3 { background: var(--batcom-color-container-gradient-bg-3); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container { background-image: var(--batcom-color-container-gradient-bg-3); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--gradient-3.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4 { background: var(--batcom-color-container-gradient-bg-4); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container { background-image: var(--batcom-color-container-gradient-bg-4); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--gradient-4.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5 { background: var(--batcom-color-container-gradient-bg-5); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container { background-image: var(--batcom-color-container-gradient-bg-5); background-color: transparent; background-size: 100% 50%; background-position: center top; background-repeat: no-repeat; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xsmall { background-size: 100% 20%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-small { background-size: 100% 30%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-medium { background-size: 100% 40%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-large { background-size: 100% 60%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xlarge { background-size: 100% 70%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top.batcom-container--ratio-xxlarge { background-size: 100% 80%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xsmall { background-size: 100% calc(20% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-small { background-size: 100% calc(30% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-medium { background-size: 100% calc(40% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-large { background-size: 100% calc(60% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xlarge { background-size: 100% calc(70% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom.batcom-container--ratio-xxlarge { background-size: 100% calc(80% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-top:not([class*="ratio-"]), .batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-container:not(.batcom-container--bicolored-bottom, [class*="ratio-"]) { background-size: 100% 50%; background-position: center top; }
+
+.batcom-container--gradient-5.batcom-container--bicolored-container.batcom-container--bicolored-bottom:not([class*="ratio-"]) { background-size: 100% calc(50% + 1px); background-position: 0px calc(100% + 1px); }
+
+.batcom-container--gradient-6 { background: var(--batcom-color-container-gradient-bg-desktop-6); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--gradient-6 { background: var(--batcom-color-container-gradient-bg-mob-6); }
+}
+
+.batcom-container--gradient-7 { background: var(--batcom-color-container-gradient-bg-desktop-7); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--gradient-7 { background: var(--batcom-color-container-gradient-bg-mob-7); }
+}
+
+.batcom-container--gradient-8 { background: var(--batcom-color-container-gradient-desktop-bg-8); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--gradient-8 { background: var(--batcom-color-container-gradient-mobile-bg-8); }
+}
+
+.batcom-container--bg-turquoise { background: var(--batcom-color-container-bg-turquoise); }
+
+.batcom-container--bg-dark-blue { background: var(--batcom-color-container-bg-dark-blue); }
+
+.batcom-container--bg-blue-lagoon { background: var(--batcom-color-container-bg-blue-lagoon); }
+
+.batcom-container--bg-black { background: var(--batcom-color-container-bg-black, #000211); }
+
+.batcom-container--bg-cyan-blue { background: var(--batcom-color-container-bg-cyan-blue); }
+
+.batcom-container--bg-charcoal-fade { background: var(--batcom-color-container-bg-charcoal-fade-desktop); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--bg-charcoal-fade { background: var(--batcom-color-container-bg-charcoal-fade-mob); }
+}
+
+.batcom-container--bg-dark-cyan-blue { background: var(--batcom-color-container-bg-dark-cyan-blue); }
+
+.batcom-container--gradient-bg-9 { background: var(--batcom-color-container-gradient-bg-9); }
+
+.batcom-container--vuse-disclaimer { background: var(--batcom-color-container-bg-vuse-disclaimer-desktop); }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--vuse-disclaimer { background: var(--batcom-color-container-bg-vuse-disclaimer-mob); }
+}
+
+.batcom-container--columncontrol-center-align .columncontrol__wrapper { align-items: center; padding: 3px 0px; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-container--columncontrol-center-align .batcom-image { padding: 0px 40px; }
+}
+
+.batcom-container--children-inline > .cmp-container > .aem-Grid { display: flex; flex-flow: row; justify-content: center; padding: 5px 0px; gap: 5px; }
+
+.batcom-container--children-inline.no-padding-and-space > .cmp-container > .aem-Grid { padding: 0px; gap: 0px; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-container--children-inline-tablet-mobile > .cmp-container { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--batcom-layout-column-control-gutter, 16px); }
+  .batcom-container--children-inline-tablet-mobile > .cmp-container > * { flex: 1 0 0px; min-width: 0px; margin: 0px; }
+  .batcom-space--vertical-align-center .columncontrol__wrapper .batcom-container--children-inline-tablet-mobile > .cmp-container { align-items: center; }
+}
+
+.batcom-container--height-full { height: 100%; }
+
+.batcom-container--height-full > .cmp-container { height: 100%; }
+
+.batcom-container--height-full > .cmp-container > .aem-Grid { height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+
+.batcom-container--height-full > .cmp-container > .aem-Grid::before, .batcom-container--height-full > .cmp-container > .aem-Grid::after { content: none; }
+
+.batcom-container--center-content > .cmp-container > .aem-Grid { display: flex; justify-content: center; }
+
+.batcom-container--blurry { filter: blur(0.7rem); }
+
+.batcom-container:has(> .batcom-hide-parent) { display: none !important; visibility: hidden !important; }
+
+.batcom-container--responsive-layout-gap-small > .cmp-container > .aem-Grid { margin-left: calc(var(--batcom-layout-container-responsive-layout-gap-small, 8px) / -2); margin-right: calc(var(--batcom-layout-container-responsive-layout-gap-small, 8px) / -2); width: calc(100% + var(--batcom-layout-container-responsive-layout-gap-small, 8px)); }
+
+.batcom-container--responsive-layout-gap-small > .cmp-container > .aem-Grid > .aem-GridColumn { padding-left: calc(var(--batcom-layout-container-responsive-layout-gap-small, 8px) / 2); padding-right: calc(var(--batcom-layout-container-responsive-layout-gap-small, 8px) / 2); }
+
+.batcom-container--responsive-layout-gap-medium > .cmp-container > .aem-Grid { margin-left: calc(var(--batcom-layout-container-responsive-layout-gap-medium, 16px) / -2); margin-right: calc(var(--batcom-layout-container-responsive-layout-gap-medium, 16px) / -2); width: calc(100% + var(--batcom-layout-container-responsive-layout-gap-medium, 16px)); }
+
+.batcom-container--responsive-layout-gap-medium > .cmp-container > .aem-Grid > .aem-GridColumn { padding-left: calc(var(--batcom-layout-container-responsive-layout-gap-medium, 16px) / 2); padding-right: calc(var(--batcom-layout-container-responsive-layout-gap-medium, 16px) / 2); }
+
+.batcom-container--responsive-layout-gap-large > .cmp-container > .aem-Grid { margin-left: calc(var(--batcom-layout-container-responsive-layout-gap-large, 24px) / -2); margin-right: calc(var(--batcom-layout-container-responsive-layout-gap-large, 24px) / -2); width: calc(100% + var(--batcom-layout-container-responsive-layout-gap-large, 24px)); }
+
+.batcom-container--responsive-layout-gap-large > .cmp-container > .aem-Grid > .aem-GridColumn { padding-left: calc(var(--batcom-layout-container-responsive-layout-gap-large, 24px) / 2); padding-right: calc(var(--batcom-layout-container-responsive-layout-gap-large, 24px) / 2); }
+
+.batcom-container__background-image { object-fit: cover; height: 100%; width: 100%; position: absolute; }
+
+body:has(.batcom-sticky-top) { padding-top: var(--batcom-layout-container-sticky-height-top-mobile); }
+
+@media only screen and (min-width: 768px) {
+  body:has(.batcom-sticky-top) { padding-top: var(--batcom-layout-container-sticky-height-top-tablet); }
+}
+
+@media only screen and (min-width: 1024px) {
+  body:has(.batcom-sticky-top) { padding-top: var(--batcom-layout-container-sticky-height-top-desktop); }
+}
+
+body:has(.batcom-sticky-bottom) { padding-bottom: var(--batcom-layout-container-sticky-height-bottom-mobile); }
+
+@media only screen and (min-width: 768px) {
+  body:has(.batcom-sticky-bottom) { padding-bottom: var(--batcom-layout-container-sticky-height-bottom-tablet); }
+}
+
+@media only screen and (min-width: 1024px) {
+  body:has(.batcom-sticky-bottom) { padding-bottom: var(--batcom-layout-container-sticky-height-bottom-desktop); }
+}
+
+body .batcom-container.container:not(:has(*)) { margin: 0px; }

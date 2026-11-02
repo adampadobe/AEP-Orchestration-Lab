@@ -1,0 +1,328 @@
+@charset "utf-8";
+
+body.noScroll { overflow: hidden; position: fixed; inset: 0px; }
+
+@keyframes dot-animation { 
+  0% { background-color: rgba(29, 29, 27, 0.4); }
+  50% { background-color: rgba(29, 29, 27, 0.7); }
+  100% { background-color: rgb(29, 29, 27); }
+}
+
+.batcom--loading { display: inline-block; width: 10px; height: 10px; position: relative; background-color: grey; animation: 1.2s ease 0.8s infinite normal none running dot-animation; border-radius: 50%; }
+
+.batcom--loading::before, .batcom--loading::after { border-radius: 50%; content: ""; display: inline-block; position: absolute; width: 10px; height: 10px; background-color: rgb(29, 29, 27); animation: 1.2s ease 0s infinite normal none running dot-animation; }
+
+.batcom--loading::before { animation-delay: 0.4s; left: -20px; }
+
+.batcom--loading::after { animation-delay: 1.2s; right: -20px; }
+
+.batcom__loading-container { position: relative; }
+
+.batcom__loading-container .batcom--loading { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+
+.batcom__loading-container.loading { pointer-events: none; opacity: 0.3; }
+
+.batcom__loading-container.loading .batcom--loading { display: inline-block; }
+
+.batcom-overlay__shorthand { position: relative; z-index: 0; }
+
+@keyframes spin { 
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.batcom-bff-minibasket { position: relative; margin-left: 16px; text-align: center; }
+
+.batcom-bff-minibasket--is-empty .batcom-bff-minibasket__content > * { display: none; }
+
+.batcom-bff-minibasket__empty { display: none; }
+
+.batcom-bff-minibasket--is-empty .batcom-bff-minibasket__empty { display: block; }
+
+.batcom-bff-minibasket__empty .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-outline: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__empty .cmp-button, .batcom-container--secondary-dark .batcom-bff-minibasket__empty .cmp-button, .batcom-container--tertiary-dark .batcom-bff-minibasket__empty .cmp-button { --batcom-button-outline: var(--batcom-color-button-outline-inverted, #0761cd); }
+
+.batcom-bff-minibasket__empty .cmp-button { display: inline-flex; font-size: var(--batcom-typography-button-size-mobile); line-height: var(--batcom-typography-button-line-height-mobile); font-family: var(--batcom-typography-button-family); font-weight: var(--batcom-typography-button-weight); text-align: center; align-items: center; justify-content: center; border-radius: var(--batcom-layout-button-primary-border-radius); cursor: pointer; background-color: var(--batcom-button-bg); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border); padding: 10px 20px; color: var(--batcom-button-text) !important; text-decoration: none !important; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-bff-minibasket__empty .cmp-button { --batcom-typography-button-size-mobile: var(--batcom-typography-button-size-desktop); --batcom-typography-button-line-height-mobile: var(--batcom-typography-button-line-height-desktop); }
+}
+
+.batcom-bff-minibasket__empty .cmp-button span { color: var(--batcom-button-text); }
+
+@media (hover: hover) {
+  .batcom-bff-minibasket__empty .cmp-button:hover { background-color: var(--batcom-button-bg-hover); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border-hover); color: var(--batcom-button-text-hover) !important; text-decoration: none !important; }
+  .batcom-bff-minibasket__empty .cmp-button:hover span { color: var(--batcom-button-text-hover); }
+  .batcom-bff-minibasket__empty .cmp-button:hover .cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon-hover); }
+}
+
+.batcom-bff-minibasket__empty .cmp-button__text + .cmp-button__svg { margin-left: 15px; display: inline-flex; align-items: center; justify-content: center; padding: var(--batcom-layout-spacing-xxs, 4px) 0; }
+
+.batcom-bff-minibasket__empty .cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon); filter: none; }
+
+.batcom-bff-minibasket__empty .cmp-button__svg svg { height: 16px; }
+
+.cmp-button__svg .batcom-bff-minibasket__empty .cmp-button__svg svg { height: 20px; }
+
+.batcom-bff-minibasket__empty .cmp-button:focus { outline: transparent; }
+
+.batcom-bff-minibasket__empty .cmp-button:focus-visible { outline: 2px solid var(--batcom-button-outline); outline-offset: 4px; }
+
+.batcom-bff-minibasket__empty .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-primary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-primary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__empty .cmp-button, .batcom-container--secondary-dark .batcom-bff-minibasket__empty .cmp-button, .batcom-container--tertiary-dark .batcom-bff-minibasket__empty .cmp-button, .batcom-container--bg-black .batcom-bff-minibasket__empty .cmp-button { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); }
+
+.batcom-bff-minibasket__empty .cmp-button .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__empty .cmp-button:focus-visible, .batcom-container--secondary-dark .batcom-bff-minibasket__empty .cmp-button:focus-visible, .batcom-container--tertiary-dark .batcom-bff-minibasket__empty .cmp-button:focus-visible, .batcom-container--bg-black .batcom-bff-minibasket__empty .cmp-button:focus-visible { outline-color: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-bff-minibasket__empty-hl { font-family: var(--batcom-font-face-1-name); text-align: center; position: relative; }
+
+.batcom-bff-minibasket__empty-hl::before { content: url("../img/bag-empty-28f1ff57.svg"); position: absolute; top: -70px; left: calc(50% - 18px); }
+
+.batcom-bff-minibasket__empty-label { font-family: var(--batcom-font-face-3-name); margin-top: 20px; text-align: center; }
+
+.batcom-bff-minibasket__bag { overflow: visible; width: auto; padding: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; margin: 0px; appearance: none; background: transparent; color: inherit; font-style: inherit; font-variant: inherit; font-weight: inherit; font-stretch: inherit; font-size: inherit; font-family: inherit; font-optical-sizing: inherit; font-size-adjust: inherit; font-kerning: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-language-override: inherit; -webkit-font-smoothing: inherit; line-height: normal; }
+
+.batcom-bff-minibasket__bag { cursor: pointer; display: block; text-align: center; }
+
+.batcom-bff-minibasket__bag::before { content: url("../img/basket-8dfecf98.svg"); display: inline-block; width: 16px; height: 16px; transform: translateY(var(--batcom-layout-minibasket-icon-spacing, 8px)); }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-bff-minibasket__bag::before { transform: translateY(var(--batcom-layout-minibasket-icon-spacing-desktop, 8px)); }
+}
+
+.batcom-bff-minibasket__bag-value { display: block; font-family: var(--batcom-font-face-1-name); margin-top: var(--batcom-layout-minibasket-label-spacing, 10px); }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-bff-minibasket__bag-value { margin-top: var(--batcom-layout-minibasket-label-spacing-desktop, 10px); }
+}
+
+.batcom-bff-minibasket__bag-value:hover { color: var(--batcom-color-header-anchor-hover); }
+
+.batcom-bff-minibasket__title { background: none; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; padding: 0px; font-family: var(--batcom-font-face-4-name); text-transform: uppercase; cursor: pointer; }
+
+.batcom-bff-minibasket__title::before { content: url("../img/arrow-black-9827c377.svg"); display: inline-block; width: 16px; height: 16px; transform: translate(0px, -3px); padding-right: 30px; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-minibasket__title::before { margin-left: -30px; }
+}
+
+.batcom-bff-minibasket__total { display: flex; justify-content: space-between; margin-top: 20px; align-items: center; }
+
+.batcom-bff-minibasket__total-label { font-family: var(--batcom-font-face-1-name); text-transform: uppercase; }
+
+.batcom-bff-minibasket__total-amount { font-family: var(--batcom-font-face-4-name); }
+
+.batcom-bff-minibasket__total-amount-wrap { display: flex; align-items: center; gap: 4px; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-bff-minibasket__total-amount-wrap { flex-direction: column; }
+}
+
+.batcom-bff-minibasket__total-items { font-family: var(--batcom-font-face-1-name); }
+
+.batcom-bff-minibasket__total-items .batcom-bff-minibasket__total-nr-singular, .batcom-bff-minibasket__total-items .batcom-bff-minibasket__total-nr-plural { margin-left: 4px; }
+
+.batcom-bff-minibasket__total-items .batcom-bff-minibasket__total-nr-singular { display: none; }
+
+.batcom-bff-minibasket__total-items[data-total-items="1"] .batcom-bff-minibasket__total-nr-plural { display: none; }
+
+.batcom-bff-minibasket__total-items[data-total-items="1"] .batcom-bff-minibasket__total-nr-singular { display: inline-block; }
+
+.batcom-bff-minibasket__content { --padding-inline-start: 32px; --padding-inline-end: 24px; background: rgb(239, 239, 239); height: 100dvh; max-height: 100dvh; overflow: auto; padding: 24px var(--padding-inline-end) 0 var(--padding-inline-start); position: fixed; text-align: left; top: 0px; right: -100%; width: 90%; z-index: 1002; transition: right 0.3s linear; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-minibasket__content { --padding-inline-start: 64px; --padding-inline-end: 48px; padding-block-start: 48px; width: 594px; }
+}
+
+.batcom-bff-minibasket__content.batcom-open { right: 0px; }
+
+.batcom-bff-minibasket--is-empty .batcom-bff-minibasket__content { display: flex; justify-content: center; flex-direction: column; background-color: var(--batcom-color-palette-surface-neutral-option-1, #fff); }
+
+.batcom-bff-minibasket--is-empty .batcom-bff-minibasket__content .batcom-bff-minibasket__continueBtn { margin-top: 25px; width: 100%; }
+
+.batcom-bff-minibasket__content .batcom-bff-dynamiclist__container { margin-inline: calc(-1 * var(--padding-inline-start)) calc(-1 * var(--padding-inline-end)); padding: 48px 24px; background-color: var(--batcom-color-palette-surface-neutral-option-1, #fff); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-minibasket__content .batcom-bff-dynamiclist__container { padding-inline: 48px; }
+}
+
+.batcom-bff-minibasket__overlay { display: none; background: rgba(0, 0, 0, 0.3); position: fixed; top: 0px; left: 0px; width: 100%; height: 100%; z-index: 998; }
+
+.batcom-open .batcom-bff-minibasket__overlay { display: block; }
+
+.batcom-bff-minibasket__product { background: rgb(255, 254, 254); display: flex; padding: 24px; margin-bottom: 24px; position: relative; }
+
+.batcom-bff-minibasket__product-closeicon { cursor: pointer; position: absolute; top: 0px; right: 0px; padding: 6px; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; background-color: transparent; }
+
+.batcom-bff-minibasket__product-closeicon[disabled] { cursor: not-allowed; opacity: 0.5; pointer-events: none; }
+
+.batcom-bff-minibasket__product-list { border-top: 1px solid rgb(170, 170, 170); margin-top: 20px; padding-top: 20px; }
+
+.batcom-bff-minibasket__product-visual { width: 114px; }
+
+.batcom-bff-minibasket__product-image { max-width: 100%; }
+
+.batcom-bff-minibasket__product-details { margin-left: 20px; flex: 1 1 0%; }
+
+.batcom-bff-minibasket__product-summary { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 15px; }
+
+.batcom-bff-minibasket__product-title, .batcom-bff-minibasket__product-order, .batcom-bff-minibasket__product-total-price { font-family: var(--batcom-font-face-3-name); }
+
+.batcom-bff-minibasket__product-total-price-wrap { display: flex; align-items: center; gap: 4px; }
+
+@media only screen and (max-width: 767px) {
+  .batcom-bff-minibasket__product-total-price-wrap { flex-direction: column; }
+}
+
+.batcom-bff-minibasket__product-level { font-family: var(--batcom-font-face-1-name); }
+
+.batcom-bff-minibasket__product-nicotine-intensity { display: flex; gap: var(--batcom-layout-spacing-xxs, 4px); margin-top: var(--batcom-layout-spacing-m, 16px); margin-bottom: 6px; }
+
+.batcom-bff-minibasket__product-nicotine-intensity p { font-size: var(--batcom-font-size-body-xs, 12px); font-weight: var(--batcom-typography-weight-medium, 500); color: var(--batcom-color-palette-text-functional, #171a1c); }
+
+.batcom-bff-minibasket__product-nicotine-intensity .product-card__intensity-circles { display: flex; gap: var(--batcom-layout-spacing-xxs, 4px); align-items: center; padding: var(--batcom-layout-spacing-xs, 8px); border: 1px solid var(--batcom-color-full-basket-quantity-button, #f1f1f1); }
+
+.batcom-bff-minibasket__product-nicotine-intensity .product-card__intensity-circle { width: 10px; height: 10px; border: 1px solid var(--batcom-color-palette-dark-grey, #5d5f63); border-radius: 50%; }
+
+.batcom-bff-minibasket__product-nicotine-intensity .product-card__intensity-circle--filled { background-color: var(--batcom-color-button-secondary-text, #171a1c); border-color: var(--batcom-color-button-secondary-text, #171a1c); }
+
+.batcom-bff-minibasket__product-nicotine-intensity--velo { flex-direction: column; align-items: flex-start; }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-minibasket__product-nicotine-intensity--velo { flex-direction: row; align-items: center; }
+}
+
+.batcom-bff-minibasket__product-nicotine-intensity--vuse { flex-direction: column; align-items: flex-start; }
+
+.batcom-bff-minibasket__product-nicotine-intensity--vuse .product-card__nicotine-value { display: flex; padding: var(--batcom-layout-spacing-xxs, 4px) var(--batcom-layout-spacing-s, 12px); height: 32px; width: 100%; justify-content: center; border: 1px solid var(--batcom-color-full-basket-quantity-button, #f1f1f1); }
+
+@media only screen and (min-width: 768px) {
+  .batcom-bff-minibasket__product-nicotine-intensity--vuse .product-card__nicotine-value { height: 40px; width: auto; justify-content: flex-start; }
+}
+
+.batcom-bff-minibasket__product-bundle--toggleDetails { font-family: var(--batcom-font-face-1-name); color: rgb(42, 42, 42); cursor: pointer; }
+
+.batcom-bff-minibasket__product-bundle--toggleDetails-arrow { display: inline-block; padding: 3px; margin-left: 5px; border-style: solid; border-color: rgb(150, 150, 150); border-image: none; border-width: 0px 2px 2px 0px; transform: rotate(-135deg); }
+
+.batcom-bff-minibasket__product-bundle--toggleDetails-arrow--toggle { transform: rotate(45deg); vertical-align: text-top; }
+
+.batcom-bff-minibasket__product-bundle--options { font-family: var(--batcom-font-face-1-name); color: rgb(150, 150, 150); list-style: disc !important; padding-left: 10px !important; }
+
+.batcom-bff-minibasket__actions { display: flex; flex-direction: column; margin-top: 20px; }
+
+@media only screen and (max-width: 1023px) {
+  .batcom-bff-minibasket__actions { margin-bottom: 20px; }
+}
+
+@media only screen and (max-width: 1023px) {
+  .batcom-bff-minibasket__actions .batcom-button { margin-bottom: 0px; }
+}
+
+.batcom-bff-minibasket__actions .cmp-button { width: 100%; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-outline: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { --batcom-button-outline: var(--batcom-color-button-outline-inverted, #0761cd); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { display: inline-flex; font-size: var(--batcom-typography-button-size-mobile); line-height: var(--batcom-typography-button-line-height-mobile); font-family: var(--batcom-typography-button-family); font-weight: var(--batcom-typography-button-weight); text-align: center; align-items: center; justify-content: center; border-radius: var(--batcom-layout-button-primary-border-radius); cursor: pointer; background-color: var(--batcom-button-bg); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border); padding: 10px 20px; color: var(--batcom-button-text) !important; text-decoration: none !important; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { --batcom-typography-button-size-mobile: var(--batcom-typography-button-size-desktop); --batcom-typography-button-line-height-mobile: var(--batcom-typography-button-line-height-desktop); }
+}
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link span, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link span, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link span, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link span { color: var(--batcom-button-text); }
+
+@media (hover: hover) {
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover { background-color: var(--batcom-button-bg-hover); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border-hover); color: var(--batcom-button-text-hover) !important; text-decoration: none !important; }
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover span, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover span, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover span, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover span { color: var(--batcom-button-text-hover); }
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:hover .cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon-hover); }
+}
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__text + .cmp-button__svg, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__text + .cmp-button__svg, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__text + .cmp-button__svg, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__text + .cmp-button__svg { margin-left: 15px; display: inline-flex; align-items: center; justify-content: center; padding: var(--batcom-layout-spacing-xxs, 4px) 0; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg :is(svg, g, path), .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg :is(svg, g, path) { fill: var(--batcom-button-icon); filter: none; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg { height: 16px; }
+
+.cmp-button__svg .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .cmp-button__svg .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .cmp-button__svg .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg, .cmp-button__svg .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link__svg svg { height: 20px; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus { outline: transparent; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus-visible, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus-visible, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus-visible, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link:focus-visible { outline: 2px solid var(--batcom-button-outline); outline-offset: 4px; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link, .batcom-container--bg-black .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link { --batcom-button-text: var(--batcom-color-button-primary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-primary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-primary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-primary-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--bg-black .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--bg-black .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--bg-black .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option, .batcom-container--bg-black .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link option { --batcom-button-text: var(--batcom-color-button-primary-text); color: var(--batcom-button-text, #000) !important; }
+
+.batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__shopify-link[disabled] { cursor: not-allowed; opacity: 0.5; pointer-events: none; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-outline: var(--batcom-color-button-outline, #0761cd); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-outline: var(--batcom-color-button-outline-inverted, #0761cd); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { display: inline-flex; font-size: var(--batcom-typography-button-size-mobile); line-height: var(--batcom-typography-button-line-height-mobile); font-family: var(--batcom-typography-button-family); font-weight: var(--batcom-typography-button-weight); text-align: center; align-items: center; justify-content: center; border-radius: var(--batcom-layout-button-primary-border-radius); cursor: pointer; background-color: var(--batcom-button-bg); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border); padding: 10px 20px; color: var(--batcom-button-text) !important; text-decoration: none !important; }
+
+@media only screen and (min-width: 1024px) {
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-typography-button-size-mobile: var(--batcom-typography-button-size-desktop); --batcom-typography-button-line-height-mobile: var(--batcom-typography-button-line-height-desktop); }
+}
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn span, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn span, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn span, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn span { color: var(--batcom-button-text); }
+
+@media (hover: hover) {
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover { background-color: var(--batcom-button-bg-hover); border: var(--batcom-layout-button-border-width) solid var(--batcom-button-border-hover); color: var(--batcom-button-text-hover) !important; text-decoration: none !important; }
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover span, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover span, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover span, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover span { color: var(--batcom-button-text-hover); }
+  .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover .cmp-button__svg :is(svg, g, path), .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:hover .cmp-button__svg :is(svg, g, path) { fill: var(--batcom-button-icon-hover); }
+}
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__text + .cmp-button__svg, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__text + .cmp-button__svg, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__text + .cmp-button__svg, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__text + .cmp-button__svg { margin-left: 15px; display: inline-flex; align-items: center; justify-content: center; padding: var(--batcom-layout-spacing-xxs, 4px) 0; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg :is(svg, g, path), .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg :is(svg, g, path) { fill: var(--batcom-button-icon); filter: none; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg { height: 16px; }
+
+.cmp-button__svg .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .cmp-button__svg .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .cmp-button__svg .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg, .cmp-button__svg .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn__svg svg { height: 20px; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus { outline: transparent; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus-visible, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus-visible, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus-visible, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn:focus-visible { outline: 2px solid var(--batcom-button-outline); outline-offset: 4px; }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-text: var(--batcom-color-button-secondary-text); --batcom-button-text-hover: var(--batcom-color-button-secondary-text-hover); --batcom-button-bg: var(--batcom-color-button-secondary-bg); --batcom-button-bg-hover: var(--batcom-color-button-secondary-bg-hover); --batcom-button-border: var(--batcom-color-button-secondary-border); --batcom-button-border-hover: var(--batcom-color-button-secondary-border-hover); --batcom-button-icon: var(--batcom-color-button-secondary-text); --batcom-button-icon-hover: var(--batcom-color-button-secondary-text-hover); --batcom-layout-button-primary-border-radius: var(--batcom-layout-button-secondary-border-radius); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-text: var(--batcom-color-button-secondary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-secondary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-secondary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-secondary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-secondary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-secondary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path), .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-secondary-text-inverted); --batcom-button-icon-hover: var(--batcom-color-button-secondary-text-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--secondary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--tertiary-dark .batcom-container--primary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--primary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--secondary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--tertiary-dark .batcom-container--secondary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--primary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--secondary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--tertiary-dark .batcom-container--tertiary-dark .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--primary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--secondary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option, .batcom-container--tertiary-dark .batcom-container--bg-black .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn option { --batcom-button-text: var(--batcom-color-button-secondary-text); color: var(--batcom-button-text, #000) !important; }
+
+.batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-text: var(--batcom-color-button-primary-text-inverted); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover-inverted); --batcom-button-bg: var(--batcom-color-button-primary-bg-inverted); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover-inverted); --batcom-button-border: var(--batcom-color-button-primary-border-inverted); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover-inverted); }
+
+.batcom-container--primary-dark .batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--secondary-dark .batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--tertiary-dark .batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn, .batcom-container--bg-black .batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn { --batcom-button-text: var(--batcom-color-button-primary-text); --batcom-button-text-hover: var(--batcom-color-button-primary-text-hover); --batcom-button-bg: var(--batcom-color-button-primary-bg); --batcom-button-bg-hover: var(--batcom-color-button-primary-bg-hover); --batcom-button-border: var(--batcom-color-button-primary-border); --batcom-button-border-hover: var(--batcom-color-button-primary-border-hover); }
+
+.batcom-bff-minibasket__empty .batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn .cmp-button__svg :is(svg, g, path) { --batcom-button-icon: var(--batcom-color-button-primary-text); --batcom-button-icon-hover: var(--batcom-color-button-primary-text-hover); }
+
+.batcom-bff-minibasket__actions .cmp-button.batcom-bff-minibasket__continueBtn[disabled] { cursor: not-allowed; opacity: 0.5; pointer-events: none; }
+
+.batcom-bff-minibasket__shopify-link { text-transform: uppercase; }
+
+.batcom-bff-minibasket__continueBtn { margin-top: 16px; text-transform: uppercase; }
+
+.batcom-bff-minibasket__price-suffix-text { display: none; }
+
+.batcom-bff-minibasket__price-suffix-text.active { display: inherit; }
+
+.batcom-bff-minibasket__XF { display: none; }
+
+.batcom-bff-minibasket__XF.active { display: block; }
+
+.batcom-bff-minibasket__XF { padding-top: 32px; }
+
+.batcom-bff-minibasket__XF .batcom-content { width: 100%; }
+
+.batcom-bff-minibasket__XF .batcom-content .batcom-dynamiclist .product-card__buy-button, .batcom-bff-minibasket__XF .batcom-content .batcom-bff-dynamiclist .product-card__buy-button { padding: 10px 0px; }

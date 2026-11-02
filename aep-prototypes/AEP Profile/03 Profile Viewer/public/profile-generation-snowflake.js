@@ -27,6 +27,17 @@
   /** Max PEM / PKCS#8 file size read in the browser before Save. */
   var KEY_FILE_MAX_BYTES = 256 * 1024;
 
+  // SQL calls can exceed Hosting's 60s limit and commit after its gateway error.
+  function snowflakeApiUrl(functionName) {
+    var origin = window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__;
+    if (!origin) {
+      var projectId = window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId;
+      if (!projectId) throw new Error('Firebase project configuration is required for Snowflake API calls.');
+      origin = 'https://us-central1-' + projectId + '.cloudfunctions.net';
+    }
+    return String(origin).replace(/\/+$/, '') + '/' + functionName;
+  }
+
   /**
    * Public connection defaults from AgenticAI Demo `snowflake_settings.py`
    * (`get_snowflake_connection_kwargs` env fallbacks). Never put private keys here.
@@ -1219,7 +1230,7 @@
     setMessage('Opening Snowflake connection (egress via static IP ' + STATIC_EGRESS_IP + ')…', 'info');
     contextHeaders(context).then(function (h) {
       var testPayload = attachLegacyAnonymousPayload({ sandbox: sandbox }, currentFirebaseUid());
-      var url = '/api/snowflake/connection-test';
+      var url = snowflakeApiUrl('snowflakeConnectionTest');
       var body = JSON.stringify(testPayload);
       return fetch(url, {
         method: 'POST',
@@ -1485,7 +1496,7 @@
     if (els.industryPreviewWrap) els.industryPreviewWrap.hidden = true;
 
     contextHeaders(context).then(function (h) {
-      return fetch('/api/snowflake/industry-table-preview', {
+      return fetch(snowflakeApiUrl('snowflakeIndustryTablePreview'), {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
@@ -1650,7 +1661,7 @@
     setIndustryBusy(true);
     setIndustryMessage('Checking the governed ' + titleCase(readIndustry()) + ' manifest…', 'info');
     return contextHeaders(context).then(function (h) {
-      return fetch('/api/snowflake/industry-catalog', {
+      return fetch(snowflakeApiUrl('snowflakeIndustryCatalog'), {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
@@ -1708,7 +1719,7 @@
     setIndustryBusy(true);
     setIndustryMessage(dryRun ? 'Preparing allowlisted SQL preview…' : 'Creating missing allowlisted tables…', 'info');
     contextHeaders(context).then(function (h) {
-      return fetch('/api/snowflake/provision', {
+      return fetch(snowflakeApiUrl('snowflakeProvision'), {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
@@ -1882,7 +1893,7 @@
     setUpdaterMessage('Loading profiles…', 'info');
     if (els.profileBundleOut) els.profileBundleOut.hidden = true;
     contextHeaders(context).then(function (h) {
-      var url = '/api/snowflake/agentic/query-profiles';
+      var url = snowflakeApiUrl('snowflakeAgenticQueryProfiles');
       var body = JSON.stringify({
         sandbox: sandbox,
         filterType: els.filterType ? els.filterType.value : 'all',
@@ -1966,7 +1977,7 @@
     setUpdaterBusy(true);
     setUpdaterMessage('Enriching ' + profiles.length + ' profile(s)… This may take several minutes.', 'info');
     contextHeaders(context).then(function (h) {
-      var url = '/api/snowflake/agentic/enrich-profiles';
+      var url = snowflakeApiUrl('snowflakeAgenticEnrichProfiles');
       var payload = {
         sandbox: sandbox,
         industry: context.industry,
@@ -2039,7 +2050,7 @@
     setUpdaterBusy(true);
     setUpdaterMessage('Loading the complete industry profile bundle…', 'info');
     contextHeaders(context).then(function (h) {
-      return fetch('/api/snowflake/agentic/profile-bundle', {
+      return fetch(snowflakeApiUrl('snowflakeAgenticProfileBundle'), {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
@@ -2151,7 +2162,7 @@
     if (els.fullGenTableSelect) els.fullGenTableSelect.disabled = true;
     if (els.fullGenInspectOut) els.fullGenInspectOut.hidden = true;
     contextHeaders(context).then(function (h) {
-      return fetch('/api/snowflake/agentic/profile-bundle', {
+      return fetch(snowflakeApiUrl('snowflakeAgenticProfileBundle'), {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
         body: JSON.stringify({
@@ -2234,7 +2245,7 @@
     fullGenBundleCache = null;
     setFullGenMessage('Running full phased generate… This may take several minutes.', 'info');
     contextHeaders(context).then(function (h) {
-      var url = '/api/snowflake/agentic/generate-full';
+      var url = snowflakeApiUrl('snowflakeAgenticGenerateFull');
       return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
@@ -2293,7 +2304,7 @@
     var phase = els.phaseSelect ? els.phaseSelect.value : 'phase1';
     setFullGenBusy(true);
     contextHeaders(context).then(function (h) {
-      var url = '/api/snowflake/agentic/table-structure';
+      var url = snowflakeApiUrl('snowflakeAgenticTableStructure');
       return fetch(url, {
         method: 'POST',
         headers: Object.assign({ 'Content-Type': 'application/json' }, h),
@@ -2350,7 +2361,7 @@
       'info'
     );
     contextHeaders(context).then(function (h) {
-      var url = '/api/snowflake/generate-industry-profiles';
+      var url = snowflakeApiUrl('snowflakeGenerateIndustryProfiles');
       var body = JSON.stringify(payload);
       return fetch(url, {
         method: 'POST',
@@ -2376,6 +2387,9 @@
             var msg = (result && result.error && result.error.message) || (data && data.error) ||
               ('Generation failed (HTTP ' + res.status + ').');
             var hints = result && result.error && Array.isArray(result.error.hints) ? result.error.hints : [];
+            if ([502, 503, 504].indexOf(res.status) !== -1) {
+              hints = hints.concat('The backend may still commit. Wait for it to finish and inspect Snowflake; do not regenerate or reuse reserved emails.');
+            }
             setGenerateMessage(msg, 'error', { hints: hints });
             showGenerateResult(null);
           }
@@ -2384,7 +2398,7 @@
     }).catch(function (e) {
       if (isCurrentContext(context)) {
         setGenerateMessage('Generation could not be confirmed: ' + (e && e.message || e) +
-          '. Inspect the original target before retrying; do not automatically generate another batch.', 'error');
+          '. The backend may still commit. Wait for it to finish and inspect the original target; do not automatically generate another batch or reuse reserved emails.', 'error');
       }
     }).then(function () {
       if (isCurrentContext(context)) {

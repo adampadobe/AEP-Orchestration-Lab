@@ -1,0 +1,5 @@
+@charset "utf-8";
+
+.cmp-breadcrumb { display: inline-block; list-style: none; padding: 0px; }
+
+.cmp-breadcrumb__item { display: inline-block; vertical-align: top; }
