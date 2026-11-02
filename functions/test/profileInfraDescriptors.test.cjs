@@ -8,7 +8,7 @@ const statusCache = require('../profileInfraStatusCache');
 const { buildCompositeSubtreeFromManifest } = require('../profileInfraFactory');
 const { getManifestForIndustry } = require('../profileCoreV2Manifest');
 
-async function statusWithDescriptors(t, descriptorResponse, { ecid = true } = {}) {
+async function statusWithDescriptors(t, descriptorResponse, { ecid = true, identityMap = true } = {}) {
   const schemaId = 'https://ns.adobe.com/demoemea/schemas/descriptor-test';
   const schemaAlt = '_demoemea.schemas.descriptor-test';
   const coreId = 'https://ns.adobe.com/demoemea/mixins/core-test';
@@ -39,6 +39,7 @@ async function statusWithDescriptors(t, descriptorResponse, { ecid = true } = {}
       response = {
         ...schema, 'meta:immutableTags': ['union'],
         allOf: ['https://ns.adobe.com/xdm/context/profile', ...BASE_PROFILE_FIELD_GROUP_REFS, coreId]
+          .filter((ref) => identityMap || ref !== 'https://ns.adobe.com/xdm/context/identitymap')
           .map(($ref) => ({ $ref })),
       };
     } else if (parsed.pathname.endsWith('/tenant/fieldgroups')) {
@@ -109,7 +110,15 @@ it('does not forward credentials to an unexpected pagination host', async (t) =>
 });
 
 it('invalidates cached descriptor readiness from the old API contract', () => {
-  assert.equal(statusCache.CACHE_VERSION, 4);
+  assert.equal(statusCache.CACHE_VERSION, 5);
+});
+
+it('blocks schemas that discard the outgoing identityMap even when both descriptors exist', async (t) => {
+  const { status } = await statusWithDescriptors(t, (_url, descriptor) => ({ results: [descriptor] }), { identityMap: false });
+  assert.equal(status.primaryEmailDescriptor, true);
+  assert.equal(status.secondaryEcidDescriptor, true);
+  assert.equal(status.prepSteps.step2_fieldGroupsIdentity, false);
+  assert.equal(status.ready, false);
 });
 
 it('blocks email-only infrastructure rather than claiming ECID lookup is ready', async (t) => {
@@ -134,14 +143,17 @@ it('requires the exact tenant ECID descriptor and keeps Email primary', () => {
   ]) assert.equal(isSecondaryEcidIdentityDescriptor({ ...descriptor, ...change }, '_example'), false);
 });
 
-for (const existingNamespaces of [[], ['Email'], ['Email', 'ECID']]) {
-  it(`provisions only missing identities with major sourceVersion when existing: ${existingNamespaces.join(',')}`, async (t) => {
+for (const [existingNamespaces, identityMapAttached] of [
+  [[], true], [['Email'], true], [['Email', 'ECID'], true], [['Email', 'ECID'], false],
+]) {
+  it(`provisions only missing identities with major sourceVersion when existing: ${existingNamespaces.join(',')}, IdentityMap attached: ${identityMapAttached}`, async (t) => {
     const schemaId = 'https://ns.adobe.com/example/schemas/identity-test';
     const coreId = 'https://ns.adobe.com/example/mixins/core-test';
     const schema = {
       title: 'Identity provisioning test', $id: schemaId, 'meta:altId': '_example.schemas.identity-test',
       version: '1.4',
       allOf: ['https://ns.adobe.com/xdm/context/profile', ...BASE_PROFILE_FIELD_GROUP_REFS, coreId]
+        .filter((ref) => identityMapAttached || ref !== 'https://ns.adobe.com/xdm/context/identitymap')
         .map(($ref) => ({ $ref })),
     };
     const core = { title: 'Profile Core v2', $id: coreId, 'meta:altId': '_example.mixins.core-test',
@@ -152,11 +164,21 @@ for (const existingNamespaces of [[], ['Email'], ['Email', 'ECID']]) {
       'xdm:sourceProperty': `/_example/identification/core/${namespace.toLowerCase()}`,
     });
     const created = [];
+    const patches = [];
     t.mock.method(statusCache, 'invalidateStatusCache', async () => {});
     t.mock.method(globalThis, 'fetch', async (url, init) => {
       const path = new URL(url).pathname;
       let body;
-      if (init.method === 'POST' && path.endsWith('/tenant/descriptors')) {
+      if (init.method === 'PATCH' && path.includes('/tenant/schemas/')) {
+        const ops = JSON.parse(init.body);
+        assert.deepEqual(ops, [
+          { op: 'add', path: '/meta:extends/-', value: 'https://ns.adobe.com/xdm/context/identitymap' },
+          { op: 'add', path: '/allOf/-', value: { $ref: 'https://ns.adobe.com/xdm/context/identitymap' } },
+        ]);
+        patches.push(ops);
+        schema.allOf.push(ops[1].value);
+        body = schema;
+      } else if (init.method === 'POST' && path.endsWith('/tenant/descriptors')) {
         body = JSON.parse(init.body);
         assert.equal(body['xdm:sourceVersion'], 1);
         assert.deepEqual({ ...body, 'xdm:sourceVersion': undefined, 'xdm:property': undefined },
@@ -180,6 +202,7 @@ for (const existingNamespaces of [[], ['Email'], ['Email', 'ECID']]) {
     assert.equal(result.ok, true, JSON.stringify(result));
     assert.equal(result.descriptorOk, true);
     assert.equal(result.ecidDescriptorOk, true);
+    assert.equal(patches.length, identityMapAttached ? 0 : 1);
     assert.deepEqual(created.map((body) => body['xdm:namespace']),
       ['Email', 'ECID'].filter((namespace) => !existingNamespaces.includes(namespace)));
   });

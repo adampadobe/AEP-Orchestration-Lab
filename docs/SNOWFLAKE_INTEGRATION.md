@@ -429,8 +429,27 @@ descriptor must designate `/_demoemea/identification/core/ecid` (or its tenant
 equivalent), namespace `ECID`, with `isPrimary:false`; carrying an ECID field or
 setting a payload identity entry alone does not establish that schema identity.
 The approved attach step adds missing descriptors without replacing primary
-Email. Read-only status exposes `secondaryEcidDescriptor`. Cache version 4
+Email. The standard `https://ns.adobe.com/xdm/context/identitymap` field group
+is also required on every profile schema so the outgoing root `identityMap`
+is declared rather than discarded during ingestion. The approved attach step
+adds this reference without removing existing field groups or changing Email's
+primary status. Applying this change to an existing sandbox requires separate
+schema-change approval; it does not replay or repair old records.
+Read-only status exposes `secondaryEcidDescriptor`. Cache version 5
 invalidates earlier readiness results; it changes status metadata only.
+Descriptor and field-group readiness is configuration evidence, not proof that
+Identity Service indexed a record. Generate returns `accepted:true`,
+`upsVerified:false`, and an inlet-acceptance receipt; never treat it as successful
+profile readback. A verified Adobe entity-not-found response becomes HTTP 404
+with `code:UPS_ENTITY_NOT_FOUND` and `stage:profile_access`, not an HTTP 500.
+Unknown 404s and other upstream failures remain errors. Only read operations
+may be retried while awaiting indexing; never retry generation automatically.
+Profile readback includes identity namespaces, Email/ECID map-presence flags,
+and contributing dataset IDs in `profileAccessHints`. An ECID tenant attribute
+alone does not satisfy those identity-map flags. For release acceptance, look up
+the same new profile by Email and ECID and confirm matching identities. Use an
+approved AEP-only test to isolate Lab ingestion from later CRM dataset ingestion;
+a merged profile containing CRM datasets is not proof of Lab-only stitching.
 For an explicit fresh check use `lab_sandbox_profile_config` with `refresh:true`,
 `lab_preflight_profile_generate` with `target:"aep", refresh:true` (the default),
 or `/api/profile-infra/status-all?sandbox=apalmer&refresh=1`.
