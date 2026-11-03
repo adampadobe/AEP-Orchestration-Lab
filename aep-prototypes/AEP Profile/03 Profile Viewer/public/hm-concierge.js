@@ -5,7 +5,26 @@
   const closeButton = document.getElementById('hmConciergeClose');
   const host = document.getElementById('hmConciergeFrameHost');
   const status = document.getElementById('hmConciergeStatus');
+  const modeButtons = panel.querySelectorAll('[data-hm-concierge-mode]');
   let frame, timer;
+
+  function show() {
+    const modal = panel.dataset.mode === 'modal';
+    if (modal) panel.showModal();
+    else panel.show();
+    panel.setAttribute('aria-modal', String(modal));
+    document.documentElement.classList.toggle('hm-concierge-modal-open', modal);
+  }
+
+  modeButtons.forEach((button) => button.addEventListener('click', () => {
+    if (panel.dataset.mode === button.dataset.hmConciergeMode) return;
+    // Reopen the same dialog to change native modality without replacing its iframe.
+    panel.close();
+    panel.dataset.mode = button.dataset.hmConciergeMode;
+    modeButtons.forEach((option) => option.setAttribute('aria-pressed', String(option === button)));
+    show();
+    button.focus();
+  }));
 
   function load() {
     if (frame) return;
@@ -37,7 +56,7 @@
   launcher.addEventListener('click', () => {
     if (panel.open) { panel.close(); return; }
     window.EnvBarCompact?.closeOverlay({ force: true });
-    panel.show();
+    show();
     launcher.setAttribute('aria-expanded', 'true');
     launcher.setAttribute('aria-label', 'Close H&M concierge');
     load();
@@ -45,6 +64,8 @@
   });
   closeButton.addEventListener('click', () => panel.close());
   panel.addEventListener('close', () => {
+    if (panel.open) return; // Mode switches queue a close event before reopening.
+    document.documentElement.classList.remove('hm-concierge-modal-open');
     launcher.setAttribute('aria-expanded', 'false');
     launcher.setAttribute('aria-label', 'Open H&M concierge');
     launcher.focus();

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="brand-concierge-controls.css?v=20260520-bc-controls">
   <link rel="stylesheet" href="aep-profile-drawer.css?v=20260521-refresh-btn-lightfix">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css?v=20260601-modal-central">
-  <link rel="stylesheet" href="hm-storefront.css?v=20261103-hm-concierge">
+  <link rel="stylesheet" href="hm-storefront.css?v=20261103-hm-concierge-modes">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <script src="embed-bc/embed-bc-edge-path.js?v=20260519-bc-poll-fix"></script>
 </head>
@@ -178,9 +178,13 @@
     <button id="hmConciergeLauncher" class="hm-concierge-launcher" type="button" aria-label="Open H&amp;M concierge" aria-controls="hmConciergePanel" aria-expanded="false" aria-haspopup="dialog">
       <svg viewBox="0 0 64 64" width="38" height="38" fill="none" aria-hidden="true"><path d="M16 48 7 55l3-14a23 23 0 1 1 6 7Z" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/><circle cx="22" cy="30" r="3" fill="currentColor"/><circle cx="33" cy="30" r="3" fill="currentColor"/><circle cx="44" cy="30" r="3" fill="currentColor"/></svg>
     </button>
-    <dialog id="hmConciergePanel" class="hm-concierge-panel" aria-labelledby="hmConciergeTitle">
+    <dialog id="hmConciergePanel" class="hm-concierge-panel" aria-labelledby="hmConciergeTitle" data-mode="docked">
       <header class="hm-concierge-heading">
         <h2 id="hmConciergeTitle">H&amp;M concierge</h2>
+        <div class="hm-concierge-modes" role="group" aria-label="Chat display mode">
+          <button type="button" data-hm-concierge-mode="docked" aria-pressed="true">Docked</button>
+          <button type="button" data-hm-concierge-mode="modal" aria-pressed="false">Modal</button>
+        </div>
         <button id="hmConciergeClose" type="button" aria-label="Close H&amp;M concierge" autofocus>&times;</button>
       </header>
       <div id="hmConciergeFrameHost" class="hm-concierge-frame-host" aria-busy="false"></div>
@@ -221,7 +225,7 @@
   <script src="hm-events.js?v=20261030-hm-events"></script>
   <script src="hm-demo.js?v=20261029-new-visitor"></script>
   <script src="hm-storefront.js?v=20261030-hm-storefront"></script>
-  <script src="hm-concierge.js?v=20261103-hm-concierge"></script>
+  <script src="hm-concierge.js?v=20261103-hm-concierge-modes"></script>
   <script src="site-clone-bc.js?v=20261014-parent-document"></script>
   <script src="brand-concierge-controls.js?v=20260520-bc-controls"></script>
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>

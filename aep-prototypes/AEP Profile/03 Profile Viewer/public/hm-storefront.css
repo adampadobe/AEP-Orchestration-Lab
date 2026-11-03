@@ -83,7 +83,7 @@
 .hm-concierge-panel {
   position: fixed; inset: auto max(24px, env(safe-area-inset-right)) max(116px, calc(env(safe-area-inset-bottom) + 84px)) auto;
   z-index: 6301; width: min(460px, calc(100vw - 32px)); height: min(760px, calc(100dvh - var(--hm-lab-inset, 48px) - 132px));
-  max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden;
+  max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden; box-sizing: border-box;
   border: 1px solid var(--dash-hm-line); border-radius: 12px; box-shadow: var(--dash-hm-shadow);
   background: var(--dash-hm-white); color: var(--dash-hm-ink);
 }
@@ -93,6 +93,16 @@
 .hm-concierge-heading h2 { margin: 0; color: var(--dash-hm-ink); font-size: 16px; font-weight: 600; }
 .hm-concierge-heading button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--dash-hm-white); color: var(--dash-hm-ink); font-size: 26px; cursor: pointer; }
 .hm-concierge-heading button:hover { background: var(--dash-hm-wash); }
+.hm-concierge-heading h2 { flex: 1; }
+.hm-concierge-modes { display: flex; padding: 3px; border: 1px solid var(--dash-hm-line); border-radius: 20px; }
+.hm-concierge-modes button { width: auto; height: 30px; padding: 0 10px; border-radius: 16px; font: inherit; font-size: 12px; }
+.hm-concierge-modes button[aria-pressed="true"] { background: var(--dash-hm-ink); color: var(--dash-hm-white); }
+html.hm-concierge-modal-open { overflow: hidden; }
+.hm-concierge-panel:modal {
+  inset: calc(var(--hm-lab-inset, 48px) + 24px) 24px 24px; margin: auto;
+  width: min(1200px, calc(100vw - 48px)); height: min(880px, calc(100dvh - var(--hm-lab-inset, 48px) - 48px));
+}
+.hm-concierge-panel::backdrop { background: var(--dash-hm-scrim); }
 .hm-concierge-frame-host { flex: 1; min-height: 0; }
 .hm-concierge-frame-host iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--dash-hm-white); }
 .hm-concierge-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 8px 12px; border-top: 1px solid var(--dash-hm-line); font-size: 11px; }
@@ -100,6 +110,12 @@
 @media (max-width: 600px) {
   .hm-concierge .hm-concierge-launcher { width: 60px; height: 60px; right: max(16px, env(safe-area-inset-right)); }
   .hm-concierge-panel { right: 8px; bottom: max(104px, calc(env(safe-area-inset-bottom) + 76px)); width: calc(100vw - 16px); height: calc(100dvh - var(--hm-lab-inset, 64px) - 120px); }
+  .hm-concierge-heading { gap: 6px; padding: 8px; }
+  .hm-concierge-heading h2 { font-size: 14px; }
+  .hm-concierge-panel:modal {
+    inset: calc(var(--hm-lab-inset, 64px) + 8px) 8px max(8px, env(safe-area-inset-bottom));
+    width: calc(100vw - 16px); height: calc(100dvh - var(--hm-lab-inset, 64px) - 8px - max(8px, env(safe-area-inset-bottom)));
+  }
 }
 
 /* Header */

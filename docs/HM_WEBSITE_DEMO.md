@@ -63,10 +63,16 @@ impersonate different people.
 The black bottom-right chat bubble opens the supplied CloudFront H&M concierge
 in a cross-origin iframe. It has no unread-count badge. The iframe is created only
 on first open and retained when closed so the remote conversation can continue
-while browsing the storefront. The panel has a close button and a new-tab link
+while browsing the storefront. The header's **Docked / Modal** toggle switches
+between the bottom-right panel and a large, centred overlay with more space for
+the hosted app's images and cards. It resizes the same iframe without reloading
+the conversation. Modal mode blocks interaction and scrolling behind the chat;
+Docked restores storefront interaction. The selection lasts until page reload.
+This changes the available space, not the hosted app's content or capabilities.
+The panel has a close button and a new-tab link
 for browsers or networks that block framing. Escape closes it when focus is in
 the parent page; when focus is inside the remote frame, use the visible close
-button or bubble.
+button (or the bubble in Docked mode).
 
 The embedded app owns its chat session, network calls and data handling. No Lab
 profile identifier, sandbox, credentials or shopping data is passed to it.

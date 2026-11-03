@@ -146,6 +146,35 @@ async function main() {
     await chat.getByLabel('Message').fill('Synthetic demo message');
     await chat.getByRole('button', { name: 'Send' }).click();
     assert.equal(await chat.locator('#reply').textContent(), 'Fixture reply', 'The iframe accepts real user interaction');
+    const panel = page.locator('#hmConciergePanel');
+    const modalMode = panel.getByRole('button', { name: 'Modal', exact: true });
+    const dockedMode = panel.getByRole('button', { name: 'Docked', exact: true });
+    const dockedBox = await panel.boundingBox();
+    await page.evaluate(() => { window.hmTestConciergeFrame = document.getElementById('hmConciergeFrame'); });
+    await modalMode.focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await modalMode.getAttribute('aria-pressed'), 'true');
+    assert.equal(await dockedMode.getAttribute('aria-pressed'), 'false');
+    assert.equal(await panel.evaluate((node) => node.matches(':modal')), true, 'Expanded mode uses native modal focus/inert behavior');
+    assert.equal(await panel.getAttribute('aria-modal'), 'true');
+    assert.equal(await page.locator('html').evaluate((node) => getComputedStyle(node).overflow), 'hidden', 'Modal prevents background scrolling');
+    const modalBox = await panel.boundingBox();
+    assert(modalBox.width > dockedBox.width * 2 && modalBox.height > dockedBox.height, 'Modal provides substantially more room for image cards');
+    assert(modalBox.x >= 0 && modalBox.y >= 0 && modalBox.x + modalBox.width <= 1440 && modalBox.y + modalBox.height <= 1000);
+    await page.waitForTimeout(50); // Allow the mode switch's queued close event to fire.
+    assert.equal(await bubble.getAttribute('aria-expanded'), 'true', 'Switching modes does not mark the open chat closed');
+    assert.equal(await modalMode.evaluate((node) => node === document.activeElement), true);
+    assert.equal(await chat.getByLabel('Message').inputValue(), 'Synthetic demo message');
+    assert.equal(await chat.locator('#reply').textContent(), 'Fixture reply');
+    if (process.env.HM_SCREENSHOT_DIR) {
+      await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-modal-desktop.png'), style: screenshotStyle });
+    }
+    await dockedMode.click();
+    assert.equal(await panel.evaluate((node) => node.matches(':modal')), false);
+    assert.equal(await panel.getAttribute('aria-modal'), 'false');
+    assert.notEqual(await page.locator('html').evaluate((node) => getComputedStyle(node).overflow), 'hidden');
+    assert.equal(await page.evaluate(() => window.hmTestConciergeFrame === document.getElementById('hmConciergeFrame')), true, 'Mode switches retain the original iframe node');
+    assert.equal(conciergeLoads, 1, 'Mode switches do not reload the hosted chat');
     await page.locator('#hmConciergeClose').click();
     await page.waitForFunction(() => document.getElementById('hmConciergeLauncher').getAttribute('aria-expanded') === 'false');
     assert.equal(await bubble.getAttribute('aria-expanded'), 'false');
@@ -160,6 +189,24 @@ async function main() {
     await bubble.click();
     const panelBox = await page.locator('#hmConciergePanel').boundingBox();
     assert(panelBox.x >= 0 && panelBox.y >= 0 && panelBox.x + panelBox.width <= 390 && panelBox.y + panelBox.height <= 844, 'Mobile chat panel stays inside the viewport');
+    await modalMode.click();
+    const mobileModalBox = await panel.boundingBox();
+    assert(mobileModalBox.x >= 0 && mobileModalBox.y >= 0 && mobileModalBox.x + mobileModalBox.width <= 390 && mobileModalBox.y + mobileModalBox.height <= 844, 'Mobile modal stays inside the viewport');
+    assert(mobileModalBox.height > panelBox.height, 'Mobile modal uses the extra vertical space');
+    await chat.getByLabel('Message').fill('Mobile conversation');
+    await page.locator('#hmConciergeClose').click();
+    await page.waitForFunction(() => document.getElementById('hmConciergeLauncher').getAttribute('aria-expanded') === 'false');
+    assert.notEqual(await page.locator('html').evaluate((node) => getComputedStyle(node).overflow), 'hidden', 'Closing modal restores scrolling');
+    assert.equal(await bubble.evaluate((node) => node === document.activeElement), true);
+    await bubble.click();
+    assert.equal(await panel.evaluate((node) => node.matches(':modal')), true, 'Reopening remembers the selected display mode');
+    assert.equal(await chat.getByLabel('Message').inputValue(), 'Mobile conversation');
+    await page.locator('#hmConciergeClose').focus();
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => document.getElementById('hmConciergeLauncher').getAttribute('aria-expanded') === 'false');
+    assert.equal(await panel.evaluate((node) => node.open), false, 'Escape closes modal mode');
+    await bubble.click();
+    await dockedMode.click();
     const bubbleColour = await bubble.evaluate((node) => getComputedStyle(node).backgroundColor);
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     assert.equal(await bubble.evaluate((node) => getComputedStyle(node).backgroundColor), bubbleColour, 'Bubble keeps its reference colour in both Lab themes');
@@ -265,12 +312,19 @@ async function main() {
       await input.waitFor({ timeout: 60000 });
       await input.fill('Synthetic demo');
       assert.equal(await input.inputValue(), 'Synthetic demo');
-      await input.fill('');
       if (process.env.HM_SCREENSHOT_DIR) {
         await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-desktop-live.png'), style: screenshotStyle });
-        await page.setViewportSize({ width: 390, height: 844 });
-        await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-mobile-live.png'), style: screenshotStyle });
       }
+      await modalMode.click();
+      assert.equal(await input.inputValue(), 'Synthetic demo', 'Real hosted app retains its input when expanded');
+      if (process.env.HM_SCREENSHOT_DIR) {
+        await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-modal-desktop-live.png'), style: screenshotStyle });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-modal-mobile-live.png'), style: screenshotStyle });
+      }
+      await dockedMode.click();
+      assert.equal(await input.inputValue(), 'Synthetic demo', 'Real hosted app retains its input when docked again');
+      await input.fill('');
       console.log('Live hosted concierge renders and accepts input within the H&M page; no message was sent.');
     }
     console.log('H&M real-shell shopping, preview isolation, acknowledgement guards, history, semantic mounts and responsive checks passed.');
