@@ -205,7 +205,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         nextAction: !continuationReady
           ? 'Ask the release owner to repair the Cloud Function continuation-secret wiring before generating; no email has been reserved.'
           : assessment.ready
-          ? `Ready — lab_generate_profile sandbox ${allowed.sandbox} industry ${norm.industry} (omit email for stored prefs) randomize true`
+          ? `Ready — lab_generate_profile target aep sandbox ${allowed.sandbox} industry ${norm.industry} (confirm stored prefs and omit email) randomize true. Verify stored fields by Email and ECID; acceptance alone does not prove storage.`
           : assessment.nextAction,
         blockedReason,
       });

@@ -211,7 +211,7 @@ export function assessIndustrySandboxConfig({ industry, sandbox, infraStatus, co
   }
 
   if (ready && !nextAction) {
-    nextAction = `Ready — use lab_generate_profile or lab_update_profile for industry ${industry}.`;
+    nextAction = `Ready — use lab_generate_profile with target aep or lab_update_profile for industry ${industry}. Verify stored fields by Email and ECID; acceptance alone does not prove storage.`;
   }
 
   return {

@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.52.1). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.52.2). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,11 +10,11 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.52.1** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.52.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24, including bulk-job polling), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Directly connect the focused endpoint(s) for the domains actually used (e.g. `/mcp/profile`, `/mcp/demo-prep`) alongside `/mcp/entry`, rather than relying on `lab_load_toolset` alone in Coworker. Start a new chat after releases that change tool registrations.
+Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24, including bulk-job polling), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
-**One-click Coworker install:** `tools/coworker-marketplace/` packages all eleven focused endpoints, including read-only Commerce at `/mcp/commerce` and Commerce Optimizer at `/mcp/commerce-optimizer`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** `tools/coworker-marketplace/` packages all seventeen focused endpoints, including governed Commerce at `/mcp/commerce` and Commerce Optimizer at `/mcp/commerce-optimizer`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
 
 Coworker plugin 1.9.0 names General, Decisioning, and Commerce Optimizer `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Framework context IDs and Claude/API-key configuration names remain unchanged; the directory exposes `coworkerConnectionName` for these three contexts. Existing Coworker installs must update or reinstall the plugin, disconnect old named connections, and start a new chat.
 
@@ -60,6 +60,28 @@ Brand-scrape and geo-specific tools retain their existing AEP streaming behavior
 Read recipient IDs, parent/per-table counts and refresh status from seed responses.
 After deploying this change, start a new MCP chat to refresh tool descriptions.
 
+### New-profile acceptance and complete readback
+
+Compare emitted writable fields with stored AEP Profile data by both Email and
+ECID; include false booleans, arrays and numeric leaves. For dual-load, verify
+one Snowflake CRM row with matching EMAIL, ECID and CRMID. Operational CRM
+values are generated independently from behavioral persona values. Inspect
+source-specific batch mappings separately from merged Profile data. Readiness
+and inlet acceptance alone do not prove storage. Historical failed records do
+not block verified new-profile acceptance and need separate repair approval.
+
+Non-travel `lab_snowflake_get_profile_bundle` supports registered `table_key`,
+small `event_limit` pages and `event_offset`. Follow each table's `nextOffset`
+until `hasMore` is false, and compare accumulated rows with `totalCount`;
+legacy `count` remains the page count. Travel uses its separate readback path.
+
+Earlier server builds failed to deliver SSE tool-list notifications. That
+does not prove Coworker ignores delivered notifications. Current server
+notification delivery is supported; host catalog refresh and automatic
+restart recovery remain client-specific acceptance checks. Prefer directly
+configured focused or General endpoints. Reinitialize after a lost-session
+HTTP 404 and refresh the catalog without automatically replaying mutations.
+
 Codex should call these **before** improvising lab conventions:
 
 | Tool / resource | Purpose |
@@ -87,7 +109,7 @@ Codex should call these **before** improvising lab conventions:
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
-12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
+12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all returned** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key or independently validated Adobe IMS enrollment for the requested sandbox and creates a reversible revision. Coworker forwards IMS, not a plaintext Portal key or the shared ops key. Never write raw RTDB JSON or protected/uncatalogued paths.
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
@@ -129,7 +151,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 
 ### Example prompt that needs zero manual context (v3.13+)
 
-> Call **lab_get_execution_framework** (read criticalRules). **lab_confirm_profile_generation** for sandbox apalmer — show colleague format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should be `+DDMMYYYY-N` scaled form.
+> Call **lab_get_execution_framework** (read criticalRules). **lab_confirm_profile_generation** for sandbox apalmer — show colleague format rules and next preview email. When confirmed, **lab_preflight_profile_generate** target aep, industry travel. If ready, **lab_generate_profile** target aep, sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should be `+DDMMYYYY-N` scaled form.
 
 ### One-shot full demo prep (v3.14+ — confirm → scrape → profiles → events)
 
@@ -191,7 +213,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 
 3. **Generate without email**
 
-   > **lab_generate_profile** sandbox apalmer industry travel, randomize true — **omit email** so MCP reserves `apalmer+DDMMYYYY-N@adobetest.com` from shared counter.
+   > **lab_generate_profile** target aep, sandbox apalmer industry travel, randomize true — **omit email** so MCP reserves `apalmer+DDMMYYYY-N@adobetest.com` from shared counter.
 
 ## Workflow 0 — Check MCP access
 
@@ -215,7 +237,7 @@ Example (user on sandbox **prisacar**):
 
 2. **Generate one randomized profile**
 
-   > Call lab_generate_profile with sandbox apalmer, industry travel, **omit email** (stored prefs), randomize true.
+   > Call lab_generate_profile target aep, with sandbox apalmer, industry travel, **omit email** (stored prefs), randomize true.
 
 3. **Lookup by email**
 
@@ -241,15 +263,15 @@ Requires **a user-generated MCP key or validated Adobe IMS Portal enrollment** (
 
 4. **Dual-load generate**
 
-   > **lab_confirm_profile_generation** → **lab_generate_profile** sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — **omit email** so Firestore reserves `<local>+DDMMYYYY-N@domain>` once for AEP + Snowflake; save email, ecid, snowflake.crmId. Snowflake row uses **crm_generate** mode (full CRM columns populated — LIFETIMEVALUE, LASTHOLIDAYDESTINATION, PREFERREDCABINCLASS, etc.). Legacy **dual_load_snowflake_mode mirror** maps AEP attributes only (CRM columns stay empty/default).
+   > **lab_confirm_profile_generation** → **lab_generate_profile** target aep, sandbox apalmer industry travel randomize true segment_hint hotel_reactivation **dual_load_snowflake true** — **omit email** so Firestore reserves `<local>+DDMMYYYY-N@domain>` once for AEP + Snowflake; save email, ecid, snowflake.crmId. Snowflake row uses **crm_generate** mode (full CRM columns populated — LIFETIMEVALUE, LASTHOLIDAYDESTINATION, PREFERREDCABINCLASS, etc.). Legacy **dual_load_snowflake_mode mirror** maps AEP attributes only (CRM columns stay empty/default).
 
 5. **Batch dual-load (optional)**
 
-   > **lab_generate_profiles_batch** sandbox apalmer industry travel count N use_stored_prefs true dual_load_snowflake true — each profile reserves the next counter via `next-email` before AEP generate + Snowflake INSERT.
+   > **lab_generate_profiles_batch** target aep, sandbox apalmer industry travel count N use_stored_prefs true dual_load_snowflake true — each profile reserves the next counter via `next-email` before AEP generate + Snowflake INSERT.
 
 6. **Verify**
 
-   > **lab_get_profile** + **lab_snowflake_get_profile_by_email** sandbox apalmer email `{email from generate}` — read `profiles[0].columns` (all 39 fields including LIFETIMEVALUE and holiday fields) and `createdAt`. Do **not** use Snowflake console SQL.
+   > **lab_get_profile** + **lab_snowflake_get_profile_by_email** sandbox apalmer email `{email from generate}` — read `profiles[0].columns` (all returned fields including LIFETIMEVALUE and holiday fields) and `createdAt`. Do **not** use Snowflake console SQL.
 
 **Example Coworker prompt (full Snowflake row by email):**
 
@@ -288,11 +310,11 @@ Requires a user MCP key or validated Adobe IMS Portal enrollment, plus a Snowfla
 
 4. **Generate full phased data**
 
-   > **lab_snowflake_generate_full** sandbox apalmer count 5 — returns 501/`RUNNER_NOT_CONFIGURED` when runner env is unset.
+   > **lab_snowflake_generate_full** sandbox apalmer count 5 — only after confirming count and shared preferences. Inspect runner readiness first; missing runner configuration returns 501/`RUNNER_NOT_CONFIGURED`, not a successful seed.
 
 5. **Query + enrich**
 
-   > **lab_snowflake_query_profiles** limit 10 → **lab_snowflake_enrich_profiles** with CRM rows from query + event_types ["hotel","loyalty"].
+   > **lab_snowflake_query_profiles** limit 10 → identify the exact approved CRM rows → **lab_snowflake_enrich_profiles** for those rows with event_types ["hotel","loyalty"]. Run serially; inspect state before any separately approved retry.
 
 ## Workflow 1d — Snowflake non-travel event enrichment (v3.27+)
 
@@ -300,11 +322,11 @@ FSI, retail, telecom, media, and sports each have one CRM profile table, four ev
 
 1. Preview and provision all six tables idempotently:
 
-   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry retail recipe_id retail.all.v1 dry_run true — show target + plannedStatements, obtain colleague confirmation, then dry_run false.
+   > **lab_snowflake_provision** sandbox `{colleague sandbox}` industry retail recipe_id retail.all.v1 dry_run true — show target + plannedStatements, obtain colleague confirmation, then dry_run false confirmed true preview_fingerprint `{unchanged fingerprint from preview}`.
 
 2. Generate a dual-load profile and opt into activity generation:
 
-   > **lab_generate_profile** sandbox apalmer industry retail randomize true dual_load_snowflake true snowflake_enrichment true
+   > **lab_generate_profile** target aep, sandbox apalmer industry retail randomize true dual_load_snowflake true snowflake_enrichment true
 
    `snowflake_enrichment` defaults false for backward-compatible latency. Optionally pass `snowflake_event_types`; omit it for all five retail tables.
 
@@ -366,43 +388,43 @@ Create customer templates with **lab_live_activity_upsert_template**. Use `valid
 
 1. **Reactivation segment**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_reactivation.
+   > lab_generate_profile: target aep, sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_reactivation.
 
 2. **High-value segment**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_high_value.
+   > lab_generate_profile: target aep, sandbox apalmer, industry travel, omit email, randomize true, segment_hint hotel_high_value.
 
 3. **Batch seed for segments**
 
-   > lab_generate_profiles_batch: sandbox apalmer, industry travel, count 10, use_stored_prefs true, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
+   > lab_generate_profiles_batch: target aep, sandbox apalmer, industry travel, count 10, use_stored_prefs true, randomize true, segment_hint hotel_reactivation, delay_ms 800. Poll lab_batch_job_status until complete.
 
 ## Workflow 2b — FSI segment personas (Phase 3.1)
 
 1. **High net worth**
 
-   > lab_generate_profile: sandbox apalmer, industry fsi, email fsi.hnw+001@adobetest.com, randomize true, segment_hint high_net_worth.
+   > lab_generate_profile: target aep, sandbox apalmer, industry fsi, omit email (confirmed stored prefs), randomize true, segment_hint high_net_worth.
 
 2. **Credit rebuild**
 
-   > lab_generate_profile: sandbox apalmer, industry fsi, email fsi.rebuild+001@adobetest.com, randomize true, segment_hint credit_rebuild.
+   > lab_generate_profile: target aep, sandbox apalmer, industry fsi, omit email (confirmed stored prefs), randomize true, segment_hint credit_rebuild.
 
 3. **Batch seed FSI segments**
 
-   > lab_generate_profiles_batch: sandbox apalmer, industry fsi, count 10, base_email kirkham+fsi-seed, randomize true, segment_hint credit_rebuild, delay_ms 800. Poll lab_batch_job_status.
+   > lab_generate_profiles_batch: target aep, sandbox apalmer, industry fsi, count 10, use_stored_prefs true, randomize true, segment_hint credit_rebuild, delay_ms 800. Poll lab_batch_job_status.
 
 ## Workflow 2c — Retail segment personas (Phase 3.1)
 
 1. **Loyalty VIP**
 
-   > lab_generate_profile: sandbox apalmer, industry retail, email retail.vip+001@adobetest.com, randomize true, segment_hint loyalty_vip.
+   > lab_generate_profile: target aep, sandbox apalmer, industry retail, omit email (confirmed stored prefs), randomize true, segment_hint loyalty_vip.
 
 2. **Cart abandoner**
 
-   > lab_generate_profile: sandbox apalmer, industry retail, email retail.abandon+001@adobetest.com, randomize true, segment_hint cart_abandoner.
+   > lab_generate_profile: target aep, sandbox apalmer, industry retail, omit email (confirmed stored prefs), randomize true, segment_hint cart_abandoner.
 
 3. **Batch seed retail VIP cohort**
 
-   > lab_generate_profiles_batch: sandbox apalmer, industry retail, count 25, base_email kirkham+retail-vip, randomize true, segment_hint loyalty_vip.
+   > lab_generate_profiles_batch: target aep, sandbox apalmer, industry retail, count 25, use_stored_prefs true, randomize true, segment_hint loyalty_vip.
 
 ## Workflow 3 — Get profile → discuss changes → full-snapshot update
 
@@ -410,7 +432,7 @@ Profile Viewer streams **full writable snapshots** per industry dataflow — not
 
 1. **Get profile with metadata**
 
-   > Use lab_get_profile for sandbox apalmer, namespace email, identifier travel.demo+001@adobetest.com. Summarize writable industries and key attributes.
+   > Use lab_get_profile for sandbox apalmer, namespace email, identifier `{existing profile email}`. Summarize writable industries and key attributes.
 
 2. **Discuss changes with the user**
 
@@ -418,7 +440,7 @@ Profile Viewer streams **full writable snapshots** per industry dataflow — not
 
 3. **Update with full stitch**
 
-   > Call lab_update_profile: sandbox apalmer, industry travel, email travel.demo+001@adobetest.com, attribute_changes [{ path: "person.name.firstName", value: "Alex" }]. Explain that the server merged into the full writable snapshot before POST /api/profile/update.
+   > Call lab_update_profile: sandbox apalmer, industry travel, email `{existing profile email}`, attribute_changes [{ path: "person.name.firstName", value: "Alex" }]. Explain that the server merged into the full writable snapshot before POST /api/profile/update.
 
 4. **Verify**
 
@@ -478,7 +500,7 @@ Use when **`lab_sandbox_profile_config`** shows infra ready (schema + dataset) b
 
 4. **Save connection + verify**
 
-   > Profile Viewer Travel profile generation → Fetch URL & Flow ID → Save connection. Then lab_sandbox_profile_config sandbox prisacar — travel should be ready. lab_preflight_profile_generate → lab_generate_profile.
+   > Profile Viewer Travel profile generation → Fetch URL & Flow ID → Save connection. Then lab_sandbox_profile_config sandbox prisacar — travel should be ready. lab_preflight_profile_generate target aep → lab_generate_profile target aep; verify stored fields by Email and ECID.
 
 Per-industry dataflow names: `AEP Lab - {Industry} Profile - Dataflow`. See `docs/COWORKER_HTTP_STREAMING_FLOWS.md`.
 
@@ -486,7 +508,7 @@ Per-industry dataflow names: `AEP Lab - {Industry} Profile - Dataflow`. See `doc
 
 1. **Events + channels**
 
-   > Use lab_profile_activity for sandbox apalmer, identifier travel.demo+001@adobetest.com. Read the narration field and summarize for the user (event count, active channels).
+   > Use lab_profile_activity for sandbox apalmer, identifier `{existing profile email}`. Read the narration field and summarize for the user (event count, active channels).
 
 2. **Optional audiences**
 
@@ -498,11 +520,11 @@ Mirrors Profile Viewer **Event tool** identity rules (`eventEdgeService.buildXdm
 
 1. **Generate profile and capture ECID**
 
-   > lab_generate_profile: sandbox apalmer, industry travel, email event.demo+001@adobetest.com, randomize true. **Save ecid from the response.**
+   > lab_generate_profile: target aep, sandbox apalmer, industry travel, omit email (confirmed stored prefs), randomize true. **Save ecid from the response.**
 
 2. **Optional preflight (no send)**
 
-   > lab_preflight_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1. Confirm identityMap + target_id lab-event-tool-edge.
+   > lab_preflight_profile_event: sandbox apalmer, email `{email from generate}`, ecid from step 1. Confirm identityMap + target_id lab-event-tool-edge.
 
 3. **List event targets**
 
@@ -510,11 +532,11 @@ Mirrors Profile Viewer **Event tool** identity rules (`eventEdgeService.buildXdm
 
 4. **Send event (email + ecid + params only — no XDM)**
 
-   > lab_send_profile_event: sandbox apalmer, email event.demo+001@adobetest.com, ecid from step 1, target_id lab-event-tool-edge, event_type transaction, channel web.
+   > lab_send_profile_event: sandbox apalmer, email `{email from generate}`, ecid from step 1, target_id lab-event-tool-edge, event_type transaction, channel web.
 
 5. **Verify**
 
-   > lab_profile_activity for sandbox apalmer, identifier event.demo+001@adobetest.com. Confirm event count increased (allow UPS lag 30–60s).
+   > lab_profile_activity for sandbox apalmer, identifier `{email from generate}`. Confirm event count increased (allow UPS lag 30–60s).
 
 ## Coworker event send recipe (intent demos)
 
@@ -547,7 +569,7 @@ The server also adds `_demoemea.identification.core` (ecid + email mirror) and a
 
 1. **Generate profile** — capture `email` + `ecid` from response:
 
-   > lab_generate_profile sandbox apalmer industry generic randomize true — save email and ecid.
+   > lab_generate_profile target aep, sandbox apalmer industry generic randomize true — save email and ecid.
 
 2. **Optional preflight** (no send):
 
@@ -566,7 +588,7 @@ The server also adds `_demoemea.identification.core` (ecid + email mirror) and a
 ### Never do this
 
 - Pass `xdm`, `event.xdm`, schema `$id`, `allOf` mixin defs, descriptors, or tenant field-group JSON in tool calls or prompts
-- Pass `public: { donationAmount: … }` for basic intent demos — omit unless colleague explicitly needs rich tenant fields
+- Pass raw `public` or `xdm_style` overrides, even for rich events. Use the governed `industry` and flat `industry_fields` parameters instead.
 - Use `lab_send_edge_event` `raw_payload` with schema blobs — use `lab_send_profile_event` params instead
 
 ### Troubleshooting — "event sent" but profile shows 0 events
@@ -584,17 +606,17 @@ Before sending, confirm Event tool wiring for the sandbox (not just that static 
 
 **Codex chain when a colleague reports missing events:**
 
-> (1) `lab_mcp_first_run_setup` — check `readiness.event_targets.lab_event_tool_edge_configured`. (2) `lab_list_event_targets`. (3) Re-run generate, capture ecid. (4) `lab_preflight_profile_event` with email+ecid. (5) `lab_send_profile_event` with `target_id lab-event-tool-edge`. (6) Wait 60s, `lab_profile_activity`.
+> (1) `lab_mcp_first_run_setup` — check `readiness.event_targets.lab_event_tool_edge_configured`. (2) `lab_list_event_targets`. (3) Reuse the existing generated profile and its ECID; do not regenerate to troubleshoot. (4) `lab_preflight_profile_event` with email+ecid. (5) `lab_send_profile_event` with `target_id lab-event-tool-edge`. (6) Wait 60s, `lab_profile_activity`.
 
 **If ecid omitted:** MCP auto-fetches from UPS by email; response includes `warnings` when stitching may be weak.
 
 **Public-sector donation demo (rich tenant fields — only when explicitly requested):**
 
-   > lab_send_profile_event with event_type donation.made, public { donationAmount: 250, donationDate: "2026-06-23", eventRegistration: "annual-gala" } — **only** when colleague needs donation attributes on the event; for basic intent demos omit `public`.
+   > lab_send_profile_event with sandbox apalmer, email `{existing profile email}`, ecid `{existing profile ecid}`, event_type donation.made, channel web — for rich donation attributes, first inspect the tool's supported industry_fields and use only allowlisted parameters. Never pass raw public or XDM.
 
 **Advanced (direct datastream — avoid raw_payload):**
 
-   > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email event.demo+001@adobetest.com, ecid from generate, event_type transaction.
+   > lab_send_edge_event: sandbox apalmer, datastream_id from lab_list_event_targets, email `{email from generate}`, ecid from generate, event_type transaction.
 
 ## Workflow 5d — Decisioning lab Edge evaluate (v3.18+)
 
@@ -681,7 +703,7 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 
 1. **Start batch job**
 
-   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 25, use_stored_prefs true, randomize true.
+   > Use lab_generate_profiles_batch: target aep, sandbox apalmer, industry retail, count 25, use_stored_prefs true, randomize true.
 
 2. **Poll until complete**
 
@@ -695,7 +717,7 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 
 1. **Single profile in a chosen place**
 
-   > Use lab_generate_profile: sandbox apalmer, industry retail, randomize true, place_area "tokyo". Report place_context.
+   > Use lab_generate_profile: target aep, sandbox apalmer, industry retail, randomize true, place_area "tokyo". Report place_context.
 
 2. **Events in the same area**
 
@@ -703,7 +725,7 @@ Mirrors Profile Viewer **Event tool** step 1 (`setupEventInfra`) and step 2 (sav
 
 3. **Global bulk data that still renders on the hotspot map**
 
-   > Use lab_generate_profiles_batch: sandbox apalmer, industry retail, count 60, randomize true, place_mode global. Report place_clusters (5 clusters × 12 profiles, k=10).
+   > Use lab_generate_profiles_batch: target aep, sandbox apalmer, industry retail, count 60, randomize true, place_mode global. Report place_clusters (5 clusters × 12 profiles, k=10).
 
 4. **Verify the map** — once the batch completes, call lab_audience_geo_hotspots (geo-insights context) centred on one cluster's latitude/longitude with a radius that covers it. Clusters below k=10 are suppressed by design.
 
@@ -822,7 +844,7 @@ End-to-end chain for customer-specific demo prep.
 
 5. **Verify events**
 
-   > lab_profile_activity per profile email. Allow 30–60s UPS lag. If 0 events: confirm ecid was passed; re-run lab_preflight_profile_event; retry lab_send_retail_journey_events.
+   > lab_profile_activity per profile email. Allow 30–60s UPS lag. If 0 events: confirm ecid was passed; re-run lab_preflight_profile_event; inspect stored activity and request status before any separately approved resend.
 
 **AJO platform gap:** CJv2 tools produce a **sales presentation journey** (HTML/PPTX), not a live AJO journey. Lab only browses existing AJO journeys; no create API.
 
