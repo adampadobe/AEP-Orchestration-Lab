@@ -617,6 +617,23 @@
           }],
         },
         {
+          id: 'demoHm',
+          label: 'H&M UAE',
+          demoCustomer: true,
+          channels: [{
+            id: 'hmWeb',
+            label: 'Web',
+            items: [{
+              label: 'H&M UAE website (in development)',
+              href: 'hm-demo.html',
+              inDevelopment: true,
+              navHideKey: 'hmWebDemo',
+              demoMeta: { owners: ['apalmer'] },
+              ico: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 7h12l1 14H5L6 7zM9 8V5a3 3 0 0 1 6 0v3" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+            }],
+          }],
+        },
+        {
           id: 'demoRiyadhAir',
           label: 'Riyadh Air',
           demoCustomer: true,
