@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.52.1). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.52.2). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, using Adobe Firefly media or Photoshop, InDesign, Substance 3D, Express, and Illustrator production workflows, audience geo-insights, or reading lab execution framework / industry playbooks.
@@ -12,11 +12,19 @@ metadata:
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.52.1** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.52.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs the complete 218-tool `lab-all` connection plus seventeen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `lab-dps` (`/mcp/decisioning`), `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-geo-insights` (`/mcp/geo-insights`), `aep-lab-commerce`, `lab-aco` (`/mcp/commerce-optimizer`), `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-figma` (`/mcp/figma`, Figma REST API through a server-held token; read-only apart from a confirmation-gated comment post). Geo insights combines live weather and AEP Query Service audience hotspots in one focused endpoint, returns aggregates only, and suppresses cells below k=10. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Known limitation:** as tested, Adobe Coworker's tool-discovery layer only reflects the tools present at session `initialize` and does not act on the `notifications/tools/list_changed` signal `lab_load_toolset` sends — newly loaded tools register successfully but never become callable in Coworker. Use the directly installed General or focused integration instead of relying on `lab_load_toolset` alone.
+This plugin installs the complete 218-tool `lab-all` connection plus seventeen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `lab-dps` (`/mcp/decisioning`), `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-geo-insights` (`/mcp/geo-insights`), `aep-lab-commerce`, `lab-aco` (`/mcp/commerce-optimizer`), `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-figma` (`/mcp/figma`, Figma REST API through a server-held token; read-only apart from a confirmation-gated comment post). Geo insights combines live weather and AEP Query Service audience hotspots in one focused endpoint, returns aggregates only, and suppresses cells below k=10. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
-Use the focused integration that owns the task. Use the installed `lab-all` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration. Do not imply that `aep-lab-entry` can make dynamically loaded tools callable in Coworker.
+Use the focused integration that owns the task. Use the installed `lab-all` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration.
+
+**Discovery and recovery evidence:** earlier server builds did not deliver SSE
+tool-list notifications. That failure does not prove Coworker ignores delivered
+notifications. The current server supports them, but host catalog refresh and
+automatic restart recovery still need client-specific verification. Prefer the
+installed focused or General connection. After a lost-session HTTP 404,
+reinitialize the client and refresh the catalog; never replay a mutation as part
+of reconnecting.
 
 Plugin 1.9.0 shortens the former `aep-lab-general`, `aep-lab-decisioning`, and `aep-lab-commerce-optimizer` connection names to avoid qualified tool names longer than 64 characters. Tool names, URLs, and IMS settings are unchanged. Update or reinstall the plugin, disconnect the old named connections, and start a new chat. The framework retains stable context IDs and supplies `coworkerConnectionName` for these three integrations. Decisioning exposes 24 tools including `lab_batch_job_status` after the server update; Commerce Optimizer exposes 15 including attribute metadata and all four governed ingestion tools.
 
@@ -50,6 +58,22 @@ Brand-scrape and geo-specific tools retain their existing AEP streaming behavior
 Read recipient IDs, parent/per-table counts and refresh status from seed responses.
 After deploying this change, start a new MCP chat to refresh tool descriptions.
 
+### New-profile acceptance
+
+Preflight readiness and inlet acceptance are not stored-data verification.
+Compare the emitted writable fields, including false booleans, arrays and
+numbers, with AEP Profile readbacks by both Email and ECID. For dual-load,
+require one matching Snowflake CRM row with the same EMAIL, ECID and CRMID;
+operational CRM attributes need not equal behavioral persona attributes.
+Inspect scheduled source-batch mappings separately from merged Profile values.
+Historical failed records do not block acceptance of verified new profiles and
+must not be repaired or replayed without separate approval.
+
+For complete non-travel enrichment reads, select one registered `table_key`,
+use a small `event_limit`, then pass `nextOffset` as `event_offset` until
+`hasMore` is false. Compare the accumulated rows with `totalCount`; legacy
+`count` is the returned page count. Travel has a separate readback path.
+
 Use focused tools when available. Rows marked **General only** use the installed full-catalog integration:
 
 | Tool / resource | Purpose |
@@ -82,7 +106,7 @@ Use focused tools when available. Rows marked **General only** use the installed
 14. **Decisioning schema extend** — `lab_decisioning_schema_extend_preview` (1–50 `{name, type, ...}` fields) → `lab_decisioning_schema_extend_apply` (unchanged `fields` + `preview_hash` + `confirmed:true`, no confirmation phrase). Add-only: a same-name field with a different shape is a `conflict`, never applied. If the field group changed since preview, apply fails closed with `error: "schema_drifted"` — re-run the preview.
 15. **Decisioning bulk tagging** — `lab_decisioning_tag_bulk_preview` (`action: attach|detach|replace`, 1–20 tags, `offer_selector` of `ids` / `name_prefix` / `collection`) → `lab_decisioning_tag_bulk_apply` (`sandbox`, `preview_hash`, `confirmed:true` — no need to resend tags/offers) → poll `lab_batch_job_status`. `replace` overwrites an offer's entire tag set instead of merging/subtracting. If interrupted, resume with `resume_token` set to the returned `job_id` instead of restarting. `offer_selector.collection` only works when the collection carries an explicit member-id list; use `ids` or `name_prefix` otherwise.
 16. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
-17. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all 39** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
+17. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all returned** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
 18. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 19. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key or independently validated Adobe IMS Portal enrollment and creates a reversible revision. Never write raw RTDB JSON, protected/uncatalogued paths, or use the shared ops key.
 20. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
@@ -127,7 +151,7 @@ Profile Generation in Profile Viewer and all MCP generate tools share **`labProf
 
 ### Example prompt that needs zero manual context
 
-> Call **lab_mcp_access_info**. Then **lab_confirm_profile_generation** for sandbox apalmer — show the format rules and next preview email. When confirmed, **lab_preflight_profile_generate** industry travel. If ready, **lab_generate_profile** sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should use the `+DDMMYYYY-N` scaled form.
+> Call **lab_mcp_access_info**. Then **lab_confirm_profile_generation** for sandbox apalmer — show the format rules and next preview email. When confirmed, **lab_preflight_profile_generate** target aep, industry travel. If ready, **lab_generate_profile** target aep, sandbox apalmer industry travel, **omit email** (stored prefs), randomize true, segment_hint `hotel_reactivation`. Verify with **lab_get_profile** — email should use the `+DDMMYYYY-N` scaled form.
 
 ### One-shot full demo prep (confirm → scrape → profiles → events)
 

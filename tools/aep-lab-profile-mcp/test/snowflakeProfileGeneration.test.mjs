@@ -386,6 +386,11 @@ test('AEP preflight checks continuation readiness without consuming an email or 
 
     assert.equal(body.ready, ready);
     assert.equal(body.blockedReason, ready ? null : 'MERGE_TOKEN_SECRET_UNAVAILABLE');
+    if (ready) {
+      assert.match(body.nextAction, /lab_generate_profile target aep/);
+      assert.match(body.nextAction, /Verify stored fields by Email and ECID/);
+      assert.match(body.config.nextAction, /target aep/);
+    }
     assert.ok(calls.every(({ path }) => !path.includes('next-email') && path !== '/api/profile/generate'));
   }
 });
@@ -403,6 +408,7 @@ test('AEP preflight bypasses cache by default and exposes an explicit refresh op
     });
 
     assert.equal(body.ready, true);
+    assert.match(body.nextAction, /lab_generate_profile target aep/);
     assert.equal(calls.find(call => call.path === '/api/profile-infra/status-all').query.get('refresh'), refresh === false ? null : '1');
     assert.ok(calls.every(call => !call.path.includes('next-email') && call.path !== '/api/profile/generate'));
   }

@@ -50,6 +50,28 @@ test('Coworker plugin manifest explicitly preserves the workflow skill', async (
   assert.equal(manifest.mcpServers, undefined);
 });
 
+test('profile workflow prompts explicitly select AEP and require complete stored readback', async () => {
+  const paths = [
+    join(repoRoot, '.agents', 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
+    join(pluginRoot, 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
+    join(pluginRoot, 'skills', 'aep-lab-profile-mcp', 'references', 'workflows.md'),
+    join(repoRoot, 'tools', 'copilot-marketplace', 'aep-lab', 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
+  ];
+  for (const path of paths) {
+    const text = await readFile(path, 'utf8');
+    assert.doesNotMatch(text, /does not act on the `notifications\/tools\/list_changed`/);
+    assert.match(text, /event_offset/);
+    assert.match(text, /totalCount/);
+    for (const line of text.split('\n').filter(line => line.trim().startsWith('>'))) {
+      assert.doesNotMatch(line, /\bpublic\s*\{/, `${relative(repoRoot, path)}: ${line}`);
+      if (/lab_(?:generate_profile|generate_profiles_batch)\b/.test(line.replace(/\{[^}]*\}/g, ''))) {
+        assert.match(line, /target (?:aep|snowflake)/, `${relative(repoRoot, path)}: ${line}`);
+        assert.doesNotMatch(line, /email \S+\+001@/, line);
+      }
+    }
+  }
+});
+
 test('Coworker MCP manifest uses Integration schema for General and all focused endpoints', async () => {
   const config = await readJson(join(pluginRoot, '.mcp.json'));
   const providers = config.auth_providers;

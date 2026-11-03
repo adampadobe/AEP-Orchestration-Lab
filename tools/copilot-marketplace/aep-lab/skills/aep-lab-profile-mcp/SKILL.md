@@ -25,6 +25,10 @@ attempt to bypass access controls.
 - For profile generation, read the execution framework and industry
   playbook, confirm the colleague's shared generation preferences, and
   preflight before creating data. Keep AEP test-profile defaults enabled.
+- Single, batch and preflight generation default to `target:"snowflake"`,
+  writing the shared recipient parent and linked industry data without AEP
+  streaming. For AEP personas or dual-load, explicitly use `target:"aep"`.
+  Snowflake batches return synchronously; only AEP batch jobs require polling.
 - For event examples, use the governed event tools and their parameters;
   do not hand-build XDM or send raw payload overrides.
 - For audience or AJO deletion, list and audit one exact asset, explain the
@@ -33,8 +37,16 @@ attempt to bypass access controls.
   Reuse the unchanged preview values and only apply after explicit confirmation.
 - For Firefly or creative-production jobs, preview the request, explain the
   processing impact, get explicit confirmation, submit once, and check status.
-- Treat Lab responses as evidence. Do not claim that a change succeeded until
-  the tool response confirms it.
+- An ingestion acceptance receipt is not proof of stored data. For new
+  dual-load profiles, compare emitted fields with AEP readbacks by both Email
+  and ECID, verify the exact Snowflake CRM row and shared join keys, and
+  inspect source-specific ingestion separately. Operational CRM values are
+  generated independently from behavioral persona values.
+- For complete non-travel enrichment readback, use a registered `table_key`,
+  small `event_limit` pages and each table's `nextOffset` as `event_offset`
+  until `hasMore` is false; compare the accumulated count with `totalCount`.
+- Lost MCP sessions require a fresh client initialization and catalog refresh.
+  Never automatically replay generation or other mutations during recovery.
 
 When the General connection is available, call `lab_get_execution_framework`
 before advanced lab workflows. Use `lab_mcp_access_info` to check the current
