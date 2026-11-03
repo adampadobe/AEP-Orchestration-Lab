@@ -442,6 +442,36 @@ Industry dual-load and Travel seed inserts use declared column types for
 runner uses equivalent typed SELECT expressions. Legacy loyalty/preferences
 `PUSHTOKENS` columns remain text by design. Lab readback preserves arrays and
 objects instead of coercing arrays to comma-separated strings.
+
+In `crm_generate` mode, all six Node CRM generators preserve supplied shared
+persona values instead of independently re-randomizing them. The explicit
+column/path contract is `functions/snowflakePersonaContract.js`: common names,
+birth date, gender, nationality, phone, address and LTV; industry CRM paths under
+`customerProfile` (Travel), `fsiProfile`, `retailProfile`, `telecomProfile`,
+`mediaProfile` and `sportsProfile`; and supported aliases used by the MCP persona
+builders. These include FSI credit score/income, Retail brand/category/order
+values, Travel cabin/seat/meal, and Telecom/Media/Sports flags. Missing fields
+retain synthetic operational defaults. CRM-only seeding with no supplied persona
+retains its randomized behavior. The legacy `mirror` mode is unchanged.
+
+Explicit `false`, zero, empty arrays and null are not replaced with random
+values. Conflicting aliases, invalid column types, oversized strings and unknown
+paths inside the selected CRM profile root fail explicitly rather than silently
+choosing a different persona value. Primary email must match the generated
+identity. Identity allocation and demo push-token generation remain governed by
+the existing recipient service; this contract does not accept replacement ECIDs
+or arbitrary push tokens. It is not a promise that every XDM attribute has a CRM
+column: for example, preferred language is streamed to AEP but has no Snowflake
+CRM column.
+
+Exact Snowflake storage and AEP projection are separate checks. Source mappings
+must carry the intended columns, and pinned dataflow mapping versions must be
+updated when those mappings change. `allowNullValues:false` does not clear an
+existing AEP value when Snowflake contains null. Travel's existing source mappings
+target element `[0]` for favorite destinations and special assistance; full-array
+projection still needs its own mapping review and live acceptance. Matching a
+merged AEP profile alone cannot prove that a Snowflake source supplied the value.
+
 The Python runner validates the complete input batch before issuing bound
 `cursor.execute` calls for each typed `INSERT ... SELECT`; Snowflake's
 `executemany` INSERT rewriter requires `VALUES` and rejects this SELECT shape.

@@ -151,6 +151,49 @@ describe('Snowflake seed API offline integration', () => {
     assert.equal(fixture.isDestroyed(), true);
   });
 
+  it('binds shared persona values without re-randomizing across all six industries', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleInsertProfileFromAep({
+        labUser: 'offline-user', sandbox: 'test', industry,
+        email: 'aep@example.com', ecid: '12345678901234567890123456789012345678',
+        attributes: {
+          'person.name.firstName': 'SameName',
+          'person.birthDate': '1980-04-05',
+          'orderProfile.lifetimeValue': 0,
+          'mobilePhone.number': '+441234567890',
+          'homeAddress.city': 'SameCity',
+          ...(industry === 'sports' ? { 'industrySports.fanFlags.streamLive': false } : {}),
+        },
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      const insert = fixture.calls.find(({ sqlText }) => sqlText.startsWith('INSERT INTO'));
+      const columns = insert.sqlText.match(/\(([^)]+)\) SELECT/)[1].split(', ');
+      for (const [column, value] of Object.entries({
+        FIRSTNAME: 'SameName', DATEOFBIRTH: '1980-04-05', LIFETIMEVALUE: 0,
+        PHONENUMBER: '+441234567890', PRIMARYPHONE: '+441234567890', ADDRESSCITY: 'SameCity',
+      })) {
+        assert.equal(insert.binds[columns.indexOf(column)], value, `${industry}.${column}`);
+      }
+      if (industry === 'sports') assert.equal(insert.binds[columns.indexOf('STREAMLIVE')], false);
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+
+  it('surfaces conflicting persona attributes without committing a CRM insert', async () => {
+    const fixture = serviceWithConnection();
+    const result = await fixture.service.handleInsertProfileFromAep({
+      labUser: 'offline-user', sandbox: 'test', industry: 'fsi',
+      email: 'aep@example.com', ecid: '12345678901234567890123456789012345678',
+      attributes: { 'fsiProfile.customerValue.creditScore': 800, 'individualCharacteristics.core.creditScore': 484 },
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.error.phase, 'build_crm_row');
+    assert.match(result.error.message, /Conflicting persona values/);
+    assert.equal(fixture.calls.some(({ sqlText }) => sqlText.startsWith('INSERT INTO') || sqlText === 'COMMIT'), false);
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
   it('rejects missing or stale email preferences before connecting or reserving IDs', async () => {
     for (const baseEmail of ['', 'new@example.com']) {
       const fixture = serviceWithConnection(undefined, { baseEmail });

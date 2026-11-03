@@ -52,23 +52,22 @@ describe('Snowflake industry CRM profile registry', () => {
     });
   }
 
-  it('correlates FSI 500k_plus with high income and strong credit', () => {
+  it('preserves explicit FSI credit band even for high income', () => {
     const { rowObject } = generateIndustryProfileRow('fsi', {
       ...INPUT,
       attributes: { industryFsi: { householdIncomeBand: '500k_plus', creditScoreBand: 'good' } },
     });
     assert.ok(rowObject.HOUSEHOLDINCOME >= 450000);
-    assert.ok(rowObject.CREDITSCORE >= 800);
-    assert.equal(rowObject.CREDITSCOREBAND, 'excellent');
+    assert.ok(rowObject.CREDITSCORE >= 670 && rowObject.CREDITSCORE <= 739);
+    assert.equal(rowObject.CREDITSCOREBAND, 'good');
   });
 
-  it('correlates but does not mirror retail AEP lifetime value', () => {
+  it('preserves the shared retail AEP lifetime value exactly', () => {
     const { rowObject } = generateIndustryProfileRow('retail', {
       ...INPUT,
       attributes: { orderProfile: { lifetimeValue: 10000 } },
     });
-    assert.notEqual(rowObject.LIFETIMEVALUE, 10000);
-    assert.ok(rowObject.LIFETIMEVALUE >= 8600 && rowObject.LIFETIMEVALUE <= 11400);
+    assert.equal(rowObject.LIFETIMEVALUE, 10000);
   });
 
   it('correlates premium telecom plan and flagship device to realistic UK spend', () => {

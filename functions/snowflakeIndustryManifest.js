@@ -86,7 +86,7 @@ const TRAVEL_MANIFEST = {
     defaultMode: 'crm_generate',
     modes: {
       crm_generate:
-        'Default — generates full travel CRM row (LTV, holidays, preferences) via Node generator aligned with agentic-travel-runner Phase 1; binds EMAIL, ECID, CRMID (+ optional FIRSTNAME/LASTNAME) from AEP generate.',
+        'Default — generates a full travel CRM row with shared EMAIL, ECID, CRMID; preserves supported supplied persona values exactly and generates only missing operational fields.',
       mirror:
         'Legacy — maps AEP dot-path attributes only; travel CRM columns stay empty/default. Pass mode=mirror on insert-profile-from-aep to opt in.',
     },
@@ -155,7 +155,7 @@ function buildCrmIndustryManifest(industry, label) {
       columnCount: config.columns.length,
       defaultMode: 'crm_generate',
       modes: {
-        crm_generate: `Generates independent ${industry} operational CRM data while sharing EMAIL, ECID, and CRMID with AEP.`,
+        crm_generate: `Generates ${industry} operational CRM data with shared EMAIL, ECID, and CRMID; preserves supported supplied persona values exactly and generates only missing operational fields.`,
       },
       note: 'AEP carries real-time behavioural attributes; Snowflake carries complementary operational CRM data.',
     },
