@@ -45,8 +45,20 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     const posts = [], errors = [];
+    let conciergeLoads = 0;
+    let liveConcierge = false;
     await context.route('**/*', async (route) => {
       const url = new URL(route.request().url());
+      if (liveConcierge && (url.hostname === 'd3mey6isb8np59.cloudfront.net' ||
+        route.request().frame().url().startsWith('https://d3mey6isb8np59.cloudfront.net/'))) {
+        await route.continue();
+        return;
+      }
+      if (url.hostname === 'd3mey6isb8np59.cloudfront.net') {
+        conciergeLoads++;
+        await route.fulfill({ contentType: 'text/html', body: '<!doctype html><title>Concierge fixture</title><label>Message <input id="chat"></label><button onclick="document.getElementById(\'reply\').textContent=\'Fixture reply\'">Send</button><p id="reply"></p>' });
+        return;
+      }
       if (url.origin !== origin) { await route.fulfill({ body: '', contentType: 'text/javascript' }); return; }
       if (!url.pathname.startsWith('/api/')) { await route.continue(); return; }
       let data = {};
@@ -122,6 +134,41 @@ async function main() {
       await page.setViewportSize({ width: 1440, height: 1000 });
     }
     assert.equal(posts.length, 0, 'Preview page load must not send business events');
+    assert.equal(conciergeLoads, 0, 'Concierge does not load or contact its host until opened');
+    const bubble = page.locator('#hmConciergeLauncher');
+    assert.equal((await bubble.textContent()).trim(), '', 'Bubble has no unread count');
+    await bubble.click();
+    assert.equal(await bubble.getAttribute('aria-expanded'), 'true');
+    assert.equal(await page.locator('#hmConciergePanel').evaluate((node) => node.open), true);
+    assert.equal(await page.locator('#hmConciergeFrame').getAttribute('referrerpolicy'), 'no-referrer');
+    assert.equal(await page.locator('#hmConciergeFrame').getAttribute('sandbox'), 'allow-scripts allow-same-origin allow-forms allow-popups');
+    const chat = page.frameLocator('#hmConciergeFrame');
+    await chat.getByLabel('Message').fill('Synthetic demo message');
+    await chat.getByRole('button', { name: 'Send' }).click();
+    assert.equal(await chat.locator('#reply').textContent(), 'Fixture reply', 'The iframe accepts real user interaction');
+    await page.locator('#hmConciergeClose').click();
+    await page.waitForFunction(() => document.getElementById('hmConciergeLauncher').getAttribute('aria-expanded') === 'false');
+    assert.equal(await bubble.getAttribute('aria-expanded'), 'false');
+    assert.equal(await bubble.evaluate((node) => node === document.activeElement), true);
+    await bubble.click();
+    assert.equal(await chat.getByLabel('Message').inputValue(), 'Synthetic demo message', 'Closing and reopening preserves the remote session');
+    assert.equal(conciergeLoads, 1, 'Reopening does not reload the iframe');
+    await page.locator('#hmConciergeClose').focus();
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#hmConciergePanel').evaluate((node) => node.open), false);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await bubble.click();
+    const panelBox = await page.locator('#hmConciergePanel').boundingBox();
+    assert(panelBox.x >= 0 && panelBox.y >= 0 && panelBox.x + panelBox.width <= 390 && panelBox.y + panelBox.height <= 844, 'Mobile chat panel stays inside the viewport');
+    const bubbleColour = await bubble.evaluate((node) => getComputedStyle(node).backgroundColor);
+    await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+    assert.equal(await bubble.evaluate((node) => getComputedStyle(node).backgroundColor), bubbleColour, 'Bubble keeps its reference colour in both Lab themes');
+    await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    if (process.env.HM_SCREENSHOT_DIR) {
+      await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-mobile.png'), style: screenshotStyle });
+    }
+    await page.locator('#hmConciergeClose').click();
+    await page.setViewportSize({ width: 1440, height: 1000 });
     await page.getByRole('button', { name: /presenter/i }).click();
     assert.equal(await page.locator('#hmPresenter').evaluate((node) => node.open), true);
     await page.keyboard.press('Escape');
@@ -207,6 +254,25 @@ async function main() {
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile page must not overflow horizontally');
     assert.deepEqual(errors, [], 'No uncaught errors in the real Lab shell');
     assert(interactions.some((entry) => entry.type === 'add'));
+    if (process.env.HM_LIVE_CONCIERGE === '1') {
+      liveConcierge = true;
+      await page.goto(origin + '/profile-viewer/hm-demo.html');
+      await page.evaluate(() => window.HmLab.ready);
+      await closeEnvironment();
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.locator('#hmConciergeLauncher').click();
+      const input = page.frameLocator('#hmConciergeFrame').getByPlaceholder('Search for women’s dresses, men’s shirts, or kids’ outfits');
+      await input.waitFor({ timeout: 60000 });
+      await input.fill('Synthetic demo');
+      assert.equal(await input.inputValue(), 'Synthetic demo');
+      await input.fill('');
+      if (process.env.HM_SCREENSHOT_DIR) {
+        await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-desktop-live.png'), style: screenshotStyle });
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.screenshot({ path: path.join(process.env.HM_SCREENSHOT_DIR, 'hm-concierge-mobile-live.png'), style: screenshotStyle });
+      }
+      console.log('Live hosted concierge renders and accepts input within the H&M page; no message was sent.');
+    }
     console.log('H&M real-shell shopping, preview isolation, acknowledgement guards, history, semantic mounts and responsive checks passed.');
     await context.close();
   } finally {
