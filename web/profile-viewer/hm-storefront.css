@@ -35,7 +35,7 @@
 }
 
 /* ---------- Customer site (brand, always light) ---------- */
-.hm-site {
+.hm-site, .hm-concierge {
   --dash-hm-white: rgb(255 255 255); --dash-hm-ink: rgb(34 34 34); --dash-hm-black: rgb(0 0 0);
   --dash-hm-grey: rgb(138 138 138); --dash-hm-grey-dark: rgb(85 85 85); --dash-hm-line: rgb(224 224 224);
   --dash-hm-tile: rgb(249 249 249); --dash-hm-wash: rgb(244 244 244); --dash-hm-red: rgb(234 29 37);
@@ -44,6 +44,8 @@
   --dash-hm-font: "hm regular fallback", Arial, "Helvetica Neue", Helvetica, sans-serif;
   --dash-hm-font-strong: "hm semibold fallback", Arial, "Helvetica Neue", Helvetica, sans-serif;
   --hm-gutter: clamp(1rem, 3.1vw, 3rem);
+}
+.hm-site {
   display: block; margin-top: var(--hm-lab-inset, 3rem); background: var(--dash-hm-white); color: var(--dash-hm-ink);
   font-family: var(--dash-hm-font); font-size: 15px; line-height: 1.45; color-scheme: light; overflow-x: clip;
 }
@@ -66,6 +68,39 @@
 .hm-skip { position: absolute; left: -999px; top: 0; padding: .5rem 1rem; background: var(--dash-hm-white); }
 .hm-skip:focus { left: 1rem; z-index: 20; }
 #hmMain:focus { outline: none; }
+
+/* Hosted concierge is separate from the Lab-injected Brand Concierge controls. */
+.hm-concierge { font-family: var(--dash-hm-font); color-scheme: light; }
+.hm-concierge .hm-concierge-launcher {
+  position: fixed; right: max(24px, env(safe-area-inset-right)); bottom: max(32px, env(safe-area-inset-bottom));
+  z-index: 6300; display: grid; place-items: center; width: 72px; height: 72px; padding: 0;
+  border: 1px solid var(--dash-hm-black); border-radius: 50%; background: var(--dash-hm-ink);
+  color: var(--dash-hm-white); box-shadow: var(--dash-hm-shadow); cursor: pointer;
+}
+.hm-concierge .hm-concierge-launcher:hover { background: var(--dash-hm-black); }
+.hm-concierge button:active { transform: none; }
+.hm-concierge :focus-visible { outline: 2px solid var(--dash-hm-focus); outline-offset: 3px; }
+.hm-concierge-panel {
+  position: fixed; inset: auto max(24px, env(safe-area-inset-right)) max(116px, calc(env(safe-area-inset-bottom) + 84px)) auto;
+  z-index: 6301; width: min(460px, calc(100vw - 32px)); height: min(760px, calc(100dvh - var(--hm-lab-inset, 48px) - 132px));
+  max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden;
+  border: 1px solid var(--dash-hm-line); border-radius: 12px; box-shadow: var(--dash-hm-shadow);
+  background: var(--dash-hm-white); color: var(--dash-hm-ink);
+}
+.hm-concierge-panel[open] { display: flex; flex-direction: column; }
+.hm-concierge-panel:not([open]) { display: none; }
+.hm-concierge-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; border-bottom: 1px solid var(--dash-hm-line); }
+.hm-concierge-heading h2 { margin: 0; color: var(--dash-hm-ink); font-size: 16px; font-weight: 600; }
+.hm-concierge-heading button { width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--dash-hm-white); color: var(--dash-hm-ink); font-size: 26px; cursor: pointer; }
+.hm-concierge-heading button:hover { background: var(--dash-hm-wash); }
+.hm-concierge-frame-host { flex: 1; min-height: 0; }
+.hm-concierge-frame-host iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--dash-hm-white); }
+.hm-concierge-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 8px 12px; border-top: 1px solid var(--dash-hm-line); font-size: 11px; }
+.hm-concierge-footer a { color: var(--dash-hm-ink); text-decoration: underline; }
+@media (max-width: 600px) {
+  .hm-concierge .hm-concierge-launcher { width: 60px; height: 60px; right: max(16px, env(safe-area-inset-right)); }
+  .hm-concierge-panel { right: 8px; bottom: max(104px, calc(env(safe-area-inset-bottom) + 76px)); width: calc(100vw - 16px); height: calc(100dvh - var(--hm-lab-inset, 64px) - 120px); }
+}
 
 /* Header */
 .hm-header { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 76px; padding: 0 var(--hm-gutter); background: var(--dash-hm-white); }

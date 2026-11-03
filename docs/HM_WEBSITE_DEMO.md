@@ -58,6 +58,23 @@ Changing an identifier invalidates verification. A sandbox change disables
 recording and requires fresh SDK resolution. Never use one Adobe visitor to
 impersonate different people.
 
+## Hosted concierge chat
+
+The black bottom-right chat bubble opens the supplied CloudFront H&M concierge
+in a cross-origin iframe. It has no unread-count badge. The iframe is created only
+on first open and retained when closed so the remote conversation can continue
+while browsing the storefront. The panel has a close button and a new-tab link
+for browsers or networks that block framing. Escape closes it when focus is in
+the parent page; when focus is inside the remote frame, use the visible close
+button or bubble.
+
+The embedded app owns its chat session, network calls and data handling. No Lab
+profile identifier, sandbox, credentials or shopping data is passed to it.
+Lab preview mode and New visitor do not configure or reset that separate chat
+session. Opening the bubble contacts the hosted service even in shopping preview
+mode. Use synthetic demo information only. The existing Lab Brand Concierge
+injection controls remain separate.
+
 ## Event contract and schema boundary
 
 `hm-events.js` validates and builds the generator request. The generator is called
