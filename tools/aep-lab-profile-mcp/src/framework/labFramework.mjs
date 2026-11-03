@@ -598,15 +598,15 @@ export function getExecutionFramework() {
           'lab_snowflake_create_profile',
         ],
         when:
-          'Travel, FSI, retail, telecom, media, and sports demos: AEP behavioral persona + independent Snowflake operational CRM with shared email/ECID/CRMID.',
+          'Travel, FSI, retail, telecom, media, and sports demos: AEP behavioral persona + Snowflake operational CRM with shared email/ECID/CRMID and supported shared persona values.',
         requires: 'User-generated MCP key or validated Adobe IMS Portal enrollment (principalUid) — ops shared key cannot resolve Snowflake credentials.',
         order: [
           'lab_snowflake_config — hasCredential must be true (save key pair in Profile Viewer if not)',
           'lab_snowflake_test_connection — confirm Snowflake version or NETWORK POLICY hint (static IP 34.58.81.28)',
           'lab_snowflake_industry_catalog — review phaseTables, dualLoadTarget, dualLoad.defaultMode (crm_generate), tableCheck',
           'lab_confirm_profile_generation — shared AEP email prefs (Firestore labProfileGenerationPrefs)',
-          'lab_generate_profile target aep industry {non-generic industry} randomize true dual_load_snowflake true — omit email; AEP streams persona and Snowflake independently generates operational CRM fields',
-          'lab_get_profile + lab_snowflake_get_profile_by_email industry {same industry} email {same email} — verify shared identity plus complementary CRM columns; never Snowflake console SQL',
+          'lab_generate_profile target aep industry {non-generic industry} randomize true dual_load_snowflake true — omit email; Snowflake preserves supported supplied persona values and generates missing operational CRM fields',
+          'lab_get_profile + lab_snowflake_get_profile_by_email industry {same industry} email {same email} — verify shared identity, exact shared persona values and complementary CRM columns; verify source mappings and ingestion separately; never Snowflake console SQL',
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },

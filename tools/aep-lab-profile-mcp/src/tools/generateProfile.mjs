@@ -41,7 +41,7 @@ export function registerGenerateProfileTool(mcpServer) {
         'test_profile defaults true, preferred language is enforced, and non-generic industries dual-stream generic then industry attributes. ' +
         'Use randomize plus an optional segment_hint for a correlated persona. Every randomized profile carries place context ' +
         '(profilePlaceContext: lat/lon, city, country): place_mode featured (ten common areas, default), global (anywhere on Earth) or area + place_area. ' +
-        'Optional dual_load_snowflake creates an independent CRM row with shared EMAIL/ECID/CRMID. ' +
+        'Optional dual_load_snowflake creates a CRM row with shared EMAIL/ECID/CRMID and preserves supported supplied persona values. ' +
         'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
         target: generationTargetSchema,
@@ -106,7 +106,7 @@ export function registerGenerateProfileTool(mcpServer) {
           .optional()
           .describe(
             'When true (travel, fsi, retail, telecom, media, or sports), INSERT an industry-specific operational CRM row. ' +
-              'CRM attributes are independently generated; shared join keys are email, ecid, crmId. ' +
+              'Supported shared persona values are preserved exactly; only missing operational fields are generated. ' +
               'Omit email (default use_stored_prefs) for Firestore counter parity.',
           ),
         dual_load_snowflake_mode: z

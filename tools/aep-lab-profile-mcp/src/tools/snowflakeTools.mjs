@@ -423,7 +423,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Insert one industry Snowflake CRM profile (dual-load)',
       description:
         'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds a full industry CRM row ' +
-        'with independent operational attributes and shared email/ECID/CRMID from AEP. ' +
+        'with shared email/ECID/CRMID from AEP; supported supplied persona values are preserved and missing operational fields are generated. ' +
         'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),

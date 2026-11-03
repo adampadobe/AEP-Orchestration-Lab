@@ -16,6 +16,7 @@ const {
   normalizeAepAttributesForSnowflake,
 } = require('./snowflakeProfileMapper');
 const { createRecipient } = require('./snowflakeRecipientFactory');
+const { applyPersonaContract } = require('./snowflakePersonaContract');
 
 const AGENTIC_MOBILE = '+447425627462';
 const LOYALTY_ENROLLMENT_RATE = 0.6;
@@ -210,7 +211,7 @@ function generateTravelProfileRow(input) {
 
   const testProfile = input.testProfile === false ? false : true;
 
-  const rowByCol = {
+  const rowByCol = applyPersonaContract('travel', {
     RECIPIENT_ID: recipient.recipientId,
     CRMID: crmId,
     ECID: ecid,
@@ -255,7 +256,7 @@ function generateTravelProfileRow(input) {
     TESTPROFILE: testProfile,
     _RECORDCREATEDTIMESTAMP: runStamp,
     _RECORDUPDATEDTIMESTAMP: runStamp,
-  };
+  }, attrs);
 
   const row = TRAVEL_COLUMNS.map((col) => (
     Object.prototype.hasOwnProperty.call(rowByCol, col) ? rowByCol[col] : null

@@ -46,7 +46,7 @@ export function registerRunPlaybookTool(mcpServer) {
         dual_load_snowflake: z
           .boolean()
           .optional()
-          .describe('When true for a non-generic industry, also INSERT an independent CRM row per profile before validating it.'),
+          .describe('When true for a non-generic industry, also INSERT a CRM row preserving supported shared persona values before validating it.'),
         validate_snowflake: z
           .boolean()
           .optional()

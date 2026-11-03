@@ -239,7 +239,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_demo_customer_upload` | Same API (`customer-stage`) | Validate and privately stage attachment bytes, returning stage ID and signed preview; no active write |
 | `lab_demo_customer_operation` | Same API (`customer-status/customer-recover`) | Query durable status after timeouts; explicit, delayed recovery restores outgoing files/config |
 | `lab_profile_infra_status` | `GET /api/profile-infra/status-all` | All industries; optional `industry` filter |
-| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** creates an independent CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
+| `lab_generate_profile` | `POST /api/profile/generate` | Stream test profile; **use_stored_prefs** reserves the shared counter; **dual_load_snowflake** preserves supported shared persona values in its CRM row; non-travel **snowflake_enrichment** optionally adds industry events |
 | `lab_snowflake_config` | `GET /api/snowflake/config` | Redacted Snowflake connection readiness — **user MCP key required** |
 | `lab_snowflake_test_connection` | `POST /api/snowflake/connection-test` | `SELECT CURRENT_VERSION()`; NETWORK POLICY hints (static IP 34.58.81.28) |
 | `lab_snowflake_generate_base_profiles` | `POST /api/snowflake/generate-base-profiles` | Snowflake-only batch INSERT; default **use_generation_prefs:true** (shared Firestore `<local>+DDMMYYYY-N@domain` counter) |

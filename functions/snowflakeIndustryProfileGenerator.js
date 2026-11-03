@@ -9,6 +9,7 @@ const {
 } = require('./snowflakeProfileMapper');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
 const { createRecipient } = require('./snowflakeRecipientFactory');
+const { applyPersonaContract } = require('./snowflakePersonaContract');
 
 const DAY_MS = 86400000;
 
@@ -120,8 +121,8 @@ function generateFsi(attrs, _input) {
     '200k_500k': [200000, 499999], '500k_plus': [450000, 800000],
   };
   const incomeRange = incomeRanges[incomeBand] || incomeRanges['100k_200k'];
-  let creditBand = String(getAttr(attrs, 'industryFsi.creditScoreBand') || 'good');
-  if (incomeBand === '500k_plus' && !['very_good', 'excellent'].includes(creditBand)) creditBand = 'excellent';
+  const creditBand = String(getAttr(attrs, 'industryFsi.creditScoreBand')
+    || (incomeBand === '500k_plus' ? 'excellent' : 'good'));
   const creditRanges = { poor: [300, 579], fair: [580, 669], good: [670, 739], very_good: [740, 799], excellent: [800, 850] };
   const creditRange = creditRanges[creditBand] || creditRanges.good;
   const income = int(...incomeRange);
@@ -148,8 +149,8 @@ function generateFsi(attrs, _input) {
 
 function generateRetail(attrs, _input) {
   const aepLtv = Number(getAttr(attrs, 'orderProfile.lifetimeValue'));
-  const ltv = Number.isFinite(aepLtv) && aepLtv > 0
-    ? Math.round(aepLtv * pick([0.86, 0.91, 1.08, 1.14]) * 100) / 100
+  const ltv = getAttr(attrs, 'orderProfile.lifetimeValue') != null && Number.isFinite(aepLtv)
+    ? aepLtv
     : money(300, 30000);
   const orders = int(2, 180);
   const lastOrder = money(15, 850);
@@ -262,10 +263,10 @@ function generateIndustryProfileRow(industry, input) {
   if (!String(input.email || '').trim()) throw new Error('email is required for CRM profile generation');
   if (!String(input.ecid || '').trim()) throw new Error('ecid is required for CRM profile generation');
   const attrs = normalizeAepAttributesForSnowflake(input.attributes);
-  const rowObject = {
+  const rowObject = applyPersonaContract(config.industry, {
     ...commonProfile(input, attrs, config.industry),
     ...GENERATORS[config.industry](attrs, input),
-  };
+  }, attrs);
   const row = config.columns.map((column) => Object.prototype.hasOwnProperty.call(rowObject, column) ? rowObject[column] : null);
   return { row, rowObject, columns: config.columns.slice() };
 }
