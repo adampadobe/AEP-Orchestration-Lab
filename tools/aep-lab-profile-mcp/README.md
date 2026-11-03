@@ -247,7 +247,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_snowflake_get_profile_by_email` | `POST /api/snowflake/agentic/query-profiles` | **Full industry row by email**; optional `industry` defaults to travel |
 | `lab_snowflake_query_profiles` | `POST /api/snowflake/agentic/query-profiles` | Industry-aware full-row readback by email/ecid or list filters |
 | `lab_snowflake_enrich_profiles` | `POST /api/snowflake/agentic/enrich-profiles` | Populate selected industry event/enrichment tables for existing CRM profiles |
-| `lab_snowflake_get_profile_bundle` | `POST /api/snowflake/agentic/profile-bundle` | Non-travel profile plus bounded rows from all five allowlisted activity tables |
+| `lab_snowflake_get_profile_bundle` | `POST /api/snowflake/agentic/profile-bundle` | Non-travel profile plus bounded pages from all five activity tables, or one registered `table_key`; `event_offset` continues readback, with per-table `count`, `totalCount`, `hasMore`, `nextOffset` |
 | `lab_snowflake_provision` | `POST /api/snowflake/provision` | Governed recipes, including `{fsi,retail,telecom,media,sports}.all.v1` (six tables each) |
 | `lab_live_activity_list_templates` | `GET /api/ajo/live-activity/templates` | Built-in + principal/sandbox customer templates |
 | `lab_live_activity_get_template` | `GET /api/ajo/live-activity/templates` | Full template and required-variable definitions |

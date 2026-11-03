@@ -358,6 +358,53 @@ For a **Snowflake-only** demo, confirm generation preferences and the requested 
 
 For **AEP + Snowflake**, use **lab_generate_profile** or **lab_generate_profiles_batch** with `dual_load_snowflake:true`, shared generation preferences, and `snowflake_enrichment:true` for non-travel activity. Alternatively enrich existing CRM profiles using the manifest keys above. Verify non-travel joins with **lab_snowflake_get_profile_bundle** and bounded samples; use the catalog/table preview for travel, including booking details. Full travel generation/enrichment still requires the configured Python runner; saving a Snowflake connection alone does not configure it.
 
+### Bounded non-travel stored-row readback
+
+`lab_snowflake_get_profile_bundle` accepts optional `table_key` (an exact registered
+activity/enrichment key for the chosen industry, listed above) and `event_offset`
+(a nonnegative safe integer, default `0`). Keep `event_limit` between `1` and `100`
+(default `25`). Select one table and a small page to avoid oversized MCP receipts:
+
+```json
+{
+  "sandbox": "<your-sandbox>",
+  "industry": "telecom",
+  "ecid": "<profile-ecid>",
+  "table_key": "usage",
+  "event_limit": 10,
+  "event_offset": 0
+}
+```
+
+Each returned `tables.<key>` retains `count` as **returned rows**, and adds
+`totalCount` from an independent `COUNT(*) WHERE ECID = ?` over all stored rows
+for that profile, `offset`, `hasMore`, and `nextOffset` (`null` at the end).
+Use that table's `nextOffset` for the next request until `hasMore` is `false`;
+125 stored usage rows can therefore be read in thirteen pages of at most ten
+rows. `totalReturnedRows` remains the sum of returned rows, not stored totals.
+An empty table or an offset at/beyond its end returns no rows and no continuation,
+while preserving its stored total.
+
+The Function endpoint `POST /api/snowflake/agentic/profile-bundle` accepts
+`tableKey`/`table_key` and `eventOffset`/`event_offset`; the camel-case value takes
+precedence when supplied. Offsets must be JSON numbers, not numeric strings.
+Invalid offsets and unregistered/wrong-industry table keys return HTTP `400`
+using the existing error envelope (MCP surfaces a tool error). Omitted selectors
+still return all five tables, each independently paged at the supplied offset;
+legacy Function limit clamping to `1`–`100` is unchanged.
+
+Pages order by record timestamp descending, then event ID (where present),
+generation ID and remaining registered values, with explicit null ordering.
+Enrichment snapshots have no unique row ID; all values, including JSON-serialized
+arrays, break ties. Identical duplicate rows are indistinguishable. Counts and
+pages are separate reads, not a transactional snapshot: finish verification while
+data is unchanged, or restart if writes occur between reads.
+
+Travel is deliberately excluded from this endpoint and MCP tool; keep its
+separate runner and catalog/table-preview path. Releasing this contract requires
+both the `snowflakeAgenticProfileBundle` **Cloud Function** and the
+**aep-lab-profile-mcp** service; no schema changes or data writes are required.
+
 ### AEP dual-stream and partial-failure diagnostics
 
 Non-generic AEP generation streams the Generic base first and the industry-owned

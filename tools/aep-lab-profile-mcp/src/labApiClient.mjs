@@ -1859,6 +1859,8 @@ export async function snowflakeProfileBundle({
   ecid,
   crm_id,
   event_limit,
+  event_offset,
+  table_key,
 }) {
   return labApiRequest('/snowflakeAgenticProfileBundle', {
     origin: getLabFunctionsOrigin(),
@@ -1870,6 +1872,8 @@ export async function snowflakeProfileBundle({
       ...(ecid ? { ecid } : {}),
       ...(crm_id ? { crmId: crm_id } : {}),
       ...(event_limit != null ? { eventLimit: event_limit } : {}),
+      ...(event_offset !== undefined ? { eventOffset: event_offset } : {}),
+      ...(table_key !== undefined ? { tableKey: table_key } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,

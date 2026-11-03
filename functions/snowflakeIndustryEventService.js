@@ -215,16 +215,30 @@ async function handleIndustryEnrich(input) {
 }
 
 /**
- * Return an allowlisted profile plus bounded samples from its industry tables.
+ * Return an allowlisted profile plus bounded pages from its non-travel tables.
  */
 async function handleIndustryProfileBundle(input) {
   const labUser = String(input.labUser || '').trim();
   const sandbox = String(input.sandbox || '').trim();
   const industry = String(input.industry || '').trim().toLowerCase();
   if (!sandbox) throw new Error('sandbox is required');
+  if (industry === 'travel') throw new Error('Travel readback uses the separate travel catalog/table preview path');
   validateIndustryAndTypes(industry);
   const limitRaw = Number(input.eventLimit || input.event_limit);
   const eventLimit = Number.isFinite(limitRaw) ? Math.min(100, Math.max(1, Math.floor(limitRaw))) : 25;
+  const offsetRaw = input.eventOffset !== undefined ? input.eventOffset : input.event_offset;
+  const eventOffset = offsetRaw === undefined ? 0 : offsetRaw;
+  if (!Number.isSafeInteger(eventOffset) || eventOffset < 0) {
+    throw new Error('eventOffset must be a nonnegative safe integer');
+  }
+  const tableKey = input.tableKey !== undefined ? input.tableKey : input.table_key;
+  const registeredTables = listIndustryEventTables(industry);
+  const selectedTables = tableKey === undefined
+    ? registeredTables
+    : registeredTables.filter((tableConfig) => tableConfig.key === tableKey);
+  if (!selectedTables.length) {
+    throw new Error(`tableKey must be a registered ${industry} table key: ${registeredTables.map((tableConfig) => tableConfig.key).join(', ')}`);
+  }
   const selector = {
     email: input.email,
     ecid: input.ecid,
@@ -244,18 +258,45 @@ async function handleIndustryProfileBundle(input) {
       };
     }
     const tables = {};
-    for (const tableConfig of listIndustryEventTables(industry)) {
+    for (const tableConfig of selectedTables) {
       const fqTable = fullyQualified(cfg.database, cfg.schema, tableConfig.table);
+      const countRows = await execAsync(conn, {
+        sqlText: `SELECT COUNT(*) AS ROW_COUNT FROM ${fqTable} WHERE ECID = ?`,
+        binds: [profile.ECID],
+      });
+      const totalCount = Number(readSnowflakeCell(countRows[0], 0, 'ROW_COUNT'));
+      if (!Number.isSafeInteger(totalCount) || totalCount < 0) {
+        throw new Error(`Invalid stored row count for ${tableConfig.key}`);
+      }
+      // Event IDs break timestamp ties; enrichment snapshots have no unique ID,
+      // so include every remaining value (including arrays) for deterministic pages.
+      const arrayColumns = new Set(tableConfig.arrayColumns);
+      const orderColumns = [
+        '_RECORDCREATEDTIMESTAMP',
+        ...['EVENTID', 'GENERATIONID'].filter((column) => tableConfig.columns.includes(column)),
+        ...tableConfig.columns.filter((column) => !['_RECORDCREATEDTIMESTAMP', 'EVENTID', 'GENERATIONID'].includes(column)),
+      ];
+      const orderBy = orderColumns.map((column) =>
+        `${arrayColumns.has(column) ? `TO_JSON(${column})` : column} DESC NULLS LAST`,
+      ).join(', ');
       const rows = await execAsync(conn, {
         sqlText:
           `SELECT ${tableConfig.columns.join(', ')} FROM ${fqTable} ` +
-          `WHERE ECID = ? ORDER BY _RECORDCREATEDTIMESTAMP DESC LIMIT ${eventLimit}`,
+          `WHERE ECID = ? ORDER BY ${orderBy} LIMIT ${eventLimit} OFFSET ${eventOffset}`,
         binds: [profile.ECID],
       });
+      if (rows.length === 0 && eventOffset < totalCount) {
+        throw new Error(`Stored row count and empty page are inconsistent for ${tableConfig.key}; data may have changed during readback. Restart pagination.`);
+      }
+      const hasMore = eventOffset + rows.length < totalCount;
       tables[tableConfig.key] = {
         table: tableConfig.table,
         kind: tableConfig.kind,
         count: rows.length,
+        totalCount,
+        offset: eventOffset,
+        hasMore,
+        nextOffset: hasMore ? eventOffset + rows.length : null,
         rows: rows.map((row) => rowObject(row, tableConfig.columns)),
       };
     }
@@ -264,6 +305,7 @@ async function handleIndustryProfileBundle(input) {
       sandbox,
       industry,
       eventLimit,
+      eventOffset,
       profile,
       tables,
       totalReturnedRows: Object.values(tables).reduce((sum, result) => sum + result.count, 0),
