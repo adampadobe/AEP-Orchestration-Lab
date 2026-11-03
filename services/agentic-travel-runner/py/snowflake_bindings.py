@@ -53,5 +53,7 @@ def insert_rows(cursor, sql, rows):
                 raise ValueError(f"{table}.{column} requires an array")
             values[index] = json.dumps(value)
         binds.append(tuple(values))
-    if binds:
-        cursor.executemany(f"INSERT INTO {table} ({', '.join(columns)}) SELECT {', '.join(expressions)}", binds)
+    statement = f"INSERT INTO {table} ({', '.join(columns)}) SELECT {', '.join(expressions)}"
+    # executemany rewrites INSERT ... VALUES and rejects our typed SELECT.
+    for row in binds:
+        cursor.execute(statement, row)
