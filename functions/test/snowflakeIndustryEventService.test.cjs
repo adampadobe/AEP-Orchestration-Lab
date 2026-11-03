@@ -227,12 +227,15 @@ describe('Snowflake industry event inserts', () => {
       const { registerSnowflakeRoutes } = require('../snowflakeRoutes');
       const db = bundleFixture();
       const handler = registerSnowflakeRoutes({
-        onRequest: (_options, fn) => fn,
+        onRequest: (options, fn) => { fn.options = options; return fn; },
         setCors() {},
         resolveSandboxFromQuery: () => '',
         snowflakePrincipalAuth: { resolveSnowflakePrincipal: async () => ({ ok: true, uid: 'offline', keySandbox: 'test' }) },
         snowflakeIndustryEventService: db.service,
       }).snowflakeAgenticProfileBundle;
+      assert.equal(handler.options.maxInstances, 20);
+      assert.equal(handler.options.timeoutSeconds, 120);
+      assert.equal(handler.options.memory, '512MiB');
       for (const [params, status] of [
         [{ table_key: 'usage', event_offset: 0, event_limit: 2 }, 200],
         [{ tableKey: 'usage', eventOffset: 0, eventLimit: 2 }, 200],

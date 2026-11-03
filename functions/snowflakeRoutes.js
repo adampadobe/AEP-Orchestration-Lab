@@ -353,7 +353,7 @@ function registerSnowflakeRoutes(deps) {
    * profile + event/enrichment readback.
    */
   routes.snowflakeAgenticProfileBundle = onRequest(
-    { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 120, memory: '512MiB' },
+    { ...SNOWFLAKE_FN_OPTS, timeoutSeconds: 120, memory: '512MiB', maxInstances: 20 },
     async (req, res) => {
       setCors(res, 'POST, OPTIONS');
       if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
