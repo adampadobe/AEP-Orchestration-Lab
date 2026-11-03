@@ -64,6 +64,91 @@ For the existing AEP persona/streaming workflow, explicitly pass
 the default Snowflake path rather than silently ignored. Brand-scrape demo prep
 and geo-specific tools retain their existing AEP workflows.
 
+### Verify the separate Snowflake-to-AEP ingestion contract
+
+Successful generation, a successful source run, and a merged Profile lookup
+prove different things. For a bounded, explicitly approved sample, verify each:
+
+1. Read the full industry CRM row with `lab_snowflake_get_profile_by_email`.
+   Require exactly one row and matching `EMAIL`, `ECID`, and `CRMID`; inspect
+   `TESTPROFILE`, array types, timestamps and the reported `columnCount`.
+   Independently generated operational CRM fields need not equal behavioral
+   AEP persona fields.
+2. Compare the exact streamed industry payload with Profile readbacks by both
+   Email and ECID, including false booleans, arrays and numeric leaves. A
+   streaming acceptance receipt is not evidence that these values were stored.
+3. Inspect the selected industry CRM flow **and** the shared Base flow. Require
+   a scheduled run after the source write, inspect its counts and batch IDs,
+   and compare that dataset's ingested Parquet row with the mapped source
+   columns. Zero-input success is not a pass. A merged Profile may contain a
+   value supplied by another dataset and cannot replace source-specific checks.
+   Record columns that were not independently verified rather than marking
+   the whole row as passed.
+4. Verify the merged Profile again after batch ingestion. Report acceptance,
+   source storage, mapping fidelity and final Profile results separately.
+   Existing `AEP_SCHEMA` flows do not automatically consume new `REL` objects,
+   events or enrichment tables; inspect those connections separately.
+   For an approved rich AEP event sample, inspect the stored ExperienceEvent
+   by both identities and compare `_<tenant>.public.<industry>` field values,
+   channel and identity flags. An Edge receipt or activity count alone does
+   not prove the rich fields survived.
+
+Audit event and enrichment ingestion by the actual Snowflake source-connection
+IDs, table bindings and enabled recurring flows, not flow names. Names can be
+misleading, and a similarly named one-shot flow is not the recurring ingestion
+path. Inspect each target's schema class before choosing a readback: a
+`PROFILE`-named enrichment table can intentionally publish ExperienceEvent
+snapshots instead of merged Profile attributes. Compare its exported batch
+values with the corresponding stored events by both identities; use merged
+Profile readbacks only for Profile-class targets.
+
+Array representation also depends on the **resolved destination schema**.
+In the verified Retail event schema, `retailEvent.order.items` is a string
+containing JSON array text, not an XDM array. Require valid JSON with object
+entries; do not mistake that schema-conforming representation for the
+malformed push-token array described below. Converting it to an XDM array
+requires a reviewed schema and mapping change, not an automatic application
+of the token-decoding expression.
+
+**Snowflake arrays can arrive as JSON strings.** Inspect the active Data Prep
+input schema, not just the Snowflake column type or the MCP row representation.
+When `PUSHTOKENS` is declared as `string` and contains JSON array text, map
+`json_to_object(PUSHTOKENS)` with `sourceType: "text/x.aep-xl"` to
+`_<tenant>.identification.core.pushTokens`. A direct whole-array destination
+alone can produce a single element containing the entire serialized array;
+targeting `pushTokens[0]` also loses the array contract. Do not JSON-decode a
+native array input. See Adobe's
+[Data Prep mapping functions](https://experienceleague.adobe.com/en/docs/experience-platform/data-prep/functions).
+
+**Keep shared recipient arrays single-owned.** Correct source-specific arrays
+can still concatenate into duplicate values in the merged Profile when both
+the shared Base and an industry CRM dataset publish them. In the verified
+`apalmer` configuration, Base owns `identification.core.pushTokens`; Travel's
+redundant token mapping was removed with explicit approval, leaving its other
+CRM mappings unchanged. Check both contributing datasets and the final Profile:
+require the expected token values and cardinality, not merely a valid array
+type. Treat any equivalent change in another sandbox as a separately reviewed
+configuration change; do not remove mappings automatically.
+
+Before changing a live mapping, preview the **actual source representation**
+with synthetic one/multiple-token, escaped-token, empty-array and null samples.
+An array-only preview does not validate a connector that sends JSON text.
+For exported mappings that contain both `source` and `sourceAttribute`, update
+both to the approved expression; a stale `sourceAttribute` can override `source`
+when the mapping is saved. Read back the saved version and preview it again.
+Preserve every other mapping and schema definition, then conditionally update
+only the reviewed flow's mapping version using its current ETag. Adobe may
+normalize mapping metadata and increment the embedded output schema's version;
+compare schema definitions and authored mapping semantics, not just version
+numbers. If a save or activation is uncertain, read back its state before any
+further mutation; do not blindly repeat it.
+
+Obtain explicit approval for each live configuration change. Preserve flow
+bindings, state and schedule, and verify the completed operation. These changes
+apply to future ingestion: they do not repair previously ingested arrays.
+Historical replay, new identities, events and enrichment each require their
+own approved scope; never resend a profile merely because indexing is delayed.
+
 ### CLI
 
 The standalone generator creates new profiles and uses the same writer as the

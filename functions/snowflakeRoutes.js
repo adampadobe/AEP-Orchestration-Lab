@@ -376,6 +376,8 @@ function registerSnowflakeRoutes(deps) {
           ecid: body.ecid,
           crmId: body.crmId || body.crmid,
           eventLimit: body.eventLimit || body.event_limit,
+          eventOffset: body.eventOffset !== undefined ? body.eventOffset : body.event_offset,
+          tableKey: body.tableKey !== undefined ? body.tableKey : body.table_key,
         });
         res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
       } catch (e) {

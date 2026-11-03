@@ -1008,8 +1008,9 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
     {
       title: 'Get Snowflake profile with industry activity',
       description:
-        'Returns one non-travel CRM profile plus bounded, allowlisted rows from all five industry event/enrichment tables. ' +
-        'Use after lab_snowflake_enrich_profiles to validate joined data without raw SQL.',
+        'Returns one non-travel CRM profile plus bounded pages from all five industry event/enrichment tables, or just table_key. ' +
+        'Each table includes returned count, totalCount, hasMore and nextOffset. Use event_offset with a small event_limit ' +
+        'and one registered table_key for complete readback without a large bundle. Travel uses its separate catalog/table preview path.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.enum(['fsi', 'retail', 'telecom', 'media', 'sports']),
@@ -1017,9 +1018,13 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         ecid: z.string().optional(),
         crm_id: z.string().optional(),
         event_limit: z.number().int().min(1).max(100).default(25),
+        event_offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).optional()
+          .describe('Nonnegative row offset applied independently to each selected table (default 0)'),
+        table_key: z.string().min(1).optional()
+          .describe('Optional exact activity/enrichment key registered for this industry (from lab_snowflake_industry_catalog); invalid keys are rejected'),
       },
     },
-    async ({ sandbox, industry, email, ecid, crm_id, event_limit }) => {
+    async ({ sandbox, industry, email, ecid, crm_id, event_limit, event_offset, table_key }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       if (!email && !ecid && !crm_id) {
@@ -1040,6 +1045,8 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         ecid,
         crm_id,
         event_limit,
+        event_offset,
+        table_key,
       });
       writeAuditLog({
         keyId,
