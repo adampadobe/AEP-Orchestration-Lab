@@ -704,6 +704,14 @@
                   ico:
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M2 20h20M4 20V9l8-5 8 5v11M9 20v-6h6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                 },
+                {
+                  label: 'TUI Decisioning (in development)',
+                  href: 'tui-decisioning-demo.html',
+                  inDevelopment: true,
+                  navHideKey: 'tuiDecisioningDemo',
+                  demoMeta: { owners: ['kirkham'], sandboxes: ['kirkham'] },
+                  ico: '🎯',
+                },
               ],
             },
             {
