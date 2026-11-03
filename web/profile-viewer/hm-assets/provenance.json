@@ -1,0 +1,195 @@
+{
+  "description": "Images extracted from user-supplied page captures for the H&M UAE Lab demo. Captured scripts, runtime state, trackers and font binaries were not copied. The campaign video was not embedded; only its poster frame is used.",
+  "capturedFrom": "https://ae.hm.com/en",
+  "assets": [
+    {
+      "file": "logo-red.svg",
+      "sha256": "823f3846dba74892d1f5ae865214aa4ee37262957fc7507ce8aa40c4af149863",
+      "bytes": 3403,
+      "mimeType": "image/svg+xml",
+      "role": "Header logo (CSS background image of header .brand-logo .icon)",
+      "altText": "H&M",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "logo-black.svg",
+      "sha256": "dfdd74fc827f9613b2a76c654f9c0211d9421d2756eb911491cf26e6214f94e9",
+      "bytes": 3412,
+      "mimeType": "image/svg+xml",
+      "role": "Footer logo image (logo-b)",
+      "altText": "H&M",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "campaign-diwali-poster.webp",
+      "sha256": "ef29ee477c4d9c9f1514879b75acad68602a14024799fda265b2e9980bf1a218",
+      "bytes": 208584,
+      "mimeType": "image/webp",
+      "role": "Homepage campaign video poster frame (video not embedded)",
+      "altText": "Two models in festive satin outfits walking hand in hand outdoors",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "editorial-statement-icons.avif",
+      "sha256": "2809ad6e6dd2f6ae2bc852f8615069ec8d053ff6938677d8467aeaa019877599",
+      "bytes": 49507,
+      "mimeType": "image/avif",
+      "role": "Banner 'JUST IN: STATEMENT ICONS' desktop image",
+      "altText": "Model in a draped grey top and wide white trousers",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "editorial-delicate-nightwear.avif",
+      "sha256": "686f2f8598e11669b214aec45fa0a356b83adc8c9fd9bad467354956bd052155",
+      "bytes": 307573,
+      "mimeType": "image/avif",
+      "role": "Banner 'DELICATE NIGHTWEAR' desktop image",
+      "altText": "Model seated in a checked shirt and trousers",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-high-waist-mini-skirt.avif",
+      "sha256": "c2f21d39b87f7d8f7ae0f5c407ffea51e5b5b916ebee853eb247b07a310669f5",
+      "bytes": 2984,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "High-waist mini skirt",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-oversized-funnel-collar-coat.avif",
+      "sha256": "d4cf2bc04447647e91e15ed1cff0e23c3504feb2d7c575fe317596c66f9165f2",
+      "bytes": 7254,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Oversized funnel-collar coat",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-funnel-collar-tie-belt-jacket.avif",
+      "sha256": "e642572c7e7b10c098039af484794df2fb8ac761323ef02074871c9bd89726d8",
+      "bytes": 19828,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Funnel-collar tie-belt jacket",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-trumpet-sleeved-rib-knit-dress.avif",
+      "sha256": "006a098035c41a40d801c18756fc9170c9404ac7702a27a6d531b0b0eb28a21f",
+      "bytes": 7466,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Trumpet-sleeved rib-knit dress",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-flared-skirt-satin-dress.avif",
+      "sha256": "7fe80952ec61f23e74670b8493c6494f49fdc9630dd561eff6e05cd2f946c9fc",
+      "bytes": 7915,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Flared-skirt satin dress",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-balloon-sleeved-velour-jacket.avif",
+      "sha256": "e309cd095e43c810042b23cd51928aaefb14d2f7f1e50ec2bb561a4d8537615b",
+      "bytes": 9149,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Balloon-sleeved velour jacket",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-mohair-blend-triangle-scarf.avif",
+      "sha256": "d1245dee43ec0785acaf9c6496a1db746c064b9ada4f2ed9860a87ca770f82eb",
+      "bytes": 5501,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Mohair-blend triangle scarf",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-fluffy-jacket.avif",
+      "sha256": "87bd4fa338bbb165b70a3a57b61bcd17f29fd3a4b069a5e57de6cf303a127c4c",
+      "bytes": 39995,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Fluffy jacket",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-button-top-sweatshirt.avif",
+      "sha256": "d41ed30ca77e73147b99b880309df5855eab017287f6a50143f0c5addc2bbfdd",
+      "bytes": 23876,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Button-top sweatshirt",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-slim-straight-high-waist-ankle-jeans.avif",
+      "sha256": "5ee24ae19be697bede3a56d715e87e947d760bcc5953cce838021a00208ebff1",
+      "bytes": 30684,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Slim Straight High Waist Ankle Jeans",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-rib-knit-wool-blend-jumper.avif",
+      "sha256": "fec7d4ea205b5de8cb4549911c297d357bd76e6e2b2a53a8b490b52973911f77",
+      "bytes": 7669,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Rib-knit wool-blend jumper",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "product-oversized-wool-turtleneck-jumper.avif",
+      "sha256": "6b094951f190956f92c028022851b3fbb9f88b6d14990d4f8eda97e5be1b88c7",
+      "bytes": 17176,
+      "mimeType": "image/avif",
+      "role": "'New In' product grid image",
+      "altText": "Oversized wool turtleneck jumper",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "collection-outerwear.avif",
+      "sha256": "76f96e6a5dba6deaf550288a55be000dfc2914784d13d719cf86752bf4fc86bb",
+      "bytes": 86930,
+      "mimeType": "image/avif",
+      "role": "'Selected collections' card image",
+      "altText": "Model in an oversized dark leather jacket",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "collection-knitwear.avif",
+      "sha256": "67f406c6b4ccc362919d1f77e4f65390b91c561bcea749579bed16b90cfcd668",
+      "bytes": 100679,
+      "mimeType": "image/avif",
+      "role": "'Selected collections' card image",
+      "altText": "Model in a red zip-up knit",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "collection-jeans.avif",
+      "sha256": "bc2ef3bc007f57ccac484784dee43e703b2d55ec13169d14427f1209d0b79a9c",
+      "bytes": 107739,
+      "mimeType": "image/avif",
+      "role": "'Selected collections' card image",
+      "altText": "Model in a textured jacket and wide jeans",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    },
+    {
+      "file": "collection-party-dresses.avif",
+      "sha256": "45d05093a374f3260a9d4f9a5eac333e0858ae0cf6b1f3779764825d32339a9a",
+      "bytes": 36511,
+      "mimeType": "image/avif",
+      "role": "'Selected collections' card image",
+      "altText": "Model in a gold brocade strapless party dress",
+      "source": "User-supplied SingleFile capture of https://ae.hm.com/en (homepage), embedded resource"
+    }
+  ]
+}

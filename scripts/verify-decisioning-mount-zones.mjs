@@ -21,6 +21,7 @@ const SITE_CLONE_DEMO_HTML = [
   'etihad-demo.html',
   'riyadh-air-demo.html',
   'vuse-italia-demo.html',
+  'hm-demo.html',
   'qia-demo.html',
   'ksia-demo.html',
   'starbucks-demo.html',
@@ -58,6 +59,7 @@ const MOUNT_ZONES_MIGRATION_PENDING = new Set([
 /** Lowercase-only spellings — do not match canonical #TopRibbon / #ContentCardContainer */
 const FORBIDDEN_ID_RE = /id=["']topribbon["']|id=["']contentcardarea["']/;
 const VISUAL_AUTHORING_TOP_DOCUMENT_DEMOS = new Map([
+  ['hm-demo.html', ['hmHeader', 'hero-banner', 'hmCampaign', 'hmEditorial', 'hmNewIn', 'hmCollections', 'hmCategory', 'hmProduct', 'hmBag', 'hmCheckout', 'hmConfirmation', 'hmFooter']],
   ['sainsburys-demo.html', ['sainsburys-header', 'welcome-section', 'start-shop', 'why-choose', 'occasions', 'nectar-section', 'brands', 'discover', 'help']],
 ]);
 
