@@ -123,11 +123,15 @@ async def internal_generate(request: Request) -> Response:
     wa.generate_data_background(count)
 
     lr = wa.generation_status.get("last_result")
-    ok = isinstance(lr, dict) and lr.get("success") is not False
+    ok = isinstance(lr, dict) and lr.get("success") is True
+    result = {"success": ok, "generation_status": wa.generation_status}
+    if not ok:
+        result["message"] = "Travel generation failed; writes may be partial. Inspect stored rows before retrying."
 
     return Response(
-        content=json.dumps({"success": ok, "generation_status": wa.generation_status}),
+        content=json.dumps(result),
         media_type="application/json",
+        status_code=200 if ok else 500,
     )
 
 
@@ -158,9 +162,13 @@ async def internal_enrich(request: Request) -> Response:
     wa.enrich_profiles_background(profiles, event_types)
 
     lr = wa.enrichment_status.get("last_result")
-    ok = isinstance(lr, dict) and lr.get("success") is not False
+    ok = isinstance(lr, dict) and lr.get("success") is True
+    result = {"success": ok, "enrichment_status": wa.enrichment_status}
+    if not ok:
+        result["message"] = "Travel enrichment failed; writes may be partial. Inspect stored rows before retrying."
 
     return Response(
-        content=json.dumps({"success": ok, "enrichment_status": wa.enrichment_status}),
+        content=json.dumps(result),
         media_type="application/json",
+        status_code=200 if ok else 500,
     )

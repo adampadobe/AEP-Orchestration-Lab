@@ -442,6 +442,15 @@ Industry dual-load and Travel seed inserts use declared column types for
 runner uses equivalent typed SELECT expressions. Legacy loyalty/preferences
 `PUSHTOKENS` columns remain text by design. Lab readback preserves arrays and
 objects instead of coercing arrays to comma-separated strings.
+The Python runner validates the complete input batch before issuing bound
+`cursor.execute` calls for each typed `INSERT ... SELECT`; Snowflake's
+`executemany` INSERT rewriter requires `VALUES` and rejects this SELECT shape.
+Enrichment inserts generated mobile, check-in, call and disruption rows before
+counting them. A write error stops the remaining event types and returns
+`success:false` with `write_state:potentially_partial`; earlier types may already
+be committed. The internal generate/enrich endpoints return HTTP 500 on failure
+so the Cloud Function, Portal and MCP do not treat a failed run as successful.
+Inspect stored rows before any separately approved retry.
 Raw JavaScript array bindings can fail with `Unsupported data type 'VARIANT'`.
 Compilation failure
 rolls back the profile/recipient transaction; it does not undo the preceding

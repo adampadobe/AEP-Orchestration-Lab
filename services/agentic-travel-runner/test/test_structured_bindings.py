@@ -19,7 +19,12 @@ class Cursor:
         self.calls = []
 
     def executemany(self, sql, rows):
+        if not re.search(r"\bVALUES\s*\(", sql, re.I):
+            raise RuntimeError("252001: executemany INSERT requires a VALUES clause")
         self.calls.append((sql, rows))
+
+    def execute(self, sql, row):
+        self.calls.append((sql, row))
 
 
 class StructuredBindings(unittest.TestCase):
@@ -41,10 +46,40 @@ class StructuredBindings(unittest.TestCase):
                     cursor = Cursor()
                     bindings.insert_rows(cursor, f"INSERT INTO {table} (CRMID, {column}) VALUES (%s, %s)",
                                          [("CRM-offline", value)])
-                    sql, rows = cursor.calls[0]
+                    sql, row = cursor.calls[0]
                     self.assertIn(f"SELECT %s, PARSE_JSON(%s)::{column_type}", sql)
-                    self.assertEqual(rows[0][1], None if value is None else json.dumps(
+                    self.assertEqual(row[1], None if value is None else json.dumps(
                         json.loads(value) if isinstance(value, str) else value))
+
+    def test_multiple_rows_use_connector_compatible_execute_and_preserve_order(self):
+        cursor = Cursor()
+        bindings.insert_rows(
+            cursor,
+            "INSERT INTO AGENTIC_TRAVEL_EVENT_WEBSITE (CRMID, PUSHTOKENS) VALUES (%s, %s)",
+            [("first", ["token"]), ("second", []), ("third", None)],
+        )
+        self.assertEqual([row for _, row in cursor.calls],
+                         [("first", '["token"]'), ("second", "[]"), ("third", None)])
+        self.assertTrue(all("PARSE_JSON(%s)::ARRAY" in sql for sql, _ in cursor.calls))
+
+    def test_empty_batch_does_not_execute(self):
+        cursor = Cursor()
+        bindings.insert_rows(cursor, "INSERT INTO AGENTIC_TRAVEL_EVENT_WEBSITE (CRMID) VALUES (%s)", [])
+        self.assertEqual(cursor.calls, [])
+
+    def test_execution_error_is_not_swallowed_or_retried(self):
+        class FailingCursor(Cursor):
+            def execute(self, sql, row):
+                super().execute(sql, row)
+                raise RuntimeError("insert failed")
+
+        cursor = FailingCursor()
+        with self.assertRaisesRegex(RuntimeError, "insert failed"):
+            bindings.insert_rows(
+                cursor, "INSERT INTO AGENTIC_TRAVEL_EVENT_WEBSITE (CRMID) VALUES (%s)",
+                [("first",), ("second",)],
+            )
+        self.assertEqual(len(cursor.calls), 1)
 
     def test_all_generator_inserts_use_typed_helper_with_correct_widths(self):
         for path in [*PY.glob("data_generator*.py"), PY / "web_app.py"]:
@@ -62,7 +97,7 @@ class StructuredBindings(unittest.TestCase):
     def test_rejects_bad_shapes_before_any_execution(self):
         cursor = Cursor()
         sql = "INSERT INTO AGENTIC_TRAVEL_PROFILE_CUSTOMER (FAVORITEDESTINATIONS) VALUES (%s)"
-        for rows in [[("not-json",)], [({},)], [("[]", "extra")]]:
+        for rows in [[("not-json",)], [({},)], [("[]", "extra")], [([],), ("not-json",)]]:
             with self.assertRaises((ValueError, json.JSONDecodeError)):
                 bindings.insert_rows(cursor, sql, rows)
         self.assertEqual(cursor.calls, [])

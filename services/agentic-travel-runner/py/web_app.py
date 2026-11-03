@@ -128,6 +128,8 @@ def generate_data_background(count):
         generation_status['message'] = 'Phase 3: Generating in-journey events...'
         
         phase3_result = phase3_gen.generate_and_insert_all(base_profiles)
+        if not phase3_result['success']:
+            raise RuntimeError(f"Phase 3 generation failed: {phase3_result.get('error', 'Unknown error')}")
         
         generation_status['progress'] = 90
         generation_status['message'] = 'Finalizing and generating SQL...'
@@ -498,16 +500,17 @@ def enrich_profiles_background(profiles, event_types):
                 temp_flags = {p['crmId']: {'uses_mobile': True} for p in mobile_users}
                 phase2_gen.set_journey_flags(temp_flags)
                 
-                phase2_gen.generate_mobile_events(mobile_users, events_per_profile=1)
-                # Each mobile user gets ~8-10 events per session, 50% of profiles
-                result['mobile_events'] = len(mobile_users) * 9  # Approximate count
+                mobile_events = phase2_gen.generate_mobile_events(mobile_users, events_per_profile=1)
+                phase2_gen.insert_mobile_events(mobile_events)
+                generator.conn.commit()
+                result['mobile_events'] = len(mobile_events)
                 current_progress += progress_per_type
                 enrichment_status['progress'] = int(current_progress)
             except Exception as e:
                 print(f"Error adding mobile events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['mobile_events'] = 0
+                raise
         
         # Generate Website Events (use session journey helper)
         if 'website' in event_types:
@@ -672,7 +675,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding website events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['website_events'] = 0
+                raise
         
         # Generate Booking Events
         if 'booking' in event_types:
@@ -731,7 +734,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding booking events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['booking_events'] = 0
+                raise
         
         # Generate Check-in Events (skip journey flag check for enrichment)
         if 'checkin' in event_types:
@@ -747,15 +750,17 @@ def enrich_profiles_background(profiles, event_types):
                 temp_flags = {p['crmId']: {'does_checkin': True} for p in checkin_profiles}
                 phase2_gen.set_journey_flags(temp_flags)
                 
-                phase2_gen.generate_checkin_events(checkin_profiles, events_per_profile=1)
-                result['checkin_events'] = len(checkin_profiles)  # 1 per profile
+                checkin_events = phase2_gen.generate_checkin_events(checkin_profiles, events_per_profile=1)
+                phase2_gen.insert_checkin_events(checkin_events)
+                generator.conn.commit()
+                result['checkin_events'] = len(checkin_events)
                 current_progress += progress_per_type
                 enrichment_status['progress'] = int(current_progress)
             except Exception as e:
                 print(f"Error adding check-in events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['checkin_events'] = 0
+                raise
         
         # Generate Call Centre Events (skip journey flag check for enrichment)
         if 'call' in event_types:
@@ -770,15 +775,17 @@ def enrich_profiles_background(profiles, event_types):
                 temp_flags = {p['crmId']: {'calls_centre': True} for p in call_profiles}
                 phase2_gen.set_journey_flags(temp_flags)
                 
-                phase2_gen.generate_call_centre_events(call_profiles, events_per_profile=1)
-                result['call_events'] = len(call_profiles)  # 1 per profile
+                call_events = phase2_gen.generate_call_centre_events(call_profiles, events_per_profile=1)
+                phase2_gen.insert_call_centre_events(call_events)
+                generator.conn.commit()
+                result['call_events'] = len(call_events)
                 current_progress += progress_per_type
                 enrichment_status['progress'] = int(current_progress)
             except Exception as e:
                 print(f"Error adding call events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['call_events'] = 0
+                raise
         
         # Generate Disruption Events (skip journey flag check for enrichment)
         if 'disruption' in event_types:
@@ -796,6 +803,8 @@ def enrich_profiles_background(profiles, event_types):
                 disruption_events = phase3_gen.generate_disruption_events(disruption_profiles, disruption_rate=1.0)  # 100% of selected profiles
                 
                 if disruption_events:
+                    phase3_gen.insert_disruption_events(disruption_events)
+                    generator.conn.commit()
                     result['disruption_events'] = len(disruption_events)
                 else:
                     result['disruption_events'] = 0
@@ -806,7 +815,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding disruption events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['disruption_events'] = 0
+                raise
         
         # Generate In-flight Events
         if 'inflight' in event_types:
@@ -837,7 +846,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding in-flight events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['inflight_events'] = 0
+                raise
         
         # Generate Hotel Events
         if 'hotel' in event_types:
@@ -868,7 +877,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding hotel events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['hotel_events'] = 0
+                raise
         
         # Generate Loyalty Transaction Events
         if 'loyalty' in event_types:
@@ -903,7 +912,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding loyalty transactions: {e}")
                 import traceback
                 traceback.print_exc()
-                result['loyalty_events'] = 0
+                raise
         
         # Generate POS Events
         if 'pos' in event_types:
@@ -934,7 +943,7 @@ def enrich_profiles_background(profiles, event_types):
                 print(f"Error adding POS events: {e}")
                 import traceback
                 traceback.print_exc()
-                result['pos_events'] = 0
+                raise
         
         # Commit transaction
         enrichment_status['progress'] = 95
@@ -963,13 +972,18 @@ def enrich_profiles_background(profiles, event_types):
         traceback.print_exc()
         
         enrichment_status['message'] = error_msg
-        enrichment_status['last_result'] = {'success': False, 'error': str(e)}
+        enrichment_status['last_result'] = {
+            'success': False,
+            'error': str(e),
+            'write_state': 'potentially_partial',
+            'retry_guidance': 'Inspect stored rows before any separately approved retry.',
+        }
         
         if generator and hasattr(generator, 'conn') and generator.conn:
             try:
                 generator.close()
-            except:
-                pass
+            except Exception:
+                traceback.print_exc()
     
     finally:
         enrichment_status['running'] = False
