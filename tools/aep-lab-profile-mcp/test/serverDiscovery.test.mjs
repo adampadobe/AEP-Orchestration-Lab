@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { once } from 'node:events';
+import { readFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -39,7 +40,8 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
     t.signal.addEventListener('abort', () => reject(new Error('Server startup timed out')), { once: true });
   });
   let id = 0;
-  const expectedBuild = { version: '3.52.1', commitSha: 'a'.repeat(40),
+  const { version } = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const expectedBuild = { version, commitSha: 'a'.repeat(40),
     revision: 'offline-00160-test', pullRequest: 362 };
   assert.deepEqual((await (await fetch(`${origin}/health`)).json()).build, expectedBuild);
   const headers = {
