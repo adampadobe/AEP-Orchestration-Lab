@@ -429,7 +429,6 @@
     {
       group: 'Decisioning', id: 'decisioning',
       items: [
-        { label: 'Decisioning lab (in development)', href: 'content-decision-live.html', inDevelopment: true, navHideKey: 'decisioningLab', onlyUserEmails: ['apalmer@adobe.com'], ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="5" height="4" rx="1"/><rect x="1" y="13" width="5" height="4" rx="1"/><rect x="14" y="8" width="5" height="4" rx="1"/><path d="M6 5h3l3 5.5"/><path d="M6 15h3l3-5"/><path d="M12 10.5h2"/><path d="M10.5 1l.5 1.2.5-1.2M11.7 1.5l-1.2.5 1.2.5" stroke-width="1.1"/></svg>' },
         { label: 'Decisioning lab (Edge)', href: 'content-decision-live-edge.html', navHideKey: 'decisioningLabEdge', ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="5" height="4" rx="1"/><rect x="1" y="13" width="5" height="4" rx="1"/><rect x="14" y="8" width="5" height="4" rx="1"/><path d="M6 5h3l3 5.5"/><path d="M6 15h3l3-5"/><path d="M12 10.5h2"/><path d="M10.5 1l.5 1.2.5-1.2M11.7 1.5l-1.2.5 1.2.5" stroke-width="1.1"/></svg>' },
         { label: 'Decisioning catalog', href: 'decisioning-catalog.html', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M2.5,4.5a1,1,0,1,0,1,1A1,1,0,0,0,2.5,4.5Zm3,.5h10a.5.5,0,0,0,0-1h-10a.5.5,0,0,0,0,1Zm-3,4a1,1,0,1,0,1,1A1,1,0,0,0,2.5,9Zm3,.5h10a.5.5,0,0,0,0-1h-10a.5.5,0,0,0,0,1Zm-3,4a1,1,0,1,0,1,1A1,1,0,0,0,2.5,13.5Zm3,.5h7a.5.5,0,0,0,0-1h-7a.5.5,0,0,0,0,1Z"/></svg>' },
         { label: 'Decisioning visualiser', href: 'decisioning-visualiser.html', allowWorkspace: true, ico: '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path fill="currentColor" d="M13.5,9A4.5,4.5,0,1,0,18,13.5,4.5,4.5,0,0,0,13.5,9Zm2.0405,4.874L12.577,17.263a.3065.3065,0,0,1-.5135-.321l1-2.3745-1.4135-.607a.5295.5295,0,0,1-.1895-.835l2.964-3.3885a.3065.3065,0,0,1,.513.321l-1,2.3745,1.4125.607a.529.529,0,0,1,.1905.8345Z"/><path fill="currentColor" d="M8,13c0,.057.012.111.017.167A5.462,5.462,0,0,1,9,10.3435V5a1,1,0,0,1,1-1h2.05a2.5,2.5,0,1,0,0-1H10A2,2,0,0,0,8,5V8H5.95a2.5,2.5,0,1,0,0,1H8ZM14.5,2A1.5,1.5,0,1,1,13,3.5,1.5,1.5,0,0,1,14.5,2Zm-11,8A1.5,1.5,0,1,1,5,8.5,1.5,1.5,0,0,1,3.5,10Z"/></svg>' },
@@ -448,12 +447,6 @@
           skipNavVisibilityOption: true,
           ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h12v4H4z"/><path d="M4 12h12v4H4z"/><path d="M16 8v4"/></svg>',
         },
-      ],
-    },
-    {
-      group: 'Experimentation', id: 'experimentation',
-      items: [
-        { label: 'Experimentation visualiser (in development)', href: 'experimentation-visualiser.html', inDevelopment: true, navHideKey: 'experimentationVisualiser', ico: '<svg width="16" height="16" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path fill="currentColor" d="M6.5 2.25a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 .75.75v4.38l3.42 7.6a1.25 1.25 0 0 1-1.14 1.77H4.02a1.25 1.25 0 0 1-1.14-1.77l3.42-7.6V2.25Z"/><path fill="currentColor" fill-opacity=".35" d="M6 8.5h6l-1.2 2.67a2 2 0 0 1-1.83 1.2H9.03a2 2 0 0 1-1.83-1.2L6 8.5Z"/></svg>' },
       ],
     },
     {

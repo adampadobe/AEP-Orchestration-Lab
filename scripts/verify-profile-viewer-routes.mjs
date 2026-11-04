@@ -23,6 +23,7 @@ const REQUIRED_FILES = [
   'web/profile-viewer/eds-quickstart.html',
   'web/profile-viewer/eds-quickstart/index.html',
   'web/profile-viewer/assets/eds-doc-starter.zip',
+  'web/profile-viewer/content-decision-live-edge.html',
 ];
 
 // Files that were intentionally hard-deleted and must NOT come back via copy-paste,
@@ -34,6 +35,14 @@ const FORBIDDEN_FILES = [
   'web/profile-viewer/demo-delivery-concept.js',
   'web/profile-viewer/ajo-decisioning-pipeline-v8-demo.html',
   'web/profile-viewer/experimentation-overview.html',
+  'web/profile-viewer/content-decision-live.html',
+  'web/profile-viewer/experimentation-visualiser.html',
+  'web/profile-viewer/experimentation-visualiser.css',
+  'web/profile-viewer/experimentation-visualiser-dock.css',
+  'web/profile-viewer/experimentation-visualiser.js',
+  'web/profile-viewer/experimentation-visualiser-customise.js',
+  'web/profile-viewer/experimentation-visualiser-gif.js',
+  'web/profile-viewer/experimentation-visualiser-gif.worker.js',
 ];
 
 let failed = false;
@@ -98,6 +107,18 @@ if (nav.includes("navHideKey: 'experimentationOverview'")) {
   console.error('aep-lab-nav.js must NOT include nav hide key experimentationOverview (page hard-deleted)');
   failed = true;
 }
+if (nav.includes('content-decision-live.html')) {
+  console.error('aep-lab-nav.js must NOT link to content-decision-live.html (page retired)');
+  failed = true;
+}
+if (nav.includes('experimentation-visualiser.html') || nav.includes("navHideKey: 'experimentationVisualiser'")) {
+  console.error('aep-lab-nav.js must NOT include the retired Experimentation visualiser');
+  failed = true;
+}
+if (!nav.includes("href: 'content-decision-live-edge.html'")) {
+  console.error('aep-lab-nav.js must keep the Decisioning lab (Edge) entry');
+  failed = true;
+}
 if (!nav.includes('journey-arbitration-v3.html')) {
   console.error('aep-lab-nav.js must include href journey-arbitration-v3.html');
   failed = true;
@@ -145,22 +166,6 @@ if (edsNavStart !== -1) {
   }
 }
 
-// The legacy/simple Decisioning Lab is an owner-only work-in-progress. Keep it
-// out of both the sidebar and Global values menu for every other portal user.
-const decisioningLabNavStart = nav.indexOf("href: 'content-decision-live.html'");
-if (decisioningLabNavStart === -1) {
-  console.error('aep-lab-nav.js must include the owner-only Decisioning Lab entry');
-  failed = true;
-} else {
-  const decisioningLabWindow = nav.slice(
-    Math.max(0, decisioningLabNavStart - 220),
-    decisioningLabNavStart + 700,
-  );
-  if (!decisioningLabWindow.includes("onlyUserEmails: ['apalmer@adobe.com']")) {
-    console.error('aep-lab-nav.js: Decisioning Lab must remain restricted to apalmer@adobe.com');
-    failed = true;
-  }
-}
 if (!nav.includes('if (!isUserAllowedForNavItem(item)) return false;')) {
   console.error('aep-lab-nav.js must enforce owner-only visibility before rendering sidebar items');
   failed = true;
@@ -172,9 +177,22 @@ for (const file of [
   'experience-decisioning.html',
 ]) {
   const html = fs.readFileSync(path.join(root, 'web/profile-viewer', file), 'utf8');
-  const ownerLink = /<a[^>]+href="content-decision-live\.html"[^>]+data-aep-owner-emails="apalmer@adobe\.com"[^>]+hidden[^>]*>/;
-  if (!ownerLink.test(html)) {
-    console.error(`${file}: Decisioning Lab topbar link must be hidden and owner-restricted`);
+  if (html.includes('content-decision-live.html')) {
+    console.error(`${file}: must not link to retired content-decision-live.html`);
+    failed = true;
+  }
+}
+
+for (const file of ['firebase.json', 'firebase.sandbox.json', 'firebase.sandbox.direct.json']) {
+  const config = JSON.parse(fs.readFileSync(path.join(root, file), 'utf8'));
+  const hostingConfigs = Array.isArray(config.hosting) ? config.hosting : [config.hosting];
+  const redirects = hostingConfigs.flatMap((hosting) => hosting.redirects || []);
+  if (redirects.some((redirect) => redirect.source === '/content-decision-live.html')) {
+    console.error(`${file}: must not redirect to retired content-decision-live.html`);
+    failed = true;
+  }
+  if (!redirects.some((redirect) => redirect.source === '/content-decision-live-edge.html')) {
+    console.error(`${file}: must preserve the Decisioning lab (Edge) redirect`);
     failed = true;
   }
 }
@@ -209,4 +227,4 @@ if (!gs.includes('getMenuVisibilityOptions')) {
 if (failed) {
   process.exit(1);
 }
-console.log('OK: profile-viewer routes (journey-arbitration redirects, journey-arbitration-v3, eds-quickstart) verified');
+console.log('OK: profile-viewer routes (preserved Decisioning pages and retired routes) verified');

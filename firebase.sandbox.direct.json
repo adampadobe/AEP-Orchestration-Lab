@@ -39,11 +39,6 @@
         "type": 302
       },
       {
-        "source": "/content-decision-live.html",
-        "destination": "/profile-viewer/content-decision-live.html",
-        "type": 301
-      },
-      {
         "source": "/content-decision-live-edge.html",
         "destination": "/profile-viewer/content-decision-live-edge.html",
         "type": 301

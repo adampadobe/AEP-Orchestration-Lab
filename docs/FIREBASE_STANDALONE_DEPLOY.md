@@ -4,7 +4,7 @@ This repo can be deployed as its **own** Firebase project so it does not touch y
 
 ## What gets deployed
 
-- **Hosting** (`web/`): full lab including `content-decision-live.html`, `index.html`, etc.
+- **Hosting** (`web/`): lab pages including `profile-viewer/content-decision-live-edge.html`, `index.html`, etc.
 - **Cloud Functions (2nd gen)** in `functions/`:
   - **`aepProxy`** — `POST /api/aep` → Adobe IMS + `platform.adobe.io` (same contract as `proxy_server.py`).
   - **`webhookListenerProxy`** — `GET /api/webhook-listener` → allowlisted webhook listener host only.
@@ -79,7 +79,7 @@ First deploy can take several minutes.
 After deploy, opening **`https://<project-id>.web.app/`** (site root) **redirects** to **`/profile-viewer/home.html`** — the colleague Profile Viewer dashboard (static copy under **`web/profile-viewer/`**).
 
 - **Experience Decisioning lab (original):** `https://<project-id>.web.app/index.html`
-- **Content decision (simple):** `https://<project-id>.web.app/content-decision-live.html`
+- **Decisioning lab (Edge):** `https://<project-id>.web.app/profile-viewer/content-decision-live-edge.html`
 
 After changing Profile Viewer files under **`web/profile-viewer/`**, optionally
 update the vendored prototype mirror (for local Express) with:

@@ -167,15 +167,6 @@ Then progressively **replace hardcoded defaults** in `web/` with reads from a ge
 | DPS preset | `x-schema-id` for offer items | Schema must exist in **your** sandbox. |
 | Webhook | `webhooklistener-...run.app` | Same allowlist issue as functions — align host. |
 
-### 5.3 Content decision (`web/content-decision-live.html`)
-
-| Constant / default | Action |
-|--------------------|--------|
-| `EG_IMS_ORG` | Often org-wide — confirm still your org. |
-| `EG_DATASET_ID`, `EG_SCHEMA_ID`, `EG_TENANT` | **Sandbox-specific** — replace with your experience-event dataset + schema + tenant key. |
-| `DEFAULT_EXPERIENCE_EVENT_POST_URL` | Colleague Cloud Run — **your** endpoint or shared service. |
-| `WEBHOOK_LISTENER_DIRECT_URL` | Same listener host as above. |
-
 ### 5.4 Python proxy (`proxy_server.py`)
 
 | Item | Action |
@@ -211,7 +202,7 @@ Then progressively **replace hardcoded defaults** in `web/` with reads from a ge
 
 ## 7. Success criteria
 
-- [ ] Every **hardcoded** `run.app`, **dataset ID**, **schema $id**, **flow GUID**, **datastream UUID**, and **DSN URL** in `web/` and `content-decision-live.html` is listed and either replaced or documented as intentional.  
+- [ ] Every **hardcoded** `run.app`, **dataset ID**, **schema $id**, **flow GUID**, **datastream UUID**, and **DSN URL** in `web/` is listed and either replaced or documented as intentional.
 - [ ] **Webhook allowlist** (`functions/index.js`, `proxy_server.py`) matches **your** listener or a shared team listener.  
 - [ ] **Profile Viewer** `.env` (local) and **Firebase** function env document **your** sandbox technical name and any Query dataset overrides.  
 - [ ] **Launch + Edge** point at **your** dev datastream wired to **your** sandbox datasets.  
