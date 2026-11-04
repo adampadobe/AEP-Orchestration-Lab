@@ -84,6 +84,9 @@ function registerProfileRoutes(deps) {
       }
       const identifier = String(req.query.identifier || req.query.email || '').trim();
       const namespace = String(req.query.namespace || 'email').trim().toLowerCase();
+      const profileReadback = String(req.query.profileReadback || '') === '1';
+      const lookupStartedAt = Date.now();
+      const correlationId = profileReadback ? requestCorrelationId(req) : null;
       const sandbox = resolveSandboxFromQuery(req);
       if (!identifier) {
         res.status(400).json({ error: 'Missing identifier. Use ?identifier=…&namespace=email|ecid|crmId|loyaltyId|phone' });
@@ -108,45 +111,66 @@ function registerProfileRoutes(deps) {
           payload.safeSnapshot = true;
           payload.profileWriteConsentMode = 'preserve';
         }
-        try {
-          const statusAllPayload = await profileInfraStatusAllSvc.runProfileInfraStatusAll({
-            sandbox,
-            token: accessToken,
-            clientId,
-            orgId,
-            services: {
-              generic: genericProfileInfraService,
-              travel: travelProfileInfraService,
-              fsi: fsiProfileInfraService,
-              telecom: telecomProfileInfraService,
-              retail: retailProfileInfraService,
-              media: mediaProfileInfraService,
-              sports: sportsProfileInfraService,
-            },
+        if (!profileReadback) {
+          try {
+            const statusAllPayload = await profileInfraStatusAllSvc.runProfileInfraStatusAll({
+              sandbox,
+              token: accessToken,
+              clientId,
+              orgId,
+              services: {
+                generic: genericProfileInfraService,
+                travel: travelProfileInfraService,
+                fsi: fsiProfileInfraService,
+                telecom: telecomProfileInfraService,
+                retail: retailProfileInfraService,
+                media: mediaProfileInfraService,
+                sports: sportsProfileInfraService,
+              },
+            });
+            const writability = await profileTableHelpers.buildIndustryWritabilityMap({
+              statusAllPayload,
+              sandbox,
+              connectionStores: {
+                generic: genericProfileConnectionStore,
+                travel: travelProfileConnectionStore,
+                fsi: fsiProfileConnectionStore,
+                telecom: telecomProfileConnectionStore,
+                retail: retailProfileConnectionStore,
+                media: mediaProfileConnectionStore,
+                sports: sportsProfileConnectionStore,
+              },
+            });
+            profileTableHelpers.enrichProfileTablePayloadWithWritability(payload, writability);
+          } catch (enrichErr) {
+            console.warn(
+              '[profileTableProxy.enrich]',
+              JSON.stringify({ sandbox, error: String(enrichErr && enrichErr.message ? enrichErr.message : enrichErr).slice(0, 240) })
+            );
+          }
+        } else {
+          logFunctionEvent('INFO', 'profile.readback.lookup_completed', {
+            correlationId,
+            namespace: ['email', 'ecid', 'crmid', 'loyaltyid', 'phone'].includes(namespace) ? namespace : 'other',
+            status: 200,
+            found: payload.found === true,
+            rowCount: Array.isArray(payload.rows) ? payload.rows.length : 0,
+            durationMs: Date.now() - lookupStartedAt,
           });
-          const writability = await profileTableHelpers.buildIndustryWritabilityMap({
-            statusAllPayload,
-            sandbox,
-            connectionStores: {
-              generic: genericProfileConnectionStore,
-              travel: travelProfileConnectionStore,
-              fsi: fsiProfileConnectionStore,
-              telecom: telecomProfileConnectionStore,
-              retail: retailProfileConnectionStore,
-              media: mediaProfileConnectionStore,
-              sports: sportsProfileConnectionStore,
-            },
-          });
-          profileTableHelpers.enrichProfileTablePayloadWithWritability(payload, writability);
-        } catch (enrichErr) {
-          console.warn(
-            '[profileTableProxy.enrich]',
-            JSON.stringify({ sandbox, error: String(enrichErr && enrichErr.message ? enrichErr.message : enrichErr).slice(0, 240) })
-          );
         }
         res.status(200).json(payload);
       } catch (e) {
-        res.status(e.code === 'UPS_ENTITY_NOT_FOUND' ? 404 : 500).json({
+        const status = e.code === 'UPS_ENTITY_NOT_FOUND' ? 404 : 500;
+        if (profileReadback) {
+          logFunctionEvent(status === 404 ? 'INFO' : 'ERROR', 'profile.readback.lookup_failed', {
+            correlationId,
+            namespace: ['email', 'ecid', 'crmid', 'loyaltyid', 'phone'].includes(namespace) ? namespace : 'other',
+            status,
+            errorCode: status === 404 ? 'UPS_ENTITY_NOT_FOUND' : 'PROFILE_LOOKUP_FAILED',
+            durationMs: Date.now() - lookupStartedAt,
+          });
+        }
+        res.status(status).json({
           error: String(e.message || e),
           code: e.code || 'UPS_FAILED',
           stage: 'profile_access',

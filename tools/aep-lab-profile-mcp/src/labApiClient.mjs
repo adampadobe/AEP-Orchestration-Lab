@@ -260,8 +260,11 @@ export async function lookupProfile(params) {
       sandbox: params.sandbox,
       namespace: params.namespace,
       identifier: params.identifier,
+      profileReadback: params.profile_readback === true ? '1' : undefined,
     },
-    timeoutMs: 120_000,
+    headers: params.correlation_id ? { 'x-aep-lab-correlation-id': params.correlation_id } : {},
+    timeoutMs: params.profile_readback === true ? 15_000 : 120_000,
+    retries: params.profile_readback === true ? 0 : undefined,
   });
 }
 

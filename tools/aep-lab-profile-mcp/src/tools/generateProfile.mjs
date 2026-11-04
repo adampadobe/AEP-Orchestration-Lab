@@ -15,7 +15,7 @@ import { fromLabApi, toolError } from './helpers.mjs';
 import { hasPlaceParams, placeInputSchema, summarizePlaceAttributes, validatePlaceParams } from '../framework/placeParams.mjs';
 import { buildPlaceContextPersonaAttributes, hasPlaceContextAttributes } from '../personaBuilder/placeContext.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
-import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
+import { lookupProfile, snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 import { generationTargetSchema, generateSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
@@ -23,6 +23,19 @@ import {
   personHintsFromAttributes,
   recordRecentProfileGenerated,
 } from '../framework/recordRecentProfile.mjs';
+import { runProfileReadbackAcceptance } from '../profileReadbackAcceptance.mjs';
+import { jsonResult } from './helpers.mjs';
+
+const PROFILE_READBACK_SLA_SECONDS = 60;
+
+function logProfileReadback(event, fields) {
+  const { severity = 'INFO', ...details } = fields;
+  console.log(JSON.stringify({
+    severity,
+    message: `profile.generate.${event}`,
+    ...details,
+  }));
+}
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -42,6 +55,7 @@ export function registerGenerateProfileTool(mcpServer) {
         'Use randomize plus an optional segment_hint for a correlated persona. Every randomized profile carries place context ' +
         '(profilePlaceContext: lat/lon, city, country): place_mode featured (ten common areas, default), global (anywhere on Earth) or area + place_area. ' +
         'Optional dual_load_snowflake creates a CRM row with shared EMAIL/ECID/CRMID and preserves supported supplied persona values. ' +
+        'After AEP streaming, verifies read-only Email/ECID Profile lookups within 60 seconds; accepted_unverified means do not regenerate. ' +
         'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
         target: generationTargetSchema,
@@ -319,6 +333,76 @@ export function registerGenerateProfileTool(mcpServer) {
         correlation_id: correlationId,
       });
 
+      const generatedEcid = apiResult.ecid
+        || apiResult.data?.ecid
+        || apiResult.data?.identification?.core?.ecid
+        || apiResult.data?.profile?.ecid;
+      let profileReadbackPromise = null;
+      if (apiResult.ok) {
+        const generatedAt = apiResult.data?.completedAt || new Date().toISOString();
+        profileReadbackPromise = (generatedEcid
+          ? runProfileReadbackAcceptance({
+            sandbox: allowed.sandbox,
+            industry: norm.industry,
+            email: resolvedEmail,
+            ecid: String(generatedEcid),
+            generatedAt,
+            slaSeconds: PROFILE_READBACK_SLA_SECONDS,
+            lookupProfile: ({ sandbox: lookupSandbox, namespace, identifier }) => lookupProfile({
+              sandbox: lookupSandbox,
+              namespace,
+              identifier,
+              profile_readback: true,
+              correlation_id: correlationId,
+            }),
+            onLookup: (lookup) => logProfileReadback('lookup', {
+              correlationId,
+              industry: norm.industry,
+              ...lookup,
+            }),
+          })
+          : Promise.resolve({
+            ok: false,
+            reason: 'generated_ecid_missing',
+            elapsedSeconds: 0,
+            emailReadAttempts: 0,
+            ecidReadAttempts: 0,
+            firstReadbackChecks: null,
+          }))
+          .then((result) => {
+            logProfileReadback('completed', {
+              correlationId,
+              industry: norm.industry,
+              verified: result.ok,
+              reason: result.reason || null,
+              elapsedSeconds: result.elapsedSeconds,
+              emailReadAttempts: result.emailReadAttempts,
+              ecidReadAttempts: result.ecidReadAttempts,
+              firstReadbackChecks: result.firstReadbackChecks,
+            });
+            return result;
+          })
+          .catch((error) => {
+            const result = {
+              ok: false,
+              reason: 'profile_lookup_error',
+              error: error instanceof Error
+                ? error.message
+                : 'A read-only profile lookup failed before verification completed.',
+              elapsedSeconds: Math.max(0, (Date.now() - Date.parse(generatedAt)) / 1_000),
+              emailReadAttempts: null,
+              ecidReadAttempts: null,
+              firstReadbackChecks: null,
+            };
+            logProfileReadback('failed', {
+              correlationId,
+              industry: norm.industry,
+              errorCode: result.reason,
+            });
+            return result;
+          });
+      }
+
       writeAuditLog({
         keyId,
         tool: 'lab_generate_profile',
@@ -336,12 +420,7 @@ export function registerGenerateProfileTool(mcpServer) {
       let recentSync = null;
       let snowflakeDualLoad = null;
       if (apiResult.ok) {
-        const ecid =
-          apiResult.ecid ||
-          apiResult.data?.ecid ||
-          apiResult.data?.identification?.core?.ecid ||
-          apiResult.data?.profile?.ecid ||
-          undefined;
+        const ecid = generatedEcid || undefined;
         const hints = personHintsFromAttributes(normalized.attributes);
         recentSync = await recordRecentProfileGenerated({
           sandbox: allowed.sandbox,
@@ -419,6 +498,7 @@ export function registerGenerateProfileTool(mcpServer) {
         }
       }
 
+      const profileReadback = profileReadbackPromise ? await profileReadbackPromise : null;
       const labApiShape = apiResult.ok
         ? { ok: true, status: 200, data: apiResult.data }
         : {
@@ -432,9 +512,10 @@ export function registerGenerateProfileTool(mcpServer) {
       const failedFollowUps = [
         recentSync?.ok === false ? 'recent-profile sync' : null,
         snowflakeDualLoad?.ok === false ? 'Snowflake dual-load' : null,
+        profileReadback?.ok === false ? 'profile readback verification' : null,
       ].filter(Boolean);
 
-      return fromLabApi(labApiShape, {
+      const responseDetails = {
         correlation_id: correlationId,
         error_code: apiResult.errorCode || undefined,
         partial_success:
@@ -442,7 +523,7 @@ export function registerGenerateProfileTool(mcpServer) {
           || apiResult.partialSuccess === true,
         no_retry_guidance:
           (apiResult.ok && failedFollowUps.length > 0)
-            ? `AEP profile generation succeeded but ${failedFollowUps.join(' and ')} failed. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
+            ? `AEP profile streaming was accepted but ${failedFollowUps.join(' and ')} failed or remains unverified. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
             : (apiResult.partialSuccess === true
               ? 'The generic base profile succeeded but the industry overlay was not completed. Do not regenerate this identity.'
               : undefined),
@@ -456,6 +537,12 @@ export function registerGenerateProfileTool(mcpServer) {
         test_profile: normalized.test_profile,
         preferredLanguage: readLanguageFromAttrs(normalized.attributes),
         place_context: summarizePlaceAttributes(normalized.attributes),
+        generation_status: profileReadback
+          ? (profileReadback.ok ? 'readback_verified' : 'accepted_unverified')
+          : (apiResult.ok ? 'stream_accepted' : 'failed'),
+        profile_readback: profileReadback
+          ? { ...profileReadback, slaSeconds: PROFILE_READBACK_SLA_SECONDS }
+          : null,
         recent_profiles_sync: recentSync,
         dual_stream: generatePlan.dualStream,
         generate_plan: generatePlan.steps.map((s) => ({
@@ -475,7 +562,19 @@ export function registerGenerateProfileTool(mcpServer) {
           test_profile: normalized.test_profile,
           preferredLanguage: readLanguageFromAttrs(normalized.attributes),
         },
-      });
+      };
+
+      if (profileReadback?.ok === false) {
+        return jsonResult({
+          ok: false,
+          ...responseDetails,
+          error: 'AEP streaming was accepted, but profile readback verification did not pass. Do not retry generation.',
+          retry_safe: false,
+          lab: apiResult.data,
+        });
+      }
+
+      return fromLabApi(labApiShape, responseDetails);
     },
   );
 }
