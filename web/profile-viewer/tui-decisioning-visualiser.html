@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>if(parent!==window)document.documentElement.setAttribute('data-tui-embedded','');</script>
+  <title>TUI | Next holiday, best moment</title>
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261021-drawer-speed">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="home-dashboard-concierge tui-visualiser">
+  <header class="tui-lab-header">
+    <img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="78" height="35">
+    <div><span class="eyebrow">NEXT HOLIDAY. BEST MOMENT.</span><h1>A little more you.</h1></div>
+  </header>
+  <main id="workspace" class="tui-workspace">
+    <section class="signals-pane pane" aria-labelledby="signals-title">
+      <div class="pane-heading"><div><span class="eyebrow">01 / THE TRAVELLER</span><h2 id="signals-title">Holiday signals</h2></div><button id="reset" type="button">Reset</button></div>
+      <div id="signals"></div>
+      <details class="mapping-details"><summary>Schema &amp; catalog boundary</summary><p>Existing Operational Profile fields, tenant <code>_demoemea</code>. The schema paths are shown on every control. No new TUI subtree.</p><p>Consent is an explicit local hold. The draft catalog does not encode this consent gate; a reviewed policy gate is required before live use.</p><p>Seven reused objective tags also include existing BA items. They are not TUI-exclusive. New tags and media hosting are not provisioned.</p></details>
+    </section>
+    <div class="gutter" role="separator" aria-label="Resize profile signals; double-click to reset" aria-orientation="vertical" tabindex="0" data-pane="signals" aria-valuemin="230" aria-valuemax="900" aria-valuenow="270"></div>
+    <section class="decision-pane pane" aria-labelledby="decision-title">
+      <div class="pane-heading"><div><span class="eyebrow">02 / THE NEXT BEST MOMENT</span><h2 id="decision-title">Seven objectives. One choice.</h2></div></div>
+      <div id="scenario-pills" class="scenario-pills" role="group" aria-label="Seven holiday scenarios"></div>
+      <section class="ranking-panel" aria-labelledby="ranking-title">
+        <div class="ranking-heading"><h3 id="ranking-title">Selection Strategies</h3><div class="ladder-toolbar"><button id="expand" type="button" aria-label="Expand all strategies" title="Expand all strategies"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 7 5-4 5 4M5 13l5 4 5-4M4 10h12"/></svg></button><button id="collapse" type="button" aria-label="Collapse all strategies" title="Collapse all strategies"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="m5 3 5 4 5-4M5 17l5-4 5 4M4 10h12"/></svg></button></div></div>
+        <div id="objectives" class="objective-ladder"></div>
+      </section>
+      <details id="eligible-details" class="ranking-panel"><summary><span>Eligible NBAs</span><small id="eligible-objective"></small></summary><p class="nba-ranking-note">Local catalog priority, not an AJO/ML score</p><div id="eligible-items"></div></details>
+      <details class="mapping-details"><summary>Draft catalog / configuration</summary><p>21 draft items / 7 tag collections / 7 strategies were created and read back in kirkham on 16 October 2026. Objective and item rules each read 1-2 existing profile attributes.</p><p id="catalog-stats"></p><p>Shared BA/TUI tag membership was explicitly approved. No policy was activated. Static strategy priority is not policy ordering. Live use needs hosted media, reviewed policy ordering and consent gating, and Edge verification.</p></details>
+    </section>
+    <div class="gutter" role="separator" aria-label="Resize channel preview; double-click to reset" aria-orientation="vertical" tabindex="0" data-pane="preview" aria-valuemin="340" aria-valuemax="1200" aria-valuenow="560"></div>
+    <section class="preview-pane pane" aria-labelledby="preview-title">
+      <div class="preview-header">
+        <h2 id="preview-title">03 / Customer preview</h2>
+        <div class="channel-tabs" role="tablist" aria-label="Preview channel">
+          <button id="tab-email" type="button" role="tab" aria-controls="panel-email" aria-selected="true" data-channel="email">Email · Desktop</button>
+          <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Mobile App</button>
+          <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
+        </div>
+      </div>
+      <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">To: Alex Morgan &lt;alex.morgan@example.invalid&gt;</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
+      <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden>
+        <div class="phone-frame tui-app" aria-label="TUI mobile app">
+          <div class="phone-status">9:41</div>
+          <header class="app-header"><img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="68" height="30"><span>Your holiday, in your pocket</span></header>
+          <div class="app-scroll">
+            <div class="app-welcome"><span class="eyebrow">A LITTLE MORE YOU</span><h3 id="app-greeting">Hi Alex</h3><p>Your next holiday moment starts here.</p></div>
+            <div id="mobile-preview"></div>
+            <section class="app-shortcuts" aria-label="Holiday tools"><h3>Everything for your getaway</h3><div><button type="button" data-app-action="My trips"><span aria-hidden="true">&#9992;</span>My trips</button><button type="button" data-app-action="Check-in"><span aria-hidden="true">&#10003;</span>Check-in</button><button type="button" data-app-action="Help Centre"><span aria-hidden="true">?</span>Help Centre</button></div></section>
+          </div>
+          <nav class="app-nav" aria-label="App preview navigation"><button type="button" data-app-action="Home" aria-current="page"><span aria-hidden="true">&#8962;</span>Home</button><button type="button" data-app-action="Discover"><span aria-hidden="true">&#9906;</span>Discover</button><button type="button" data-app-action="My trips"><span aria-hidden="true">&#9992;</span>My trips</button><button type="button" data-app-action="Account"><span aria-hidden="true">&#9675;</span>Account</button></nav>
+          <div class="app-home-indicator" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div id="panel-web" role="tabpanel" aria-labelledby="tab-web" class="channel-panel" tabindex="0" hidden>
+        <div class="website-preview">
+          <div class="site-browser-bar" aria-label="Reconstructed website address"><span class="site-browser-dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="site-browser-address">tui.co.uk</span></div>
+          <div class="site-utility">Travel information <span>Help Centre / My booking</span></div>
+          <div class="site-nav"><img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="64" height="29"><span>Holidays &nbsp; Cruises &nbsp; Flights &nbsp; Hotels &nbsp; Deals</span></div>
+          <div id="web-preview"></div>
+          <div class="site-inspiration"><span class="eyebrow">HOLIDAYS DESIGNED BY TUI</span><h3>Find your kind of happy.</h3><div class="destination-grid"><figure><img src="tui-decisioning-assets/crete.jpg" alt="Crete coastline" width="220" height="130"><figcaption>Crete / Beach holidays</figcaption></figure><figure><img src="tui-decisioning-assets/gran-canaria.jpg" alt="Gran Canaria coast" width="220" height="130"><figcaption>Gran Canaria / A sunny escape</figcaption></figure><figure><img src="tui-decisioning-assets/mexico.jpg" alt="Holiday in Mexico" width="220" height="130"><figcaption>Mexico / Something special</figcaption></figure></div></div>
+        </div>
+      </div>
+      <p id="preview-feedback" class="preview-feedback" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+  <details class="fictional-drawer"><summary>Fictional profile / Alex Morgan / View signals and identity</summary><div><strong>Local fixture only</strong><p>No ECID, linked identities, audiences or real activity have been loaded. This static demonstration has no live profile drawer and performs no identity reset.</p><p id="fixture-summary"></p></div></details>
+  <script src="tui-decisioning-model.js?v=20261021-abandoned-search"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261021-signals"></script>
+</body>
+</html>

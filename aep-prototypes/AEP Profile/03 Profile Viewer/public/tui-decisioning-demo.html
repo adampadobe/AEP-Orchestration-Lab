@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TUI | Holiday decisioning lab</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="aep-profile-drawer.css?v=20261016-decisioning">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css">
+  <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
+  <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="mod-demo-page home-dashboard-concierge tui-demo-shell">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="Lab configuration">
+      <div class="aep-demo-id-inner"
+        data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum"
+        data-demo-env-strip-prefix="tuiDecisioning"
+        data-demo-env-strip-title="TUI Holiday Decisioning"
+        data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-message-id="tuiDecisioningMessage"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-disclaimer="Apply updates the selected test profile. Run requests the configured live policy.">
+      </div>
+    </section>
+  </div>
+  <header class="tui-live-actions" aria-label="TUI decision controls">
+    <div class="tui-lab-brand">
+      <img src="tui-decisioning-assets/tui-logo.svg" alt="TUI" width="78" height="35">
+      <div><span class="eyebrow">NEXT HOLIDAY. BEST MOMENT.</span><h1>A little more you.</h1></div>
+    </div>
+    <div class="tui-action-controls">
+      <span id="tuiLiveStatus" role="status" aria-live="polite">Look up a test profile to stage changes.</span>
+      <button id="tuiApplyProfile" type="button" disabled>Apply profile changes</button>
+      <button id="tuiRunDecision" type="button">Run live decision</button>
+    </div>
+  </header>
+  <iframe id="tui-visualiser" class="mod-demo-site-frame" title="TUI holiday decisioning"
+    src="tui-decisioning-visualiser.html?v=20261021-drawer-speed" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Lab navigation"></aside>
+    <div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div>
+  </div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js"></script>
+  <script src="aep-profile-drawer.js?v=20261029-new-visitor"></script>
+  <script src="aep-demo-generator-targets.js"></script>
+  <script src="tui-decisioning-model.js?v=20261021-abandoned-search"></script>
+  <script src="tui-decisioning-profile.js?v=20261016-ranked"></script>
+  <script src="tui-profile-hero.js?v=20261102-no-synthetic-tab-click"></script>
+  <script>
+    (function(){
+      var frame=document.getElementById('tui-visualiser');
+      var channel=new URLSearchParams(location.search).get('channel');
+      if(['email','mobile','web'].includes(channel))frame.src+='&channel='+channel;
+      function theme(){frame.contentWindow.postMessage({type:'tui-theme',dark:document.documentElement.getAttribute('data-aep-theme')==='dark'},location.origin);}
+      frame.addEventListener('load',theme);
+      new MutationObserver(theme).observe(document.documentElement,{attributes:true,attributeFilter:['data-aep-theme']});
+      window.addEventListener('message',function(event){
+        if(event.origin!==location.origin||event.source!==frame.contentWindow||!event.data||event.data.type!=='tui-channel')return;
+        if(!['email','mobile','web'].includes(event.data.channel))return;
+        var url=new URL(location.href);url.searchParams.set('channel',event.data.channel);history.pushState({},'',url);
+      });
+      window.addEventListener('popstate',function(){frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);});
+    })();
+    window.envBarConfig = {
+      prefix: 'tuiDecisioning', variant: 'spectrum', defaultSandbox: 'kirkham', localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      iframeIds: ['tui-visualiser'],
+      decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
+        autoRunDecisioning: false, viewName: 'TUI Decisioning', eventTenantNamespace: '_demoemea' },
+      labCoreScript: 'tui-decisioning-demo.js?v=20261023-event-timeline'
+    };
+    if (!window.AepGlobalSandbox.getSelected()) {
+      window.AepGlobalSandbox.setSelected('kirkham', { source: 'tui-demo-default' });
+    }
+  </script>
+  <script src="decisioning-persona-journey.js?v=20261022-abandoned-search-icon"></script>
+  <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
+  <script src="aep-lab-nav.js?v=20261103-tui-decisioning"></script>
+  <script src="aep-theme.js" defer></script>
+</body>
+</html>
