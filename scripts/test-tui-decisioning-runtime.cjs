@@ -73,6 +73,21 @@ test('only TUI opts into its compatible runtime; other demos retain the shared r
   }
 });
 
+test('only TUI loads its decisioning drawer with offer/strategy event cards', () => {
+  const html = fs.readFileSync(path.join(root, 'tui-decisioning-demo.html'), 'utf8');
+  assert.match(html, /<script src="tui-decisioning-drawer\.js\?v=[^"]+"><\/script>/);
+  assert.match(html, /href="tui-decisioning-drawer\.css\?v=[^"]+"/);
+  assert.ok(!/aep-profile-drawer\.(js|css)/.test(html));
+  const drawer = fs.readFileSync(path.join(root, 'tui-decisioning-drawer.js'), 'utf8');
+  for (const marker of ['function renderCompactEventTimeline(', "'Won via '", "variant: 'decisioning'", 'setJourneyModalRenderer(fn)']) {
+    assert.ok(drawer.includes(marker), marker);
+  }
+  assert.ok(fs.readFileSync(path.join(root, 'tui-decisioning-drawer.css'), 'utf8').includes('.aep-profile-drawer-event-decision-detail'));
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && file !== 'tui-decisioning-demo.html')) {
+    assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-drawer.'), file);
+  }
+});
+
 test('manual decisions capture the original SDK, browser identity and datastream without rendering or premature display events', async () => {
   const f = fixture();
   assert.equal(f.runtime.supportsManualDisplay, true);
