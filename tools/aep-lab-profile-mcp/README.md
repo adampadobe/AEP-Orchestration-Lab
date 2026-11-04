@@ -162,6 +162,8 @@ For clients that do not refresh their callable catalog, **directly connect the f
 
 **Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
 
+Before sending the industry overlay, the MCP now polls the read-only profile-table endpoint for up to 60 seconds and requires both Email- and ECID-namespace lookups to resolve the same identities, all Generic fields, and the configured Generic dataset in Profile provenance. If persistence is not verified, it returns an explicit partial result and does not send or retry the overlay.
+
 On the General integration, call **`lab_get_execution_framework`** before advanced work. Focused integrations do not expose this tool; the bundled skill carries the essential rules when working in those contexts.
 
 | Tool / URI | Purpose |

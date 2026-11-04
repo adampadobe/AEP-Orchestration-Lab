@@ -21,8 +21,39 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
   const originalFetch = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
-    calls.push({ path: new URL(url).pathname, query: new URL(url).searchParams, body: init.body ? JSON.parse(init.body) : null, headers: init.headers });
-    const response = respond(calls.at(-1));
+    const requestUrl = new URL(url);
+    calls.push({ path: requestUrl.pathname, query: requestUrl.searchParams, body: init.body ? JSON.parse(init.body) : null, headers: init.headers });
+    const request = calls.at(-1);
+    let response;
+    if (request.path === '/api/generic-profile-connection') {
+      response = respond(request);
+      if (!response?.record?.streaming?.datasetId && !response?.record?.infra?.datasetId) {
+        response = { record: { streaming: { datasetId: 'test-generic-dataset' } } };
+      }
+    } else if (request.path === '/api/profile/table') {
+      const generated = calls.findLast((call) => call.path === '/api/profile/generate' && call.body.industry === 'generic');
+      const attributes = generated?.body.attributes || {};
+      response = {
+        found: true,
+        profileEmail: profile.email,
+        ecid: profile.ecid,
+        rows: [
+          { path: 'personalEmail.address', value: profile.email, valueType: 'string' },
+          { path: '_demoemea.identification.core.email', value: profile.email, valueType: 'string' },
+          { path: '_demoemea.identification.core.ecid', value: profile.ecid, valueType: 'string' },
+          ...Object.entries(attributes).map(([path, value]) => ({
+            path, value: String(value), valueType: typeof value,
+          })),
+        ],
+        profileAccessHints: {
+          identityMapHasEmail: true,
+          identityMapHasEcid: true,
+          sourceDatasetIds: ['test-generic-dataset'],
+        },
+      };
+    } else {
+      response = respond(request);
+    }
     return {
       ok: response?.httpOk ?? true,
       status: response?.httpStatus ?? 200,
