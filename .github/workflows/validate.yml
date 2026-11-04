@@ -47,6 +47,7 @@ jobs:
         run: |
           npm run verify:env-bar-versions
           npm run verify:demo-env-strip
+          node --test scripts/test-tui-decisioning-runtime.cjs
 
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs

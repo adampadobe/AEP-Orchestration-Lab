@@ -74,6 +74,9 @@ window.envBar.registerTagsInjection(tags);
 | `features.webPush` | `true` | Feature flag (mount / demo JS) |
 | `features.bc` | `true` | Brand Concierge strip sections |
 | `features.decisioning` | `true` | Decisioning toggle on mount; set `false` to hide. When enabled, loads `decisioning-profile-module/*` + `site-clone-decisioning-boot.js` |
+| `decisioning.runtimeScript` | `decisioning-profile-module/decisioning-profile-runtime.js` | Optional runtime asset path relative to Profile Viewer. TUI Decisioning uses `tui-decisioning-runtime.js` to preserve its original preview's manual display and captured identity contract without changing the runtime used by other demos. |
+
+TUI runtime regression checks: `node --test scripts/test-tui-decisioning-runtime.cjs`.
 
 **Decisioning mount zones:** iframe / parent HTML needs `#TopRibbon`, `#hero-banner` (or `[data-hero-mount]`), and `#ContentCardContainer` — see [CONTRIBUTING.md § Decisioning mount zones](CONTRIBUTING.md#decisioning-mount-zones-site-clone-demos) and `shared/decisioning-mount-zones.fragment.html`.
 
