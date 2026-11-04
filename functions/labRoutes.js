@@ -1249,6 +1249,7 @@ function registerLabRoutes(deps) {
           email: body.email || body.scaledEmail,
           ecid: body.ecid,
           industry: body.industry,
+          generationStatus: body.generationStatus,
           summaryLabel: body.summaryLabel,
           generatedAt: body.generatedAt,
           source: body.source || 'portal',

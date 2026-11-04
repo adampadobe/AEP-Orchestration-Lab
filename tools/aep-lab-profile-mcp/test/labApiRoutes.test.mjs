@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { lookupProfile } from '../src/labApiClient.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -48,4 +49,28 @@ test('rewrite matcher handles the glob styles used in firebase.json', () => {
   assert.equal(rewriteMatches('/api/profile/*', '/api/profile/table'), true);
   assert.equal(rewriteMatches('/api/profile/*', '/api/profile/a/b'), false);
   assert.equal(rewriteMatches('/api/geo-hotspots', '/api/geo-hotspot'), false);
+});
+
+test('profile reads bypass Hosting cached negatives and honor the direct Function origin', async t => {
+  const original = process.env.AEP_LAB_FUNCTIONS_ORIGIN;
+  process.env.AEP_LAB_FUNCTIONS_ORIGIN = 'https://functions.example.test/';
+  t.after(() => {
+    if (original === undefined) delete process.env.AEP_LAB_FUNCTIONS_ORIGIN;
+    else process.env.AEP_LAB_FUNCTIONS_ORIGIN = original;
+  });
+  let observed;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    observed = { url: new URL(url), init };
+    return Response.json({ code: 'UPS_ENTITY_NOT_FOUND' }, { status: 404 });
+  });
+  const result = await lookupProfile({
+    sandbox: 'offline', namespace: 'ecid', identifier: 'offline-identity', retries: 0,
+  });
+  assert.equal(result.status, 404);
+  assert.equal(observed.url.origin, 'https://functions.example.test');
+  assert.equal(observed.url.pathname, '/profileTableProxy');
+  assert.equal(observed.init.method, 'GET');
+  assert.deepEqual(Object.fromEntries(observed.url.searchParams), {
+    sandbox: 'offline', namespace: 'ecid', identifier: 'offline-identity',
+  });
 });

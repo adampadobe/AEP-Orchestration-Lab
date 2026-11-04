@@ -149,18 +149,32 @@ export async function processBatchJob(jobId, { keyId }) {
         test_profile: testProfileResolved.test_profile,
       });
 
-      if (apiResult.ok) {
-        completed += 1;
+      if (apiResult.ok || apiResult.partialSuccess === true) {
+        if (apiResult.ok) completed += 1;
+        else {
+          failed += 1;
+          errors.push({ index: i, email, error: apiResult.error || 'Industry overlay incomplete' });
+        }
         const ecid =
           apiResult.ecid ||
           apiResult.data?.ecid ||
           apiResult.data?.identification?.core?.ecid ||
           apiResult.data?.profile?.ecid ||
           undefined;
+        const hints = personHintsFromAttributes(attributes);
+        const recentSync = await recordRecentProfileGenerated({
+          sandbox: params.sandbox,
+          email,
+          ecid,
+          industry: params.industry,
+          attributes,
+          generationStatus: apiResult.ok ? 'accepted' : 'overlay_pending',
+          ...hints,
+        });
         /** @type {Record<string, unknown> | null} */
         let snowflakeDualLoad = null;
-        if (params.dual_load_snowflake === true && ecid) {
-          const sfResult = await snowflakeInsertProfileFromAep({
+        if (params.dual_load_snowflake === true) {
+          const sfResult = ecid ? await snowflakeInsertProfileFromAep({
             sandbox: params.sandbox,
             email,
             ecid: String(ecid),
@@ -168,7 +182,7 @@ export async function processBatchJob(jobId, { keyId }) {
             industry: params.industry,
             table: params.snowflake_table,
             mode: params.dual_load_snowflake_mode || 'crm_generate',
-          });
+          }) : { ok: false, error: 'Snowflake dual-load requires the ECID returned by accepted generation; do not regenerate this identity.' };
           snowflakeDualLoad = {
             ok: sfResult.ok,
             mode: params.dual_load_snowflake_mode || 'crm_generate',
@@ -204,8 +218,10 @@ export async function processBatchJob(jobId, { keyId }) {
             }
           }
           if (!snowflakeDualLoad.ok) {
-            failed += 1;
-            completed -= 1;
+            if (apiResult.ok) {
+              failed += 1;
+              completed -= 1;
+            }
             const errMsg =
               snowflakeDualLoad.error ||
               snowflakeDualLoad.enrichment?.error ||
@@ -218,6 +234,11 @@ export async function processBatchJob(jobId, { keyId }) {
               ecid,
               error: errMsg,
               snowflake: snowflakeDualLoad,
+              partial_success: true,
+              retry_safe: false,
+              error_code: apiResult.errorCode,
+              generate_step_results: apiResult.stepResults,
+              recent_profiles_sync: recentSync,
             });
             await updateBatchJob(jobId, {
               progress: { completed: completed + failed, total: count, failed, succeeded: completed },
@@ -231,19 +252,21 @@ export async function processBatchJob(jobId, { keyId }) {
         results.push({
           index: i,
           email,
-          ok: true,
+          ok: apiResult.ok && recentSync.ok,
           ecid,
+          partial_success: !apiResult.ok || !recentSync.ok,
+          retry_safe: false,
+          error: apiResult.ok ? recentSync.error : apiResult.error,
+          error_code: apiResult.errorCode,
+          generate_step_results: apiResult.stepResults,
+          recent_profiles_sync: recentSync,
           ...(snowflakeDualLoad ? { snowflake: snowflakeDualLoad } : {}),
         });
-        const hints = personHintsFromAttributes(attributes);
-        await recordRecentProfileGenerated({
-          sandbox: params.sandbox,
-          email,
-          ecid,
-          industry: params.industry,
-          attributes,
-          ...hints,
-        });
+        if (apiResult.ok && !recentSync.ok) {
+          completed -= 1;
+          failed += 1;
+          errors.push({ index: i, email, error: recentSync.error || 'Recent-profile sync failed' });
+        }
       } else {
         failed += 1;
         const errMsg = apiResult.error || 'Lab API request failed';

@@ -244,8 +244,9 @@ export async function generateProfilesFromScrapePersonas({
     });
 
     let recentSync = null;
-    if (apiResult.ok) {
-      succeeded += 1;
+    if (apiResult.ok) succeeded += 1;
+    else failed += 1;
+    if (apiResult.ok || apiResult.partialSuccess === true) {
       const hints = personHintsFromAttributes(normalized.attributes);
       recentSync = await recordRecentProfileGenerated({
         sandbox,
@@ -253,11 +254,10 @@ export async function generateProfilesFromScrapePersonas({
         ecid: apiResult.ecid || undefined,
         industry: canonicalIndustry,
         attributes: normalized.attributes,
+        generationStatus: apiResult.ok ? 'accepted' : 'overlay_pending',
         summaryLabel: persona.name ? `${persona.name} (scrape)` : undefined,
         ...hints,
       });
-    } else {
-      failed += 1;
     }
 
     results.push({
@@ -265,6 +265,8 @@ export async function generateProfilesFromScrapePersonas({
       personaName: persona.name || null,
       email,
       ok: apiResult.ok,
+      partial_success: apiResult.partialSuccess === true,
+      retry_safe: false,
       ecid: apiResult.ecid || null,
       segment_hint: built.segmentHint,
       scrapeOverlays: built.overlays,

@@ -30,7 +30,7 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
       if (!response?.record?.streaming?.datasetId && !response?.record?.infra?.datasetId) {
         response = { record: { streaming: { datasetId: 'test-generic-dataset' } } };
       }
-    } else if (request.path === '/api/profile/table') {
+    } else if (request.path === '/profileTableProxy') {
       const generated = calls.findLast((call) => call.path === '/api/profile/generate' && call.body.industry === 'generic');
       const attributes = generated?.body.attributes || {};
       response = {
@@ -301,6 +301,71 @@ test('recent-profile sync failure is partial and explicitly blocks profile regen
   assert.match(body.no_retry_guidance, /Do not regenerate/);
   assert.equal(body.recent_profiles_sync.ok, false);
   assert.equal(body.recent_profiles_sync.errorCode, 'MCP_KEY_INVALID_OR_REVOKED');
+});
+
+test('accepted Generic base still gets requested Snowflake and pending recent registration when overlay is blocked', async () => {
+  const { result, body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer', industry: 'fsi', target: 'aep',
+    email: profile.email, use_stored_prefs: false, randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+    dual_load_snowflake: true,
+  }, ({ path }) => {
+    if (path === '/api/profile/generate') return { ok: true, accepted: true, ecid: profile.ecid };
+    if (path === '/snowflakeInsertProfileFromAep') return { ok: true, result: { crmId: profile.crmId } };
+    return { ok: true, item: {} };
+  });
+  assert.equal(result.isError, true);
+  assert.equal(body.detail.partial_success, true);
+  assert.equal(body.detail.generation_status, 'overlay_pending');
+  assert.equal(body.detail.error_code, 'DUAL_STREAM_CONTINUATION_TOKEN_MISSING');
+  assert.equal(body.detail.snowflake.ok, true);
+  assert.equal(body.detail.snowflake.crmId, profile.crmId);
+  assert.equal(body.detail.recent_profiles_sync.ok, true);
+  const recent = calls.find(call => call.path === '/api/lab/recent-profiles');
+  assert.equal(recent.body.generationStatus, 'overlay_pending');
+  const insert = calls.find(call => call.path === '/snowflakeInsertProfileFromAep');
+  assert.equal(insert.body.email, profile.email);
+  assert.equal(insert.body.ecid, profile.ecid);
+  assert.deepEqual(insert.body.attributes['industryFsi.creditScoreBand'], 'good');
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+  assert.equal(calls.filter(call => call.path === '/snowflakeInsertProfileFromAep').length, 1);
+});
+
+test('a rejected Generic stream never triggers Snowflake or recent-profile writes', async () => {
+  const { result, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer', industry: 'fsi', target: 'aep',
+    email: profile.email, use_stored_prefs: false, randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+    dual_load_snowflake: true,
+  }, ({ path }) => path === '/api/profile/generate'
+    ? { httpOk: false, httpStatus: 400, body: { error: 'Rejected stream' } }
+    : { ok: true });
+  assert.equal(result.isError, true);
+  assert.equal(calls.filter(call => call.path === '/snowflakeInsertProfileFromAep').length, 0);
+  assert.equal(calls.filter(call => call.path === '/api/lab/recent-profiles').length, 0);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+});
+
+test('overlay rejection preserves partial state even if the independent Snowflake load succeeds', async () => {
+  let generateStep = 0;
+  const { result, body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer', industry: 'fsi', target: 'aep',
+    email: profile.email, use_stored_prefs: false, randomize: false,
+    attributes: { 'industryFsi.creditScoreBand': 'good' },
+    dual_load_snowflake: true,
+  }, ({ path }) => {
+    if (path === '/api/profile/generate') {
+      if (++generateStep === 1) return { ok: true, ecid: profile.ecid, appendToken: 'offline-token' };
+      return { httpOk: false, httpStatus: 400, body: { error: 'Overlay rejected' } };
+    }
+    return { ok: true, result: { crmId: profile.crmId }, item: {} };
+  });
+  assert.equal(result.isError, true);
+  assert.equal(body.detail.snowflake.ok, true);
+  assert.equal(body.detail.generation_status, 'overlay_pending');
+  assert.match(body.detail.no_retry_guidance, /completion requires approval/);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 2);
+  assert.equal(calls.find(call => call.path === '/api/lab/recent-profiles').body.generationStatus, 'overlay_pending');
 });
 
 test('Snowflake 400 preserves vendor diagnostics and reports the generation as partial, not retryable', async () => {
