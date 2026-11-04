@@ -171,6 +171,27 @@ ECID lookup and identity-map linkage are reported separately as
 not block the overlay and is not reported as verified. HTTP 200 from the inlet
 still means accepted, not persisted.
 
+Generation reads the saved connection's fully resolved schema before streaming;
+it never changes schemas or dataflows. Known undeclared language/consent aliases
+map to declared canonical leaves: `preferredLanguage`,
+`consents.marketing.any.val`, `consents.marketing.push.val`, and
+`consents.marketing.whatsApp.val`. Legacy channel values map explicitly
+(`in`/`out`/`not_provided` to `y`/`n`/`u`); no new opt-in is inferred.
+Already-declared legacy paths stay unchanged. Unsupported generated compatibility
+mirrors are omitted, but unsupported, conflicting, or invalid **requested**
+attributes fail with HTTP 422 `GENERATION_ATTRIBUTES_UNSUPPORTED` before any
+stream. An unavailable/unresolved schema fails with HTTP 503
+`GENERATION_SCHEMA_UNAVAILABLE`; a saved schema ID is required even for bare
+streaming connections.
+
+The Function returns `persistenceAttributes` with exact schema-backed paths and
+values plus `schemaAlignment` mapping/omission diagnostics. The Email gate uses
+these expectations, retaining identity, value and dataset-provenance checks; it
+does not wait for undeclared aliases. Older Functions without this metadata retain
+the previous request-attribute gate. MCP personas/defaults now emit only root
+`preferredLanguage`; explicit legacy inputs still go through schema validation.
+These checks do not replace AEP ingestion or Profile persistence verification.
+
 All MCP profile lookups use `AEP_LAB_FUNCTIONS_ORIGIN` directly, avoiding Firebase
 Hosting's ten-minute negative caching of initial 404s. The Profile Function also
 sets `Cache-Control: private, no-store, max-age=0` on every response for Portal

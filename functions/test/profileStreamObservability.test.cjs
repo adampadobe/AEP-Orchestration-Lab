@@ -7,6 +7,8 @@ const { handleProfileGenerate } = require('../profileGenerateService');
 const { registerProfileRoutes } = require('../profileRoutes');
 const fsiStore = require('../fsiProfileConnectionStore');
 const core = require('../profileStreamingCore');
+const schemaViewerService = require('../schemaViewerService');
+const generationSchema = require('./fixtures/profileGenerationSchema.cjs');
 const CORRELATION = '12345678-1234-4234-8234-123456789abc';
 const EMAIL = 'private@example.com';
 const SECRET = 'NEVER_LOG_PRIVATE_TOKEN';
@@ -42,21 +44,31 @@ function response() {
   };
 }
 
+function mockPayloadSerialization(t, route, toJSON) {
+  const originalBuilder = core.buildProfileStreamPayload;
+  t.mock.method(core, 'buildProfileStreamPayload', (...args) => {
+    if (route === 'update') return { format: 'bare', payload: { toJSON } };
+    const built = originalBuilder(...args);
+    built.payload.toJSON = toJSON;
+    return built;
+  });
+  t.mock.method(schemaViewerService, 'fetchSchemaById', async () => generationSchema);
+}
+
 for (const route of ['generate', 'update']) {
   for (const envelope of [true, false]) {
     for (const scenario of ['accepted', 'rejected', 'http-rejected', 'nonjson-rejected', 'transport-failed']) {
       const outcome = scenario.endsWith('-rejected') ? 'rejected' : scenario;
       test(`${route} ${envelope ? 'envelope' : 'bare'} ${scenario}: exact wire correlation, no sensitive log values or retries`, async (t) => {
+        t.mock.method(schemaViewerService, 'fetchSchemaById', async () => generationSchema);
         const logs = [];
         t.mock.method(console, 'log', (...args) => logs.push(args.join(' ')));
         t.mock.method(console, 'warn', (...args) => logs.push(args.join(' ')));
         const streaming = {
           url: `https://${envelope ? 'dcs.adobedc.net' : 'example.com'}/collection?token=${SECRET}`,
           flowId: CORRELATION, xdmKey: '_demoemea', apiKey: SECRET,
-          ...(envelope ? {
-            datasetId: '1234567890abcdef12345678',
-            schemaId: 'https://ns.adobe.com/demoemea/schemas/1234567890abcdef12345678',
-          } : {}),
+          schemaId: 'https://ns.adobe.com/demoemea/schemas/1234567890abcdef12345678',
+          ...(envelope ? { datasetId: '1234567890abcdef12345678' } : {}),
         };
         t.mock.method(fsiStore, 'get', async () => ({ streaming }));
         let calls = 0;
@@ -133,20 +145,20 @@ for (const route of ['generate', 'update']) {
     const logs = [];
     t.mock.method(console, 'log', (...args) => logs.push(args.join(' ')));
     let serializations = 0;
-    t.mock.method(core, 'buildProfileStreamPayload', () => ({
-      format: 'bare',
-      payload: { toJSON() {
+    mockPayloadSerialization(t, route, () => {
         serializations++;
         return { _demoemea: { industryFsi: { financialProducts: { checking: serializations === 1 } } } };
-      } },
-    }));
+    });
     let wire;
     t.mock.method(globalThis, 'fetch', async (_url, init) => {
       wire = init.body;
       return { ok: true, status: 200, text: async () => '{}' };
     });
     const res = response();
-    const streaming = { url: 'https://example.com', flowId: CORRELATION };
+    const streaming = {
+      url: 'https://example.com', flowId: CORRELATION,
+      datasetId: 'offline-dataset', schemaId: 'offline-schema',
+    };
     t.mock.method(fsiStore, 'get', async () => ({ streaming }));
     const req = {
       method: 'POST', query: {}, body: {
@@ -173,11 +185,12 @@ for (const route of ['generate', 'update']) {
   test(`${route} preserves serialization failure HTTP status without logging the thrown message`, async (t) => {
     const logs = [];
     t.mock.method(console, 'log', (...args) => logs.push(args.join(' ')));
-    t.mock.method(core, 'buildProfileStreamPayload', () => ({
-      format: 'bare', payload: { toJSON() { throw new Error(SECRET); } },
-    }));
+    mockPayloadSerialization(t, route, () => { throw new Error(SECRET); });
     t.mock.method(globalThis, 'fetch', async () => assert.fail('must not send a failed serialization'));
-    const streaming = { url: 'https://example.com', flowId: CORRELATION };
+    const streaming = {
+      url: 'https://example.com', flowId: CORRELATION,
+      datasetId: 'offline-dataset', schemaId: 'offline-schema',
+    };
     t.mock.method(fsiStore, 'get', async () => ({ streaming }));
     const req = {
       method: 'POST', query: {}, headers: { 'x-aep-lab-correlation-id': CORRELATION },

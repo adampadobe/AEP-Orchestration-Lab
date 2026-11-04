@@ -18,15 +18,15 @@ function relativeProfilePath(path) {
   return path.toLowerCase().replace(/^(_demoemea|demoemea|xdm:demoss)\./, '');
 }
 
-function flattenExpectedFields(value, path, output = []) {
+function flattenExpectedFields(value, path, output = [], exactPaths = false) {
   if (Array.isArray(value)) {
-    value.forEach((item, index) => flattenExpectedFields(item, path ? `${path}.${index}` : String(index), output));
+    value.forEach((item, index) => flattenExpectedFields(item, path ? `${path}.${index}` : String(index), output, exactPaths));
   } else if (value && typeof value === 'object') {
     for (const [key, nestedValue] of Object.entries(value)) {
-      flattenExpectedFields(nestedValue, path ? `${path}.${key}` : key, output);
+      flattenExpectedFields(nestedValue, path ? `${path}.${key}` : key, output, exactPaths);
     }
   } else {
-    output.push({ path: path.toLowerCase(), value });
+    output.push({ path: exactPaths ? path : path.toLowerCase(), value });
   }
   return output;
 }
@@ -46,15 +46,15 @@ function hasExpectedCoreIdentity(rows, identityName, expectedValue) {
       && String(row.value) === String(expectedValue));
 }
 
-function assessGenericProfileReadback(profile, { email, ecid, datasetId, attributes }) {
+function assessGenericProfileReadback(profile, { email, ecid, datasetId, attributes, exactPaths }) {
   const rows = Array.isArray(profile?.rows) ? profile.rows : [];
   const hints = profile?.profileAccessHints || {};
   const sourceDatasetIds = Array.isArray(hints.sourceDatasetIds) ? hints.sourceDatasetIds : [];
-  const expectedFields = flattenExpectedFields(attributes || {}, '');
+  const expectedFields = flattenExpectedFields(attributes || {}, '', [], exactPaths);
   const missingPaths = expectedFields
     .filter(({ path, value }) => !rows.some((row) =>
       typeof row.path === 'string'
-        && relativeProfilePath(row.path) === relativeProfilePath(path)
+        && (exactPaths ? row.path === path : relativeProfilePath(row.path) === relativeProfilePath(path))
         && profileHasExpectedValue(row, value)))
     .map(({ path }) => path);
   const emailMatches =
@@ -113,6 +113,7 @@ async function waitForGenericProfilePersistence({
   ecid,
   datasetId,
   attributes,
+  exactPaths = false,
   timeoutMs = GENERIC_PERSISTENCE_TIMEOUT_MS,
   pollIntervalMs = GENERIC_PERSISTENCE_POLL_INTERVAL_MS,
   startedAtMs = Date.now(),
@@ -202,7 +203,7 @@ async function waitForGenericProfilePersistence({
       readResults.map(([namespace, result]) => [
         namespace,
         result.ok
-          ? assessGenericProfileReadback(result.data, { email, ecid, datasetId, attributes })
+          ? assessGenericProfileReadback(result.data, { email, ecid, datasetId, attributes, exactPaths })
           : {
               ready: false,
               missingChecks: ['profile_not_persisted'],
@@ -458,6 +459,7 @@ export async function executeGeneratePlan({
       samplePaths: Object.keys(step.attributes || {}).slice(0, 8),
       ecid: apiResult.data?.ecid || null,
       geoMirror: apiResult.data?.geoMirror,
+      schemaAlignment: apiResult.data?.schemaAlignment,
       error: apiResult.ok ? undefined : apiResult.error,
     });
 
@@ -486,7 +488,8 @@ export async function executeGeneratePlan({
         email,
         ecid,
         datasetId: genericDatasetId,
-        attributes: step.attributes,
+        attributes: apiResult.data?.persistenceAttributes || step.attributes,
+        exactPaths: Boolean(apiResult.data?.schemaAlignment),
         timeoutMs: persistenceTimeoutMs,
         pollIntervalMs: persistencePollIntervalMs,
         startedAtMs: Date.now(),
