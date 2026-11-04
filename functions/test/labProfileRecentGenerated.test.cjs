@@ -134,6 +134,22 @@ describe('labProfileRecentGeneratedStore helpers', () => {
     assert.equal(isValidEmail('user@example.com'), true);
   });
 
+  it('keeps incomplete industry profiles visible and explicitly pending without duplicating labels', () => {
+    const pending = normalizeItem({
+      email: 'offline@example.com',
+      industry: 'media',
+      generationStatus: 'overlay_pending',
+      summaryLabel: 'Offline profile',
+    }, 'offline');
+    assert.equal(pending.generationStatus, 'overlay_pending');
+    assert.equal(pending.summaryLabel, 'Offline profile [industry overlay pending]');
+    assert.equal(normalizeItem(pending, 'offline').summaryLabel, pending.summaryLabel);
+    const legacy = normalizeItem({ email: 'offline@example.com' }, 'offline');
+    assert.equal(legacy.generationStatus, undefined);
+    assert.doesNotMatch(legacy.summaryLabel, /pending/);
+    assert.equal(normalizeItem({ ...pending, generationStatus: 'arbitrary' }, 'offline').generationStatus, undefined);
+  });
+
   it('dedupes by email keeping newest', () => {
     const merged = dedupeItems([
       normalizeItem({ email: 'a@b.com', generatedAt: '2026-01-01T00:00:00.000Z' }, 'sb'),

@@ -96,7 +96,7 @@ export async function processPlaybookJob(jobId, { keyId }) {
         plan: generatePlan,
         test_profile: testProfileResolved.test_profile,
       });
-      if (!genResult.ok) throw new Error(genResult.error || 'Profile generate failed');
+      if (!genResult.ok && !genResult.partialSuccess) throw new Error(genResult.error || 'Profile generate failed');
 
       const ecid =
         genResult.ecid ||
@@ -105,32 +105,40 @@ export async function processPlaybookJob(jobId, { keyId }) {
         genResult.data?.profile?.ecid ||
         undefined;
       row.ecid = ecid;
+      row.partial_success = true;
+      row.retry_safe = false;
 
       const hints = personHintsFromAttributes(attributes);
-      await recordRecentProfileGenerated({
+      row.recent_profiles_sync = await recordRecentProfileGenerated({
         sandbox: params.sandbox,
         email,
         ecid,
         industry: params.industry,
         attributes,
+        generationStatus: genResult.ok ? 'accepted' : 'overlay_pending',
         ...hints,
       });
 
       let snowflakeInsert = null;
-      if (params.dual_load_snowflake === true && ecid) {
-        const sfResult = await snowflakeInsertProfileFromAep({
+      if (params.dual_load_snowflake === true) {
+        const sfResult = ecid ? await snowflakeInsertProfileFromAep({
           sandbox: params.sandbox,
           email,
           ecid: String(ecid),
           attributes,
           industry: params.industry,
           mode: 'crm_generate',
-        });
+        }) : { ok: false, error: 'Snowflake dual-load requires the ECID returned by accepted generation; do not regenerate this identity.' };
         snowflakeInsert = {
           ok: sfResult.ok,
           crmId: sfResult.data?.result?.crmId || null,
           error: sfResult.ok ? null : sfResult.error || sfResult.data?.result?.error || null,
         };
+      }
+      if (snowflakeInsert) row.snowflakeInsert = snowflakeInsert;
+      if (!genResult.ok) {
+        row.generate_step_results = genResult.stepResults;
+        throw new Error(genResult.error || 'Industry overlay incomplete; do not regenerate this identity.');
       }
 
       // Validation step — read back what generation (and the optional
@@ -165,14 +173,16 @@ export async function processPlaybookJob(jobId, { keyId }) {
       if (snowflakeInsert) row.snowflakeInsert = snowflakeInsert;
       if (snowflakeValidation) row.snowflakeValidation = snowflakeValidation;
 
-      const rowOk = aep.ok && (!snowflakeInsert || snowflakeInsert.ok) && (!snowflakeValidation || snowflakeValidation.ok);
+      const rowOk = row.recent_profiles_sync.ok && aep.ok && (!snowflakeInsert || snowflakeInsert.ok) && (!snowflakeValidation || snowflakeValidation.ok);
       row.ok = rowOk;
+      row.partial_success = !rowOk;
 
       if (rowOk) {
         completed += 1;
       } else {
         failed += 1;
         row.error =
+          (!row.recent_profiles_sync.ok && `Recent-profile sync failed: ${row.recent_profiles_sync.error}`) ||
           (!aep.ok && `AEP validation failed: ${aep.error}`) ||
           (snowflakeInsert && !snowflakeInsert.ok && `Snowflake insert failed: ${snowflakeInsert.error}`) ||
           (snowflakeValidation && !snowflakeValidation.ok && `Snowflake validation failed: ${snowflakeValidation.error}`) ||

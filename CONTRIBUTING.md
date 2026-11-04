@@ -136,6 +136,8 @@ These hosted paths are part of the lab surface and must stay in **`web/profile-v
 
 **Hard-deleted (do not restore):**
 
+- `/profile-viewer/architecture-end-to-end.html` and its page-specific CSS/JS assets — retired Adobe integration flow visualisation. Bookmark URLs are accepted to 404. The route verifier asserts that its files, navigation entry, and `architectureEndToEnd` hide-key stay absent. The separate architecture editor (`aep-architecture-apps.html`) remains available.
+
 - `/profile-viewer/decisioning-overview-v2.html` — removed on Apr 28, 2026 by explicit product decision. Bookmark URLs accepted to 404. The route verifier asserts the file does **not** exist, the nav entry is **not** present in `aep-lab-nav.js`, and the `decisioningOverviewV2` Global values hide-key is **not** present in `global-settings.html`. CI fails if any of these are reintroduced.
 
 - `/profile-viewer/ajo-decisioning-pipeline-v8-demo.html` — removed when journey arbitration v2 retired (May 2026). The route verifier asserts the file does **not** exist; v2 bookmarks are served by **`journey-arbitration-v2.html`** redirecting to **`journey-arbitration-v3.html`**.

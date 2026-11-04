@@ -43,6 +43,9 @@ const FORBIDDEN_FILES = [
   'web/profile-viewer/experimentation-visualiser-customise.js',
   'web/profile-viewer/experimentation-visualiser-gif.js',
   'web/profile-viewer/experimentation-visualiser-gif.worker.js',
+  'web/profile-viewer/architecture-end-to-end.html',
+  'web/profile-viewer/architecture-end-to-end.css',
+  'web/profile-viewer/architecture-end-to-end.js',
 ];
 
 let failed = false;
@@ -117,6 +120,10 @@ if (nav.includes('experimentation-visualiser.html') || nav.includes("navHideKey:
 }
 if (!nav.includes("href: 'content-decision-live-edge.html'")) {
   console.error('aep-lab-nav.js must keep the Decisioning lab (Edge) entry');
+  failed = true;
+}
+if (nav.includes('architecture-end-to-end.html') || nav.includes("navHideKey: 'architectureEndToEnd'")) {
+  console.error('aep-lab-nav.js must NOT include the retired Adobe integration flow');
   failed = true;
 }
 if (!nav.includes('journey-arbitration-v3.html')) {

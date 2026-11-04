@@ -9,9 +9,14 @@ import { generateProfile, getProfileConnection, lookupProfile } from '../labApiC
 import { resolveIndustryForPath } from './attributeOwnership.mjs';
 
 const DUAL_STREAM_INDUSTRIES = LAB_INDUSTRY_KEYS.filter((key) => key !== 'generic');
-const GENERIC_PERSISTENCE_TIMEOUT_MS = 60_000;
+// Leave headroom for the overlay within the signed continuation's 120-second TTL.
+const GENERIC_PERSISTENCE_TIMEOUT_MS = 90_000;
 const GENERIC_PERSISTENCE_POLL_INTERVAL_MS = 5_000;
 const PROFILE_READ_TIMEOUT_MS = 10_000;
+
+function relativeProfilePath(path) {
+  return path.toLowerCase().replace(/^(_demoemea|demoemea|xdm:demoss)\./, '');
+}
 
 function flattenExpectedFields(value, path, output = []) {
   if (Array.isArray(value)) {
@@ -49,7 +54,7 @@ function assessGenericProfileReadback(profile, { email, ecid, datasetId, attribu
   const missingPaths = expectedFields
     .filter(({ path, value }) => !rows.some((row) =>
       typeof row.path === 'string'
-        && row.path.toLowerCase() === path
+        && relativeProfilePath(row.path) === relativeProfilePath(path)
         && profileHasExpectedValue(row, value)))
     .map(({ path }) => path);
   const emailMatches =
@@ -58,7 +63,6 @@ function assessGenericProfileReadback(profile, { email, ecid, datasetId, attribu
       && hasExpectedCoreIdentity(rows, 'email', email);
   const ecidMatches =
     String(profile?.ecid || '').trim() === String(ecid).trim()
-      && hints.identityMapHasEcid === true
       && hasExpectedCoreIdentity(rows, 'ecid', ecid);
   const datasetMatches = sourceDatasetIds.some(
     (sourceDatasetId) => String(sourceDatasetId).toLowerCase() === String(datasetId).toLowerCase(),
@@ -72,6 +76,7 @@ function assessGenericProfileReadback(profile, { email, ecid, datasetId, attribu
 
   return {
     ready: missingChecks.length === 0,
+    ecidIdentityPresent: hints.identityMapHasEcid === true,
     missingChecks,
     missingPaths,
     sourceDatasetIds,
@@ -81,25 +86,23 @@ function assessGenericProfileReadback(profile, { email, ecid, datasetId, attribu
 function genericPersistenceTimeoutResult({ attempts, startedAt, observations, readErrors }) {
   const emailObservation = observations?.email;
   const ecidObservation = observations?.ecid;
-  const allLookupsReady = emailObservation?.ready === true && ecidObservation?.ready === true;
+  const emailReady = emailObservation?.ready === true;
   return {
     ready: false,
     attempts,
     elapsedMs: Date.now() - startedAt,
-    missingChecks: allLookupsReady
+    missingChecks: emailReady
       ? ['persistence_window_elapsed']
       : [
-          ...(emailObservation?.ready ? [] : ['email_lookup_not_ready']),
-          ...(ecidObservation?.ready ? [] : ['ecid_lookup_not_ready']),
+          'email_lookup_not_ready',
+          ...(emailObservation?.missingChecks || []),
         ],
-    missingPaths: [...new Set([
-      ...(emailObservation?.missingPaths || []),
-      ...(ecidObservation?.missingPaths || []),
-    ])],
+    missingPaths: emailObservation?.missingPaths || [],
     sourceDatasetIds: [...new Set([
       ...(emailObservation?.sourceDatasetIds || []),
       ...(ecidObservation?.sourceDatasetIds || []),
     ])],
+    ecidLookupReady: ecidObservation?.ready === true && ecidObservation?.ecidIdentityPresent === true,
     ...(Object.keys(readErrors || {}).length ? { lastReadErrors: readErrors } : {}),
   };
 }
@@ -167,8 +170,9 @@ async function waitForGenericProfilePersistence({
       ['email', emailResult],
       ['ecid', ecidResult],
     ];
-    const failedRead = readResults.find(([, result]) =>
-      !result.ok
+    const failedRead = readResults.find(([namespace, result]) =>
+      namespace === 'email'
+        && !result.ok
         && result.status !== 0
         && !(result.status === 404 && result.data?.code === 'UPS_ENTITY_NOT_FOUND'));
     if (failedRead) {
@@ -187,8 +191,12 @@ async function waitForGenericProfilePersistence({
 
     lastReadErrors = Object.fromEntries(
       readResults
-        .filter(([, result]) => !result.ok && result.status === 0)
-        .map(([namespace, result]) => [namespace, result.error || 'Profile read timed out.']),
+        .filter(([, result]) => !result.ok)
+        .map(([namespace, result]) => [namespace, {
+          status: result.status,
+          code: result.data?.code || null,
+          error: result.error || 'Profile read failed.',
+        }]),
     );
     const observations = Object.fromEntries(
       readResults.map(([namespace, result]) => [
@@ -204,12 +212,15 @@ async function waitForGenericProfilePersistence({
       ]),
     );
     lastObservations = observations;
-    if (observations.email.ready && observations.ecid.ready && Date.now() <= deadline) {
+    if (observations.email.ready && Date.now() <= deadline) {
       return {
         ready: true,
         attempts,
         elapsedMs: Date.now() - startedAt,
         namespacesChecked: ['email', 'ecid'],
+        gateNamespace: 'email',
+        ecidLookupReady: observations.ecid.ready && observations.ecid.ecidIdentityPresent === true,
+        lastReadErrors,
         missingChecks: [],
         missingPaths: [],
         sourceDatasetIds: [...new Set([
@@ -425,7 +436,6 @@ export async function executeGeneratePlan({
       };
     }
 
-    const stepStartedAt = Date.now();
     const apiResult = await generateProfile({
       email,
       sandbox,
@@ -479,7 +489,7 @@ export async function executeGeneratePlan({
         attributes: step.attributes,
         timeoutMs: persistenceTimeoutMs,
         pollIntervalMs: persistencePollIntervalMs,
-        startedAtMs: stepStartedAt,
+        startedAtMs: Date.now(),
       });
       stepResults.at(-1).persistence = {
         ready: persistence.ready,
@@ -489,6 +499,9 @@ export async function executeGeneratePlan({
         missingChecks: persistence.missingChecks,
         missingPaths: persistence.missingPaths,
         sourceDatasetIds: persistence.sourceDatasetIds,
+        gateNamespace: 'email',
+        ecidLookupReady: persistence.ecidLookupReady === true,
+        lastReadErrors: persistence.lastReadErrors,
       };
       if (!persistence.ready) {
         return {

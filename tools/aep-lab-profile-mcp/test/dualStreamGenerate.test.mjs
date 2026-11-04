@@ -33,6 +33,7 @@ function persistedProfile(attributes, { sourceDatasetId = DATASET_ID } = {}) {
 function mockLabApi(t, {
   onConnection = () => Response.json({ record: { streaming: { datasetId: DATASET_ID } } }),
   onProfileRead = () => Response.json(persistedProfile({ 'profilePlaceContext.city': 'London' })),
+  onGenerate,
 } = {}) {
   const calls = [];
   const profileReadAttempts = new Map();
@@ -41,16 +42,17 @@ function mockLabApi(t, {
     const path = requestUrl.pathname;
     const body = init.body ? JSON.parse(init.body) : null;
     const namespace = requestUrl.searchParams.get('namespace');
-    calls.push({ path, body, namespace });
+    calls.push({ path, body, namespace, origin: requestUrl.origin });
 
     if (path === '/api/generic-profile-connection') {
       return onConnection();
     }
-    if (path === '/api/profile/table') {
+    if (path === '/profileTableProxy') {
       const attempt = (profileReadAttempts.get(namespace) || 0) + 1;
       profileReadAttempts.set(namespace, attempt);
       return onProfileRead(attempt, namespace);
     }
+    if (onGenerate) return onGenerate(body);
     return Response.json({
       ok: true,
       ecid: ECID,
@@ -83,14 +85,14 @@ test('dual-stream waits for matching Generic persistence before sending the over
   assert.deepEqual(paths, [
     '/api/generic-profile-connection',
     '/api/profile/generate',
-    '/api/profile/table',
-    '/api/profile/table',
-    '/api/profile/table',
-    '/api/profile/table',
+    '/profileTableProxy',
+    '/profileTableProxy',
+    '/profileTableProxy',
+    '/profileTableProxy',
     '/api/profile/generate',
   ]);
   assert.deepEqual(
-    calls.filter((call) => call.path === '/api/profile/table').map((call) => call.namespace),
+    calls.filter((call) => call.path === '/profileTableProxy').map((call) => call.namespace),
     ['email', 'ecid', 'email', 'ecid'],
   );
   assert.equal(result.stepResults[0].persistence.ready, true);
@@ -147,13 +149,13 @@ test('dual-stream does not accept a profile without the Generic dataset provenan
   assert.equal(result.ok, false);
   assert.deepEqual(
     result.stepResults[0].persistence.missingChecks,
-    ['email_lookup_not_ready', 'ecid_lookup_not_ready'],
+    ['email_lookup_not_ready', 'generic_dataset_provenance_missing'],
     JSON.stringify(result.stepResults[0].persistence),
   );
   assert.equal(calls.filter((call) => call.path === '/api/profile/generate').length, 1);
 });
 
-test('dual-stream requires ECID namespace lookup even when Email lookup succeeds', async (t) => {
+test('dual-stream sends the overlay while ECID indexing is pending, using direct reads', async (t) => {
   const calls = mockLabApi(t, {
     onProfileRead: (_attempt, namespace) => namespace === 'ecid'
       ? Response.json({ error: 'ECID not yet linked', code: 'UPS_ENTITY_NOT_FOUND' }, { status: 404 })
@@ -171,9 +173,172 @@ test('dual-stream requires ECID namespace lookup even when Email lookup succeeds
     persistenceTimeoutMs: 100,
   });
 
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.stepResults[0].persistence.missingChecks, []);
+  assert.equal(result.stepResults[0].persistence.gateNamespace, 'email');
+  assert.equal(result.stepResults[0].persistence.ecidLookupReady, false);
+  assert.equal(result.stepResults[0].persistence.lastReadErrors.ecid.status, 404);
+  assert.equal(calls.filter((call) => call.path === '/api/profile/generate').length, 2);
+  assert.ok(calls.filter((call) => call.path === '/profileTableProxy')
+    .every((call) => call.origin === 'https://us-central1-aep-orchestration-lab.cloudfunctions.net'));
+});
+
+test('email gate matches tenant-relative attributes against real UPS tenant-prefixed rows', async (t) => {
+  const attributes = {
+    'profilePlaceContext.city': 'London',
+    'scoring.core.flag': false,
+    'scoring.core.count': 0,
+    'scoring.core.tags': ['one', 'two'],
+  };
+  mockLabApi(t, {
+    onProfileRead: () => {
+      const profile = persistedProfile({});
+      profile.rows.push(
+        { path: '_demoemea.profilePlaceContext.city', value: 'London' },
+        { path: '_demoemea.scoring.core.flag', value: 'false' },
+        { path: '_demoemea.scoring.core.count', value: '0' },
+        { path: '_demoemea.scoring.core.tags.0', value: 'one' },
+        { path: '_demoemea.scoring.core.tags.1', value: 'two' },
+      );
+      return Response.json(profile);
+    },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL, sandbox: 'offline',
+    plan: planDualStreamGenerate({
+      industry: 'media', email: EMAIL,
+      attributes: { ...attributes, 'industryMedia.primaryGenre': 'Drama' },
+    }),
+    persistenceTimeoutMs: 100,
+  });
+  assert.equal(result.ok, true, JSON.stringify(result.stepResults));
+});
+
+test('email gate refuses wrong identities and missing or incorrect stored fields', async (t) => {
+  for (const change of [
+    profile => { profile.ecid = '99999999999999999999999999999999999999'; },
+    profile => { profile.profileEmail = 'different@example.com'; },
+    profile => { profile.rows.find(row => row.path.endsWith('.core.ecid')).value = 'wrong'; },
+    profile => { profile.rows.find(row => row.path === 'profilePlaceContext.city').value = 'Paris'; },
+    profile => { profile.profileAccessHints.identityMapHasEmail = false; },
+  ]) {
+    const calls = mockLabApi(t, {
+      onProfileRead: () => {
+        const profile = persistedProfile({ 'profilePlaceContext.city': 'London' });
+        change(profile);
+        return Response.json(profile);
+      },
+    });
+    const result = await executeGeneratePlan({
+      email: EMAIL, sandbox: 'offline',
+      plan: planDualStreamGenerate({
+        industry: 'media', email: EMAIL,
+        attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+      }),
+      persistenceTimeoutMs: 15,
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.partialSuccess, true);
+    assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+    t.mock.restoreAll();
+  }
+});
+
+test('email gate reports missing ECID identity-map linkage without blocking a matching tenant identity', async (t) => {
+  mockLabApi(t, {
+    onProfileRead: (_attempt, namespace) => {
+      if (namespace === 'ecid') {
+        return Response.json({ code: 'UPS_ENTITY_NOT_FOUND' }, { status: 404 });
+      }
+      const profile = persistedProfile({ 'profilePlaceContext.city': 'London' });
+      profile.profileAccessHints.identityMapHasEcid = false;
+      return Response.json(profile);
+    },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL, sandbox: 'offline',
+    plan: planDualStreamGenerate({
+      industry: 'media', email: EMAIL,
+      attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+    }),
+    persistenceTimeoutMs: 100,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.stepResults[0].persistence.ecidLookupReady, false);
+});
+
+test('readback deadline starts after the generation response, not before submission', async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  mockLabApi(t, {
+    onGenerate: body => {
+      now += 80_000;
+      return Response.json({
+        ok: true, ecid: ECID,
+        ...(body.industry === 'generic' ? { appendToken: 'offline-continuation' } : {}),
+      });
+    },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL, sandbox: 'offline',
+    plan: planDualStreamGenerate({
+      industry: 'media', email: EMAIL,
+      attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+    }),
+    persistenceTimeoutMs: 100,
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.stepResults[0].persistence.elapsedMs, 0);
+});
+
+test('default email deadline is exactly 90 seconds and never retries the accepted stream', async (t) => {
+  let now = Date.now();
+  t.mock.method(Date, 'now', () => now);
+  const calls = mockLabApi(t, {
+    onProfileRead: (_attempt, namespace) => {
+      if (namespace === 'email') now += 30_000;
+      return Response.json({ code: 'UPS_ENTITY_NOT_FOUND' }, { status: 404 });
+    },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL, sandbox: 'offline',
+    plan: planDualStreamGenerate({
+      industry: 'media', email: EMAIL,
+      attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+    }),
+    persistencePollIntervalMs: 1,
+  });
   assert.equal(result.ok, false);
-  assert.deepEqual(result.stepResults[0].persistence.missingChecks, ['ecid_lookup_not_ready']);
-  assert.equal(calls.filter((call) => call.path === '/api/profile/generate').length, 1);
+  assert.equal(result.errorCode, 'GENERIC_PROFILE_PERSISTENCE_TIMEOUT');
+  assert.equal(result.stepResults[0].persistence.elapsedMs, 90_000);
+  assert.equal(result.stepResults[0].persistence.attempts, 3);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+});
+
+test('email read errors stop the overlay, while ECID errors remain explicit diagnostics', async (t) => {
+  for (const failedNamespace of ['email', 'ecid']) {
+    const calls = mockLabApi(t, {
+      onProfileRead: (_attempt, namespace) => namespace === failedNamespace
+        ? Response.json({ code: 'UPS_FAILED', error: 'Read unavailable' }, { status: 500 })
+        : Response.json(persistedProfile({ 'profilePlaceContext.city': 'London' })),
+    });
+    const result = await executeGeneratePlan({
+      email: EMAIL, sandbox: 'offline',
+      plan: planDualStreamGenerate({
+        industry: 'media', email: EMAIL,
+        attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+      }),
+      persistenceTimeoutMs: 100,
+    });
+    assert.equal(result.ok, failedNamespace === 'ecid');
+    assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, failedNamespace === 'ecid' ? 2 : 1);
+    if (failedNamespace === 'ecid') {
+      assert.equal(result.stepResults[0].persistence.lastReadErrors.ecid.status, 500);
+    } else {
+      assert.equal(result.errorCode, 'UPS_FAILED');
+    }
+    t.mock.restoreAll();
+  }
 });
 
 test('dual-stream does not submit a profile when Generic dataset provenance cannot be configured', async (t) => {

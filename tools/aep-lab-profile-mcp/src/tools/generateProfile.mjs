@@ -335,7 +335,7 @@ export function registerGenerateProfileTool(mcpServer) {
 
       let recentSync = null;
       let snowflakeDualLoad = null;
-      if (apiResult.ok) {
+      if (apiResult.ok || apiResult.partialSuccess === true) {
         const ecid =
           apiResult.ecid ||
           apiResult.data?.ecid ||
@@ -350,6 +350,7 @@ export function registerGenerateProfileTool(mcpServer) {
           industry: norm.industry,
           attributes: normalized.attributes,
           correlationId,
+          generationStatus: apiResult.ok ? 'accepted' : 'overlay_pending',
           ...hints,
         });
 
@@ -444,9 +445,10 @@ export function registerGenerateProfileTool(mcpServer) {
           (apiResult.ok && failedFollowUps.length > 0)
             ? `AEP profile generation succeeded but ${failedFollowUps.join(' and ')} failed. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
             : (apiResult.partialSuccess === true
-              ? 'The generic base profile succeeded but the industry overlay was not completed. Do not regenerate this identity.'
+              ? 'The generic base was accepted but the industry overlay was not completed. Inspect the Snowflake and recent-profile results separately. Do not regenerate this identity; completion requires approval.'
               : undefined),
         target: 'aep',
+        generation_status: apiResult.ok ? 'accepted' : apiResult.partialSuccess ? 'overlay_pending' : 'failed',
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,

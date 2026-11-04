@@ -255,7 +255,9 @@ export async function generateProfile(params) {
  * @param {object} params
  */
 export async function lookupProfile(params) {
-  return labApiRequest('/api/profile/table', {
+  // Hosting caches an initial UPS 404 for ten minutes, hiding subsequent ingestion.
+  return labApiRequest('/profileTableProxy', {
+    origin: getLabFunctionsOrigin(),
     query: {
       sandbox: params.sandbox,
       namespace: params.namespace,

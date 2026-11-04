@@ -73,6 +73,7 @@ function registerProfileRoutes(deps) {
       memory: '512MiB',
     },
     async (req, res) => {
+      res.set('Cache-Control', 'private, no-store, max-age=0');
       setCors(res);
       if (req.method === 'OPTIONS') {
         res.status(204).send('');

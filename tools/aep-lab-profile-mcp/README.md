@@ -162,7 +162,33 @@ For clients that do not refresh their callable catalog, **directly connect the f
 
 **Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
 
-Before sending the industry overlay, the MCP now polls the read-only profile-table endpoint for up to 60 seconds and requires both Email- and ECID-namespace lookups to resolve the same identities, all Generic fields, and the configured Generic dataset in Profile provenance. If persistence is not verified, it returns an explicit partial result and does not send or retry the overlay.
+Before sending the industry overlay, the MCP polls the direct read-only Profile
+Function for up to 90 seconds **after the Generic response**. Email readback must
+match the allocated email and tenant ECID, all Generic fields (including
+tenant-relative paths), and the configured Generic dataset in Profile provenance.
+ECID lookup and identity-map linkage are reported separately as
+`generate_step_results[].persistence.ecidLookupReady`; delayed ECID indexing does
+not block the overlay and is not reported as verified. HTTP 200 from the inlet
+still means accepted, not persisted.
+
+All MCP profile lookups use `AEP_LAB_FUNCTIONS_ORIGIN` directly, avoiding Firebase
+Hosting's ten-minute negative caching of initial 404s. The Profile Function also
+sets `Cache-Control: private, no-store, max-age=0` on every response for Portal
+clients. Existing cached Hosting 404s can outlive a Function release; direct MCP
+reads do not depend on their expiry.
+
+If the email gate times out or the overlay fails, the result remains partial and
+must not be retried as generation. The requested Snowflake dual-load is attempted
+once independently for the accepted base's allocated identity and original
+persona, and the recent list records `generationStatus: "overlay_pending"` with
+an explicit pending label. Rejected base submissions trigger neither follow-up.
+Single-profile, batch, and playbook results keep follow-up failures explicit.
+
+The signed append token still expires after 120 seconds; the 90-second gate
+leaves headroom for immediate overlay submission. There is **no automatic
+continuation queue**. Longer waits or delayed recovery require a separately
+reviewed durable continuation mechanism, not reuse of an expired token or
+regeneration. Existing profiles are not repaired by these code changes.
 
 On the General integration, call **`lab_get_execution_framework`** before advanced work. Focused integrations do not expose this tool; the bundled skill carries the essential rules when working in those contexts.
 
@@ -621,7 +647,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
-| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); Snowflake calls bypass Hosting's 60-second limit. Set this separately for local function endpoints. |
+| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); profile reads bypass Hosting's negative cache and Snowflake calls bypass its 60-second limit. Set this separately for local function endpoints. |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
 | `AEP_LAB_MCP_BATCH_STORE` | No | `memory` for local; omit for Firestore on Cloud Run |
