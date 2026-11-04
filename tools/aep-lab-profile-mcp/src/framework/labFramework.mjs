@@ -55,8 +55,8 @@ export const CRITICAL_RULES = [
       'Every lab-generated profile MUST be an AEP test profile. MCP defaults test_profile:true; ' +
       'profileGenerateService sets root testProfile:true unless explicitly opted out.',
     payload:
-      'Streaming root keys testProfile + xdm:testProfile (dual-write via mirrorRootTestProfileFields). ' +
-      'Profile Viewer checkbox pushes both paths before POST.',
+      'Generation sends only the resolved-schema testProfile spelling (testProfile or xdm:testProfile). ' +
+      'Profile Viewer checkbox may supply both; schema-aware alignment maps the unsupported alias.',
     mcp: 'lab_generate_profile test_profile defaults true; false requires test_profile_override_reason.',
     ui: 'web/profile-viewer/profile-generation*.js — "Mark as AEP test profile" (default ON).',
   },
@@ -68,13 +68,10 @@ export const CRITICAL_RULES = [
       ui_generic_travel: ['preferences.preferredLanguage', 'personalEmail.language'],
       ui_industry_runtime: ['preferredLanguage', 'personalEmail.language'],
       streaming_root: 'preferredLanguage',
-      streaming_preferences: 'preferences.preferredLanguage',
-      streaming_personalEmail: 'personalEmail.language',
-      tenant_mirror: '_<tenant>.preferredLanguage',
     },
     mirror:
-      'profileStreamingCore.mirrorPreferredLanguageDemoSchema — precedence: root preferredLanguage → preferences.preferredLanguage → personalEmail.language; mirrors to tenant.',
-    mcp: `MCP randomize enforces language (default ${LAB_DEFAULT_PREFERRED_LANGUAGE}) on all three dot-paths when missing.`,
+      'Generation validates placement against the resolved schema. Legacy language aliases map to root preferredLanguage when their original path is undeclared; conflicting values fail before streaming.',
+    mcp: `MCP randomize supplies root preferredLanguage (default ${LAB_DEFAULT_PREFERRED_LANGUAGE}); it does not invent preferences/personalEmail mirrors.`,
     default: LAB_DEFAULT_PREFERRED_LANGUAGE,
   },
   {
@@ -295,8 +292,8 @@ const LANGUAGE_PLAYBOOK = {
     fsi_retail_telecom_media_sports: ['preferredLanguage', 'personalEmail.language'],
   },
   streaming_mirror:
-    'profileStreamingCore.mirrorPreferredLanguageDemoSchema sets root + tenant preferredLanguage from any source path.',
-  mcp_persona_paths: ['preferredLanguage', 'preferences.preferredLanguage', 'personalEmail.language'],
+    'Generation keeps only declared schema paths; legacy inputs normalize to preferredLanguage when undeclared.',
+  mcp_persona_paths: ['preferredLanguage'],
 };
 
 /** Shared testProfile documentation for playbooks. */
@@ -1040,7 +1037,7 @@ export function getLabConventions() {
       ...TEST_PROFILE_PLAYBOOK,
       behavior:
         'profileGenerateService sets root testProfile:true unless test_profile:false or omitTestProfile. ' +
-        'Streaming mirrors to xdm:testProfile for OOTB test-details mixin.',
+        'Generation retains the schema-declared testProfile spelling, normalizing an unsupported compatibility alias.',
       mcp_param: 'lab_generate_profile test_profile (defaults true; false needs test_profile_override_reason)',
     },
     preferredLanguage: LANGUAGE_PLAYBOOK,
@@ -1368,8 +1365,8 @@ export function frameworkOverviewMarkdown() {
     '## Conventions',
     `- Test email domain: **${LAB_TEST_EMAIL_DOMAIN}**`,
     `- Default mobile: **${LAB_DEFAULT_MOBILE_PHONE}**`,
-    `- testProfile: default **true** on generate (root \`testProfile\` + \`xdm:testProfile\`)`,
-    `- preferredLanguage: default **${LAB_DEFAULT_PREFERRED_LANGUAGE}** (root + preferences + personalEmail mirrors)`,
+    `- testProfile: default **true** on generate (resolved-schema spelling)`,
+    `- preferredLanguage: default **${LAB_DEFAULT_PREFERRED_LANGUAGE}** (canonical root leaf; schema-aware legacy inputs)`,
     `- Updates: **full-snapshot stitch** only`,
     '',
     'Call **lab_get_execution_framework** for full JSON.',
@@ -1398,7 +1395,7 @@ export function frameworkConventionsMarkdown() {
     c.testProfile.behavior,
     '',
     '## preferredLanguage',
-    `Default: ${c.preferredLanguage.default}. UI paths: generic/travel use preferences.preferredLanguage; industry-runtime uses root preferredLanguage. Streaming mirrors via profileStreamingCore.mirrorPreferredLanguageDemoSchema.`,
+    `Default: ${c.preferredLanguage.default}. MCP supplies root preferredLanguage. UI legacy inputs are validated and normalized against the resolved schema before streaming; undeclared mirrors are not emitted.`,
     '',
     '## Identity / Edge',
     c.identity_stitching.anonymous_edge,

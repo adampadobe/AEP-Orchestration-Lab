@@ -19,6 +19,8 @@ const sportsProfileConnectionStore = require('./sportsProfileConnectionStore');
 const { requestCorrelationId, logFunctionEvent } = require('./functionRequestLog');
 const { summarizeProfileStreamWire, summarizeProfileStreamReceipt, safeIndustry } = require('./profileStreamDiagnostics');
 const { createProfileMergeToken, verifyProfileMergeToken } = require('./profileMergeToken');
+const schemaViewerService = require('./schemaViewerService');
+const { alignGenerationWithSchema } = require('./profileGenerationSchema');
 
 const INDUSTRY_TO_CONNECTION_STORE = {
   generic: genericProfileConnectionStore,
@@ -365,6 +367,46 @@ async function handleProfileGenerate(req, res, ctx) {
     { useEnvelope, datasetId, schemaId },
   );
 
+  let schemaAlignment;
+  try {
+    if (!schemaId) throw new Error('A saved schemaId is required to validate generation.');
+    const schema = await schemaViewerService.fetchSchemaById(accessToken, clientId, orgId, sandbox, schemaId);
+    schemaAlignment = alignGenerationWithSchema(
+      useEnvelope ? built.payload.body.xdmEntity : built.payload, filteredAttrs, schema, xdmKey,
+    );
+  } catch (error) {
+    logFunctionEvent('ERROR', 'profile.generate.schema_validation_unavailable', {
+      correlationId, industry: industryKey, errorCode: 'GENERATION_SCHEMA_UNAVAILABLE',
+    });
+    res.status(503).json({
+      code: 'GENERATION_SCHEMA_UNAVAILABLE', correlationId,
+      error: 'Generation schema could not be resolved; no record was streamed.',
+      detail: String(error.message || error),
+    });
+    return;
+  }
+  if (!schemaAlignment.ok) {
+    logFunctionEvent('WARNING', 'profile.generate.schema_attributes_rejected', {
+      correlationId, industry: industryKey, errorCode: 'GENERATION_ATTRIBUTES_UNSUPPORTED',
+      invalidPathCount: schemaAlignment.invalidPaths.length,
+    });
+    res.status(422).json({
+      code: 'GENERATION_ATTRIBUTES_UNSUPPORTED', correlationId,
+      error: 'Requested attributes are unsupported, invalid, or conflicting in the resolved schema; no record was streamed.',
+      invalidPaths: schemaAlignment.invalidPaths,
+    });
+    return;
+  }
+  if (useEnvelope) built.payload.body.xdmEntity = schemaAlignment.entity;
+  else built.payload = schemaAlignment.entity;
+  if (schemaAlignment.mappedPaths.length || schemaAlignment.omittedPaths.length) {
+    logFunctionEvent('INFO', 'profile.generate.schema_aligned', {
+      correlationId, industry: industryKey,
+      mappedPathCount: schemaAlignment.mappedPaths.length,
+      omittedGeneratedPathCount: schemaAlignment.omittedPaths.length,
+    });
+  }
+
   const headers = profileStreamingCore.buildProfileDcsStreamingHeaders(accessToken, sandbox, flowId, apiKey);
   let wireBody;
   try {
@@ -494,6 +536,12 @@ async function handleProfileGenerate(req, res, ctx) {
     mergeDiagnostics,
     sentToAep: built.payload,
     payloadFormat: built.format,
+    persistenceAttributes: schemaAlignment.persistenceAttributes,
+    schemaAlignment: {
+      schemaId,
+      mappedPaths: schemaAlignment.mappedPaths,
+      omittedGeneratedPaths: schemaAlignment.omittedPaths,
+    },
     url: streamUrl,
     requestUrl: streamUrl,
     requestHeaders: redacted,

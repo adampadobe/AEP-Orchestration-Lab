@@ -101,6 +101,65 @@ test('dual-stream waits for matching Generic persistence before sending the over
   assert.deepEqual(result.stepResults[1].geoMirror, { written: false, reason: 'no_place' });
 });
 
+test('email gate verifies schema-aligned paths, not unsupported request aliases', async (t) => {
+  const expected = {
+    preferredLanguage: 'de-DE',
+    'consents.marketing.any.val': 'n',
+    'consents.marketing.push.val': 'n',
+    'consents.marketing.whatsApp.val': 'u',
+    'consents.marketing.preferred': 'email',
+  };
+  for (const mismatch of [null, 'wrong-value', 'wrong-namespace', 'wrong-case', 'wrong-identity', 'wrong-dataset']) {
+    const calls = mockLabApi(t, {
+      onGenerate: body => Response.json({
+        ok: true, ecid: ECID, appendToken: 'offline-continuation',
+        ...(body.industry === 'generic' ? {
+          persistenceAttributes: expected,
+          schemaAlignment: { schemaId: 'offline-schema', mappedPaths: [] },
+        } : {}),
+      }),
+      onProfileRead: () => {
+        const fields = { ...expected };
+        if (mismatch === 'wrong-value') fields['consents.marketing.push.val'] = 'y';
+        if (mismatch === 'wrong-namespace') {
+          delete fields.preferredLanguage;
+          fields['_demoemea.preferredLanguage'] = 'de-DE';
+        }
+        if (mismatch === 'wrong-case') {
+          delete fields['consents.marketing.whatsApp.val'];
+          fields['consents.marketing.whatsapp.val'] = 'u';
+        }
+        const profile = persistedProfile(fields);
+        if (mismatch === 'wrong-identity') profile.ecid = 'different';
+        if (mismatch === 'wrong-dataset') profile.profileAccessHints.sourceDatasetIds = ['different'];
+        return Response.json(profile);
+      },
+    });
+    const result = await executeGeneratePlan({
+      email: EMAIL, sandbox: 'offline',
+      plan: planDualStreamGenerate({
+        industry: 'media', email: EMAIL,
+        attributes: {
+          'personalEmail.language': 'de-DE',
+          'preferences.preferredLanguage': 'de-DE',
+          'consents.marketing.val': 'n',
+          'optInOut._channels.push': 'out',
+          'optInOut._channels.whatsapp': 'not_provided',
+          '_demoemea.consents.marketing.preferred': 'email',
+          '_demoemea.preferredLanguage': 'de-DE',
+          'industryMedia.primaryGenre': 'Drama',
+        },
+      }),
+      persistenceTimeoutMs: 10,
+      persistencePollIntervalMs: 1,
+    });
+    assert.equal(result.ok, mismatch === null, mismatch || JSON.stringify(result));
+    assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, mismatch ? 1 : 2);
+    assert.equal(result.stepResults[0].schemaAlignment.schemaId, 'offline-schema');
+    t.mock.restoreAll();
+  }
+});
+
 test('dual-stream stops after Generic acceptance when persistence is not verified', async (t) => {
   const calls = mockLabApi(t, {
     onProfileRead: () => Response.json(

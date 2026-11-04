@@ -63,8 +63,6 @@ export function buildCommonPersonaAttributes(email, options = {}) {
   assign(attrs, 'mobilePhone.number', labDefaultMobilePhone());
   assign(attrs, 'consents.marketing.preferred', preferredChannel);
   assign(attrs, 'preferredLanguage', language);
-  assign(attrs, 'preferences.preferredLanguage', language);
-  assign(attrs, 'personalEmail.language', language);
   assign(attrs, 'scoring.churn.churnPrediction', randomBetween(0, 100));
   assign(attrs, 'scoring.core.propensityScore', randomBetween(0, 100));
   assign(attrs, 'scoring.npsScore', randomBetween(0, 10));
