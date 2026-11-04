@@ -79,7 +79,7 @@
    * @property {boolean} [debug=false] — Verbose console logging
    * @property {'spectrum'|'classic'} [variant='spectrum'] — Strip layout variant
    * @property {EnvBarFeatures} [features] — Feature toggles for mount attributes
-   * @property {object} [decisioning] — Wiring for SiteCloneDecisioningBoot (iframeId, viewName, mountLayoutPreset, …)
+   * @property {object} [decisioning] — Wiring for SiteCloneDecisioningBoot (iframeId, viewName, mountLayoutPreset, runtimeScript, …)
    * @property {string[]} [iframeIds] — Iframe ids for Tags injection (demo JS)
    * @property {string} [disclaimer] — HTML disclaimer on mount host
    * @property {string} [labCoreScript] — Optional demo lab-core script to load after env bar ready
@@ -568,7 +568,7 @@
       assetUrl('content-decision-lab-config.js', a.contentDecisionLabConfig),
       assetUrl('content-decision-edge-mounts.js', a.contentDecisionEdgeMounts),
       assetUrl('decisioning-profile-module/decisioning-edge-inject.js', a.decisioningEdgeInject),
-      assetUrl('decisioning-profile-module/decisioning-profile-runtime.js', a.decisioningProfileRuntime),
+      assetUrl((cfg.decisioning && cfg.decisioning.runtimeScript) || 'decisioning-profile-module/decisioning-profile-runtime.js', a.decisioningProfileRuntime),
       assetUrl('decisioning-profile-module/decisioning-profile-module.js', a.decisioningProfileModule),
       assetUrl('decisioning-profile-module/decisioning-surface-styles-panel.js', a.decisioningSurfaceStylesPanel),
       assetUrl('decisioning-profile-module/decisioning-profile-panel.js', a.decisioningProfilePanel),
