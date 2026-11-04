@@ -471,11 +471,13 @@ async function handleProfileGenerate(req, res, ctx) {
       secret: mergeTokenSecret,
     });
   }
+  const completedAt = new Date().toISOString();
   logFunctionEvent('INFO', 'profile.generate.completed', {
     correlationId,
     industry: industryKey,
     streamingStatus: streamRes.status,
     ecidSource,
+    completedAt,
     durationMs: Date.now() - startedAt,
   });
 
@@ -486,6 +488,7 @@ async function handleProfileGenerate(req, res, ctx) {
     receipt: { stage: 'inlet-accepted', upsVerified: false, retrySafe: false },
     message: `Request sent: ${email}`,
     correlationId,
+    completedAt,
     email,
     ecid,
     ...(mergeAppendToken ? { appendToken: mergeAppendToken } : {}),

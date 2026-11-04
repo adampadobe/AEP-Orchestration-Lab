@@ -5,8 +5,10 @@ const assert = require('node:assert/strict');
 const { registerProfileRoutes } = require('../profileRoutes');
 
 describe('registerProfileRoutes', () => {
-  it('registers profile handlers with the bound continuation secret and read-only readiness', async () => {
+  it('registers profile handlers with the bound continuation secret and read-only readiness', async (t) => {
     let signingSecret = 'offline-signing-secret';
+    let infraStatusCalls = 0;
+    const readbackLogs = [];
     const onRequest = (_opts, handler) => ({ __handler: handler });
     const routes = registerProfileRoutes({
       onRequest,
@@ -21,10 +23,23 @@ describe('registerProfileRoutes', () => {
       ADOBE_CLIENT_ID: { value: () => 'client' },
       ADOBE_CLIENT_SECRET: { value: () => signingSecret },
       ADOBE_IMS_ORG: { value: () => 'org' },
-      profileTableHelpers: {},
+      profileTableHelpers: {
+        fetchUpsProfileEntities: async () => ({}),
+        buildProfileTablePayload: () => ({
+          found: true,
+          profileEmail: 'readback@example.com',
+          ecid: '12345678901234567890123456789012345678',
+          rows: [{ path: '_demoemea.identification.core.email', value: 'readback@example.com' }],
+        }),
+      },
       ipadEventProxy: { handleIpadEventPost: async () => {} },
       industryAttributeMap: { getAttributeOwnershipPayload: () => ({}) },
-      profileInfraStatusAllSvc: { runProfileInfraStatusAll: async () => ({}) },
+      profileInfraStatusAllSvc: {
+        runProfileInfraStatusAll: async () => {
+          infraStatusCalls += 1;
+          return {};
+        },
+      },
       genericProfileInfraService: {},
       travelProfileInfraService: {},
       fsiProfileInfraService: {},
@@ -81,6 +96,26 @@ describe('registerProfileRoutes', () => {
       json(body) { response = body; },
     });
     assert.deepEqual(response.profileContinuation, { ready: false, code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+
+    const infraStatusCallsBeforeReadback = infraStatusCalls;
+    t.mock.method(console, 'log', (line) => readbackLogs.push(JSON.parse(line)));
+    await routes.profileTableProxy.__handler({
+      method: 'GET',
+      query: {
+        identifier: 'readback@example.com',
+        namespace: 'email',
+        profileReadback: '1',
+      },
+      headers: { 'x-aep-lab-correlation-id': 'd4e4e6a8-b707-41f0-bf23-5b66b783ed4c' },
+    }, {
+      status(code) { assert.equal(code, 200); return this; },
+      json(body) { response = body; },
+    });
+    assert.equal(response.found, true);
+    assert.equal(infraStatusCalls, infraStatusCallsBeforeReadback);
+    assert.equal(readbackLogs[0].message, 'profile.readback.lookup_completed');
+    assert.equal(readbackLogs[0].correlationId, 'd4e4e6a8-b707-41f0-bf23-5b66b783ed4c');
+    assert.equal(JSON.stringify(readbackLogs).includes('readback@example.com'), false);
   });
 
   it('production registration injects the already-bound signing secret into profile routes', () => {

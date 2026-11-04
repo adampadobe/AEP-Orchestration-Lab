@@ -98,6 +98,7 @@ describe('POST /api/profile/generate place context', () => {
     assert.equal(res.statusCode, 200, JSON.stringify(res.body));
     assert.equal(res.body.accepted, true);
     assert.equal(res.body.upsVerified, false);
+    assert.ok(Number.isFinite(Date.parse(res.body.completedAt)));
     assert.deepEqual(res.body.receipt, { stage: 'inlet-accepted', upsVerified: false, retrySafe: false });
     const entity = sent.body.xdmEntity;
     assert.deepEqual(entity._demoemea.profilePlaceContext, {

@@ -18,7 +18,9 @@
     "test:batch-sequence": "node scripts/batch-sequence-test.mjs",
     "test:batch-jobs": "node --experimental-test-module-mocks --test test/batchJobs.test.mjs",
     "test:minimal-guardrails": "node scripts/minimal-event-guardrails-test.mjs",
-    "test:brand-scrape-offline": "node scripts/brand-scrape-offline-test.mjs"
+    "test:brand-scrape-offline": "node scripts/brand-scrape-offline-test.mjs",
+    "test:profile-readback-acceptance": "node --test test/profileReadbackAcceptance.test.mjs",
+    "profile:readback-acceptance": "node scripts/profile-readback-acceptance.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

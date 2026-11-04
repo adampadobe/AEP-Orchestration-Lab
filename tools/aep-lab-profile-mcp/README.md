@@ -4,6 +4,39 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 **Version 3.52.2.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
+### Read-only profile identity acceptance
+
+`lab_generate_profile` with `target:"aep"` now runs this verification automatically after streaming. The
+generation response is marked `readback_verified` only when the first successful Email readback contains
+matching Email/ECID identity-map evidence and `_demoemea.identification.core` values, and ECID lookup
+resolves within 60 seconds of the server-recorded stream completion time. If streaming was accepted but
+the readback gate fails, the response is `accepted_unverified`; do not retry generation for that identity.
+Correlated Cloud Function and MCP logs record lookup namespace, status, timing, and row count without
+logging Email or ECID values. The readback-only endpoint skips the unrelated infrastructure-writability
+probe to keep polling focused.
+
+After a profile has already been generated, run the read-only readback acceptance check for each
+industry. It polls `/api/profile/table` by Email and ECID, requires the first successful Email
+readback to contain matching Email/ECID identity-map evidence and `_demoemea.identification.core`
+values, and requires the ECID lookup to resolve within 60 seconds of the supplied generation
+completion timestamp. It never generates or updates profiles and does not print the Email or ECID.
+
+Provide the values through environment variables (do not put profile identifiers in shell history):
+
+```bash
+PROFILE_ACCEPTANCE_SANDBOX=apalmer \
+PROFILE_ACCEPTANCE_INDUSTRY=media \
+PROFILE_ACCEPTANCE_EMAIL='profile+DDMMYYYY-N@example.com' \
+PROFILE_ACCEPTANCE_ECID='12345678901234567890123456789012345678' \
+PROFILE_ACCEPTANCE_GENERATED_AT='2026-11-04T08:00:00.000Z' \
+npm run profile:readback-acceptance
+```
+
+Repeat with `travel` and `fsi`. Set `PROFILE_ACCEPTANCE_SLA_SECONDS` or
+`PROFILE_ACCEPTANCE_POLL_INTERVAL_MS` only when intentionally changing the acceptance threshold
+or polling cadence. Run the offline regression checks with
+`npm run test:profile-readback-acceptance`.
+
 ## Focused endpoints for Coworker
 
 The original `/mcp` endpoint remains backward compatible and exposes the complete 218-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
