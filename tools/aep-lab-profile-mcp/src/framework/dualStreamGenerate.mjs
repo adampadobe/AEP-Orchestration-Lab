@@ -5,10 +5,232 @@
  */
 
 import { LAB_INDUSTRY_KEYS } from '../industries.mjs';
-import { generateProfile } from '../labApiClient.mjs';
+import { generateProfile, getProfileConnection, lookupProfile } from '../labApiClient.mjs';
 import { resolveIndustryForPath } from './attributeOwnership.mjs';
 
 const DUAL_STREAM_INDUSTRIES = LAB_INDUSTRY_KEYS.filter((key) => key !== 'generic');
+const GENERIC_PERSISTENCE_TIMEOUT_MS = 60_000;
+const GENERIC_PERSISTENCE_POLL_INTERVAL_MS = 5_000;
+const PROFILE_READ_TIMEOUT_MS = 10_000;
+
+function flattenExpectedFields(value, path, output = []) {
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => flattenExpectedFields(item, path ? `${path}.${index}` : String(index), output));
+  } else if (value && typeof value === 'object') {
+    for (const [key, nestedValue] of Object.entries(value)) {
+      flattenExpectedFields(nestedValue, path ? `${path}.${key}` : key, output);
+    }
+  } else {
+    output.push({ path: path.toLowerCase(), value });
+  }
+  return output;
+}
+
+function profileHasExpectedValue(row, expected) {
+  if (expected === null || expected === undefined) {
+    return row.valueType === 'null' || row.value === '';
+  }
+  return String(row.value) === String(expected);
+}
+
+function hasExpectedCoreIdentity(rows, identityName, expectedValue) {
+  const suffix = `.identification.core.${identityName}`;
+  return rows.some((row) =>
+    typeof row.path === 'string'
+      && row.path.toLowerCase().endsWith(suffix)
+      && String(row.value) === String(expectedValue));
+}
+
+function assessGenericProfileReadback(profile, { email, ecid, datasetId, attributes }) {
+  const rows = Array.isArray(profile?.rows) ? profile.rows : [];
+  const hints = profile?.profileAccessHints || {};
+  const sourceDatasetIds = Array.isArray(hints.sourceDatasetIds) ? hints.sourceDatasetIds : [];
+  const expectedFields = flattenExpectedFields(attributes || {}, '');
+  const missingPaths = expectedFields
+    .filter(({ path, value }) => !rows.some((row) =>
+      typeof row.path === 'string'
+        && row.path.toLowerCase() === path
+        && profileHasExpectedValue(row, value)))
+    .map(({ path }) => path);
+  const emailMatches =
+    String(profile?.profileEmail || '').trim().toLowerCase() === String(email).trim().toLowerCase()
+      && hints.identityMapHasEmail === true
+      && hasExpectedCoreIdentity(rows, 'email', email);
+  const ecidMatches =
+    String(profile?.ecid || '').trim() === String(ecid).trim()
+      && hints.identityMapHasEcid === true
+      && hasExpectedCoreIdentity(rows, 'ecid', ecid);
+  const datasetMatches = sourceDatasetIds.some(
+    (sourceDatasetId) => String(sourceDatasetId).toLowerCase() === String(datasetId).toLowerCase(),
+  );
+  const missingChecks = [];
+  if (profile?.found !== true || rows.length === 0) missingChecks.push('profile_not_persisted');
+  if (!emailMatches) missingChecks.push('email_identity_mismatch');
+  if (!ecidMatches) missingChecks.push('ecid_identity_mismatch');
+  if (missingPaths.length) missingChecks.push('generic_fields_missing');
+  if (!datasetMatches) missingChecks.push('generic_dataset_provenance_missing');
+
+  return {
+    ready: missingChecks.length === 0,
+    missingChecks,
+    missingPaths,
+    sourceDatasetIds,
+  };
+}
+
+function genericPersistenceTimeoutResult({ attempts, startedAt, observations, readErrors }) {
+  const emailObservation = observations?.email;
+  const ecidObservation = observations?.ecid;
+  const allLookupsReady = emailObservation?.ready === true && ecidObservation?.ready === true;
+  return {
+    ready: false,
+    attempts,
+    elapsedMs: Date.now() - startedAt,
+    missingChecks: allLookupsReady
+      ? ['persistence_window_elapsed']
+      : [
+          ...(emailObservation?.ready ? [] : ['email_lookup_not_ready']),
+          ...(ecidObservation?.ready ? [] : ['ecid_lookup_not_ready']),
+        ],
+    missingPaths: [...new Set([
+      ...(emailObservation?.missingPaths || []),
+      ...(ecidObservation?.missingPaths || []),
+    ])],
+    sourceDatasetIds: [...new Set([
+      ...(emailObservation?.sourceDatasetIds || []),
+      ...(ecidObservation?.sourceDatasetIds || []),
+    ])],
+    ...(Object.keys(readErrors || {}).length ? { lastReadErrors: readErrors } : {}),
+  };
+}
+
+async function waitForGenericProfilePersistence({
+  sandbox,
+  email,
+  ecid,
+  datasetId,
+  attributes,
+  timeoutMs = GENERIC_PERSISTENCE_TIMEOUT_MS,
+  pollIntervalMs = GENERIC_PERSISTENCE_POLL_INTERVAL_MS,
+  startedAtMs = Date.now(),
+  lookup = lookupProfile,
+  sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+}) {
+  if (!String(ecid || '').trim()) {
+    return {
+      ready: false,
+      attempts: 0,
+      elapsedMs: 0,
+      missingChecks: ['generation_ecid_missing'],
+      missingPaths: [],
+      sourceDatasetIds: [],
+    };
+  }
+
+  const startedAt = startedAtMs;
+  const deadline = startedAt + timeoutMs;
+  let attempts = 0;
+  let lastObservations = null;
+  let lastReadErrors = {};
+
+  while (true) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      return genericPersistenceTimeoutResult({
+        attempts,
+        startedAt,
+        observations: lastObservations,
+        readErrors: lastReadErrors,
+      });
+    }
+
+    attempts += 1;
+    const readTimeoutMs = Math.max(1, Math.min(PROFILE_READ_TIMEOUT_MS, remainingMs));
+    const [emailResult, ecidResult] = await Promise.all([
+      lookup({
+        sandbox,
+        namespace: 'email',
+        identifier: email,
+        timeoutMs: readTimeoutMs,
+        retries: 0,
+      }),
+      lookup({
+        sandbox,
+        namespace: 'ecid',
+        identifier: ecid,
+        timeoutMs: readTimeoutMs,
+        retries: 0,
+      }),
+    ]);
+
+    const readResults = [
+      ['email', emailResult],
+      ['ecid', ecidResult],
+    ];
+    const failedRead = readResults.find(([, result]) =>
+      !result.ok
+        && result.status !== 0
+        && !(result.status === 404 && result.data?.code === 'UPS_ENTITY_NOT_FOUND'));
+    if (failedRead) {
+      const [namespace, result] = failedRead;
+      return {
+        ready: false,
+        attempts,
+        elapsedMs: Date.now() - startedAt,
+        missingChecks: ['profile_read_failed'],
+        missingPaths: [],
+        sourceDatasetIds: [],
+        error: `${namespace} profile read failed: ${result.error || `HTTP ${result.status}`}.`,
+        errorCode: result.data?.code || null,
+      };
+    }
+
+    lastReadErrors = Object.fromEntries(
+      readResults
+        .filter(([, result]) => !result.ok && result.status === 0)
+        .map(([namespace, result]) => [namespace, result.error || 'Profile read timed out.']),
+    );
+    const observations = Object.fromEntries(
+      readResults.map(([namespace, result]) => [
+        namespace,
+        result.ok
+          ? assessGenericProfileReadback(result.data, { email, ecid, datasetId, attributes })
+          : {
+              ready: false,
+              missingChecks: ['profile_not_persisted'],
+              missingPaths: [],
+              sourceDatasetIds: [],
+            },
+      ]),
+    );
+    lastObservations = observations;
+    if (observations.email.ready && observations.ecid.ready && Date.now() <= deadline) {
+      return {
+        ready: true,
+        attempts,
+        elapsedMs: Date.now() - startedAt,
+        namespacesChecked: ['email', 'ecid'],
+        missingChecks: [],
+        missingPaths: [],
+        sourceDatasetIds: [...new Set([
+          ...observations.email.sourceDatasetIds,
+          ...observations.ecid.sourceDatasetIds,
+        ])],
+      };
+    }
+
+    const waitMs = Math.min(pollIntervalMs, deadline - Date.now());
+    if (waitMs <= 0) {
+      return genericPersistenceTimeoutResult({
+        attempts,
+        startedAt,
+        observations: lastObservations,
+        readErrors: lastReadErrors,
+      });
+    }
+    await sleep(waitMs);
+  }
+}
 
 /**
  * @param {string} industry
@@ -141,6 +363,8 @@ export async function executeGeneratePlan({
   test_profile,
   append_if_existing,
   correlation_id,
+  persistenceTimeoutMs = GENERIC_PERSISTENCE_TIMEOUT_MS,
+  persistencePollIntervalMs = GENERIC_PERSISTENCE_POLL_INTERVAL_MS,
 }) {
   /** @type {Array<Record<string, unknown>>} */
   const stepResults = [];
@@ -148,6 +372,33 @@ export async function executeGeneratePlan({
   let ecid = null;
   let continuationToken = null;
   let geoMirror;
+  const requiresGenericPersistence =
+    plan.steps.some((step) => step.role === 'generic_base')
+    && plan.steps.some((step) => step.requiresContinuationToken);
+  let genericDatasetId = null;
+
+  if (requiresGenericPersistence) {
+    const connectionResult = await getProfileConnection({
+      path: '/api/generic-profile-connection',
+      sandbox,
+      timeoutMs: PROFILE_READ_TIMEOUT_MS,
+      retries: 0,
+    });
+    genericDatasetId = String(connectionResult.data?.record?.streaming?.datasetId || '').trim();
+    if (!connectionResult.ok || !genericDatasetId) {
+      return {
+        ok: false,
+        dualStream: plan.dualStream,
+        stepResults,
+        failedStep: 1,
+        errorCode: 'GENERIC_PROFILE_DATASET_UNAVAILABLE',
+        error: connectionResult.ok
+          ? 'The Generic profile dataset ID is unavailable; no profile stream was sent.'
+          : `Could not verify the Generic profile dataset before generation: ${connectionResult.error}`,
+        partialSuccess: false,
+      };
+    }
+  }
 
   for (let i = 0; i < plan.steps.length; i += 1) {
     const step = plan.steps[i];
@@ -174,6 +425,7 @@ export async function executeGeneratePlan({
       };
     }
 
+    const stepStartedAt = Date.now();
     const apiResult = await generateProfile({
       email,
       sandbox,
@@ -216,6 +468,44 @@ export async function executeGeneratePlan({
     if (step.industry === 'generic' || step.role === 'single') geoMirror = apiResult.data?.geoMirror;
     ecid = apiResult.data?.ecid || ecid;
     continuationToken = apiResult.data?.appendToken || continuationToken;
+
+    const nextStep = plan.steps[i + 1];
+    if (step.role === 'generic_base' && nextStep?.requiresContinuationToken && continuationToken) {
+      const persistence = await waitForGenericProfilePersistence({
+        sandbox,
+        email,
+        ecid,
+        datasetId: genericDatasetId,
+        attributes: step.attributes,
+        timeoutMs: persistenceTimeoutMs,
+        pollIntervalMs: persistencePollIntervalMs,
+        startedAtMs: stepStartedAt,
+      });
+      stepResults.at(-1).persistence = {
+        ready: persistence.ready,
+        attempts: persistence.attempts,
+        elapsedMs: persistence.elapsedMs,
+        namespacesChecked: persistence.namespacesChecked || ['email', 'ecid'],
+        missingChecks: persistence.missingChecks,
+        missingPaths: persistence.missingPaths,
+        sourceDatasetIds: persistence.sourceDatasetIds,
+      };
+      if (!persistence.ready) {
+        return {
+          ok: false,
+          partialSuccess: true,
+          dualStream: plan.dualStream,
+          stepResults,
+          failedStep: nextStep.step,
+          errorCode: persistence.errorCode || 'GENERIC_PROFILE_PERSISTENCE_TIMEOUT',
+          error: persistence.error
+            || 'The Generic base was accepted but did not become verifiably persistent before the timeout. ' +
+              'The industry overlay was not sent. Do not regenerate this identity.',
+          data: apiResult.data,
+          ecid,
+        };
+      }
+    }
   }
 
   return {

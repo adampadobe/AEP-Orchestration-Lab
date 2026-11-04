@@ -261,7 +261,8 @@ export async function lookupProfile(params) {
       namespace: params.namespace,
       identifier: params.identifier,
     },
-    timeoutMs: 120_000,
+    timeoutMs: params.timeoutMs ?? 120_000,
+    retries: params.retries,
   });
 }
 
@@ -334,10 +335,11 @@ export async function getProfileAudiences(params) {
  * @param {string} params.path - e.g. /api/travel-profile-connection
  * @param {string} params.sandbox
  */
-export async function getProfileConnection({ path, sandbox }) {
+export async function getProfileConnection({ path, sandbox, timeoutMs = 60_000, retries }) {
   return labApiRequest(path, {
     query: { sandbox },
-    timeoutMs: 60_000,
+    timeoutMs,
+    retries,
   });
 }
 
