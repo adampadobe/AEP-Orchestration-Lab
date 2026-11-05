@@ -13,6 +13,27 @@
   padding-bottom: 32px;
 }
 
+.sf-workspace-approval {
+  margin-top: 24px;
+}
+
+.sf-workspace-approval [hidden] {
+  display: none;
+}
+
+.sf-workspace-confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--dash-text);
+}
+
+.sf-workspace-confirm input[type="checkbox"] {
+  width: auto;
+  flex: 0 0 auto;
+}
+
 .sf-gen-email {
   margin-bottom: 24px;
   padding-bottom: 24px;

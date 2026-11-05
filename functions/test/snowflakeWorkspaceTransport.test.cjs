@@ -55,7 +55,7 @@ test('SDK reads disable secondary roles, enforce exact context and irreversible 
     assert.equal(call.parameters.MULTI_STATEMENT_COUNT, 1);
   }
   assert.equal(h.calls[0].connectionOptions.streamResult, true);
-  assert.deepEqual(h.result.page, {start: 1, end: 1});
+  assert.deepEqual(h.result.page, {start: 1, end: 2});
   assert.equal(h.calls.at(-1).destroy, true);
 });
 test('unsupported server read-only parameter and changed actual role fail closed before user SQL', async () => {
@@ -100,9 +100,31 @@ test('row and byte limits destroy streams; large first row and streaming errors 
   assert.equal(result.rows.length, 0); assert.equal(result.truncated, true); assert.equal(s.stream.destroyed, true);
   const many = statement(Array.from({length: 100}, (_, X) => ({X})));
   assert.equal((await boundedRows(many, {offset: 3, limit: 2})).rows.length, 2);
-  assert.deepEqual(many.page, {start: 3, end: 4});
+  assert.deepEqual(many.page, {start: 3, end: 5});
   const failed = {streamRows: () => Readable.from((async function* () { yield {X: 1}; throw Error('stream failed'); })())};
   await assert.rejects(boundedRows(failed, {limit: 2}), /stream failed/);
+});
+test('snapshot pagination covers every row once and ends with a null continuation, including unknown totals', async () => {
+  for (const knownTotal of [true, false]) {
+    const rows = Array.from({length: 581}, (_, ID) => ({ID}));
+    const stmt = statement(rows);
+    if (!knownTotal) delete stmt.getNumRows;
+    const first = await boundedRows(stmt, {limit: 500});
+    assert.equal(first.rows.length, 500);
+    assert.equal(first.truncated, true);
+    assert.equal(first.next_offset, 500);
+    const last = await boundedRows(stmt, {offset: first.next_offset, limit: 500});
+    assert.equal(last.rows.length, 81);
+    assert.equal(last.truncated, false);
+    assert.equal(last.next_offset, null);
+    assert.deepEqual([...first.rows, ...last.rows], rows);
+    const empty = await boundedRows(stmt, {offset: 581, limit: 500});
+    assert.equal(empty.truncated, false);
+    assert.equal(empty.next_offset, null);
+    const exact = await boundedRows(statement(rows.slice(0, 500)), {limit: 500});
+    assert.equal(exact.truncated, false);
+    assert.equal(exact.next_offset, null);
+  }
 });
 test('safe errors never expose provider messages/credentials and retain allowlisted diagnostics', () => {
   const error = providerError({message: 'password SECRET SQL text', code: '390100', sqlState: '28000', queryId: 'qid'});

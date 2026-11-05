@@ -4,7 +4,7 @@ const crypto = require('node:crypto');
 const CONTEXT_FIELDS = ['account', 'user', 'role', 'warehouse', 'database', 'schema'];
 const ACTIONS = Object.freeze(['capabilities', 'objects_list', 'object_describe', 'query_submit',
   'query_status', 'query_results', 'query_cancel', 'data_check', 'change_preview',
-  'change_approve', 'change_apply', 'grants_inspect', 'agents_list', 'agent_run']);
+  'change_get', 'change_approve', 'change_apply', 'grants_inspect', 'agents_list', 'agent_run']);
 class WorkspaceError extends Error {
   constructor(code, message) { super(message); this.code = code; }
 }

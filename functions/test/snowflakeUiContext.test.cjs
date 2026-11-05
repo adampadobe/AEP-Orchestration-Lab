@@ -7,6 +7,7 @@ const { resolve } = require('node:path');
 const { runInNewContext } = require('node:vm');
 
 const source = readFileSync(resolve(__dirname, '../../web/profile-viewer/profile-generation-snowflake.js'), 'utf8');
+const approvalSource = readFileSync(resolve(__dirname, '../../web/profile-viewer/snowflake-workspace-approval.js'), 'utf8');
 const html = readFileSync(resolve(__dirname, '../../web/profile-viewer/profile-generation-snowflake.html'), 'utf8');
 const flush = () => new Promise(setImmediate);
 
@@ -56,7 +57,8 @@ function fixture() {
   nodes.get('sfGenScopeSingle').checked = true;
   nodes.get('sfGenScopeFull').checked = false;
   const context = {
-    console, setTimeout,
+    console, performance, clearTimeout,
+    setTimeout: (callback, delay) => { const timer = setTimeout(callback, delay); timer.unref(); return timer; },
     localStorage: {
       getItem: (key) => storage.get(key) || null,
       setItem: (key, value) => storage.set(key, value),
@@ -81,7 +83,7 @@ function fixture() {
       addEventListener: (name, handler) => { events[name] = handler; eventTargets[name] = 'window'; },
     },
     fetch: async (url, options) => {
-      calls.push({ url, body: options?.body && JSON.parse(options.body) });
+      calls.push({ url, headers: options?.headers, body: options?.body && JSON.parse(options.body) });
       return respond(url, options);
     },
   };
@@ -94,6 +96,7 @@ function fixture() {
       loadEmail: loadEmailPrefs, saveEmail: saveEmailPrefs,
       profiles: function () { return loadedProfiles; } };
   })();`);
+  runInNewContext(approvalSource, context);
   runInNewContext(instrumented, context);
   context.ui.bind();
   return {
@@ -114,6 +117,38 @@ function fixture() {
     },
   };
 }
+
+test('Portal review and approval use direct authenticated workspace requests and reset with the surrounding workflow', async () => {
+  const f = fixture();
+  const id = 'c19882d0-822e-4ab4-91d0-e2f23e9db4be';
+  f.respond(async (url, options) => {
+    const action = JSON.parse(options.body).action;
+    return {ok: true, json: async () => ({result: action === 'change_get' ?
+      {ok: true, preview_id: id, state: 'previewed', sql: 'INSERT', bindings: ['value'],
+        serverNow: new Date().toISOString(), expiresAt: new Date(Date.now() + 600000).toISOString()} :
+      {ok: true, approved: true}})};
+  });
+  f.nodes.get('sfWorkspacePreviewId').value = id;
+  await f.nodes.get('sfWorkspacePreviewLoad').listeners.click();
+  assert.equal(f.nodes.get('sfWorkspaceReview').hidden, false);
+  assert.equal(f.nodes.get('sfWorkspaceApprove').disabled, true);
+  f.nodes.get('sfWorkspaceConfirm').checked = true;
+  f.nodes.get('sfWorkspaceConfirm').listeners.change();
+  await f.nodes.get('sfWorkspaceApprove').listeners.click();
+  assert.deepEqual(f.calls.map(c => c.body), [
+    {sandbox: 'sandbox-a', action: 'change_get', preview_id: id},
+    {sandbox: 'sandbox-a', action: 'change_approve', preview_id: id},
+  ]);
+  for (const call of f.calls) {
+    assert.equal(call.url, 'https://us-central1-fixture-project.cloudfunctions.net/snowflakeWorkspace');
+    assert.equal(call.headers.Authorization, 'Bearer fixture-token');
+  }
+  assert.match(f.nodes.get('sfWorkspaceApprovalMessage').textContent, /Nothing was executed/);
+  f.ui.reset();
+  assert.equal(f.nodes.get('sfWorkspacePreviewId').value, '');
+  assert.equal(f.nodes.get('sfWorkspaceReviewDetails').textContent, '');
+  assert.equal(f.nodes.get('sfWorkspaceApprovalMessage').hidden, true);
+});
 
 test('Snowflake SQL URLs bypass Hosting using the configured project or existing origin override', () => {
   const f = fixture();
