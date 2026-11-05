@@ -1076,7 +1076,6 @@ const INDUSTRY_PLAYBOOKS = {
     persona_fields: [
       'individualCharacteristics.core.favouriteCategory',
       'homeAddress.*',
-      'individualCharacteristics.public.* (donation demos when favouriteCategory=public_sector)',
       'person.*, personalEmail.*, scoring.* (shared common persona)',
       'loyalty.* when loyalty_member:true (LYL-{6 digits}; Portal #genLoyaltyEnabled)',
     ],
