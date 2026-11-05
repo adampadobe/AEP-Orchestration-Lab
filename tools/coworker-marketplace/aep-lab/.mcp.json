@@ -19,6 +19,13 @@
   "mcp_servers": {
     "servers": [
       {
+        "name": "aep-lab-snowflake",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/snowflake",
+        "transport": "streamable_http",
+        "auth": "aep-lab-ims-passthrough",
+        "tool_timeout_seconds": 180
+      },
+      {
         "name": "aep-lab-entry",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
         "transport": "streamable_http",

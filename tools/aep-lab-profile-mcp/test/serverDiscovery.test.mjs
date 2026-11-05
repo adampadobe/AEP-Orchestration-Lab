@@ -112,6 +112,18 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   for (const name of names.filter((name) => name.startsWith('lab_platform_asset_'))) {
     assert.ok(fullNames.includes(name), 'Full endpoint must expose cleanup at initialization');
   }
+  const snowflake = await post('/mcp/snowflake', 'initialize', {
+    protocolVersion: '2025-11-25', capabilities: {},
+    clientInfo: { name: 'offline-snowflake-discovery-test', version: '1' },
+  });
+  assert.equal(snowflake.status, 200);
+  await snowflake.json();
+  const snowflakeTools = (await (await post('/mcp/snowflake', 'tools/list', {},
+    snowflake.headers.get('mcp-session-id'))).json()).result.tools;
+  assert.equal(snowflakeTools.length, 16);
+  assert.equal(snowflakeTools.some((tool) => tool.name === 'lab_snowflake_change_approve'), false);
+  for (const tool of snowflakeTools) assert.ok(fullNames.includes(tool.name));
+  assert.equal(snowflakeTools.find((tool) => tool.name === 'lab_snowflake_agent_run').annotations.readOnlyHint, false);
   const access = await post('/mcp', 'tools/call', { name: 'lab_mcp_access_info', arguments: {} },
     full.headers.get('mcp-session-id'));
   assert.deepEqual(JSON.parse((await access.json()).result.content[0].text).build, expectedBuild);

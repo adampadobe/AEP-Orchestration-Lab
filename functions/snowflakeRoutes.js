@@ -48,6 +48,7 @@ function registerSnowflakeRoutes(deps) {
     snowflakeAgenticTravelService,
     snowflakeIndustryCatalogService,
     snowflakeProvisionService,
+    snowflakeWorkspaceService,
     snowflakeIndustryEventService,
   } = deps;
 
@@ -88,6 +89,45 @@ function registerSnowflakeRoutes(deps) {
   }
 
   const routes = {};
+
+  routes.snowflakeWorkspace = onRequest(SNOWFLAKE_FN_OPTS, async (req, res) => {
+    setCors(res, 'POST, OPTIONS');
+    res.setHeader('Cache-Control', 'no-store');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+    if (req.method !== 'POST') { res.status(405).json({ ok: false, error: 'POST only' }); return; }
+    const principal = await resolvePrincipal(req, res);
+    if (!principal) return;
+    const body = req.body;
+    if (!body || typeof body !== 'object' || Array.isArray(body)
+      || typeof body.sandbox !== 'string' || !body.sandbox.trim()
+      || typeof body.action !== 'string') {
+      res.status(400).json({ ok: false, error: { code: 'INVALID_INPUT', message: 'sandbox and action are required.' } });
+      return;
+    }
+    if (body.action === 'change_approve' && principal.authSource !== 'firebase') {
+      res.status(403).json({ ok: false, error: {
+        code: 'PORTAL_APPROVAL_REQUIRED',
+        message: 'Changes require approval through a direct authenticated Portal request, not MCP or IMS.',
+      } });
+      return;
+    }
+    try {
+      const result = await snowflakeWorkspaceService.handleWorkspace({
+        ...body, sandbox: body.sandbox.trim().toLowerCase(),
+        principal: { uid: principal.uid, authSource: principal.authSource },
+      });
+      res.status(result.ok ? 200 : 400).json({ ok: result.ok, result });
+    } catch (error) {
+      logFunctionEvent('ERROR', 'snowflake.workspace.request_failed', {
+        correlationId: requestCorrelationId(req),
+        errorCode: 'WORKSPACE_REQUEST_FAILED',
+      });
+      res.status(500).json({
+        ok: false,
+        error: { code: 'WORKSPACE_REQUEST_FAILED', message: 'Workspace request failed. Reconcile any submitted job before retrying.' },
+      });
+    }
+  });
 
   /**
    * GET /api/snowflake/config?sandbox=… — public projection of saved Snowflake

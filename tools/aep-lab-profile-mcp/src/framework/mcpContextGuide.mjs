@@ -19,7 +19,7 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 218,
+    toolCount: 231,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration', 'governed dataset and schema cleanup (list, audit, exact single-resource delete)'],
@@ -57,6 +57,17 @@ export const MCP_CONTEXTS = Object.freeze([
     risk: 'governed profile and event writes',
     capabilities: ['profile generation', 'profile updates', 'experience events', 'profile activity', 'Snowflake dual load and enrichment', 'profile and event place context (ten featured areas, any catalog city, or anywhere on Earth; k-anonymous clustering for batches)'],
     useWhen: 'Use for Snowflake-first recipient/industry generation (default), or explicit target:"aep" profile streaming, events and verification.',
+  },
+  {
+    id: 'aep-lab-snowflake',
+    name: 'AEP Lab Snowflake workspace',
+    url: `${LAB_BASE_URL}/mcp/snowflake`,
+    kind: 'lab-focused',
+    toolCount: 16,
+    access: LAB_ACCESS,
+    risk: 'administrator-enabled access; separate human approval for table, data and grant changes; Cortex runs may invoke tools',
+    capabilities: ['Snowflake metadata', 'read-only SQL jobs', 'bounded results and cancellation', 'data quality checks', 'typed table and data changes', 'approved grants and revokes', 'Cortex Agent delegation'],
+    useWhen: 'Use for general Snowflake exploration, queries, data checks, approved changes or Cortex delegation. Start with capabilities; saved credentials do not prove workspace permission.',
   },
   {
     id: 'aep-lab-decisioning',
@@ -217,6 +228,17 @@ export const MCP_CONTEXTS = Object.freeze([
 ]);
 
 export const MCP_WORKFLOWS = Object.freeze({
+  snowflake_workspace: {
+    title: 'Inspect and operate an approved Snowflake workspace',
+    contexts: ['aep-lab-snowflake'],
+    steps: [
+      'Inspect capabilities and the effective configured target; request administrator activation if disabled.',
+      'Discover objects, describe columns and run bounded data checks.',
+      'Submit one read-only SQL job with a unique request_id; poll and fetch bounded results using its job_id.',
+      'Preview one typed change, review SQL and bound values, then obtain independent authenticated Portal approval before apply.',
+      'Delegate business questions to an approved Cortex Agent; preserve threads and reconcile unknown outcomes without replay.',
+    ],
+  },
   customer_demo: {
     title: 'Prepare a customer-specific demo',
     contexts: ['aep-lab-demo-prep', 'aep-lab-profiles', 'aep-lab-decisioning'],
@@ -371,6 +393,7 @@ export const MCP_WORKFLOWS = Object.freeze({
 });
 
 const KEYWORDS = Object.freeze({
+  'aep-lab-snowflake': ['snowflake', 'snowflake query', 'snowflake sql', 'cortex agent', 'snowflake grants', 'snowflake table', 'data quality'],
   'aep-lab-general': ['delete dataset', 'delete schema', 'dataset cleanup', 'schema cleanup', 'delete tables', 'platform cleanup'],
   'aep-lab-demo-prep': ['brand', 'customer', 'logo', 'hero', 'image', 'asset', 'scrape', 'website', 'rtdb', 'demo prep', 'restore customer'],
   'aep-lab-pdf-prep': ['pdf', 'html to pdf', 'document to pdf', 'docx', 'word document', 'boarding pass', 'attachment', 'pdf template', 'preview pdf'],
@@ -417,7 +440,7 @@ export function recommendMcpContexts(goal) {
   if (cleanupIndex > 0) ranked.unshift(...ranked.splice(cleanupIndex, 1));
   const recommendedIds = ranked.length ? ranked.map((candidate) => candidate.id) : ['aep-lab-general'];
   const contexts = recommendedIds.map((id) => MCP_CONTEXTS.find((context) => context.id === id)).filter(Boolean);
-  const destructiveRisk = contexts.some((context) => context.id === 'aep-lab-audiences' || context.id === 'aep-lab-ajo-cleanup')
+  const destructiveRisk = contexts.some((context) => ['aep-lab-audiences', 'aep-lab-ajo-cleanup', 'aep-lab-snowflake'].includes(context.id))
     || (ranked.find((candidate) => candidate.id === 'aep-lab-general')?.matches.length > 0);
 
   return {

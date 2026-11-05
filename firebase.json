@@ -1272,6 +1272,13 @@
         }
       },
       {
+        "source": "/api/snowflake/workspace",
+        "function": {
+          "functionId": "snowflakeWorkspace",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/tags/reactor",
         "function": {
           "functionId": "tagsReactorProxy",

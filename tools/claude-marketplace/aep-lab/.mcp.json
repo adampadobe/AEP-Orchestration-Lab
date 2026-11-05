@@ -1,5 +1,13 @@
 {
   "mcpServers": {
+    "aep-lab-snowflake": {
+      "type": "http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/snowflake",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${user_config.aep_lab_mcp_key}"
+      },
+      "timeout": 180000
+    },
     "aep-lab-entry": {
       "type": "http",
       "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",

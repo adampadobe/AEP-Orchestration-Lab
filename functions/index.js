@@ -5033,6 +5033,7 @@ Object.assign(
     snowflakeAgenticTravelService,
     snowflakeIndustryCatalogService,
     snowflakeProvisionService,
+    snowflakeWorkspaceService: lazyRequireMod('./snowflakeWorkspaceService'),
     snowflakeIndustryEventService,
   })
 );

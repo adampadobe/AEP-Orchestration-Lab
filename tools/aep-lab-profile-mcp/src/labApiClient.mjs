@@ -1906,6 +1906,17 @@ export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run
   });
 }
 
+export async function snowflakeWorkspaceRequest(body) {
+  return labApiRequest('/snowflakeWorkspace', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    body,
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+    retries: 0,
+  });
+}
+
 /**
  * Brand Scraper analyze runs up to 540s — bypass Firebase Hosting 60s cap via direct Cloud Function URL
  * (same pattern as web/profile-viewer/brand-scraper.js).

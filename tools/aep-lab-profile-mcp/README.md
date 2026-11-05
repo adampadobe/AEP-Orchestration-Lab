@@ -6,12 +6,13 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 218-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 231-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the eighteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
 | `/mcp/entry` | 5 | **Start here.** Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull a domain toolset into this same session |
 | `/mcp/profile` | 21 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, Snowflake dual-load readiness/enrichment/readback, and the `lab_run_playbook` generate+validate coordinator |
+| `/mcp/snowflake` | 16 | Administrator-enabled workspace: SQL jobs, metadata, data checks, separately approved typed table/data/grant changes, Cortex Agent delegation; see [activation and safety](../../docs/SNOWFLAKE_INTEGRATION.md#governed-snowflake-workspace) |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
