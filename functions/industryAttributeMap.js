@@ -309,12 +309,12 @@ function resolveIndustryForPath(path) {
   const matchPath = stripPrimaryTenantNamespaceForOwnership(trimmed);
   for (const entry of PATH_OWNERSHIP) {
     for (const prefix of entry.prefixes) {
-      // Treat both `prefix.` (subtree) and bare `prefix` (exact-match
-      // scalar root-leaf, e.g. `preferredLanguage`) as a hit.
+      // Treat `prefix.` (subtree), its bare root (array/object-valued
+      // `subscriptions`), and exact scalar root-leaves (`preferredLanguage`) as hits.
       if (
         matchPath === prefix ||
         matchPath.startsWith(prefix) ||
-        (!prefix.endsWith('.') && matchPath === prefix)
+        (prefix.endsWith('.') && matchPath === prefix.slice(0, -1))
       ) {
         const reason =
           entry.industry === 'generic'
