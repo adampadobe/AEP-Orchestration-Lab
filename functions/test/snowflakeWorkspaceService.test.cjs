@@ -126,6 +126,72 @@ test('metadata and check SQL are fully qualified, values bound, freshness is MAX
   assert.equal(h.calls.at(-1).args[2], 'SELECT MAX("TIME") AS MAX_TIMESTAMP FROM "DB"."SCHEMA"."T"');
   assert.equal((await h.call('grants_inspect', {role: 'ADMIN'})).error.code, 'PERMISSION_DENIED');
 });
+test('grant snapshots page beyond the SQL row window without rerunning SHOW or exposing other jobs', async () => {
+  const h = harness();
+  const first = await h.call('grants_inspect');
+  assert.equal(first.ok, true);
+  assert.match(first.job_id, /^[0-9a-f]{64}$/);
+  assert.equal(h.records.jobs.get(first.job_id).type, 'grants');
+  const page = await h.call('query_results', {job_id: first.job_id, offset: 500, limit: 10});
+  assert.equal(page.ok, true);
+  assert.equal(h.calls.at(-1).method, 'results');
+  assert.deepEqual(h.calls.at(-1).args[3], {offset: 500, limit: 10, maxBytes: 1024 * 1024});
+  assert.equal(h.calls.filter(c => c.method === 'read').length, 1);
+  assert.equal((await h.call('query_results', {job_id: first.job_id, offset: 1000000})).error.code, 'INVALID_INPUT');
+  assert.equal((await h.call('query_results', {job_id: first.job_id, limit: 11})).error.code, 'INVALID_INPUT');
+  assert.equal((await h.call('query_results', {job_id: first.job_id}, {uid: 'other', authSource: 'firebase'})).error.code, 'NOT_FOUND');
+  assert.equal((await h.call('query_cancel', {job_id: first.job_id})).error.code, 'INVALID_INPUT');
+  const sql = await h.call('query_submit', request());
+  assert.equal((await h.call('query_results', {job_id: sql.job_id, offset: 500})).error.code, 'INVALID_INPUT');
+  h.policy.read = false;
+  assert.equal((await h.call('query_results', {job_id: first.job_id})).error.code, 'PERMISSION_DENIED');
+  h.policy.read = true;
+  h.advance(86400001);
+  assert.equal((await h.call('query_results', {job_id: first.job_id})).error.code, 'SNAPSHOT_EXPIRED');
+});
+test('Portal preview review exposes exact compiled change only to the same owner and current context', async () => {
+  const h = harness();
+  const preview = await h.call('change_preview', {operation: insert()});
+  const reviewed = await h.call('change_get', {preview_id: preview.preview_id});
+  assert.equal(reviewed.ok, true);
+  assert.equal(reviewed.sql, preview.sql);
+  assert.deepEqual(reviewed.bindings, preview.bindings);
+  assert.deepEqual(reviewed.context, {account: 'org-account', user: 'USER', role: 'ROLE',
+    warehouse: 'WH', database: 'DB', schema: 'SCHEMA'});
+  assert.equal(reviewed.state, 'previewed');
+  assert.equal(reviewed.expiresAt - reviewed.serverNow, 600000);
+  assert.equal(reviewed.fingerprint, undefined);
+  assert.equal(reviewed.approved, undefined);
+  assert.equal(h.calls.length, 0);
+  for (const authSource of ['mcp_key', 'ims']) {
+    assert.equal((await h.call('change_get', {preview_id: preview.preview_id}, {uid: 'u1', authSource})).error.code,
+      'HUMAN_APPROVAL_REQUIRED');
+  }
+  assert.equal((await h.call('change_get', {preview_id: preview.preview_id}, {uid: 'other', authSource: 'firebase'})).error.code, 'NOT_FOUND');
+  assert.equal((await h.call('change_get', {preview_id: preview.preview_id}, undefined, 'other')).error.code, 'NOT_FOUND');
+  await h.call('change_approve', {preview_id: preview.preview_id});
+  assert.equal((await h.call('change_get', {preview_id: preview.preview_id})).state, 'approved');
+  h.policy.maxRows = 9;
+  assert.equal((await h.call('change_get', {preview_id: preview.preview_id})).error.code, 'STALE_CONTEXT');
+  h.policy.maxRows = 10;
+  h.advance(600001);
+  assert.equal((await h.call('change_get', {preview_id: preview.preview_id})).error.code, 'PREVIEW_EXPIRED');
+});
+test('grant snapshot row-window exhaustion is explicit and never authorises another offset', async () => {
+  const h = harness({results: async (_resolved, _policy, _queryId, page) => {
+    assert.equal(page.offset, 999999);
+    assert.equal(page.limit, 1);
+    return {rows: [{privilege: 'SELECT'}], truncated: true, next_offset: 1000000};
+  }});
+  const first = await h.call('grants_inspect');
+  assert.equal(first.max_snapshot_rows, 1000000);
+  const last = await h.call('query_results', {job_id: first.job_id, offset: 999999, limit: 10});
+  assert.equal(last.ok, true);
+  assert.equal(last.row_window_exhausted, true);
+  assert.equal(last.next_offset, null);
+  assert.equal(last.truncated, true);
+  assert.match(last.warning, /incomplete/);
+});
 test('query reserves before provider, durable replay never resubmits; content conflict rejected', async () => {
   const h = harness({submit: async () => {
     const record = [...h.records.jobs.values()][0];

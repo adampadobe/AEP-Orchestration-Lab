@@ -29,6 +29,7 @@ test('focused and complete catalog expose every workspace tool without an approv
     assert.equal(names.length, new Set(names).size);
     for (const name of tools.keys()) assert.ok(names.includes(name), name);
     assert.ok(!names.includes('lab_snowflake_change_approve'));
+    assert.ok(!names.includes('lab_snowflake_change_get'));
   }
   assert.equal(recommendMcpContexts('run a Snowflake SQL query').primary.id, 'aep-lab-snowflake');
   assert.equal(recommendMcpContexts('ask a Cortex Agent').primary.id, 'aep-lab-snowflake');

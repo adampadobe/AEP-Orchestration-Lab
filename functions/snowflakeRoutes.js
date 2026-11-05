@@ -104,7 +104,7 @@ function registerSnowflakeRoutes(deps) {
       res.status(400).json({ ok: false, error: { code: 'INVALID_INPUT', message: 'sandbox and action are required.' } });
       return;
     }
-    if (body.action === 'change_approve' && principal.authSource !== 'firebase') {
+    if (['change_get', 'change_approve'].includes(body.action) && principal.authSource !== 'firebase') {
       res.status(403).json({ ok: false, error: {
         code: 'PORTAL_APPROVAL_REQUIRED',
         message: 'Changes require approval through a direct authenticated Portal request, not MCP or IMS.',

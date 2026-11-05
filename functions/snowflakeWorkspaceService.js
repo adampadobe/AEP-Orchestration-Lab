@@ -4,18 +4,19 @@ const crypto = require('node:crypto');
 const P = require('./snowflakeWorkspacePolicy');
 const {MAX_BYTES} = require('./snowflakeWorkspaceTransport');
 const {ACTIONS, WorkspaceError, assert, fields, integer, uuid, hash, scopeId, identifier, quote} = P;
+const MAX_GRANT_ROWS = 1000000;
 const ARGUMENTS = {
   capabilities: [], objects_list: ['kind', 'database', 'schema', 'limit'],
   object_describe: ['database', 'schema', 'name'], query_submit: ['sql', 'bindings', 'request_id'],
   query_status: ['job_id', 'offset', 'limit'], query_results: ['job_id', 'offset', 'limit'],
   query_cancel: ['job_id', 'offset', 'limit'], data_check: ['table', 'column', 'check'],
-  change_preview: ['operation'], change_approve: ['preview_id'], change_apply: ['preview_id'],
+  change_preview: ['operation'], change_get: ['preview_id'], change_approve: ['preview_id'], change_apply: ['preview_id'],
   grants_inspect: ['role'], agents_list: [], agent_run: ['agent', 'message', 'thread_id', 'parent_message_id', 'request_id'],
 };
 const REQUIRED = {
   objects_list: ['kind'], object_describe: ['name'], query_submit: ['sql', 'request_id'],
   query_status: ['job_id'], query_results: ['job_id'], query_cancel: ['job_id'],
-  data_check: ['table', 'check'], change_preview: ['operation'], change_approve: ['preview_id'],
+  data_check: ['table', 'check'], change_preview: ['operation'], change_get: ['preview_id'], change_approve: ['preview_id'],
   change_apply: ['preview_id'], agent_run: ['agent', 'message', 'request_id'],
 };
 const LIMITATIONS = [
@@ -39,9 +40,11 @@ function createWorkspaceService(deps) {
     return {policy, resolved, fingerprint: P.context(policy, resolved)};
   }
   const permission = (policy, key) => assert(policy[key] === true, 'PERMISSION_DENIED', `${key} permission is disabled.`);
-  function page(a, policy) {
-    return {offset: integer(a.offset, 0, 0, policy.maxRows - 1),
-      limit: integer(a.limit, policy.maxRows, 1, policy.maxRows), maxBytes: MAX_BYTES};
+  function page(a, policy, grants = false) {
+    const offset = integer(a.offset, 0, 0, (grants ? MAX_GRANT_ROWS : policy.maxRows) - 1);
+    return {offset,
+      limit: Math.min(integer(a.limit, policy.maxRows, 1, policy.maxRows),
+        (grants ? MAX_GRANT_ROWS : policy.maxRows) - offset), maxBytes: MAX_BYTES};
   }
   function safeFailure(err) {
     if (err instanceof WorkspaceError) {
@@ -92,6 +95,10 @@ function createWorkspaceService(deps) {
     const job = await store.get('jobs', a.job_id);
     owned(job, a);
     assert(job.fingerprint === ctx.fingerprint, 'STALE_CONTEXT', 'Saved job context no longer matches policy and connection.');
+    if (job.type === 'grants') {
+      const expires = typeof job.expireAt?.toMillis === 'function' ? job.expireAt.toMillis() : new Date(job.expireAt).getTime();
+      assert(Number.isFinite(expires) && expires > now(), 'SNAPSHOT_EXPIRED', 'Grant snapshot expired; inspect grants again.');
+    }
     return job;
   }
   async function getPreview(a, ctx) {
@@ -108,7 +115,6 @@ function createWorkspaceService(deps) {
   async function read(a, ctx, sql, bindings = []) {
     permission(ctx.policy, 'read');
     const paging = page(a, ctx.policy);
-    paging.limit = Math.min(paging.limit, ctx.policy.maxRows - paging.offset);
     return {ok: true, ...await provider.read(ctx.resolved, ctx.policy, sql, bindings, paging)};
   }
   async function dispatch(a) {
@@ -121,7 +127,7 @@ function createWorkspaceService(deps) {
     assert(typeof a.sandbox === 'string' && /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(a.sandbox),
       'INVALID_INPUT', 'A sandbox identifier is required.');
     assert(ACTIONS.includes(a.action), 'INVALID_ACTION', 'Unsupported workspace action.');
-    if (a.action === 'change_approve') assert(a.principal.authSource === 'firebase',
+    if (['change_get', 'change_approve'].includes(a.action)) assert(a.principal.authSource === 'firebase',
       'HUMAN_APPROVAL_REQUIRED', 'Approval requires the authenticated Firebase portal, not MCP or IMS.');
     if (a.action === 'capabilities') {
       const policy = await store.getPolicy(a.principal.uid, a.sandbox);
@@ -133,7 +139,7 @@ function createWorkspaceService(deps) {
       case 'capabilities':
         return {ok: true, available: true, read: policy.read, write: policy.write, grants: policy.grants,
           agents: policy.agents, maxRows: policy.maxRows, timeoutSeconds: policy.timeoutSeconds,
-          actions: ACTIONS.filter(action => action !== 'change_approve' || a.principal.authSource === 'firebase'),
+          actions: ACTIONS.filter(action => !['change_get', 'change_approve'].includes(action) || a.principal.authSource === 'firebase'),
           limitations: LIMITATIONS};
       case 'agents_list':
         return {ok: true, agents: policy.agents.map(agent => ({agent, visible: true, verified: false})),
@@ -170,9 +176,19 @@ function createWorkspaceService(deps) {
         return read(a, ctx, sql);
       }
       case 'grants_inspect': {
+        permission(policy, 'read');
         const role = a.role === undefined ? policy.role : identifier(a.role);
         assert(role === policy.role || (policy.grants && policy.grantRoles.includes(role)), 'PERMISSION_DENIED', 'Role inspection is not allowlisted.');
-        return read(a, ctx, `SHOW GRANTS TO ROLE ${quote(role)}`);
+        const result = await provider.read(resolved, policy, `SHOW GRANTS TO ROLE ${quote(role)}`, [], page(a, policy));
+        assert(typeof result.query_id === 'string' && result.query_id, 'PROVIDER_ERROR', 'Grant snapshot has no query ID.');
+        const id = hash(`${scopeId(a.principal.uid, a.sandbox)}\0grants\0${randomUUID()}`);
+        const expiresAt = date(now() + 86400000);
+        assert(await store.create('jobs', id, {...owner(a), type: 'grants', fingerprint,
+          state: 'succeeded', query_id: result.query_id, role,
+          createdAt: date(now()), updatedAt: date(now()), expireAt: expiresAt}),
+        'STORE_CONFLICT', 'Could not save grant snapshot continuation.');
+        return {ok: true, ...result, job_id: id, expiresAt, max_snapshot_rows: MAX_GRANT_ROWS,
+          continuation: 'Use query_results with this job_id and next_offset to page this exact grant snapshot.'};
       }
       case 'query_submit': {
         permission(policy, 'read');
@@ -206,12 +222,13 @@ function createWorkspaceService(deps) {
       case 'query_results':
       case 'query_cancel': {
         if (a.action !== 'query_status') permission(policy, 'read');
-        const job = await getJob(a, ctx), paging = page(a, policy);
+        const job = await getJob(a, ctx), paging = page(a, policy, job.type === 'grants');
         if (a.action === 'query_status' && (job.type === 'agent' || (job.type === 'change' && (!job.query_id || !policy.read)))) {
           return jobResult(a.job_id, job);
         }
         permission(policy, 'read');
-        assert(job.type === 'query' || (job.type === 'change' && a.action === 'query_status'),
+        assert(job.type === 'query' || (job.type === 'grants' && a.action !== 'query_cancel') ||
+          (job.type === 'change' && a.action === 'query_status'),
           'INVALID_INPUT', 'Only SQL query jobs support results and cancellation.');
         if (!job.query_id) return jobResult(a.job_id, job);
         if (a.action === 'query_status') {
@@ -225,8 +242,11 @@ function createWorkspaceService(deps) {
             ...(['unknown', 'reserved', 'submitting'].includes(state) ? {reconciliation_required: true} : {})};
         }
         if (a.action === 'query_cancel') return {ok: true, job_id: a.job_id, ...await provider.cancel(resolved, policy, job.query_id)};
-        paging.limit = Math.min(paging.limit, policy.maxRows - paging.offset);
-        return {ok: true, job_id: a.job_id, ...await provider.results(resolved, policy, job.query_id, paging)};
+        const result = await provider.results(resolved, policy, job.query_id, paging);
+        return {ok: true, job_id: a.job_id, ...result,
+          ...(job.type === 'grants' && result.next_offset >= MAX_GRANT_ROWS ?
+            {next_offset: null, row_window_exhausted: true,
+              warning: 'Grant inventory reached the one-million-row window and may be incomplete.'} : {})};
       }
       case 'change_preview': {
         const compiled = P.compileOperation(a.operation, policy), previewId = randomUUID();
@@ -234,6 +254,15 @@ function createWorkspaceService(deps) {
           state: 'previewed', createdAt: date(now()), expiresAt: date(now() + 600000), expireAt: date(now() + 600000)};
         assert(await store.create('previews', previewId, preview), 'STORE_CONFLICT', 'Could not reserve preview.');
         return {ok: true, preview_id: previewId, ...compiled, fingerprint: P.publicContext(policy), expiresAt: preview.expiresAt};
+      }
+      case 'change_get': {
+        const {preview, compiled} = await getPreview(a, ctx);
+        const expiresAt = typeof preview.expiresAt?.toDate === 'function' ?
+          preview.expiresAt.toDate() : new Date(preview.expiresAt);
+        return {ok: true, preview_id: a.preview_id, ...compiled, state: preview.state,
+          context: Object.fromEntries(['account', 'user', 'role', 'warehouse', 'database', 'schema']
+            .map(key => [key, policy[key]])),
+          expiresAt, serverNow: date(now())};
       }
       case 'change_approve': {
         const {preview} = await getPreview(a, ctx);

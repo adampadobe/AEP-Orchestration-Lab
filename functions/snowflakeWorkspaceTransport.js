@@ -25,17 +25,19 @@ function deadline(promise, seconds) {
 async function boundedRows(statement, {offset = 0, limit, maxBytes = MAX_BYTES}) {
   const rows = [];
   let bytes = 2, truncated = false;
-  const stream = statement.streamRows({start: offset, end: offset + limit - 1});
+  const stream = statement.streamRows({start: offset, end: offset + limit});
   try {
     for await (const row of stream) {
+      if (rows.length >= limit) { truncated = true; break; }
       const size = Buffer.byteLength(JSON.stringify(row, (_, v) => typeof v === 'bigint' ? String(v) : v)) + 1;
-      if (bytes + size > maxBytes || rows.length >= limit) { truncated = true; break; }
+      if (bytes + size > maxBytes) { truncated = true; break; }
       rows.push(row); bytes += size;
     }
   } finally { if (!stream.destroyed) stream.destroy(); }
   const total = statement.getNumRows?.();
-  return {rows, offset, limit, bytes, truncated: truncated || (Number.isFinite(total) && total > offset + rows.length),
-    next_offset: rows.length ? offset + rows.length : null};
+  truncated ||= Number.isFinite(total) && total > offset + rows.length;
+  return {rows, offset, limit, bytes, truncated,
+    next_offset: truncated && rows.length ? offset + rows.length : null};
 }
 function createSdkProvider({sdk, buildOptions, fetchImpl = globalThis.fetch, now = Date.now} = {}) {
   sdk ||= require('snowflake-sdk');

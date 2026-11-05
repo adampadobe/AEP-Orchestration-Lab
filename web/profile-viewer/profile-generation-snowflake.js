@@ -106,6 +106,7 @@
   /** Profile bundle last fetched for the "Inspect generated data" picker on the Full Agentic generate panel. */
   var fullGenBundleCache = null;
   var contextEpoch = 0;
+  var workspaceApprovalPanel;
   var fullGenBundleSeq = 0;
   var connectionWriteBusy = false;
   var emailPrefs = null;
@@ -252,6 +253,7 @@
   function resetWorkflowContext() {
     var wasGenerating = els.genForm && els.genForm.getAttribute('aria-busy') === 'true';
     contextEpoch += 1;
+    if (workspaceApprovalPanel) workspaceApprovalPanel.reset();
     emailSeq += 1;
     emailPrefs = null;
     emailError = '';
@@ -2661,6 +2663,34 @@
     }
 
     bindKeyFileUi();
+    workspaceApprovalPanel = window.SnowflakeWorkspaceApproval.createApprovalPanel({
+      elements: {
+        id: $('sfWorkspacePreviewId'), load: $('sfWorkspacePreviewLoad'),
+        review: $('sfWorkspaceReview'), details: $('sfWorkspaceReviewDetails'),
+        confirm: $('sfWorkspaceConfirm'), approve: $('sfWorkspaceApprove'),
+        message: $('sfWorkspaceApprovalMessage'),
+      },
+      context: readContext,
+      isCurrent: isCurrentContext,
+      request: function (action, previewId, context) {
+        if (!hasPortalLogin()) return Promise.reject(new Error(portalLoginRequiredMessage()));
+        return contextHeaders(context).then(function (headers) {
+          return fetch(snowflakeApiUrl('snowflakeWorkspace'), {
+            method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+            body: JSON.stringify({ sandbox: context.sandbox, action: action, preview_id: previewId }),
+            cache: 'no-store',
+          });
+        }).then(function (response) {
+          return response.json().then(function (body) {
+            if (!response.ok || !body.result || body.result.ok !== true) {
+              throw new Error((body.result && body.result.error && body.result.error.message) ||
+                (body.error && body.error.message) || 'Workspace request failed (HTTP ' + response.status + ').');
+            }
+            return body.result;
+          });
+        });
+      },
+    });
 
     window.addEventListener('aep-lab-sandbox-synced', function () {
       reloadWorkflowContext();

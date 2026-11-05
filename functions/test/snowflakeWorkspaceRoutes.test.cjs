@@ -55,10 +55,12 @@ test('only direct Portal authentication reaches the approval action', async () =
   for (const authSource of ['mcp_key', 'ims']) {
     const f = fixture({ ok: true, uid: 'user-a', authSource });
     assert.equal((await f.invoke({ sandbox: 'test', action: 'change_approve', preview_id: 'p' })).statusCode, 403);
+    assert.equal((await f.invoke({ sandbox: 'test', action: 'change_get', preview_id: 'p' })).statusCode, 403);
     assert.equal(f.calls.length, 0);
   }
   const f = fixture({ ok: true, uid: 'user-a', authSource: 'firebase' });
   assert.equal((await f.invoke({ sandbox: 'test', action: 'change_approve', preview_id: 'p' })).statusCode, 200);
+  assert.equal((await f.invoke({ sandbox: 'test', action: 'change_get', preview_id: 'p' })).statusCode, 200);
 });
 
 test('real workspace service accepts the authenticated route principal projection', async () => {

@@ -79,6 +79,19 @@ deduplication cannot protect a replay: never reuse old request IDs. Result pages
 are bounded to the policy row window and one MiB, and Snowflake result retention
 may end before job metadata is deleted.
 
+Grant inspection returns an owned `job_id` for its exact `SHOW GRANTS` result.
+When `truncated` is true and `next_offset` is non-null, call
+`lab_snowflake_query_results` with that job ID and offset, not another grant
+inspection. Pages do not rerun `SHOW` and cannot drift between snapshots.
+Grant snapshots allow up to one million rows in policy-sized pages (MCP requests
+cap `limit` at 500), with a one-MiB byte cap per page. This is separate from the
+unchanged SQL query row window. A final page has `next_offset: null`; never call a
+partial inventory complete when `truncated` or `row_window_exhausted` is true.
+An oversized individual row can produce `truncated: true` with no continuation.
+Grant jobs expire logically after 24 hours, are owner/sandbox/context-bound and
+cannot be cancelled through the query cancellation tool. Reinspect if Snowflake
+has already discarded the underlying result.
+
 1. Inspect capabilities for the intended sandbox. A disabled/mismatched policy
    is an error, not permission to fall back to the profile generator.
 2. List/describe objects, then submit a read query with a new UUID
@@ -86,12 +99,19 @@ may end before job metadata is deleted.
    Reuse the same request ID only to recover that exact submission.
 3. For a mutation, request a typed preview. Review the target, SQL, bindings and
    expiry outside the model conversation before approving.
-4. A human must approve through a **direct Firebase-authenticated Portal API
-   request** with `{sandbox, action:"change_approve", preview_id}`.
-   MCP-key and Coworker IMS requests cannot approve. Approval is API-only in
-   this implementation; there is no new approval button in the Profile Viewer.
-   Use the Portal's authenticated client, never copy session tokens into chat
-   or source files.
+4. Open **Profile Generation - Snowflake**
+   (`/profile-viewer/profile-generation-snowflake.html`), sign into the Portal,
+   select the matching sandbox and paste the preview ID into **Review an MCP
+   workspace change**. Load the server-held preview, review its account, user,
+   role, warehouse, database, schema, SQL, bound values, state and expiry,
+   explicitly confirm, then choose **Approve this preview**.
+   The panel uses direct Firebase-authenticated `change_get` and
+   `change_approve` requests. MCP-key and Coworker IMS requests cannot review
+   through that endpoint or approve. The panel never executes SQL or enables
+   workspace permissions. It clears on user/sandbox/connection changes and
+   expiry; late responses cannot repopulate a different target.
+   After an uncertain approval outcome, load the preview to inspect its state
+   rather than blindly retrying. Never copy session tokens into chat or files.
 5. Apply the approved preview once. Connection/policy changes invalidate it.
    An expired or consumed preview cannot authorise another operation.
 
