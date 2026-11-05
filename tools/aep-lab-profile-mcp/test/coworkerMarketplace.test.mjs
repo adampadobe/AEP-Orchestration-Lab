@@ -16,6 +16,7 @@ async function readJson(path) {
 }
 
 const expectedEndpoints = new Map([
+  ['aep-lab-snowflake', '/mcp/snowflake'],
   ['aep-lab-entry', '/mcp/entry'],
   ['aep-lab-general', '/mcp'],
   ['aep-lab-profiles', '/mcp/profile'],
@@ -120,6 +121,7 @@ test('Coworker MCP manifest uses Integration schema for General and all focused 
 test('Coworker connection prefixes keep every catalog tool within the 64-character qualified-name budget', async () => {
   const config = await readJson(join(pluginRoot, '.mcp.json'));
   const registrars = new Map([
+    ['/mcp/snowflake', registrations.registerFocusedSnowflakeTools],
     ['/mcp', registrations.registerProfileTools],
     ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
     ['/mcp/profile', registrations.registerFocusedProfileTools],
@@ -217,7 +219,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose the same eighteen endpoints with runtime-specific names and auth', async () => {
+test('Claude and Coworker packages expose the same nineteen endpoints with runtime-specific names and auth', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));

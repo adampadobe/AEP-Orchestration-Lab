@@ -35,6 +35,7 @@ import { registerEnableEventProfileTool } from './enableEventProfile.mjs';
 import { registerEventConfigTools } from './eventConfig.mjs';
 import { registerDecisioningTools } from './decisioningTools.mjs';
 import { registerSnowflakeTools } from './snowflakeTools.mjs';
+import { registerSnowflakeWorkspaceTools } from './snowflakeWorkspace.mjs';
 import { registerLiveActivityTools } from './liveActivityTools.mjs';
 import { registerDemoConfigTools } from './demoConfig.mjs';
 import { registerAudienceTools } from './audienceTools.mjs';
@@ -95,6 +96,7 @@ export function registerProfileTools(mcpServer) {
   registerPlatformCleanupTools(mcpServer);
   registerAjoCleanupTools(mcpServer);
   registerSnowflakeTools(mcpServer);
+  registerSnowflakeWorkspaceTools(mcpServer);
   registerLiveActivityTools(mcpServer);
   registerSendProfileEventTool(mcpServer);
   registerSendEdgeEventTool(mcpServer);
@@ -200,6 +202,7 @@ function registerFigmaDomainTools(mcpServer) {
 
 /** Categories `lab_load_toolset` can pull into an already-open session. */
 const LOADABLE_TOOLSETS = {
+  snowflake: registerSnowflakeWorkspaceTools,
   profile: registerProfileDomainTools,
   audiences: registerAudienceTools,
   'ajo-cleanup': registerAjoCleanupTools,
@@ -236,6 +239,14 @@ export function registerFocusedMcpGuideTools(mcpServer) {
 export function registerFocusedProfileTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerProfileDomainTools(mcpServer);
+}
+
+export function registerFocusedSnowflakeTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerSnowflakeTools(mcpServer, {
+    include: new Set(['lab_snowflake_config', 'lab_snowflake_test_connection']),
+  });
+  registerSnowflakeWorkspaceTools(mcpServer);
 }
 
 /** Governed audience cleanup catalog: access check, list, audit, one delete. */

@@ -4,12 +4,15 @@ One-click Adobe CX Coworker install for the AEP Orchestration Lab's MCP connecti
 
 ## What this installs
 
-Eighteen MCP connections: the complete General catalog plus seventeen focused capabilities:
+Nineteen MCP connections: the complete General catalog plus eighteen focused capabilities.
+The Snowflake workspace addition requires a server release and a refreshed plugin;
+it remains disabled until its administrator-managed policy is configured.
 
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `lab-all` | `/mcp` | Complete 218-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, and administration |
+| `lab-all` | `/mcp` | Complete 231-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, and administration |
+| `aep-lab-snowflake` | `/mcp/snowflake` | SQL jobs, metadata, data checks, separately approved table/data/grant changes, Cortex Agent delegation |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
 | `aep-lab-pdf-prep` | `/mcp/pdf` | HTML/document to PDF, storage, server templates |
@@ -37,7 +40,7 @@ Refresh the marketplace and update the plugin (or reinstall it if Coworker retai
 
 ## Setup: signed-in Adobe IMS
 
-All eighteen connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Adobe creative service credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
+All nineteen connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Adobe creative service credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
 
 Before first use, create at least one sandbox-scoped MCP key from the Profile Viewer's MCP key panel. That creates the server-side enrollment tying your verified Adobe email to the permitted sandbox. You do **not** paste that key into Coworker; Coworker needs only your existing Adobe sign-in.
 

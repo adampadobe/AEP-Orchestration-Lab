@@ -14,6 +14,134 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+## Governed Snowflake workspace
+
+The focused **`/mcp/snowflake`** endpoint adds a general-purpose workspace
+alongside the existing profile-generation tools. It has 16 tools: access
+information, saved connection configuration/testing, and 13 workspace tools.
+The General catalog exposes these tools too. Coworker, Claude and Copilot
+marketplace manifests include the focused connection.
+
+This is a local implementation until released; a manifest change alone does
+not deploy the Cloud Function or Cloud Run server. Existing saved Snowflake
+credentials **do not enable workspace access**. An administrator must enable
+a separate per-user, per-sandbox policy, using a dedicated least-privilege
+Snowflake role and an explicit account, user, warehouse, database and schema.
+Shared sandbox credentials require an additional policy opt-in. The MCP cannot
+modify that policy or approve its own changes.
+
+| Capability | MCP tools | Boundary |
+|---|---|---|
+| Readiness and metadata | `lab_snowflake_capabilities`, `lab_snowflake_objects_list`, `lab_snowflake_object_describe` | Policy and saved connection must agree; metadata is scoped to the workspace |
+| SQL jobs | `lab_snowflake_query_submit`, `lab_snowflake_query_status`, `lab_snowflake_query_results`, `lab_snowflake_query_cancel` | One read-only SELECT/WITH statement; durable request IDs; bounded results |
+| Data checks | `lab_snowflake_data_check` | Row count, null count, duplicate-value groups, maximum freshness timestamp; no invented freshness SLA |
+| Table/data changes | `lab_snowflake_change_preview`, `lab_snowflake_change_apply` | Typed create-table, add-column, insert, update and delete operations; updates/deletes require exact predicates |
+| Permissions | `lab_snowflake_grants_inspect`, the same preview/apply tools | Allowlisted target roles and table privileges only |
+| Snowflake AI | `lab_snowflake_agents_list`, `lab_snowflake_agent_run` | Explicitly allowlisted Cortex Agents, native REST delegation and optional thread continuation |
+
+### Query and change workflow
+
+Administrator policy documents live in `snowflakeWorkspacePolicies` under
+`SHA256(uid + '\0' + sandbox)`, with the Portal UID and lower-case sandbox.
+Manage these through existing administrator tooling, never through an MCP tool.
+The required shape is:
+
+```json
+{
+  "enabled": true,
+  "account": "YOUR_ORG-YOUR_ACCOUNT",
+  "user": "LAB_WORKSPACE_USER",
+  "role": "LAB_WORKSPACE_ROLE",
+  "warehouse": "LAB_WH",
+  "database": "LAB_DB",
+  "schema": "DEMO",
+  "allowSharedCredential": false,
+  "read": true,
+  "write": false,
+  "grants": false,
+  "grantRoles": [],
+  "agents": [],
+  "timeoutSeconds": 60,
+  "maxRows": 500
+}
+```
+
+Match saved connection identifiers exactly, including case. Grant targets are
+simple role names; agents use `DATABASE.SCHEMA.AGENT`. Enabling `write` or
+`grants` does not bypass per-change Portal approval.
+
+Configure Firestore TTL on `expireAt` in `snowflakeWorkspaceJobs` (24-hour
+request/audit retention) and `snowflakeWorkspacePreviews` (10 minutes). Previews
+contain SQL and bound values; jobs do not retain result rows or Cortex responses.
+TTL deletion is asynchronous and is not an exact deletion deadline. Preview
+expiry is also enforced by the service. After job retention ends, request-ID
+deduplication cannot protect a replay: never reuse old request IDs. Result pages
+are bounded to the policy row window and one MiB, and Snowflake result retention
+may end before job metadata is deleted.
+
+1. Inspect capabilities for the intended sandbox. A disabled/mismatched policy
+   is an error, not permission to fall back to the profile generator.
+2. List/describe objects, then submit a read query with a new UUID
+   `request_id`. Save the returned job ID and use status/results for follow-up.
+   Reuse the same request ID only to recover that exact submission.
+3. For a mutation, request a typed preview. Review the target, SQL, bindings and
+   expiry outside the model conversation before approving.
+4. A human must approve through a **direct Firebase-authenticated Portal API
+   request** with `{sandbox, action:"change_approve", preview_id}`.
+   MCP-key and Coworker IMS requests cannot approve. Approval is API-only in
+   this implementation; there is no new approval button in the Profile Viewer.
+   Use the Portal's authenticated client, never copy session tokens into chat
+   or source files.
+5. Apply the approved preview once. Connection/policy changes invalidate it.
+   An expired or consumed preview cannot authorise another operation.
+
+The API is `POST /api/snowflake/workspace` (direct Cloud Function:
+`/snowflakeWorkspace`). All actions carry `sandbox`; responses contain the
+workspace result under `result`. Use the direct function for potentially
+long-running calls; Hosting has the shorter timeout described below.
+
+No arbitrary mutation SQL, DROP, CREATE OR REPLACE, ownership transfers,
+future grants, grant option, user creation or broad account administration is
+provided. Table privileges are SELECT, INSERT, UPDATE, DELETE and REFERENCES.
+DDL is not transactionally reversible. Cancellation does not prove rollback.
+Unknown, partial or timed-out outcomes must be reconciled against the original
+job/preview and Snowflake history before new work is submitted. The transport
+does not automatically retry workspace operations.
+
+Read SQL is enforced in a Snowflake read-only session; lexical validation is
+defence in depth, **not an SQL sandbox**. The configured Snowflake role is the
+actual object-access boundary: arbitrary read SQL can address other schemas
+that role can read. Do not assign a broadly privileged role and rely on the
+workspace's metadata filter to provide isolation. Secondary roles are disabled.
+
+### Cortex delegation versus A2A
+
+Cortex delegation uses the saved connection's key-pair or programmatic access
+token (PAT) authentication. Password-only connections cannot use this REST
+path. Account availability and privileges still need to be verified in the
+target Snowflake organisation after activation. Cortex calls can incur AI
+charges and invoke the agent's configured tools; an agent allowlist is not a
+claim that those tools are read-only.
+
+Supply `thread_id` and `parent_message_id` together when continuing an existing
+thread. Preserve returned citations, warnings and continuation metadata instead
+of presenting the delegated output as independently verified fact.
+
+This is **native Cortex Agent REST delegation, not formal A2A**. A separate
+authenticated A2A bridge and direct Cortex Search/Analyst tools are not included.
+Snowflake's managed MCP supports additional native surfaces; this workspace
+does not claim full feature parity or account-verified capability merely from
+tool discovery.
+
+Official references:
+
+- [Snowflake-managed MCP](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-mcp)
+- [SQL API overview and limitations](https://docs.snowflake.com/en/developer-guide/sql-api/intro)
+- [Snowflake REST APIs](https://docs.snowflake.com/en/developer-guide/snowflake-rest-api/snowflake-rest-api)
+- [Cortex Agent run API](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-run)
+- [Cortex Agent threads](https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents-threads)
+- [Snowflake-Labs A2A reference bridge](https://github.com/Snowflake-Labs/cortex_agent_a2a)
+
 ### Long-running requests and gateway errors
 
 Snowflake SQL calls from the page and MCP use the direct Cloud Function URLs,
