@@ -91,6 +91,21 @@ test('editing the ID clears the review; an invalid ID is rejected without a requ
   assert.match(f.elements.message.textContent, /preview UUID/);
 });
 
+test('Portal deep links load the matching preview but never preselect approval', async () => {
+  const f = fixture();
+  await f.panel.loadPreviewFromLink(previewId, 'apalmer');
+  assert.deepEqual(f.calls.map(call => call.action), ['change_get']);
+  assert.equal(f.elements.id.value, previewId);
+  assert.equal(f.elements.review.hidden, false);
+  assert.equal(f.elements.confirm.checked, false);
+  assert.equal(f.elements.approve.disabled, true);
+
+  const wrongSandbox = fixture();
+  await wrongSandbox.panel.loadPreviewFromLink(previewId, 'other');
+  assert.equal(wrongSandbox.calls.length, 0);
+  assert.match(wrongSandbox.elements.message.textContent, /targets sandbox other/);
+});
+
 test('owner, sandbox or connection changes clear loaded data and suppress in-flight review responses', async () => {
   for (const patch of [{uid: 'u2'}, {sandbox: 'other'}, {epoch: 1}]) {
     const f = fixture();

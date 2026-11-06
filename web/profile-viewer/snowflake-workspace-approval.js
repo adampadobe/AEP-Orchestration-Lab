@@ -45,6 +45,20 @@
       render();
     }
 
+    function loadPreviewFromLink(previewId, targetSandbox) {
+      els.id.value = String(previewId || '').trim();
+      var expectedSandbox = String(targetSandbox || '').trim().toLowerCase();
+      var context = options.context();
+      if (expectedSandbox && context.sandbox !== expectedSandbox) {
+        clearReview();
+        message('This preview link targets sandbox ' + expectedSandbox +
+          '. Select that sandbox before reviewing the preview.', true);
+        render();
+        return Promise.resolve();
+      }
+      return load();
+    }
+
     async function load() {
       var id = els.id.value.trim().toLowerCase();
       var seq = ++sequence;
@@ -123,7 +137,7 @@
     els.confirm.addEventListener('change', render);
     els.approve.addEventListener('click', approve);
     reset();
-    return {reset: reset};
+    return {reset: reset, loadPreviewFromLink: loadPreviewFromLink};
   }
 
   if (typeof module !== 'undefined' && module.exports) module.exports = {createApprovalPanel: createApprovalPanel};

@@ -22,6 +22,17 @@ const grant = {
   role: identifier,
   privileges: z.array(z.enum(['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'REFERENCES'])).min(1).max(5),
 };
+const SNOWFLAKE_REVIEW_PAGE =
+  'https://aep-orchestration-lab.web.app/profile-viewer/profile-generation-snowflake.html';
+
+function snowflakePreviewReviewUrl(previewId, sandbox) {
+  const url = new URL(SNOWFLAKE_REVIEW_PAGE);
+  url.searchParams.set('preview_id', previewId);
+  url.searchParams.set('review_sandbox', sandbox);
+  url.hash = 'sfWorkspaceApprovalHeading';
+  return url.toString();
+}
+
 export const snowflakeChangeOperation = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('create_table'), table: identifier, columns: z.array(column).min(1).max(100) }).strict(),
   z.object({ kind: z.literal('add_column'), table: identifier, column }).strict(),
@@ -57,7 +68,7 @@ const definitions = [
     'Compute a row count, null count, duplicate-value groups, or maximum freshness timestamp for one workspace table. Freshness reports evidence, not an invented SLA.',
     { table: identifier, column: identifier.optional(), check: z.enum(['row_count', 'null_count', 'duplicates', 'freshness']) }],
   ['change_preview', 'Preview a Snowflake table, data or grant change',
-    'Prepare one typed operation and inspect exact SQL, bound values, target and expiry. Does not execute changes. Give the preview_id to the human to review in the Snowflake page at /profile-viewer/profile-generation-snowflake.html. Separate Portal approval is required; the MCP cannot approve its own changes.',
+    'Prepare one typed operation and inspect exact SQL, bound values, target and expiry. Does not execute changes. Returns review_url, a Portal deep link that opens and loads this exact preview. Separate Portal approval is required; the MCP cannot approve its own changes.',
     { operation: snowflakeChangeOperation }],
   ['change_apply', 'Apply a separately approved Snowflake change',
     'Consume one unexpired, server-approved preview exactly once. Rechecks connection and policy. Never automatically retry an unknown result. DDL is not transactionally reversible.',
@@ -111,7 +122,9 @@ export function registerSnowflakeWorkspaceTools(server) {
           status: response.status, ...(result || response.data || {}),
         });
       }
-      return jsonResult(result);
+      return jsonResult(action === 'change_preview'
+        ? {...result, review_url: snowflakePreviewReviewUrl(result.preview_id, allowed.sandbox)}
+        : result);
     });
   }
 }

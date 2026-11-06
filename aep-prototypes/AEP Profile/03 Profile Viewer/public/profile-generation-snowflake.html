@@ -508,13 +508,13 @@
         </section>
         <section class="sf-gen-card sf-workspace-approval" aria-labelledby="sfWorkspaceApprovalHeading">
           <h3 id="sfWorkspaceApprovalHeading">Review an MCP workspace change</h3>
-          <p>Paste a preview ID from <code>lab_snowflake_change_preview</code>. Review the server-held SQL and values before approving with your Portal sign-in. Approval never executes SQL and does not enable workspace permissions.</p>
+          <p>Open the <code>review_url</code> returned by <code>lab_snowflake_change_preview</code> to load the exact server-held preview here. Review its SQL and values, then explicitly approve with your Portal sign-in. Approval never executes SQL and does not enable workspace permissions. You can also paste a preview ID below.</p>
           <div class="sf-gen-form">
             <div class="form-row">
               <label for="sfWorkspacePreviewId">Preview ID</label>
               <input id="sfWorkspacePreviewId" type="text" autocomplete="off" spellcheck="false" maxlength="36" aria-describedby="sfWorkspaceApprovalHint">
             </div>
-            <p id="sfWorkspaceApprovalHint" class="field-hint">Only your own unexpired preview in the selected sandbox can be reviewed. DDL auto-commits; rollback is not promised.</p>
+            <p id="sfWorkspaceApprovalHint" class="field-hint">Only your own unexpired preview in its sandbox can be reviewed. Link loading never approves automatically. DDL auto-commits; rollback is not promised.</p>
             <button id="sfWorkspacePreviewLoad" type="button" class="btn btn-secondary">Load preview</button>
             <div id="sfWorkspaceReview" hidden>
               <pre id="sfWorkspaceReviewDetails" class="sf-gen-sql-pre" tabindex="0" aria-label="Exact change for review"></pre>
@@ -539,7 +539,7 @@
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
   <script src="profile-generation-prefs-sync.js?v=20261016-shared-email"></script>
-  <script src="snowflake-workspace-approval.js?v=20261105"></script>
-  <script src="profile-generation-snowflake.js?v=20261105-workspace-approval"></script>
+  <script src="snowflake-workspace-approval.js?v=20261106-preview-link"></script>
+  <script src="profile-generation-snowflake.js?v=20261106-preview-link"></script>
 </body>
 </html>

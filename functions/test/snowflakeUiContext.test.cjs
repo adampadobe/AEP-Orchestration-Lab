@@ -57,7 +57,7 @@ function fixture() {
   nodes.get('sfGenScopeSingle').checked = true;
   nodes.get('sfGenScopeFull').checked = false;
   const context = {
-    console, performance, clearTimeout,
+    console, performance, clearTimeout, URLSearchParams,
     setTimeout: (callback, delay) => { const timer = setTimeout(callback, delay); timer.unref(); return timer; },
     localStorage: {
       getItem: (key) => storage.get(key) || null,
@@ -72,6 +72,7 @@ function fixture() {
       addEventListener: (name, handler) => { events[name] = handler; eventTargets[name] = 'document'; },
     },
     window: {
+      location: { search: '' },
       firebaseDatabaseConfig: { projectId: 'fixture-project' },
       firebase: { auth: () => auth }, confirm: () => true,
       AepProfileGenPrefsSync: {
@@ -94,6 +95,7 @@ function fixture() {
       load: loadProfiles, enrich: enrichSelected, generate: generateProfiles, generateClick: handleGenerateClick,
       catalog: loadIndustryCatalog, render: renderProfileRows,
       loadEmail: loadEmailPrefs, saveEmail: saveEmailPrefs,
+      loadLinkedWorkspacePreview: loadLinkedWorkspacePreview,
       profiles: function () { return loadedProfiles; } };
   })();`);
   runInNewContext(approvalSource, context);
@@ -148,6 +150,41 @@ test('Portal review and approval use direct authenticated workspace requests and
   assert.equal(f.nodes.get('sfWorkspacePreviewId').value, '');
   assert.equal(f.nodes.get('sfWorkspaceReviewDetails').textContent, '');
   assert.equal(f.nodes.get('sfWorkspaceApprovalMessage').hidden, true);
+});
+
+test('MCP preview links load the exact preview in the linked sandbox without approving it', async () => {
+  const f = fixture();
+  const id = 'c19882d0-822e-4ab4-91d0-e2f23e9db4be';
+  f.window.location.search = '?preview_id=' + id + '&review_sandbox=sandbox-b';
+  f.respond(async (_url, options) => {
+    return { ok: true, json: async () => ({ result: {
+      ok: true, preview_id: id, state: 'previewed', sql: 'DELETE FROM "DB"."SCHEMA"."T"',
+      bindings: [], serverNow: new Date().toISOString(), expiresAt: new Date(Date.now() + 600000).toISOString(),
+    } }) };
+  });
+
+  f.ui.loadLinkedWorkspacePreview();
+  await flush();
+  assert.equal(f.calls.length, 1);
+  assert.deepEqual(f.calls[0].body, { sandbox: 'sandbox-b', action: 'change_get', preview_id: id });
+  assert.equal(f.nodes.get('sfWorkspaceReview').hidden, false);
+  assert.equal(f.nodes.get('sfWorkspaceConfirm').checked, false);
+  assert.equal(f.nodes.get('sfWorkspaceApprove').disabled, true);
+  f.nodes.get('sfWorkspaceConfirm').checked = true;
+  f.nodes.get('sfWorkspaceConfirm').listeners.change();
+  f.sandbox('sandbox-c');
+  await f.nodes.get('sfWorkspaceApprove').listeners.click();
+  assert.equal(f.calls.length, 1, 'a page sandbox change invalidates the approval');
+});
+
+test('a linked approval sandbox does not change the page generation target', async () => {
+  const f = fixture();
+  const id = 'c19882d0-822e-4ab4-91d0-e2f23e9db4be';
+  f.window.location.search = '?preview_id=' + id + '&review_sandbox=sandbox-b';
+  await f.readyEmail();
+  f.ui.generate();
+  await flush();
+  assert.equal(f.calls[0].body.sandbox, 'sandbox-a');
 });
 
 test('Snowflake SQL URLs bypass Hosting using the configured project or existing origin override', () => {

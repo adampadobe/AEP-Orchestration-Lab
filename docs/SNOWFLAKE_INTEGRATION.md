@@ -97,12 +97,14 @@ has already discarded the underlying result.
 2. List/describe objects, then submit a read query with a new UUID
    `request_id`. Save the returned job ID and use status/results for follow-up.
    Reuse the same request ID only to recover that exact submission.
-3. For a mutation, request a typed preview. Review the target, SQL, bindings and
-   expiry outside the model conversation before approving.
-4. Open **Profile Generation - Snowflake**
-   (`/profile-viewer/profile-generation-snowflake.html`), sign into the Portal,
-   select the matching sandbox and paste the preview ID into **Review an MCP
-   workspace change**. Load the server-held preview, review its account, user,
+3. For a mutation, request a typed preview. Open the returned `review_url` to
+   deep-link into the Portal with this exact preview and sandbox. The page loads
+   the server-held preview but never approves it automatically. The link's
+   sandbox applies only to review, not the page's other Snowflake actions. If a link is
+   unavailable, open **Profile Generation - Snowflake**
+   (`/profile-viewer/profile-generation-snowflake.html`) and paste the preview
+   ID into **Review an MCP workspace change**.
+4. Sign into the Portal, review the preview's account, user,
    role, warehouse, database, schema, SQL, bound values, state and expiry,
    explicitly confirm, then choose **Approve this preview**.
    The panel uses direct Firebase-authenticated `change_get` and
