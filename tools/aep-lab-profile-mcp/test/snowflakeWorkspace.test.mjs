@@ -63,6 +63,20 @@ test('workspace tools reject ops principals and out-of-scope sandboxes without t
   })).isError, true);
 });
 
+test('change previews include a direct Portal review link pinned to the preview and sandbox', async (t) => {
+  const previewId = 'c19882d0-822e-4ab4-91d0-e2f23e9db4be';
+  t.mock.method(globalThis, 'fetch', async () => Response.json({
+    ok: true,
+    result: { ok: true, preview_id: previewId, state: 'previewed' },
+  }));
+  const result = await invoke('change_preview', {
+    operation: { kind: 'insert', table: 'T', values: { ID: 1 } },
+  });
+  const output = JSON.parse(result.content[0].text);
+  assert.equal(output.review_url,
+    `https://aep-orchestration-lab.web.app/profile-viewer/profile-generation-snowflake.html?preview_id=${previewId}&review_sandbox=test#sfWorkspaceApprovalHeading`);
+});
+
 test('transport preserves jobs and provider errors and never retries ambiguous submits', async (t) => {
   const calls = [];
   t.mock.method(globalThis, 'fetch', async (url, init) => {
