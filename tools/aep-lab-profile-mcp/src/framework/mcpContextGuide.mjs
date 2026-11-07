@@ -19,10 +19,10 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 231,
+    toolCount: 236,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
-    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration', 'governed dataset and schema cleanup (list, audit, exact single-resource delete)'],
+    capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration', 'governed dataset and schema cleanup (list, audit, exact single-resource delete)', 'Orchestrated Campaign dataset status, validation, preview, serial enablement, and job status'],
     useWhen: 'Use for broad work, first-run setup, infrastructure, Snowflake, administration, or existing key-based configurations.',
   },
   {
@@ -102,6 +102,17 @@ export const MCP_CONTEXTS = Object.freeze([
     risk: 'controlled delete; lifecycle audit and exact confirmation required',
     capabilities: ['AJO journey inventory', 'AJO campaign inventory', 'journey audit and deletion', 'campaign audit and deletion'],
     useWhen: 'Use for governed AJO journey and campaign cleanup.',
+  },
+  {
+    id: 'aep-lab-ajo-oc-datasets',
+    name: 'AEP Lab Orchestrated Campaign datasets',
+    url: `${LAB_BASE_URL}/mcp/ajo-oc-datasets`,
+    kind: 'lab-focused',
+    toolCount: 4,
+    access: LAB_ACCESS,
+    risk: 'read-only status, validation, and job tracking; dataset changes require the complete General context and exact preview confirmation',
+    capabilities: ['rel_ dataset status', 'read-only Adobe eligibility validation', 'owned enablement job status'],
+    useWhen: 'Use to inspect Orchestrated Campaign dataset eligibility or track a previously submitted job. Use lab-all only for governed preview and apply.',
   },
   {
     id: 'aep-lab-command-centre',
@@ -270,6 +281,17 @@ export const MCP_WORKFLOWS = Object.freeze({
     contexts: ['aep-lab-ajo-cleanup'],
     steps: ['List journeys or campaigns.', 'Audit one exact asset and its lifecycle.', 'Obtain exact ID, name, and status confirmation.', 'Delete one eligible asset and verify.'],
   },
+  ajo_orchestrated_campaign_datasets: {
+    title: 'Validate and enable Orchestrated Campaign datasets',
+    contexts: ['aep-lab-ajo-oc-datasets', 'aep-lab-general'],
+    steps: [
+      'Use the read-only focused context to inspect exact rel_ dataset status and call Adobe validation; stop on HTTP 401/403.',
+      'Use lab-all to preview the exact dataset IDs, eligibility, existing-data warnings, preflight ID, and confirmation phrase.',
+      'Show the exact scope and phrase; only after explicit colleague confirmation call apply with the unchanged IDs, preflight ID, phrase, and confirmed true.',
+      'The backend re-reads and revalidates each dataset, submits one dataset per request serially, never retries a write, and stops on the first failure or uncertain result.',
+      'Poll the returned batch_job_id or owned Adobe job IDs; do not re-submit when a job is pending or a submission outcome is uncertain.',
+    ],
+  },
   platform_cleanup: {
     title: 'Audit and delete one AEP dataset or tenant schema',
     contexts: ['aep-lab-general'],
@@ -401,6 +423,7 @@ const KEYWORDS = Object.freeze({
   'aep-lab-decisioning': ['decision', 'decisioning', 'offer', 'treatment', 'edge evaluate', 'catalog'],
   'aep-lab-audiences': ['audience', 'segment', 'delete audience', 'audience cleanup'],
   'aep-lab-ajo-cleanup': ['journey delete', 'campaign delete', 'journey cleanup', 'campaign cleanup', 'delete journey', 'delete campaign'],
+  'aep-lab-ajo-oc-datasets': ['orchestrated campaign dataset', 'orchestrated campaigns dataset', 'orchestrated campaign enablement', 'ajo dataset enablement', 'rel_ dataset', 'relational dataset'],
   'aep-lab-command-centre': ['command centre', 'customer engagement', 'meeting', 'task list', 'next action'],
   'aep-lab-weather': ['weather', 'forecast', 'temperature', 'rain', 'weather map'],
   'aep-lab-geo-insights': ['geo insights', 'geo hotspots', 'audience hotspots', 'customers near', 'customers around', 'profiles around', 'audience map', 'weather and audience', 'camping gear near', 'customers who viewed', 'current weather', 'who viewed'],
@@ -435,6 +458,12 @@ export function recommendMcpContexts(goal) {
     && /\b(datasets?|schemas?|tables?)\b/.test(normalizedGoal);
   if (platformCleanupGoal && !ranked.some((candidate) => candidate.id === 'aep-lab-general')) {
     ranked.push({ id: 'aep-lab-general', matches: ['dataset/schema cleanup'] });
+  }
+  const orchestratedDatasetGoal = /\b(orchestrated campaigns?|ajo|rel_)\b/.test(normalizedGoal)
+    && /\b(datasets?|eligibility|enablement|status|jobs?)\b/.test(normalizedGoal);
+  if (orchestratedDatasetGoal) {
+    const index = ranked.findIndex((candidate) => candidate.id === 'aep-lab-ajo-oc-datasets');
+    if (index > 0) ranked.unshift(...ranked.splice(index, 1));
   }
   const cleanupIndex = ranked.findIndex((candidate) => candidate.id === 'aep-lab-general');
   if (cleanupIndex > 0) ranked.unshift(...ranked.splice(cleanupIndex, 1));

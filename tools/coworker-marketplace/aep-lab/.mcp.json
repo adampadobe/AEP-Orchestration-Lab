@@ -82,6 +82,13 @@
         "tool_timeout_seconds": 300
       },
       {
+        "name": "aep-lab-ajo-oc-datasets",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets",
+        "transport": "streamable_http",
+        "auth": "aep-lab-ims-passthrough",
+        "tool_timeout_seconds": 180
+      },
+      {
         "name": "aep-lab-command-centre",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
         "transport": "streamable_http",

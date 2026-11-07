@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.52.2.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.53.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 231-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the eighteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and exposes the complete 236-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
@@ -15,6 +15,7 @@ The original `/mcp` endpoint remains backward compatible and exposes the complet
 | `/mcp/snowflake` | 16 | Administrator-enabled workspace: SQL jobs, metadata, data checks, separately approved typed table/data/grant changes, Cortex Agent delegation; see [activation and safety](../../docs/SNOWFLAKE_INTEGRATION.md#governed-snowflake-workspace) |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
+| `/mcp/ajo-oc-datasets` | 4 | Access check plus read-only Orchestrated Campaign dataset status, eligibility validation, and owned job status; use `/mcp` for preview/apply |
 | `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
 | `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
@@ -53,11 +54,11 @@ notice, Firestore TTL and runtime permissions require separate approval before
 activation. See [lab usage statistics](../../docs/LAB_USAGE_STATISTICS.md#phase-3-implemented-locally-collection-disabled-by-default)
 for identity attribution, outcome semantics, reporting limits and release gates.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `lab-all` plus all seventeen focused connections above and authenticates them with the signed-in Adobe IMS session. Plugin 1.9.0 shortens General, Decisioning, and Commerce Optimizer connection names to `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Endpoint URLs, tool names, framework context IDs, and Claude/API-key configurations are unchanged; the context directory supplies `coworkerConnectionName` for those three integrations. Existing users must update or reinstall the plugin, disconnect old named connections, and start a new chat. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `lab-all` plus all nineteen focused connections above and authenticates them with the signed-in Adobe IMS session. Plugin 1.10.0 adds a read-only Orchestrated Campaign dataset context at `aep-lab-ajo-oc-datasets`; preview/apply remain available only in `lab-all`. The previous 1.9.0 release shortened General, Decisioning, and Commerce Optimizer connection names to `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Existing users must update or reinstall the plugin, then start a new chat. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same nineteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
-**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus seventeen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
+**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus nineteen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
 
 ### Troubleshooting Coworker HTTP 403
 
@@ -406,6 +407,18 @@ Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cle
 5. The Firebase proxy re-fetches immediately, blocks identity/lifecycle changes, and permits only Draft or Finished journeys and Draft campaigns. There is no batch delete tool.
 
 Adobe's current public Journey and Campaign references document retrieval but not deletion. These delete calls use the allowlisted AJO authoring operations used by product lifecycle management; availability still depends on the integration's Journey/Campaign permissions and Adobe may reject unsupported dependencies.
+
+### Governed Orchestrated Campaign dataset enablement
+
+Use the read-only `/mcp/ajo-oc-datasets` context for dataset status, Adobe eligibility validation, and status checks for owned Adobe jobs. Preview and apply are intentionally available only on the complete `/mcp` (`lab-all`) endpoint. The principal must be enrolled and allowlisted for the requested sandbox.
+
+1. Run `lab_ajo_oc_dataset_status` and `lab_ajo_oc_dataset_validate` for the exact `rel_` dataset IDs. Adobe's validation checks the model-based schema, record behavior, primary/version descriptors, CDC ingestion, and absence of Profile/System enablement or an existing/in-progress extension. Stop on Adobe HTTP 401/403; do not infer access from scopes.
+2. Run `lab_ajo_oc_dataset_preview` with exact IDs or the `rel_` prefix. Review every selected and eligible dataset, data-ingested warnings, the single-use 15-minute `preflight_id`, and exact `confirmation_phrase`. Preview never calls Adobe's enablement endpoint.
+3. Show the exact sandbox, planned IDs/names, warnings, and phrase. Only after explicit confirmation for that precise scope, call `lab_ajo_oc_dataset_apply` with the unchanged `planned_dataset_ids`, `preflight_id`, phrase, and `confirmed:true`.
+4. The Firebase backend consumes the principal/org/sandbox-bound ticket once, re-reads Catalog metadata and reruns validation before each item, then POSTs one dataset ID per request serially. It records each returned Adobe job ID and stops on the first failure or uncertain submission. Adobe writes and the MCP forwarding call are not automatically retried.
+5. Poll `lab_ajo_oc_dataset_job_status` by the returned `batch_job_id` or owned Adobe `job_ids`. If submission is uncertain, reconcile status; never re-submit the dataset automatically.
+
+The endpoint contract follows Adobe's [Orchestrated Campaign dataset extension API](https://developer.adobe.com/journey-optimizer-apis/references/orchestrated-campaign-dataset). This workflow enables only the dataset extension. It does not create dataflows, load data, create campaigns, or prove downstream use is ready.
 
 ### Governed dataset and tenant schema cleanup
 

@@ -390,6 +390,13 @@
         }
       },
       {
+        "source": "/api/ajo-oc-datasets",
+        "function": {
+          "functionId": "ajoOcDatasetProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/commerce-prep",
         "function": {
           "functionId": "commercePrepProxy",

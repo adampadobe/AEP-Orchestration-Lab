@@ -55,6 +55,7 @@ import { registerCreativityTools } from './creativityTools.mjs';
 import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 import { registerGeoInsightsTools } from './geoInsightsTools.mjs';
+import { registerAjoOcDatasetTools } from './ajoOcDatasetTools.mjs';
 
 const batchStatusServers = new WeakSet();
 function registerSharedBatchJobStatusTool(mcpServer) {
@@ -95,6 +96,7 @@ export function registerProfileTools(mcpServer) {
   registerAudienceTools(mcpServer);
   registerPlatformCleanupTools(mcpServer);
   registerAjoCleanupTools(mcpServer);
+  registerAjoOcDatasetTools(mcpServer);
   registerSnowflakeTools(mcpServer);
   registerSnowflakeWorkspaceTools(mcpServer);
   registerLiveActivityTools(mcpServer);
@@ -259,6 +261,12 @@ export function registerFocusedAudienceTools(mcpServer) {
 export function registerFocusedAjoCleanupTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerAjoCleanupTools(mcpServer);
+}
+
+/** Read-only Orchestrated Campaign dataset inventory, validation, and job status. */
+export function registerFocusedAjoOcDatasetTools(mcpServer) {
+  registerMcpAccessInfoTool(mcpServer);
+  registerAjoOcDatasetTools(mcpServer, { readOnlyOnly: true });
 }
 
 /** Decisioning evaluation and catalog tools, plus the access check. */
