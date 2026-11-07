@@ -153,7 +153,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const catalog = readFileSync(new URL('../../../web/profile-viewer/mcp-servers.js', import.meta.url), 'utf8');
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
-  assert.match(html, /v3\.53\.0/);
+  assert.match(html, /v3\.54\.0/);
   assert.match(html, /installs General plus nineteen focused integrations/i);
   assert.match(html, /Add <code>https:\/\/github\.com\/adampadobe\/AEP-Orchestration-Lab<\/code> as a marketplace with no subdirectory/i);
   assert.match(html, /Claude stores the key as sensitive plugin configuration/i);

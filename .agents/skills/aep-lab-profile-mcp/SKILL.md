@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.53.0). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.54.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.53.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.54.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`). General (`lab-all`, `/mcp`) registers 238 tools, including read-only `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`. Diagnose with an exact batch ID or flow/run pair; preserve incomplete evidence and raw Adobe errors. Neither tool repairs source data or changes ingestion settings.
 
 Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session. Alongside `/mcp/entry` (5 tools), `/mcp/ajo-oc-datasets` (4), `/mcp/profile` (23), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4), there are other focused endpoints listed in the MCP README. The Orchestrated Campaign dataset endpoint is read-only: status, eligibility validation, and job status; use General for governed preview and enablement. The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
