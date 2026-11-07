@@ -56,6 +56,7 @@ import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 import { registerGeoInsightsTools } from './geoInsightsTools.mjs';
 import { registerAjoOcDatasetTools } from './ajoOcDatasetTools.mjs';
+import { registerAepIngestionDiagnosticsTools } from './aepIngestionDiagnosticsTools.mjs';
 
 const batchStatusServers = new WeakSet();
 function registerSharedBatchJobStatusTool(mcpServer) {
@@ -97,6 +98,7 @@ export function registerProfileTools(mcpServer) {
   registerPlatformCleanupTools(mcpServer);
   registerAjoCleanupTools(mcpServer);
   registerAjoOcDatasetTools(mcpServer);
+  registerAepIngestionDiagnosticsTools(mcpServer);
   registerSnowflakeTools(mcpServer);
   registerSnowflakeWorkspaceTools(mcpServer);
   registerLiveActivityTools(mcpServer);

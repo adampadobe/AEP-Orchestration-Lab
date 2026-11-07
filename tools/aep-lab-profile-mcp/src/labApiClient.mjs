@@ -995,6 +995,24 @@ function generationPrefsAuthHeaders() {
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
 }
 
+function ingestionDiagnosticsRead(action, params) {
+  return labApiRequest('/aepIngestionDiagnosticsProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { ...params, action },
+    headers: principalAuthHeaders(),
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+export function aepBatchDiagnose(params) {
+  return ingestionDiagnosticsRead('batch_diagnose', params);
+}
+
+export function aepFlowRunStatus(params) {
+  return ingestionDiagnosticsRead('flow_run_status', params);
+}
+
 export function principalAuthHeaders() {
   const ims = getRequestImsAuthHeaders();
   if (!ims) return generationPrefsAuthHeaders();

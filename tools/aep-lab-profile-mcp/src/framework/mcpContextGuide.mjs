@@ -19,11 +19,11 @@ export const MCP_CONTEXTS = Object.freeze([
     name: 'AEP Lab general demo preparation',
     url: `${LAB_BASE_URL}/mcp`,
     kind: 'lab-complete',
-    toolCount: 236,
+    toolCount: 238,
     access: LAB_ACCESS,
     risk: 'mixed; individual mutations remain governed',
     capabilities: ['broad demo preparation', 'multi-step lab workflows', 'all focused Lab capabilities', 'advanced onboarding and administration', 'governed dataset and schema cleanup (list, audit, exact single-resource delete)', 'Orchestrated Campaign dataset status, validation, preview, serial enablement, and job status'],
-    useWhen: 'Use for broad work, first-run setup, infrastructure, Snowflake, administration, or existing key-based configurations.',
+    useWhen: 'Use for broad work, first-run setup, infrastructure, Snowflake, administration, read-only batch ingestion diagnostics and flow-run status, or existing key-based configurations.',
   },
   {
     id: 'aep-lab-demo-prep',

@@ -2,11 +2,47 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.53.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.54.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 236-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and registers the complete 238-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. The two ingestion diagnostics additions below require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after upgrading from v3.53.0 (236 tools):
+
+### Read-only ingestion diagnostics
+
+General (`lab-all`) includes `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`.
+They require a user-generated MCP key or independently validated IMS Portal enrollment
+for the exact sandbox. No Profile, batch, dataflow or Snowflake settings are changed.
+
+`lab_aep_batch_diagnose` accepts `sandbox` and either `batch_id` or the pair
+`flow_id`/`run_id`. Supplying all three verifies their linkage. Run lookup first
+uses direct activity Batch references, otherwise resolves the flow's single
+dataset target and queries Catalog with both dataset and run-tag filters. A
+multi-target flow without Batch references requires an exact batch ID. It expands JSON
+processing/valve tags, including `acp_stallDetail`, while retaining the raw batch,
+Adobe errors, metrics and related run activities. File listings are capped at five
+100-file pages per section. `sample_limit` defaults to 10 (0–50); at most five
+error files and 256 KiB per sample are read. Samples and raw stall details may
+contain source data: inspect only in the authorized session, never logs or shared
+handoffs. Unavailable exports (including staging-batch 400/404 responses), malformed
+tags, limits and timeouts appear in `issues` with `complete:false`; Adobe error
+bodies remain in `platform_response`. HTTP 401/403 stops collection. Requests
+never retry or follow redirects, use a 60-second request timeout and a four-minute
+batch diagnostic deadline, and cap ordinary JSON responses at 2 MiB.
+
+`lab_aep_flow_run_status` accepts `sandbox`, `flow_id`, optional ISO `since`,
+`limit` (1–50, default 10) and `continuation_token`. It returns run state, counts,
+duration, errors and activities. Missing counts remain `null`. `since` filters
+the returned page locally by `createdAt` because Flow Service rejects combined
+flow/time property filters; `since_filter.scanned` reports page coverage. Follow
+every continuation token with the same flow and timestamp, including when the
+filtered page is empty. Copy-activity success alone does not prove batch promotion.
+
+API contracts: [batch errors and diagnostic rows](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/error-diagnostics),
+[failed files](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/retrieve-failed-batches),
+and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/monitor).
+
+### Endpoint catalog
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|

@@ -397,6 +397,13 @@
         }
       },
       {
+        "source": "/api/aep-ingestion-diagnostics",
+        "function": {
+          "functionId": "aepIngestionDiagnosticsProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/commerce-prep",
         "function": {
           "functionId": "commercePrepProxy",
