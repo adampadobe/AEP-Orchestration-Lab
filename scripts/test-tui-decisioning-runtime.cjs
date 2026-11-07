@@ -88,6 +88,14 @@ test('only TUI loads its decisioning drawer with offer/strategy event cards', ()
   }
 });
 
+test('TUI follows the selected sandbox instead of pinning kirkham', () => {
+  const html = fs.readFileSync(path.join(root, 'tui-decisioning-demo.html'), 'utf8');
+  const demo = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
+  assert.ok(!/defaultSandbox|setSelected\(/.test(html));
+  assert.ok(!demo.includes("'kirkham'"));
+  assert.ok(demo.includes("Select a sandbox before Apply.") && demo.includes("Select a sandbox before Run."));
+});
+
 test('manual decisions capture the original SDK, browser identity and datastream without rendering or premature display events', async () => {
   const f = fixture();
   assert.equal(f.runtime.supportsManualDisplay, true);

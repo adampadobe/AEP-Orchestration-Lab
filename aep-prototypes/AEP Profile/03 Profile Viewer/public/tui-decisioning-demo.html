@@ -78,17 +78,14 @@
       window.addEventListener('popstate',function(){frame.contentWindow.postMessage({type:'tui-set-channel',channel:new URLSearchParams(location.search).get('channel')||'email'},location.origin);});
     })();
     window.envBarConfig = {
-      prefix: 'tuiDecisioning', variant: 'spectrum', defaultSandbox: 'kirkham', localOverride: true, firestoreListen: false,
+      prefix: 'tuiDecisioning', variant: 'spectrum', localOverride: true, firestoreListen: false,
       features: { webPush: false, bc: false, target: false, decisioning: true },
       iframeIds: ['tui-visualiser'],
       decisioning: { iframeId: 'tui-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js',
         autoRunDecisioning: false, viewName: 'TUI Decisioning', eventTenantNamespace: '_demoemea' },
-      labCoreScript: 'tui-decisioning-demo.js?v=20261023-event-timeline'
+      labCoreScript: 'tui-decisioning-demo.js?v=20261107-selected-sandbox'
     };
-    if (!window.AepGlobalSandbox.getSelected()) {
-      window.AepGlobalSandbox.setSelected('kirkham', { source: 'tui-demo-default' });
-    }
   </script>
   <script src="decisioning-persona-journey.js?v=20261022-abandoned-search-icon"></script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
