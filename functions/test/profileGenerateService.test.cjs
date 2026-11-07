@@ -1,12 +1,18 @@
 'use strict';
 
-const { describe, it } = require('node:test');
+const { describe, it, beforeEach } = require('node:test');
 const assert = require('node:assert/strict');
 const genericProfileConnectionStore = require('../genericProfileConnectionStore');
 const fsiProfileConnectionStore = require('../fsiProfileConnectionStore');
 const profileTableHelpers = require('../profileTableHelpers');
 const { handleProfileGenerate } = require('../profileGenerateService');
 const { encodeGeohash } = require('../profilePlaceContext');
+const schemaViewerService = require('../schemaViewerService');
+const generationSchema = require('./fixtures/profileGenerationSchema.cjs');
+
+beforeEach((t) => {
+  t.mock.method(schemaViewerService, 'fetchSchemaById', async () => generationSchema);
+});
 
 function makeRes() {
   return {
@@ -49,6 +55,72 @@ async function generate(body, context) {
   await handleProfileGenerate({ method: 'POST', query: {}, headers: {}, body }, res, context || ctx());
   return res;
 }
+
+describe('POST /api/profile/generate resolved schema', () => {
+  const connection = async () => ({
+    streaming: {
+      url: 'https://dcs.adobedc.net/collection/offline',
+      flowId: 'offline-flow',
+      datasetId: 'offline-dataset',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/offline',
+    },
+  });
+
+  it('streams canonical consent/language leaves and returns the exact persistence expectations', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    let wire;
+    t.mock.method(globalThis, 'fetch', async (_url, init) => {
+      wire = JSON.parse(init.body).body.xdmEntity;
+      return { ok: true, status: 200, text: async () => '{}' };
+    });
+    const res = await generate({
+      email: 'offline@example.com', industry: 'generic',
+      attributes: {
+        'consents.marketing.val': 'n',
+        'optInOut._channels.push': 'out',
+        'optInOut._channels.whatsapp': 'not_provided',
+        'personalEmail.language': 'de-DE',
+        'preferences.preferredLanguage': 'de-DE',
+        '_demoemea.consents.marketing.preferred': 'email',
+        '_demoemea.preferredLanguage': 'de-DE',
+      },
+    });
+    assert.equal(res.statusCode, 200, JSON.stringify(res.body));
+    assert.equal(wire.consents.marketing.push.val, 'n');
+    assert.equal(wire.consents.marketing.whatsApp.val, 'u');
+    assert.equal(wire.consents.marketing.val, undefined);
+    assert.equal(wire._demoemea.preferredLanguage, undefined);
+    assert.equal(wire.demoemea, undefined);
+    assert.equal(wire.preferredLanguage, 'de-DE');
+    assert.equal(wire.identityMap.Email[0].id, 'offline@example.com');
+    assert.equal(wire.identityMap.ECID[0].id, res.body.ecid);
+    assert.equal(res.body.persistenceAttributes['consents.marketing.push.val'], 'n');
+    assert.equal(res.body.persistenceAttributes.preferredLanguage, 'de-DE');
+    assert.equal(res.body.schemaAlignment.mappedPaths.length, 7);
+    assert.deepEqual(res.body.sentToAep.body.xdmEntity, wire);
+  });
+
+  it('rejects unsupported requested paths before sending any stream', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    t.mock.method(globalThis, 'fetch', async () => assert.fail('must not stream'));
+    const res = await generate({
+      email: 'offline@example.com', industry: 'generic',
+      attributes: { 'notInSchema.example': 'value' },
+    });
+    assert.equal(res.statusCode, 422);
+    assert.equal(res.body.code, 'GENERATION_ATTRIBUTES_UNSUPPORTED');
+    assert.deepEqual(res.body.invalidPaths, ['notInSchema.example']);
+  });
+
+  it('fails closed when the resolved schema is unavailable without streaming', async (t) => {
+    t.mock.method(genericProfileConnectionStore, 'get', connection);
+    t.mock.method(schemaViewerService, 'fetchSchemaById', async () => { throw new Error('schema unavailable'); });
+    t.mock.method(globalThis, 'fetch', async () => assert.fail('must not stream'));
+    const res = await generate({ email: 'offline@example.com', industry: 'generic', attributes: {} });
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.body.code, 'GENERATION_SCHEMA_UNAVAILABLE');
+  });
+});
 
 describe('POST /api/profile/generate place context', () => {
   it('rejects place context for a non-generic industry before any AEP call', async () => {

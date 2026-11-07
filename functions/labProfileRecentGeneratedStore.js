@@ -64,6 +64,9 @@ function normalizeItem(raw, sandbox) {
   const generatedAt = String(raw.generatedAt || raw.ts || '').trim()
     || new Date().toISOString();
   const source = normalizeSource(raw.source);
+  const generationStatus = ['accepted', 'overlay_pending'].includes(raw.generationStatus)
+    ? raw.generationStatus
+    : undefined;
   let summaryLabel = String(raw.summaryLabel || '').trim().slice(0, MAX_LABEL_LEN);
   const snapshot = trimSnapshot(raw.snapshot);
   const attributes = raw.attributes && typeof raw.attributes === 'object' ? raw.attributes : undefined;
@@ -82,6 +85,10 @@ function normalizeItem(raw, sandbox) {
 
   const personName = String(raw.personName || '').trim().slice(0, 120) || undefined;
   const mobilePhone = String(raw.mobilePhone || '').trim().slice(0, 32) || undefined;
+  const pendingLabel = ' [industry overlay pending]';
+  if (generationStatus === 'overlay_pending' && !summaryLabel.endsWith(pendingLabel)) {
+    summaryLabel = summaryLabel.slice(0, MAX_LABEL_LEN - pendingLabel.length) + pendingLabel;
+  }
 
   return {
     id: itemIdForEmail(email),
@@ -92,6 +99,7 @@ function normalizeItem(raw, sandbox) {
     summaryLabel,
     generatedAt,
     source,
+    generationStatus,
     personName,
     mobilePhone,
     snapshot,
@@ -134,6 +142,7 @@ function serializeItemForApi(item) {
     ts: item.ts,
   };
   if (item.snapshot) out.snapshot = item.snapshot;
+  if (item.generationStatus) out.generationStatus = item.generationStatus;
   return out;
 }
 

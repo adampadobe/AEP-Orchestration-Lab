@@ -1,7 +1,5 @@
 import {
   assign,
-  isoDateAgo,
-  randomBetween,
   randomPick,
 } from './utils.mjs';
 import { randomPostalCodeString } from './xdmEnums.mjs';
@@ -10,10 +8,10 @@ const FAV_CATEGORIES = ['general', 'retail', 'travel', 'media', 'public_sector']
 const STREETS = ['123 Maple Ave', '456 Oak Street', '789 Pine Rd', '42 Cedar Ln'];
 const CITIES = ['San Jose', 'Austin', 'Portland', 'Denver', 'Seattle', 'Boston'];
 const STATES = ['CA', 'TX', 'OR', 'CO', 'WA', 'MA'];
-const PUBLIC_EVENTS = ['Race for Life London', 'Race for Life 5k', 'Shine Night Walk', 'Dryathlon'];
 
 /**
- * Generic / public-sector omnichannel persona (Profile Viewer fillRandomSampleData public case).
+ * Generic omnichannel persona (Profile Viewer fillRandomSampleData public case).
+ * Donation fields are omitted: the lab Generic schema declares no donation paths.
  * @returns {Record<string, unknown>}
  */
 export function buildGenericPersonaAttributes() {
@@ -26,12 +24,6 @@ export function buildGenericPersonaAttributes() {
   assign(attrs, 'homeAddress.stateProvince', randomPick(STATES));
   assign(attrs, 'homeAddress.postalCode', randomPostalCodeString());
   assign(attrs, 'homeAddress.country', randomPick(['US', 'GB', 'CA']));
-
-  if (favCategory === 'public_sector' || Math.random() < 0.25) {
-    assign(attrs, 'individualCharacteristics.public.donatedAmount', randomBetween(25, 500));
-    assign(attrs, 'individualCharacteristics.public.donationDate', isoDateAgo(randomBetween(1, 365)));
-    assign(attrs, 'individualCharacteristics.public.eventRegistered', randomPick(PUBLIC_EVENTS));
-  }
 
   return attrs;
 }

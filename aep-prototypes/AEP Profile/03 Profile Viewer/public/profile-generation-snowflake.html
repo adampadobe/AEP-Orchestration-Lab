@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
-  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20261016-stacked-panels">
+  <link rel="stylesheet" href="profile-generation-snowflake.css?v=20261105-workspace-approval">
   <link rel="stylesheet" href="aep-theme.css?v=20260506a">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
 </head>
@@ -506,6 +506,27 @@
           </article>
           </div>
         </section>
+        <section class="sf-gen-card sf-workspace-approval" aria-labelledby="sfWorkspaceApprovalHeading">
+          <h3 id="sfWorkspaceApprovalHeading">Review an MCP workspace change</h3>
+          <p>Open the <code>review_url</code> returned by <code>lab_snowflake_change_preview</code> to load the exact server-held preview here. Review its SQL and values, then explicitly approve with your Portal sign-in. Approval never executes SQL and does not enable workspace permissions. You can also paste a preview ID below.</p>
+          <div class="sf-gen-form">
+            <div class="form-row">
+              <label for="sfWorkspacePreviewId">Preview ID</label>
+              <input id="sfWorkspacePreviewId" type="text" autocomplete="off" spellcheck="false" maxlength="36" aria-describedby="sfWorkspaceApprovalHint">
+            </div>
+            <p id="sfWorkspaceApprovalHint" class="field-hint">Only your own unexpired preview in its sandbox can be reviewed. Link loading never approves automatically. DDL auto-commits; rollback is not promised.</p>
+            <button id="sfWorkspacePreviewLoad" type="button" class="btn btn-secondary">Load preview</button>
+            <div id="sfWorkspaceReview" hidden>
+              <pre id="sfWorkspaceReviewDetails" class="sf-gen-sql-pre" tabindex="0" aria-label="Exact change for review"></pre>
+              <label class="sf-workspace-confirm" for="sfWorkspaceConfirm">
+                <input id="sfWorkspaceConfirm" type="checkbox" disabled>
+                I reviewed this target, operation, SQL and bound values and authorise this single change.
+              </label>
+              <button id="sfWorkspaceApprove" type="button" class="btn btn-primary" disabled>Approve this preview</button>
+            </div>
+            <div id="sfWorkspaceApprovalMessage" class="sf-gen-message" role="status" aria-live="polite" hidden></div>
+          </div>
+        </section>
       </main>
     </div>
   </div>
@@ -518,6 +539,7 @@
   <script src="aep-lab-nav.js?v=20260806-pdf-nav-global"></script>
   <script src="aep-theme.js?v=20260506a" defer></script>
   <script src="profile-generation-prefs-sync.js?v=20261016-shared-email"></script>
-  <script src="profile-generation-snowflake.js?v=20261031-direct-snowflake"></script>
+  <script src="snowflake-workspace-approval.js?v=20261106-preview-link"></script>
+  <script src="profile-generation-snowflake.js?v=20261106-preview-link"></script>
 </body>
 </html>

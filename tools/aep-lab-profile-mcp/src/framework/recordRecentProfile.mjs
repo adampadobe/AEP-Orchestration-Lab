@@ -19,6 +19,7 @@ export async function recordRecentProfileGenerated(params) {
     mobilePhone: params.mobilePhone,
     generatedAt: params.generatedAt || new Date().toISOString(),
     summaryLabel: params.summaryLabel,
+    generationStatus: params.generationStatus,
   };
 
   try {

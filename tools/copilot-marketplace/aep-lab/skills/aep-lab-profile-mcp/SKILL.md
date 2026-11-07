@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Use the AEP Orchestration Lab MCP from GitHub Copilot CLI for profile,
-  event, audience, AJO, decisioning, demo-preparation, commerce, Firefly,
+  event, audience, AJO and Orchestrated Campaign dataset, decisioning, demo-preparation, commerce, Firefly,
   creative-production, measurement, geo-insights, or Figma workflows.
 ---
 
@@ -33,6 +33,12 @@ attempt to bypass access controls.
   do not hand-build XDM or send raw payload overrides.
 - For audience or AJO deletion, list and audit one exact asset, explain the
   impact, and obtain explicit confirmation before the single delete.
+- For Orchestrated Campaign dataset enablement, use
+  `aep-lab-ajo-oc-datasets` for read-only `rel_` status, validation, and job
+  status. Use General for exact preview and apply. Explain existing-data
+  warnings and the preview's confirmation phrase; apply only after explicit
+  confirmation of that exact scope. The server revalidates each dataset,
+  submits one at a time, and never retries an uncertain write.
 - For decisioning and commerce writes, use the relevant preview before apply.
   Reuse the unchanged preview values and only apply after explicit confirmation.
 - For Firefly or creative-production jobs, preview the request, explain the

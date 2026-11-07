@@ -2,7 +2,7 @@
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "aep-lab",
   "description": "AEP Orchestration Lab MCP connections and safe workflow guidance for GitHub Copilot CLI.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": {
     "name": "Adam Palmer"
   },

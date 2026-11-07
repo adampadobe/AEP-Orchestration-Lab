@@ -165,10 +165,11 @@ export function resolveIndustryForPath(path) {
   const matchPath = stripPrimaryTenantNamespaceForOwnership(trimmed);
   for (const entry of PATH_OWNERSHIP) {
     for (const prefix of entry.prefixes) {
+      // A bare subtree root (e.g. array-valued `subscriptions`) belongs to `subscriptions.`.
       if (
         matchPath === prefix ||
         matchPath.startsWith(prefix) ||
-        (!prefix.endsWith('.') && matchPath === prefix)
+        (prefix.endsWith('.') && matchPath === prefix.slice(0, -1))
       ) {
         const reason =
           entry.industry === 'generic'

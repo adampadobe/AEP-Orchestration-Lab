@@ -96,11 +96,14 @@ test('profile table endpoint returns structured 404 for confirmed absence, not H
       ])),
   }).profileTableProxy;
   const res = {
+    headers: {},
+    set(name, value) { this.headers[name] = value; return this; },
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; },
   };
   await handler({ method: 'GET', query: { namespace: 'ecid', identifier: ecid } }, res);
   assert.equal(res.statusCode, 404);
+  assert.equal(res.headers['Cache-Control'], 'private, no-store, max-age=0');
   assert.equal(res.body.code, 'UPS_ENTITY_NOT_FOUND');
   assert.equal(res.body.stage, 'profile_access');
   assert.match(res.body.error, /retry reads only, not profile generation/);

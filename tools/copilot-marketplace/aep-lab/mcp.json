@@ -1,6 +1,13 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
+    "aep-lab-snowflake": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/snowflake",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
     "aep-lab-entry": {
       "type": "streamable-http",
       "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
@@ -53,6 +60,13 @@
     "aep-lab-ajo-cleanup": {
       "type": "streamable-http",
       "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-cleanup",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
+    "aep-lab-ajo-oc-datasets": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets",
       "headers": {
         "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
       }

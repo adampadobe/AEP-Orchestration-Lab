@@ -27,8 +27,8 @@ export function readPreferredLanguageFromAttributes(attrs) {
 
 /**
  * Ensure BCP-47 language on flat dot-path attributes (personaBuilder shape).
- * Sets root + preferences + personalEmail mirrors — profileStreamingCore.mirrorPreferredLanguageDemoSchema
- * dual-writes root + tenant at stream time.
+ * Generated defaults use the root language leaf. Explicit legacy aliases remain
+ * in the request for schema-aware normalization/validation by the Function.
  *
  * @param {Record<string, unknown> | null | undefined} attrs
  * @param {object} [opts]
@@ -45,8 +45,11 @@ export function ensurePreferredLanguageOnAttributes(attrs, opts = {}) {
 
   if (appliedDefault || opts.force) {
     out[LANGUAGE_PATHS.root] = lang;
-    out[LANGUAGE_PATHS.preferences] = lang;
-    out[LANGUAGE_PATHS.personalEmail] = lang;
+    if (opts.force) {
+      for (const path of [LANGUAGE_PATHS.preferences, LANGUAGE_PATHS.personalEmail]) {
+        if (Object.hasOwn(out, path)) out[path] = lang;
+      }
+    }
   }
 
   return { attributes: out, language: lang, appliedDefault };
@@ -148,12 +151,10 @@ export function buildGeneratePreflightSummary(opts) {
         industry_runtime: ['preferredLanguage', 'personalEmail.language'],
       },
       streamingPaths: [
-        'preferredLanguage (root + tenant mirror)',
-        'preferences.preferredLanguage',
-        'personalEmail.language',
+        'preferredLanguage (resolved-schema placement)',
       ],
       mirror:
-        'profileStreamingCore.mirrorPreferredLanguageDemoSchema — precedence: root preferredLanguage → preferences.preferredLanguage → personalEmail.language',
+        'Legacy aliases are normalized only when the resolved schema declares the canonical destination; unsupported requested fields fail before streaming.',
     },
     mobilePhone: LAB_DEFAULT_MOBILE_PHONE,
     connectionManifest: {

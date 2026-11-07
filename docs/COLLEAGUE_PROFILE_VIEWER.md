@@ -65,18 +65,9 @@ Use **Dark mode** / **Light mode** at the bottom of the sidebar (or under **Appe
 
 The UI expects port **3333** (see server warning banner if you use another `PORT`).
 
-## Experience Decisioning lab link (sidebar)
+## Decisioning lab link (sidebar)
 
-Every dashboard page loads **`aep-lab-nav.js`**, which adds **Decisioning lab** to the sidebar.
-
-- **Default** when the viewer runs on **localhost:3333**: opens **`http://localhost:8765/content-decision-live.html`** (same default port as **`python proxy_server.py`** in this repo).
-- **Override** in the browser:
-
-  `localStorage.setItem('aepDecisioningLabUrl', 'https://YOUR-PROJECT.web.app/content-decision-live.html')`
-
-  then reload.
-
-- **Firebase Hosting** (if you later serve the lab on the same host as static pages): relative **`/content-decision-live.html`** is used when not on `:3333` localhost.
+Every dashboard page loads **`aep-lab-nav.js`**, which adds the maintained **Decisioning lab (Edge)** page to the sidebar. The older simple Content Decision page has been retired; use **`content-decision-live-edge.html`** instead.
 
 ## Relationship to Firebase Cloud Functions
 

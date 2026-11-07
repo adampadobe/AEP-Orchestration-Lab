@@ -114,7 +114,7 @@ async function generateOneFromScrapePersona({
   });
 
   let recentSync = null;
-  if (apiResult.ok) {
+  if (apiResult.ok || apiResult.partialSuccess === true) {
     const ecid =
       apiResult.ecid ||
       apiResult.data?.ecid ||
@@ -128,12 +128,15 @@ async function generateOneFromScrapePersona({
       ecid,
       industry,
       attributes: normalized.attributes,
+      generationStatus: apiResult.ok ? 'accepted' : 'overlay_pending',
       ...hints,
     });
   }
 
   return {
     ok: apiResult.ok,
+    partial_success: apiResult.partialSuccess === true,
+    retry_safe: false,
     error: apiResult.error,
     email: resolvedEmail,
     personaIndex,

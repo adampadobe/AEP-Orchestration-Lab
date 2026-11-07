@@ -2,19 +2,19 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.52.2). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.53.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, using Adobe Firefly media or Photoshop, InDesign, Substance 3D, Express, and Illustrator production workflows, audience geo-insights, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "1.9.0"
+  version: "1.10.0"
 ---
 
 # AEP Orchestration Lab MCP — Coworker workflows
 
-MCP server: **AEP Orchestration Lab MCP v3.52.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.53.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-This plugin installs the complete 218-tool `lab-all` connection plus seventeen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `lab-dps` (`/mcp/decisioning`), `aep-lab-ajo-cleanup`, `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-geo-insights` (`/mcp/geo-insights`), `aep-lab-commerce`, `lab-aco` (`/mcp/commerce-optimizer`), `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-figma` (`/mcp/figma`, Figma REST API through a server-held token; read-only apart from a confirmation-gated comment post). Geo insights combines live weather and AEP Query Service audience hotspots in one focused endpoint, returns aggregates only, and suppresses cells below k=10. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
+This plugin installs the complete 236-tool `lab-all` connection plus nineteen focused Coworker connections using the signed-in user's Adobe IMS session: `aep-lab-entry` (`/mcp/entry`), `aep-lab-profiles` (`/mcp/profile`), `aep-lab-demo-prep`, `aep-lab-pdf-prep`, `aep-lab-audiences`, `lab-dps` (`/mcp/decisioning`), `aep-lab-ajo-cleanup`, `aep-lab-ajo-oc-datasets` (`/mcp/ajo-oc-datasets`, read-only status, validation, and job status), `aep-lab-command-centre`, `aep-lab-weather`, `aep-lab-geo-insights` (`/mcp/geo-insights`), `aep-lab-commerce`, `lab-aco` (`/mcp/commerce-optimizer`), `aep-lab-firefly`, `aep-lab-creativity`, `aep-lab-adobe-capabilities`, `aep-lab-measurement-quality`, and `aep-lab-figma` (`/mcp/figma`, Figma REST API through a server-held token; read-only apart from a confirmation-gated comment post). Geo insights combines live weather and AEP Query Service audience hotspots in one focused endpoint, returns aggregates only, and suppresses cells below k=10. The entry connection is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
 Use the focused integration that owns the task. Use the installed `lab-all` integration for first-run setup, infrastructure, full Snowflake workflows, administration, or any named tool absent from a focused integration.
 
@@ -26,13 +26,19 @@ installed focused or General connection. After a lost-session HTTP 404,
 reinitialize the client and refresh the catalog; never replay a mutation as part
 of reconnecting.
 
-Plugin 1.9.0 shortens the former `aep-lab-general`, `aep-lab-decisioning`, and `aep-lab-commerce-optimizer` connection names to avoid qualified tool names longer than 64 characters. Tool names, URLs, and IMS settings are unchanged. Update or reinstall the plugin, disconnect the old named connections, and start a new chat. The framework retains stable context IDs and supplies `coworkerConnectionName` for these three integrations. Decisioning exposes 24 tools including `lab_batch_job_status` after the server update; Commerce Optimizer exposes 15 including attribute metadata and all four governed ingestion tools.
+Plugin 1.9.0 shortened the former `aep-lab-general`, `aep-lab-decisioning`, and `aep-lab-commerce-optimizer` connection names to avoid qualified tool names longer than 64 characters. Plugin 1.10.0 adds a focused read-only Orchestrated Campaign dataset endpoint; preview/apply remain available only through `lab-all`. Update or reinstall the plugin and start a new chat. The framework retains stable context IDs and supplies `coworkerConnectionName` for the short General, Decisioning, and Commerce Optimizer names. Decisioning exposes 24 tools including `lab_batch_job_status`; Commerce Optimizer exposes 15 including attribute metadata and all four governed ingestion tools.
 
 Coworker forwards `Authorization` and IMS identity headers automatically. Do not ask the user to paste a key into Coworker or the plugin manifest.
 
 **Portal:** create at least one MCP key per sandbox to establish the signed-in Adobe user's sandbox enrollment. The plaintext key is only for API-key clients such as Codex or Cursor; Coworker does not use it. In Coworker, begin with **`lab_mcp_access_info`**. Use the installed General integration for first-run foundations.
 
 Allowed sandboxes: Firestore **`mcpSandboxAllowlist/{keyId}`** per principal, or env fallback `apalmer`, `kirkham`. Verify with **`lab_mcp_access_info`**.
+
+## Governed Orchestrated Campaign dataset enablement
+
+Use `aep-lab-ajo-oc-datasets` for read-only dataset status, Adobe eligibility validation, and owned enablement-job status. Use `lab-all` for preview and apply. This workflow is restricted to eligible `rel_` datasets and submits one dataset per Adobe request serially.
+
+Preview exact dataset IDs and inspect each eligibility result, existing-data warning, preflight ID, and generated confirmation phrase. Show the exact scope and phrase to the colleague; only explicit confirmation of that preview authorizes apply. Apply re-reads Catalog metadata and reruns validation before each write. Stop on failure or an uncertain submission; never retry automatically or infer that a request succeeded. Track returned batch/job IDs to completion. This changes dataset extension enablement only; it does not create dataflows, load data, or prove AJO campaign readiness.
 
 ## Framework knowledge (server-side — no manual retraining)
 

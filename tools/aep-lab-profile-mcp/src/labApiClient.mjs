@@ -255,13 +255,16 @@ export async function generateProfile(params) {
  * @param {object} params
  */
 export async function lookupProfile(params) {
-  return labApiRequest('/api/profile/table', {
+  // Hosting caches an initial UPS 404 for ten minutes, hiding subsequent ingestion.
+  return labApiRequest('/profileTableProxy', {
+    origin: getLabFunctionsOrigin(),
     query: {
       sandbox: params.sandbox,
       namespace: params.namespace,
       identifier: params.identifier,
     },
-    timeoutMs: 120_000,
+    timeoutMs: params.timeoutMs ?? 120_000,
+    retries: params.retries,
   });
 }
 
@@ -334,10 +337,11 @@ export async function getProfileAudiences(params) {
  * @param {string} params.path - e.g. /api/travel-profile-connection
  * @param {string} params.sandbox
  */
-export async function getProfileConnection({ path, sandbox }) {
+export async function getProfileConnection({ path, sandbox, timeoutMs = 60_000, retries }) {
   return labApiRequest(path, {
     query: { sandbox },
-    timeoutMs: 60_000,
+    timeoutMs,
+    retries,
   });
 }
 
@@ -930,11 +934,83 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
   });
 }
 
+/** Read the Orchestrated Campaign extension status for rel_ datasets. */
+export async function ajoOcDatasetStatus({ sandbox, dataset_ids, name_prefix }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'status', sandbox, dataset_ids: dataset_ids?.join(','), name_prefix },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+/** Run Adobe's read-only Orchestrated Campaign dataset eligibility validation. */
+export async function ajoOcDatasetValidate({ sandbox, dataset_ids, name_prefix }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'validate', sandbox, dataset_ids: dataset_ids?.join(','), name_prefix },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+/** Create a principal-scoped preview ticket; no Adobe mutation is performed. */
+export async function ajoOcDatasetPreview(params) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { ...params, action: 'preview' },
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+/** Submit the single-use preview's datasets serially; never retry an ambiguous submission. */
+export async function ajoOcDatasetApply(params) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { ...params, action: 'apply' },
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+/** Read stored Adobe enablement job status for this principal and sandbox. */
+export async function ajoOcDatasetJobStatus({ sandbox, batch_job_id, job_ids }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'job_status', sandbox, batch_job_id, job_ids: job_ids?.join(',') },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const ims = getRequestImsAuthHeaders();
   if (ims) return ims;
   const key = getRequestMcpApiKey();
   return key ? { 'X-AEP-Lab-Mcp-Key': key } : {};
+}
+
+function ingestionDiagnosticsRead(action, params) {
+  return labApiRequest('/aepIngestionDiagnosticsProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { ...params, action },
+    headers: principalAuthHeaders(),
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+export function aepBatchDiagnose(params) {
+  return ingestionDiagnosticsRead('batch_diagnose', params);
+}
+
+export function aepFlowRunStatus(params) {
+  return ingestionDiagnosticsRead('flow_run_status', params);
 }
 
 export function principalAuthHeaders() {
@@ -1899,6 +1975,17 @@ export async function snowflakeProvision({ sandbox, industry, recipe_id, dry_run
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 120_000,
+  });
+}
+
+export async function snowflakeWorkspaceRequest(body) {
+  return labApiRequest('/snowflakeWorkspace', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    body,
+    headers: snowflakeAuthHeaders(),
+    timeoutMs: 120_000,
+    retries: 0,
   });
 }
 

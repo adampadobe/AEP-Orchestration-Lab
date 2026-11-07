@@ -7,6 +7,16 @@ const { registerProfileRoutes } = require('../profileRoutes');
 describe('registerProfileRoutes', () => {
   it('registers profile handlers with the bound continuation secret and read-only readiness', async () => {
     let signingSecret = 'offline-signing-secret';
+    let readError = null;
+    const profileTableHelpers = {
+      async fetchUpsProfileEntities() {
+        if (readError) throw readError;
+        return {};
+      },
+      buildProfileTablePayload: () => ({ found: true }),
+      buildIndustryWritabilityMap: async () => ({}),
+      enrichProfileTablePayloadWithWritability: () => {},
+    };
     const onRequest = (_opts, handler) => ({ __handler: handler });
     const routes = registerProfileRoutes({
       onRequest,
@@ -21,7 +31,7 @@ describe('registerProfileRoutes', () => {
       ADOBE_CLIENT_ID: { value: () => 'client' },
       ADOBE_CLIENT_SECRET: { value: () => signingSecret },
       ADOBE_IMS_ORG: { value: () => 'org' },
-      profileTableHelpers: {},
+      profileTableHelpers,
       ipadEventProxy: { handleIpadEventPost: async () => {} },
       industryAttributeMap: { getAttributeOwnershipPayload: () => ({}) },
       profileInfraStatusAllSvc: { runProfileInfraStatusAll: async () => ({}) },
@@ -81,6 +91,25 @@ describe('registerProfileRoutes', () => {
       json(body) { response = body; },
     });
     assert.deepEqual(response.profileContinuation, { ready: false, code: 'MERGE_TOKEN_SECRET_UNAVAILABLE' });
+
+    for (const [method, query, error, expectedStatus] of [
+      ['GET', { identifier: 'offline@example.com' }, null, 200],
+      ['GET', { identifier: 'offline@example.com' }, Object.assign(new Error('Not indexed'), { code: 'UPS_ENTITY_NOT_FOUND' }), 404],
+      ['GET', { identifier: 'offline@example.com' }, new Error('UPS unavailable'), 500],
+      ['GET', {}, null, 400],
+      ['POST', {}, null, 405],
+      ['OPTIONS', {}, null, 204],
+    ]) {
+      readError = error;
+      const headers = {};
+      await routes.profileTableProxy.__handler({ method, query }, {
+        set(name, value) { headers[name] = value; return this; },
+        status(code) { assert.equal(code, expectedStatus); return this; },
+        json() {},
+        send() {},
+      });
+      assert.equal(headers['Cache-Control'], 'private, no-store, max-age=0', `${method} ${expectedStatus}`);
+    }
   });
 
   it('production registration injects the already-bound signing secret into profile routes', () => {

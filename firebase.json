@@ -51,11 +51,6 @@
         "type": 302
       },
       {
-        "source": "/content-decision-live.html",
-        "destination": "/profile-viewer/content-decision-live.html",
-        "type": 301
-      },
-      {
         "source": "/content-decision-live-edge.html",
         "destination": "/profile-viewer/content-decision-live-edge.html",
         "type": 301
@@ -391,6 +386,20 @@
         "source": "/api/ajo-cleanup",
         "function": {
           "functionId": "ajoCleanupProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/ajo-oc-datasets",
+        "function": {
+          "functionId": "ajoOcDatasetProxy",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/aep-ingestion-diagnostics",
+        "function": {
+          "functionId": "aepIngestionDiagnosticsProxy",
           "region": "us-central1"
         }
       },
@@ -1273,6 +1282,13 @@
         "source": "/api/snowflake/provision",
         "function": {
           "functionId": "snowflakeProvision",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/snowflake/workspace",
+        "function": {
+          "functionId": "snowflakeWorkspace",
           "region": "us-central1"
         }
       },

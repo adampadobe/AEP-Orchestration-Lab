@@ -106,6 +106,7 @@
   /** Profile bundle last fetched for the "Inspect generated data" picker on the Full Agentic generate panel. */
   var fullGenBundleCache = null;
   var contextEpoch = 0;
+  var workspaceApprovalPanel;
   var fullGenBundleSeq = 0;
   var connectionWriteBusy = false;
   var emailPrefs = null;
@@ -252,6 +253,7 @@
   function resetWorkflowContext() {
     var wasGenerating = els.genForm && els.genForm.getAttribute('aria-busy') === 'true';
     contextEpoch += 1;
+    if (workspaceApprovalPanel) workspaceApprovalPanel.reset();
     emailSeq += 1;
     emailPrefs = null;
     emailError = '';
@@ -303,7 +305,9 @@
     syncConnectionUi(null);
     var context = readContext();
     return loadConfig().then(function () {
-      if (isCurrentContext(context)) return loadIndustryCatalog(true);
+      if (!isCurrentContext(context)) return;
+      loadLinkedWorkspacePreview();
+      return loadIndustryCatalog(true);
     });
   }
 
@@ -317,6 +321,36 @@
       return v;
     } catch (_) {
       return '';
+    }
+  }
+
+  function linkedReviewSandbox() {
+    var params = new URLSearchParams(window.location.search || '');
+    var id = params.get('preview_id') || '';
+    var sandbox = params.get('review_sandbox') || '';
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id) &&
+      /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(sandbox) ? sandbox.toLowerCase() : '';
+  }
+
+  function readApprovalContext() {
+    var pageContext = readContext();
+    return {sandbox: linkedReviewSandbox() || pageContext.sandbox, pageContext: pageContext};
+  }
+
+  function isCurrentApprovalContext(context) {
+    return isCurrentContext(context.pageContext) &&
+      context.sandbox === (linkedReviewSandbox() || context.pageContext.sandbox);
+  }
+
+  function loadLinkedWorkspacePreview() {
+    if (!workspaceApprovalPanel) return;
+    try {
+      var params = new URLSearchParams(window.location.search || '');
+      var previewId = params.get('preview_id');
+      if (!previewId) return;
+      workspaceApprovalPanel.loadPreviewFromLink(previewId, params.get('review_sandbox'));
+    } catch (error) {
+      console.warn('[snowflake] could not read linked workspace preview', String(error && error.message || error));
     }
   }
 
@@ -2661,6 +2695,35 @@
     }
 
     bindKeyFileUi();
+    workspaceApprovalPanel = window.SnowflakeWorkspaceApproval.createApprovalPanel({
+      elements: {
+        id: $('sfWorkspacePreviewId'), load: $('sfWorkspacePreviewLoad'),
+        review: $('sfWorkspaceReview'), details: $('sfWorkspaceReviewDetails'),
+        confirm: $('sfWorkspaceConfirm'), approve: $('sfWorkspaceApprove'),
+        message: $('sfWorkspaceApprovalMessage'),
+      },
+      context: readApprovalContext,
+      isCurrent: isCurrentApprovalContext,
+      request: function (action, previewId, context) {
+        if (!hasPortalLogin()) return Promise.reject(new Error(portalLoginRequiredMessage()));
+        return contextHeaders(context.pageContext).then(function (headers) {
+          if (!isCurrentApprovalContext(context)) throw new Error('Review context changed. Load the preview again.');
+          return fetch(snowflakeApiUrl('snowflakeWorkspace'), {
+            method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+            body: JSON.stringify({ sandbox: context.sandbox, action: action, preview_id: previewId }),
+            cache: 'no-store',
+          });
+        }).then(function (response) {
+          return response.json().then(function (body) {
+            if (!response.ok || !body.result || body.result.ok !== true) {
+              throw new Error((body.result && body.result.error && body.result.error.message) ||
+                (body.error && body.error.message) || 'Workspace request failed (HTTP ' + response.status + ').');
+            }
+            return body.result;
+          });
+        });
+      },
+    });
 
     window.addEventListener('aep-lab-sandbox-synced', function () {
       reloadWorkflowContext();
@@ -2688,6 +2751,7 @@
       return loadConfig();
     }).then(function () {
       loadEmailPrefs();
+      loadLinkedWorkspacePreview();
       return loadIndustryCatalog(true);
     });
   });

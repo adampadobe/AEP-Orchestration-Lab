@@ -2,18 +2,56 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.52.2.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.54.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and exposes the complete 218-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the seventeen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header:
+The original `/mcp` endpoint remains backward compatible and registers the complete 238-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. The two ingestion diagnostics additions below require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after upgrading from v3.53.0 (236 tools):
+
+### Read-only ingestion diagnostics
+
+General (`lab-all`) includes `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`.
+They require a user-generated MCP key or independently validated IMS Portal enrollment
+for the exact sandbox. No Profile, batch, dataflow or Snowflake settings are changed.
+
+`lab_aep_batch_diagnose` accepts `sandbox` and either `batch_id` or the pair
+`flow_id`/`run_id`. Supplying all three verifies their linkage. Run lookup first
+uses direct activity Batch references, otherwise resolves the flow's single
+dataset target and queries Catalog with both dataset and run-tag filters. A
+multi-target flow without Batch references requires an exact batch ID. It expands JSON
+processing/valve tags, including `acp_stallDetail`, while retaining the raw batch,
+Adobe errors, metrics and related run activities. File listings are capped at five
+100-file pages per section. `sample_limit` defaults to 10 (0–50); at most five
+error files and 256 KiB per sample are read. Samples and raw stall details may
+contain source data: inspect only in the authorized session, never logs or shared
+handoffs. Unavailable exports (including staging-batch 400/404 responses), malformed
+tags, limits and timeouts appear in `issues` with `complete:false`; Adobe error
+bodies remain in `platform_response`. HTTP 401/403 stops collection. Requests
+never retry or follow redirects, use a 60-second request timeout and a four-minute
+batch diagnostic deadline, and cap ordinary JSON responses at 2 MiB.
+
+`lab_aep_flow_run_status` accepts `sandbox`, `flow_id`, optional ISO `since`,
+`limit` (1–50, default 10) and `continuation_token`. It returns run state, counts,
+duration, errors and activities. Missing counts remain `null`. `since` filters
+the returned page locally by `createdAt` because Flow Service rejects combined
+flow/time property filters; `since_filter.scanned` reports page coverage. Follow
+every continuation token with the same flow and timestamp, including when the
+filtered page is empty. Copy-activity success alone does not prove batch promotion.
+
+API contracts: [batch errors and diagnostic rows](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/error-diagnostics),
+[failed files](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/retrieve-failed-batches),
+and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/monitor).
+
+### Endpoint catalog
 
 | Endpoint | Tools | Intended workflow |
 |----------|------:|-------------------|
 | `/mcp/entry` | 5 | **Start here.** Read-only access check, capability directory, context recommendation, cross-context workflow planning, and `lab_load_toolset` to pull a domain toolset into this same session |
 | `/mcp/profile` | 21 | Complete profile lifecycle: readiness, create/update/read, governed AEP industry events, Snowflake dual-load readiness/enrichment/readback, and the `lab_run_playbook` generate+validate coordinator |
+| `/mcp/snowflake` | 16 | Administrator-enabled workspace: SQL jobs, metadata, data checks, separately approved typed table/data/grant changes, Cortex Agent delegation; see [activation and safety](../../docs/SNOWFLAKE_INTEGRATION.md#governed-snowflake-workspace) |
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
+| `/mcp/ajo-oc-datasets` | 4 | Access check plus read-only Orchestrated Campaign dataset status, eligibility validation, and owned job status; use `/mcp` for preview/apply |
 | `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
 | `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
@@ -52,11 +90,11 @@ notice, Firestore TTL and runtime permissions require separate approval before
 activation. See [lab usage statistics](../../docs/LAB_USAGE_STATISTICS.md#phase-3-implemented-locally-collection-disabled-by-default)
 for identity attribution, outcome semantics, reporting limits and release gates.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `lab-all` plus all seventeen focused connections above and authenticates them with the signed-in Adobe IMS session. Plugin 1.9.0 shortens General, Decisioning, and Commerce Optimizer connection names to `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Endpoint URLs, tool names, framework context IDs, and Claude/API-key configurations are unchanged; the context directory supplies `coworkerConnectionName` for those three integrations. Existing users must update or reinstall the plugin, disconnect old named connections, and start a new chat. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `lab-all` plus all nineteen focused connections above and authenticates them with the signed-in Adobe IMS session. Plugin 1.10.0 adds a read-only Orchestrated Campaign dataset context at `aep-lab-ajo-oc-datasets`; preview/apply remain available only in `lab-all`. The previous 1.9.0 release shortened General, Decisioning, and Commerce Optimizer connection names to `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Existing users must update or reinstall the plugin, then start a new chat. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same seventeen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same nineteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
-**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus seventeen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
+**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus nineteen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
 
 ### Troubleshooting Coworker HTTP 403
 
@@ -161,6 +199,55 @@ For clients that do not refresh their callable catalog, **directly connect the f
 ## Framework tools & resources (v3.6)
 
 **Dual-stream generate (v3.6):** `lab_generate_profile` / `lab_generate_profiles_batch` with `industry` ≠ `generic` POST twice — generic-owned paths to `industry=generic`, then industry-owned paths to the target industry with `appendIfExisting:true` (same email/ECID). Response includes `dual_stream`, `generate_plan`, `generate_step_results`.
+
+Before sending the industry overlay, the MCP polls the direct read-only Profile
+Function for up to 90 seconds **after the Generic response**. Email readback must
+match the allocated email and tenant ECID, all Generic fields (including
+tenant-relative paths), and the configured Generic dataset in Profile provenance.
+ECID lookup and identity-map linkage are reported separately as
+`generate_step_results[].persistence.ecidLookupReady`; delayed ECID indexing does
+not block the overlay and is not reported as verified. HTTP 200 from the inlet
+still means accepted, not persisted.
+
+Generation reads the saved connection's fully resolved schema before streaming;
+it never changes schemas or dataflows. Known undeclared language/consent aliases
+map to declared canonical leaves: `preferredLanguage`,
+`consents.marketing.any.val`, `consents.marketing.push.val`, and
+`consents.marketing.whatsApp.val`. Legacy channel values map explicitly
+(`in`/`out`/`not_provided` to `y`/`n`/`u`); no new opt-in is inferred.
+Already-declared legacy paths stay unchanged. Unsupported generated compatibility
+mirrors are omitted, but unsupported, conflicting, or invalid **requested**
+attributes fail with HTTP 422 `GENERATION_ATTRIBUTES_UNSUPPORTED` before any
+stream. An unavailable/unresolved schema fails with HTTP 503
+`GENERATION_SCHEMA_UNAVAILABLE`; a saved schema ID is required even for bare
+streaming connections.
+
+The Function returns `persistenceAttributes` with exact schema-backed paths and
+values plus `schemaAlignment` mapping/omission diagnostics. The Email gate uses
+these expectations, retaining identity, value and dataset-provenance checks; it
+does not wait for undeclared aliases. Older Functions without this metadata retain
+the previous request-attribute gate. MCP personas/defaults now emit only root
+`preferredLanguage`; explicit legacy inputs still go through schema validation.
+These checks do not replace AEP ingestion or Profile persistence verification.
+
+All MCP profile lookups use `AEP_LAB_FUNCTIONS_ORIGIN` directly, avoiding Firebase
+Hosting's ten-minute negative caching of initial 404s. The Profile Function also
+sets `Cache-Control: private, no-store, max-age=0` on every response for Portal
+clients. Existing cached Hosting 404s can outlive a Function release; direct MCP
+reads do not depend on their expiry.
+
+If the email gate times out or the overlay fails, the result remains partial and
+must not be retried as generation. The requested Snowflake dual-load is attempted
+once independently for the accepted base's allocated identity and original
+persona, and the recent list records `generationStatus: "overlay_pending"` with
+an explicit pending label. Rejected base submissions trigger neither follow-up.
+Single-profile, batch, and playbook results keep follow-up failures explicit.
+
+The signed append token still expires after 120 seconds; the 90-second gate
+leaves headroom for immediate overlay submission. There is **no automatic
+continuation queue**. Longer waits or delayed recovery require a separately
+reviewed durable continuation mechanism, not reuse of an expired token or
+regeneration. Existing profiles are not repaired by these code changes.
 
 On the General integration, call **`lab_get_execution_framework`** before advanced work. Focused integrations do not expose this tool; the bundled skill carries the essential rules when working in those contexts.
 
@@ -356,6 +443,18 @@ Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cle
 5. The Firebase proxy re-fetches immediately, blocks identity/lifecycle changes, and permits only Draft or Finished journeys and Draft campaigns. There is no batch delete tool.
 
 Adobe's current public Journey and Campaign references document retrieval but not deletion. These delete calls use the allowlisted AJO authoring operations used by product lifecycle management; availability still depends on the integration's Journey/Campaign permissions and Adobe may reject unsupported dependencies.
+
+### Governed Orchestrated Campaign dataset enablement
+
+Use the read-only `/mcp/ajo-oc-datasets` context for dataset status, Adobe eligibility validation, and status checks for owned Adobe jobs. Preview and apply are intentionally available only on the complete `/mcp` (`lab-all`) endpoint. The principal must be enrolled and allowlisted for the requested sandbox.
+
+1. Run `lab_ajo_oc_dataset_status` and `lab_ajo_oc_dataset_validate` for the exact `rel_` dataset IDs. Adobe's validation checks the model-based schema, record behavior, primary/version descriptors, CDC ingestion, and absence of Profile/System enablement or an existing/in-progress extension. Stop on Adobe HTTP 401/403; do not infer access from scopes.
+2. Run `lab_ajo_oc_dataset_preview` with exact IDs or the `rel_` prefix. Review every selected and eligible dataset, data-ingested warnings, the single-use 15-minute `preflight_id`, and exact `confirmation_phrase`. Preview never calls Adobe's enablement endpoint.
+3. Show the exact sandbox, planned IDs/names, warnings, and phrase. Only after explicit confirmation for that precise scope, call `lab_ajo_oc_dataset_apply` with the unchanged `planned_dataset_ids`, `preflight_id`, phrase, and `confirmed:true`.
+4. The Firebase backend consumes the principal/org/sandbox-bound ticket once, re-reads Catalog metadata and reruns validation before each item, then POSTs one dataset ID per request serially. It records each returned Adobe job ID and stops on the first failure or uncertain submission. Adobe writes and the MCP forwarding call are not automatically retried.
+5. Poll `lab_ajo_oc_dataset_job_status` by the returned `batch_job_id` or owned Adobe `job_ids`. If submission is uncertain, reconcile status; never re-submit the dataset automatically.
+
+The endpoint contract follows Adobe's [Orchestrated Campaign dataset extension API](https://developer.adobe.com/journey-optimizer-apis/references/orchestrated-campaign-dataset). This workflow enables only the dataset extension. It does not create dataflows, load data, create campaigns, or prove downstream use is ready.
 
 ### Governed dataset and tenant schema cleanup
 
@@ -619,7 +718,7 @@ openssl rand -hex 32   # AEP_LAB_MCP_API_KEY
 | `AEP_LAB_COMMERCE_INTERNAL_KEY` | For `/mcp/commerce` and `/mcp/geo-insights` | Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_COMMERCE_OPTIMIZER_INTERNAL_KEY` | For `/mcp/commerce-optimizer` | Dedicated Cloud Run → Firebase bridge secret; never supplied by an MCP client |
 | `AEP_LAB_API_ORIGIN` | No | Lab origin (default hosted lab) |
-| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); Snowflake calls bypass Hosting's 60-second limit. Set this separately for local function endpoints. |
+| `AEP_LAB_FUNCTIONS_ORIGIN` | No | Direct Cloud Functions base (default `https://us-central1-aep-orchestration-lab.cloudfunctions.net`); profile reads bypass Hosting's negative cache and Snowflake calls bypass its 60-second limit. Set this separately for local function endpoints. |
 | `AEP_LAB_BRAND_SCRAPER_CF_ORIGIN` | No | Direct CF base for brandScraperAnalyze (default us-central1 project cloudfunctions.net) |
 | `AEP_LAB_MCP_ALLOWED_SANDBOXES` | No | Env fallback allowlist (default `apalmer,kirkham`) |
 | `AEP_LAB_MCP_BATCH_STORE` | No | `memory` for local; omit for Firestore on Cloud Run |

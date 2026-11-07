@@ -80,14 +80,17 @@ jobs:
       - name: Verify governed dataset and schema cleanup (offline)
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/platformCleanup*.test.cjs tools/aep-lab-profile-mcp/test/platformCleanupTools.test.mjs tools/aep-lab-profile-mcp/test/serverDiscovery.test.mjs
 
+      - name: Verify read-only AEP ingestion diagnostics (offline)
+        run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/aepIngestionDiagnostics*.test.cjs tools/aep-lab-profile-mcp/test/aepIngestionDiagnosticsTools.test.mjs
+
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
-          AEP_LAB_MCP_FIRESTORE=off node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileBundle.test.mjs tools/aep-lab-profile-mcp/test/snowflakeApiTransport.test.mjs
+          AEP_LAB_MCP_FIRESTORE=off node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileBundle.test.mjs tools/aep-lab-profile-mcp/test/snowflakeApiTransport.test.mjs tools/aep-lab-profile-mcp/test/snowflakeWorkspace.test.mjs
           npm run verify:snowflake-industry-manifest
           PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s services/agentic-travel-runner/test
 
       - name: Verify profile identity, industry fields and release identity (offline)
-        run: node --test functions/test/profileInfraDescriptors.test.cjs functions/test/profileIdentityReadback.test.cjs functions/test/profileGenerateService.test.cjs functions/test/profileRoutes.test.cjs functions/test/profileStreamDiagnostics.test.cjs functions/test/profileStreamObservability.test.cjs functions/test/profileUpdateRequestLog.test.cjs functions/test/profileGenerationUpdates.test.cjs functions/test/fsiProfileInfraService.test.cjs functions/test/mediaProfileInfraService.test.cjs functions/test/travelActiveFlightSchema.test.cjs tools/aep-lab-profile-mcp/test/buildInfo.test.mjs tools/aep-lab-profile-mcp/test/dualStreamGenerate.test.mjs tools/aep-lab-profile-mcp/test/releaseMainScript.test.mjs
+        run: node --test functions/test/profileInfraDescriptors.test.cjs functions/test/profileIdentityReadback.test.cjs functions/test/profileGenerateService.test.cjs functions/test/profileGenerationSchema.test.cjs functions/test/profileRoutes.test.cjs functions/test/profileStreamDiagnostics.test.cjs functions/test/profileStreamObservability.test.cjs functions/test/profileUpdateRequestLog.test.cjs functions/test/profileGenerationUpdates.test.cjs functions/test/fsiProfileInfraService.test.cjs functions/test/mediaProfileInfraService.test.cjs functions/test/travelActiveFlightSchema.test.cjs tools/aep-lab-profile-mcp/test/buildInfo.test.mjs tools/aep-lab-profile-mcp/test/dualStreamGenerate.test.mjs tools/aep-lab-profile-mcp/test/generateProfileParams.test.mjs tools/aep-lab-profile-mcp/test/releaseMainScript.test.mjs
 
       - name: Verify decisioning mount zones (site-clone demos)
         run: npm run verify:decisioning-mount-zones

@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality,figma}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,snowflake,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality,figma}
  * Health:   GET /health
  */
 
@@ -31,9 +31,11 @@ import { getBuildInfo } from './buildInfo.mjs';
 import {
   registerFocusedAudienceTools,
   registerFocusedAjoCleanupTools,
+  registerFocusedAjoOcDatasetTools,
   registerFocusedDecisioningTools,
   registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
+  registerFocusedSnowflakeTools,
   registerFocusedMcpGuideTools,
   registerFocusedPdfTools,
   registerFocusedCommandCentreTools,
@@ -79,6 +81,16 @@ const ENDPOINTS = [
       'Focused profile lifecycle: readiness, create/update/read, governed AEP industry events, and Snowflake dual-load readiness, enrichment, and readback.',
   },
   {
+    path: '/mcp/snowflake',
+    toolset: 'snowflake',
+    register: registerFocusedSnowflakeTools,
+    instructions:
+      'Governed Snowflake workspace: inspect capabilities first. Read-only SQL uses owned durable jobs. ' +
+      'Table/data/grant changes require preview and separate authenticated Portal approval before apply. ' +
+      'The MCP cannot approve changes. Cortex delegation can incur charges and invoke configured tools. ' +
+      'Never retry unknown submissions automatically; reconcile the original job. Access is disabled until an administrator configures policy.',
+  },
+  {
     path: '/mcp/audiences',
     toolset: 'audiences',
     register: registerFocusedAudienceTools,
@@ -90,6 +102,13 @@ const ENDPOINTS = [
     register: registerFocusedAjoCleanupTools,
     instructions:
       'Governed AJO cleanup: list and audit journeys or campaigns, obtain exact colleague confirmation, then delete one lifecycle-eligible asset.',
+  },
+  {
+    path: '/mcp/ajo-oc-datasets',
+    toolset: 'ajo-oc-datasets',
+    register: registerFocusedAjoOcDatasetTools,
+    instructions:
+      'Read-only Orchestrated Campaign dataset status, eligibility validation, and enablement job status. Use /mcp (lab-all) for preview/apply. Never enable datasets without exact preview and explicit colleague confirmation.',
   },
   {
     path: '/mcp/decisioning',

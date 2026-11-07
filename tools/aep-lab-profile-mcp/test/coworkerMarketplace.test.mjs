@@ -16,6 +16,7 @@ async function readJson(path) {
 }
 
 const expectedEndpoints = new Map([
+  ['aep-lab-snowflake', '/mcp/snowflake'],
   ['aep-lab-entry', '/mcp/entry'],
   ['aep-lab-general', '/mcp'],
   ['aep-lab-profiles', '/mcp/profile'],
@@ -24,6 +25,7 @@ const expectedEndpoints = new Map([
   ['aep-lab-audiences', '/mcp/audiences'],
   ['aep-lab-decisioning', '/mcp/decisioning'],
   ['aep-lab-ajo-cleanup', '/mcp/ajo-cleanup'],
+  ['aep-lab-ajo-oc-datasets', '/mcp/ajo-oc-datasets'],
   ['aep-lab-command-centre', '/mcp/command-centre'],
   ['aep-lab-weather', '/mcp/weather'],
   ['aep-lab-geo-insights', '/mcp/geo-insights'],
@@ -120,6 +122,7 @@ test('Coworker MCP manifest uses Integration schema for General and all focused 
 test('Coworker connection prefixes keep every catalog tool within the 64-character qualified-name budget', async () => {
   const config = await readJson(join(pluginRoot, '.mcp.json'));
   const registrars = new Map([
+    ['/mcp/snowflake', registrations.registerFocusedSnowflakeTools],
     ['/mcp', registrations.registerProfileTools],
     ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
     ['/mcp/profile', registrations.registerFocusedProfileTools],
@@ -128,6 +131,7 @@ test('Coworker connection prefixes keep every catalog tool within the 64-charact
     ['/mcp/audiences', registrations.registerFocusedAudienceTools],
     ['/mcp/decisioning', registrations.registerFocusedDecisioningTools],
     ['/mcp/ajo-cleanup', registrations.registerFocusedAjoCleanupTools],
+    ['/mcp/ajo-oc-datasets', registrations.registerFocusedAjoOcDatasetTools],
     ['/mcp/command-centre', registrations.registerFocusedCommandCentreTools],
     ['/mcp/weather', registrations.registerFocusedWeatherTools],
     ['/mcp/geo-insights', registrations.registerFocusedGeoInsightsTools],
@@ -217,7 +221,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose the same eighteen endpoints with runtime-specific names and auth', async () => {
+test('Claude and Coworker packages expose General plus the same nineteen focused endpoints', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));
@@ -240,4 +244,14 @@ test('Claude and Coworker packages expose the same eighteen endpoints with runti
     });
     assert.equal(claudeServer?.timeout, coworkerServer.tool_timeout_seconds * 1000);
   }
+});
+
+test('Copilot CLI marketplace exposes the read-only Orchestrated Campaign endpoint', async () => {
+  const copilotRoot = join(repoRoot, 'tools', 'copilot-marketplace', 'aep-lab');
+  const plugin = await readJson(join(copilotRoot, 'plugin.json'));
+  const config = await readJson(join(copilotRoot, 'mcp.json'));
+  const server = config.mcpServers['aep-lab-ajo-oc-datasets'];
+  assert.equal(plugin.version, '1.1.0');
+  assert.equal(server?.url, 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets');
+  assert.deepEqual(server?.headers, { 'X-AEP-Lab-Mcp-Key': '${AEP_LAB_MCP_KEY}' });
 });

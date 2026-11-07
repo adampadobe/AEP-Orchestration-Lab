@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 218 tools',
+      product: 'Complete Lab MCP · 238 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -40,9 +40,9 @@
         'Check sandbox infra and onboard profile pipelines',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all seventeen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all nineteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 218,
+      toolCount: 238,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -63,7 +63,7 @@
         'Plan a customer demo workflow across several Lab domains',
       ],
       configNotes:
-        'The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins install this directory, General, and all seventeen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
+        'The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins install this directory, General, and all nineteen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
       connectionKind: 'Focused · read-only entry point',
       toolCount: 5,
       docUrl:
@@ -118,6 +118,27 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Profile tools reference',
+    },
+    {
+      id: 'aep-lab-snowflake',
+      configName: 'aep-lab-snowflake',
+      section: 'lab',
+      dropdownLabel: 'Snowflake workspace',
+      name: 'AEP Lab - Snowflake workspace',
+      product: 'Focused Lab MCP - 16 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/snowflake',
+      summary: 'Policy-scoped SQL jobs, metadata, data checks, approved table/data/grant changes and Cortex Agent delegation. Disabled until an administrator enables workspace access.',
+      useCases: [
+        'Explore tables and run bounded read-only SQL jobs',
+        'Check nulls, duplicates, row counts and freshness',
+        'Preview a typed change, obtain separate Portal approval, then apply once',
+        'Delegate questions to an approved Snowflake Cortex Agent',
+      ],
+      configNotes: 'Saved profile-generation credentials do not automatically enable this workspace. The MCP cannot approve its own changes. Unknown outcomes require reconciliation, not resubmission. Cortex may incur AI charges and invoke configured tools.',
+      connectionKind: 'Focused - governed workspace',
+      toolCount: 16,
+      docUrl: 'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/SNOWFLAKE_INTEGRATION.md',
+      docLabel: 'Snowflake workspace activation',
     },
     {
       id: 'aep-lab-commerce',
@@ -380,6 +401,29 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AJO cleanup tools reference',
+    },
+    {
+      id: 'aep-lab-ajo-oc-datasets',
+      configName: 'aep-lab-ajo-oc-datasets',
+      section: 'lab',
+      dropdownLabel: 'AJO Orchestrated Campaign datasets',
+      name: 'AEP Lab — Orchestrated Campaign datasets',
+      product: 'Focused Lab MCP · 4 tools',
+      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets',
+      summary:
+        'Read-only Orchestrated Campaign dataset status, Adobe eligibility validation, and enablement job tracking.',
+      useCases: [
+        'Inspect exact relational dataset status',
+        'Validate Adobe Orchestrated Campaign eligibility',
+        'Track an owned enablement job',
+      ],
+      configNotes:
+        'Read-only focused connection. Use General for governed preview and confirmation-gated enablement. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
+      connectionKind: 'Focused · read-only',
+      toolCount: 4,
+      docUrl:
+        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
+      docLabel: 'Orchestrated Campaign dataset tools reference',
     },
     {
       id: 'aep-lab-command-centre',
