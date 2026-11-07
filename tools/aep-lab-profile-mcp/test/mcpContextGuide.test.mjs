@@ -11,7 +11,7 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').url.endsWith('/mcp/ajo-oc-datasets'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 236);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 238);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').toolCount, 4);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 23);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 24);
@@ -158,7 +158,7 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   assert.match(html, /Add <code>https:\/\/github\.com\/adampadobe\/AEP-Orchestration-Lab<\/code> as a marketplace with no subdirectory/i);
   assert.match(html, /Claude stores the key as sensitive plugin configuration/i);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 236 tools/);
+  assert.match(catalog, /Complete Lab MCP · 238 tools/);
   assert.match(catalog, /id: 'aep-lab-snowflake'/);
   assert.match(catalog, /\/mcp\/snowflake/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);

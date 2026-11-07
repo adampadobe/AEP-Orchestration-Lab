@@ -100,6 +100,8 @@ const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes
 const { registerPlatformCleanupRoutes } = require('./platformCleanupRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerAjoOcDatasetRoutes } = require('./ajoOcDatasetRoutes');
+const { registerAepIngestionDiagnosticsRoutes } = require('./aepIngestionDiagnosticsRoutes');
+const { createAepIngestionDiagnosticsService } = require('./aepIngestionDiagnosticsService');
 const { registerDemoAssetsRoutes } = require('./demoAssetsRoutes');
 const { registerCommerceRoutes } = require('./commerceRoutes');
 const { createCommerceService } = require('./commerceService');
@@ -1203,6 +1205,20 @@ Object.assign(
     mcpApiKeyStore,
     ajoOcDatasetService: createAjoOcDatasetService(),
     ajoOcDatasetStore,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAepIngestionDiagnosticsRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    ingestionDiagnosticsService: createAepIngestionDiagnosticsService(),
   })
 );
 
