@@ -2,7 +2,7 @@
 name: aep-lab-profile-mcp
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
-  (Streamable HTTP on Cloud Run v3.52.2). Use when choosing an MCP context, generating test profiles, sending
+  (Streamable HTTP on Cloud Run v3.53.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, or reading lab execution framework / industry playbooks.
@@ -10,11 +10,11 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.52.2** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
+MCP server: **AEP Orchestration Lab MCP v3.53.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`).
 
-Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session: `/mcp/entry` (5 tools), `/mcp/profile` (21), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24, including bulk-job polling), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4, OpenWeatherMap current conditions, forecast, and a map-rendered lookup via Google Static Maps — no AEP/Lab API calls). The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
+Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session. Alongside `/mcp/entry` (5 tools), `/mcp/ajo-oc-datasets` (4), `/mcp/profile` (23), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4), there are other focused endpoints listed in the MCP README. The Orchestrated Campaign dataset endpoint is read-only: status, eligibility validation, and job status; use General for governed preview and enablement. The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
-**One-click Coworker install:** `tools/coworker-marketplace/` packages all seventeen focused endpoints, including governed Commerce at `/mcp/commerce` and Commerce Optimizer at `/mcp/commerce-optimizer`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
+**One-click Coworker install:** `tools/coworker-marketplace/` packages all nineteen focused endpoints, including governed Commerce at `/mcp/commerce`, Commerce Optimizer at `/mcp/commerce-optimizer`, and read-only Orchestrated Campaign dataset status at `/mcp/ajo-oc-datasets`, into one installable Coworker Marketplace plugin, avoiding the need to add each connection by hand. See `tools/coworker-marketplace/README.md`.
 
 Coworker plugin 1.9.0 names General, Decisioning, and Commerce Optimizer `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Framework context IDs and Claude/API-key configuration names remain unchanged; the directory exposes `coworkerConnectionName` for these three contexts. Existing Coworker installs must update or reinstall the plugin, disconnect old named connections, and start a new chat.
 
@@ -35,6 +35,12 @@ Use the complete `/mcp` (`lab-all` in Coworker), not the read-only entry directo
 Run `lab_platform_asset_list`, then `lab_platform_asset_audit` for one exact dataset ID or full tenant schema URI. Show the exact org, sandbox, ID/name, blockers, owned descriptors and irreversible/partial-failure warnings. Independently clear AJO/campaign/audience and external usage, obtain explicit confirmation, then call `lab_platform_asset_delete` with its fresh `audit_id`, exact `expected_name`, `confirmed true` and `usage_cleared true`.
 
 Receipts expire after 15 minutes and are single-use/principal-bound. The server re-audits; changed state, Profile/Identity enablement, remaining datasets, incoming relationships or source/target connections block deletion. Verify absence before continuing. Each dataset precedes its schema; dependent child dataset/schema pairs may need removal before parent datasets. Schema deletion includes only its audited owned descriptors and is not atomic. Stop on partial/pending/uncertain results and re-audit; never automatically retry or cascade. This capability neither changes Adobe entitlements nor authorizes unrelated cleanup. See the MCP README for API and authentication details.
+
+## Governed Orchestrated Campaign dataset enablement
+
+Use `/mcp/ajo-oc-datasets` for read-only inventory/status, Adobe eligibility validation, and owned enablement-job status. Use General (`/mcp`, `lab-all`) for preview and apply. The workflow is restricted to eligible `rel_` datasets and submits one dataset per Adobe request serially.
+
+Preview the exact dataset IDs and review each eligibility result, existing-data warning, preflight ID, and generated confirmation phrase. Show the exact scope and phrase to the colleague; only explicit confirmation of that preview authorizes apply. Apply re-reads Catalog metadata and reruns validation before each write. Stop on failure or an uncertain submission; never retry automatically or infer that a request succeeded. Track returned batch/job IDs to completion. This changes dataset extension enablement only; it does not create dataflows, load data, or prove AJO campaign readiness.
 
 ## Framework knowledge (server-side — no manual retraining)
 

@@ -14,7 +14,7 @@ import {
   registerConfirmProfileGenerationTool,
   registerGenerationPrefsTools,
 } from '../src/tools/generationPrefs.mjs';
-import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedCreativityTools, registerFocusedDemoPrepTools, registerFocusedFigmaTools, registerFocusedFireflyTools, registerFocusedGeoInsightsTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
+import { registerFocusedAdobeCapabilityTools, registerFocusedAjoCleanupTools, registerFocusedAjoOcDatasetTools, registerFocusedCommerceOptimizerTools, registerFocusedCommerceTools, registerFocusedCreativityTools, registerFocusedDemoPrepTools, registerFocusedFigmaTools, registerFocusedFireflyTools, registerFocusedGeoInsightsTools, registerFocusedMcpGuideTools, registerFocusedMeasurementQualityTools, registerFocusedPdfTools, registerFocusedProfileTools, registerFocusedWeatherTools, registerProfileTools } from '../src/tools/index.mjs';
 
 function registrationRecorder() {
   const names = [];
@@ -46,6 +46,11 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
       ['aep-lab-general', registerProfileTools, [
         eligibility, 'lab_batch_job_status', ...optimizerChanges,
         'lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete',
+        'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_preview',
+        'lab_ajo_oc_dataset_apply', 'lab_ajo_oc_dataset_job_status',
+      ]],
+      ['aep-lab-ajo-oc-datasets', registerFocusedAjoOcDatasetTools, [
+        'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_job_status',
       ]],
     ]) {
       await requestContext.run({ authSource, principalUid: 'test-principal' }, async () => {
@@ -174,7 +179,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 231);
+  assert.equal(full.names.length, 236);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 

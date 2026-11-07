@@ -31,6 +31,7 @@ import { getBuildInfo } from './buildInfo.mjs';
 import {
   registerFocusedAudienceTools,
   registerFocusedAjoCleanupTools,
+  registerFocusedAjoOcDatasetTools,
   registerFocusedDecisioningTools,
   registerFocusedDemoPrepTools,
   registerFocusedProfileTools,
@@ -101,6 +102,13 @@ const ENDPOINTS = [
     register: registerFocusedAjoCleanupTools,
     instructions:
       'Governed AJO cleanup: list and audit journeys or campaigns, obtain exact colleague confirmation, then delete one lifecycle-eligible asset.',
+  },
+  {
+    path: '/mcp/ajo-oc-datasets',
+    toolset: 'ajo-oc-datasets',
+    register: registerFocusedAjoOcDatasetTools,
+    instructions:
+      'Read-only Orchestrated Campaign dataset status, eligibility validation, and enablement job status. Use /mcp (lab-all) for preview/apply. Never enable datasets without exact preview and explicit colleague confirmation.',
   },
   {
     path: '/mcp/decisioning',

@@ -934,6 +934,60 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
   });
 }
 
+/** Read the Orchestrated Campaign extension status for rel_ datasets. */
+export async function ajoOcDatasetStatus({ sandbox, dataset_ids, name_prefix }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'status', sandbox, dataset_ids: dataset_ids?.join(','), name_prefix },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+/** Run Adobe's read-only Orchestrated Campaign dataset eligibility validation. */
+export async function ajoOcDatasetValidate({ sandbox, dataset_ids, name_prefix }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'validate', sandbox, dataset_ids: dataset_ids?.join(','), name_prefix },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
+/** Create a principal-scoped preview ticket; no Adobe mutation is performed. */
+export async function ajoOcDatasetPreview(params) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { ...params, action: 'preview' },
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+/** Submit the single-use preview's datasets serially; never retry an ambiguous submission. */
+export async function ajoOcDatasetApply(params) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    headers: principalAuthHeaders(),
+    body: { ...params, action: 'apply' },
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+/** Read stored Adobe enablement job status for this principal and sandbox. */
+export async function ajoOcDatasetJobStatus({ sandbox, batch_job_id, job_ids }) {
+  return labApiRequest('/ajoOcDatasetProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: { action: 'job_status', sandbox, batch_job_id, job_ids: job_ids?.join(',') },
+    headers: principalAuthHeaders(),
+    timeoutMs: 330_000,
+  });
+}
+
 function generationPrefsAuthHeaders() {
   const ims = getRequestImsAuthHeaders();
   if (ims) return ims;

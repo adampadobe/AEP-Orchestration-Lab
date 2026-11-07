@@ -99,6 +99,7 @@ const { registerProfileRoutes } = require('./profileRoutes');
 const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes');
 const { registerPlatformCleanupRoutes } = require('./platformCleanupRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
+const { registerAjoOcDatasetRoutes } = require('./ajoOcDatasetRoutes');
 const { registerDemoAssetsRoutes } = require('./demoAssetsRoutes');
 const { registerCommerceRoutes } = require('./commerceRoutes');
 const { createCommerceService } = require('./commerceService');
@@ -201,6 +202,8 @@ const audienceManagementService = lazyRequireMod('./audienceManagementService');
 const { createPlatformCleanupService } = require('./platformCleanupService');
 const platformCleanupStore = lazyRequireMod('./platformCleanupStore');
 const ajoCleanupService = lazyRequireMod('./ajoCleanupService');
+const { createAjoOcDatasetService } = require('./ajoOcDatasetService');
+const ajoOcDatasetStore = lazyRequireMod('./ajoOcDatasetStore');
 const WEBHOOK_LISTENER_ALLOWED_HOST = 'webhooklistener-pscg5c4cja-uc.a.run.app';
 const DEFAULT_WEBHOOK_LISTENER_URL = 'https://webhooklistener-pscg5c4cja-uc.a.run.app/';
 
@@ -1185,6 +1188,21 @@ Object.assign(
     mcpApiKeyStore,
     platformCleanupService: createPlatformCleanupService(),
     platformCleanupStore,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAjoOcDatasetRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    ADOBE_CLIENT_ID,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    ajoOcDatasetService: createAjoOcDatasetService(),
+    ajoOcDatasetStore,
   })
 );
 

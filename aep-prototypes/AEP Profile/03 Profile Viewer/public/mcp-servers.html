@@ -58,7 +58,7 @@
             <div class="mcp-lab-overview" aria-labelledby="mcpLabOverviewHeading">
               <h4 id="mcpLabOverviewHeading" class="mcp-lab-overview-title">
                 AEP Orchestration Lab MCP
-                <span class="mcp-lab-version">v3.52.0</span>
+                <span class="mcp-lab-version">v3.53.0</span>
               </h4>
               <p class="mcp-lab-overview-lead">
                 Sandbox-scoped tools for AEP demos: profiles, events, brand preparation, creative assets, Commerce, decisioning, PDFs, and governed cleanup. Coworker uses Adobe sign-in; key-based clients use a Portal key.
@@ -81,7 +81,7 @@
                     </span>
                   </summary>
                   <div class="mcp-client-guide-content">
-                    <p>One marketplace installs General plus eighteen focused integrations. Coworker uses your signed-in Adobe identity; do not paste the plaintext Portal key into the plugin.</p>
+                    <p>One marketplace installs General plus nineteen focused integrations. Coworker uses your signed-in Adobe identity; do not paste the plaintext Portal key into the plugin.</p>
                     <ol>
                       <li>In Coworker, open <strong>Marketplaces → + Add Marketplace</strong>.</li>
                       <li>Set <strong>Source Type</strong> to GitHub and <strong>GitHub Repository</strong> to <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code>.</li>
@@ -136,7 +136,7 @@
                 <summary class="mcp-included-title">What the marketplace installs</summary>
                 <ul class="mcp-included-items">
                   <li><strong>Entry point</strong> <code>aep-lab-entry</code> — capability directory and workflow recommender</li>
-                  <li><strong>General</strong> <code>aep-lab-general</code> — complete 231-tool catalog for advanced and cross-domain work</li>
+                  <li><strong>General</strong> <code>aep-lab-general</code> — complete 236-tool catalog for advanced and cross-domain work</li>
                   <li><strong>Snowflake workspace</strong> <code>aep-lab-snowflake</code> — policy-scoped SQL jobs, data checks, separately approved changes and Cortex Agent delegation</li>
                   <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — shared generation defaults, profile lifecycle, industry events, Snowflake dual-load</li>
                   <li><strong>Demo prep</strong> <code>aep-lab-demo-prep</code> — brand scrape, customer switch, RTDB demo config</li>
@@ -144,6 +144,7 @@
                   <li><strong>Audiences</strong> <code>aep-lab-audiences</code> — governed audience list, audit, and delete</li>
                   <li><strong>Decisioning</strong> <code>aep-lab-decisioning</code> — Edge decision evaluation, catalog management, and governed bulk migration</li>
                   <li><strong>AJO cleanup</strong> <code>aep-lab-ajo-cleanup</code> — governed AJO journey/campaign list, audit, and delete</li>
+                  <li><strong>AJO Orchestrated Campaign datasets</strong> <code>aep-lab-ajo-oc-datasets</code> — read-only dataset status, eligibility validation, and job status; preview/apply stay in General</li>
                   <li><strong>Command Centre</strong> <code>aep-lab-command-centre</code> — your own customer engagements, tasks, and meetings</li>
                   <li><strong>Weather</strong> <code>aep-lab-weather</code> — live weather and Google Maps for demo scenarios</li>
                   <li><strong>Geo insights</strong> <code>aep-lab-geo-insights</code> — current weather and governed audience hotspots; aggregate-only with k=10 suppression</li>
@@ -193,6 +194,12 @@
                     <h4>Audiences</h4>
                     <div class="mcp-choice-config-name"><code>aep-lab-audiences</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-audiences">Copy name</button></div>
                     <p>Use to list and audit audiences, then delete one exact audience only after explicit confirmation.</p>
+                  </article>
+                  <article class="mcp-connection-choice">
+                    <span class="mcp-connection-badge">Focused · read-only</span>
+                    <h4>AJO Orchestrated Campaign datasets</h4>
+                    <div class="mcp-choice-config-name"><code>aep-lab-ajo-oc-datasets</code><button type="button" class="mcp-copy-action" data-mcp-copy="name" data-server-id="aep-lab-ajo-oc-datasets">Copy name</button></div>
+                    <p>Use to inspect rel_ dataset status, validate Adobe eligibility, and track owned enablement jobs. Use General for the governed preview and confirmation-gated enablement.</p>
                   </article>
                   <article class="mcp-connection-choice">
                     <span class="mcp-connection-badge">Focused</span>

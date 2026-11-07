@@ -64,6 +64,13 @@
         "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
       }
     },
+    "aep-lab-ajo-oc-datasets": {
+      "type": "streamable-http",
+      "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets",
+      "headers": {
+        "X-AEP-Lab-Mcp-Key": "${AEP_LAB_MCP_KEY}"
+      }
+    },
     "aep-lab-command-centre": {
       "type": "streamable-http",
       "url": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
