@@ -313,6 +313,18 @@ Industry source joins use ECID; relational children expose `RECIPIENT_ID`.
 `INDUSTRY` on the shared parent is the most recently seeded industry, **not**
 an exclusive membership filter; use child-table relationships for membership.
 
+Both Snowflake-first seeding and the Snowflake leg of AEP dual-load validate an
+existing `REL.RECIPIENT` before preparing the shared parent. When
+`INFORMATION_SCHEMA.VIEWS.VIEW_DEFINITION` is hidden from the integration role,
+the validator uses Snowflake `GET_OBJECT_REFERENCES` and requires exactly the
+configured database/schema's physical base table as its dependency. Missing,
+unexpected, or inaccessible dependency metadata blocks preparation; it does not
+bypass validation or change grants. Existing recipient views are not recreated.
+Secure-view dependency inspection can require ownership and remains blocked
+without separately reviewed access. AEP XDM streaming is independent: a failed
+Snowflake leg can leave a stored AEP profile, so preserve its identity and inspect
+the partial-success receipt rather than generating it again.
+
 Travel owns the parent's passport, upcoming holiday, and seat-preference fields.
 Other industry writes omit those columns when their profiles do not supply them,
 so CLI `--industry all` retains the travel campaign fields after its final Sports

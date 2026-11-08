@@ -83,4 +83,62 @@ describe('snowflakeRecipientStore', () => {
     assert.equal(calls.some((sql) => sql.startsWith('UPDATE')), false);
     assert.equal(calls.some((sql) => sql.startsWith('CREATE VIEW')), false);
   });
+
+  it('verifies a hidden definition using exact dependencies without recreating the existing view', async () => {
+    const calls = [];
+    await ensureRecipientTable(async (sql) => {
+      calls.push(sql);
+      if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }];
+      if (sql.includes('GET_OBJECT_REFERENCES')) {
+        assert.match(sql, /DATABASE_NAME => 'DEMO_DB'/);
+        return [{
+          REFERENCED_DATABASE_NAME: 'DEMO_DB',
+          REFERENCED_SCHEMA_NAME: 'CUSTOM_SCHEMA',
+          REFERENCED_OBJECT_NAME: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+          REFERENCED_OBJECT_TYPE: 'TABLE',
+        }];
+      }
+      return [];
+    }, 'demo_db', 'custom_schema');
+    assert.ok(calls[1].includes('GET_OBJECT_REFERENCES'));
+    assert.ok(calls.slice(2).some((sql) => sql.startsWith('CREATE TABLE IF NOT EXISTS')));
+    assert.equal(calls.some((sql) => sql.startsWith('CREATE VIEW')), false);
+  });
+
+  it('fails closed on missing, foreign, indirect, or additional dependencies before mutations', async () => {
+    const base = {
+      REFERENCED_DATABASE_NAME: 'DEMO_DB',
+      REFERENCED_SCHEMA_NAME: 'CUSTOM_SCHEMA',
+      REFERENCED_OBJECT_NAME: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+      REFERENCED_OBJECT_TYPE: 'TABLE',
+    };
+    for (const references of [
+      [],
+      [{ ...base, REFERENCED_DATABASE_NAME: 'OTHER_DB' }],
+      [{ ...base, REFERENCED_SCHEMA_NAME: 'OTHER_SCHEMA' }],
+      [{ ...base, REFERENCED_OBJECT_NAME: 'OTHER_PARENT' }],
+      [{ ...base, REFERENCED_OBJECT_TYPE: 'VIEW' }],
+      [base, { ...base, REFERENCED_OBJECT_NAME: 'OTHER_TABLE' }],
+    ]) {
+      const calls = [];
+      await assert.rejects(ensureRecipientTable(async (sql) => {
+        calls.push(sql);
+        return sql.includes('INFORMATION_SCHEMA.TABLES')
+          ? [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }] : references;
+      }, 'DEMO_DB', 'CUSTOM_SCHEMA'), /dependencies do not verify/);
+      assert.equal(calls.length, 2);
+      assert.ok(calls.every((sql) => sql.startsWith('SELECT')));
+    }
+  });
+
+  it('propagates dependency access errors without making recipient mutations', async () => {
+    const calls = [];
+    await assert.rejects(ensureRecipientTable(async (sql) => {
+      calls.push(sql);
+      if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }];
+      throw new Error('Insufficient privileges to operate on secure view');
+    }, 'DEMO_DB', 'CUSTOM_SCHEMA'), /Insufficient privileges/);
+    assert.equal(calls.length, 2);
+    assert.ok(calls.every((sql) => sql.startsWith('SELECT')));
+  });
 });

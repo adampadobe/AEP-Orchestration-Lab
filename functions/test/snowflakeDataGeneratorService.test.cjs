@@ -17,6 +17,7 @@ const {
 } = require('../snowflakeDataGeneratorService');
 const { COLUMNS: TRAVEL_COLUMNS } = require('../snowflakeTravelProfileSchema');
 const { scaleEmail } = require('../labProfileGenerationPrefsStore');
+const { describeConnectError } = require('../snowflakeService');
 
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
@@ -81,6 +82,19 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('does not misclassify recipient or privilege errors as inbound IP failures', () => {
+    for (const message of [
+      'REL.RECIPIENT already exists with an incompatible definition.',
+      'Insufficient privileges to operate on view RECIPIENT',
+      'Membership metadata unavailable',
+    ]) {
+      assert.deepEqual(describeConnectError(new Error(message)).hints, []);
+    }
+    for (const message of ['IP 34.58.81.28 is not allowed', 'IPv4 address blocked', 'network policy blocked access']) {
+      assert.ok(describeConnectError(new Error(message)).hints.some((hint) => hint.includes('NETWORK POLICY')));
+    }
+  });
+
   it('types nullable arrays in legacy base-profile batches too', async () => {
     const fixture = serviceWithConnection();
     const result = await fixture.service.handleGenerateBaseProfiles({
@@ -100,7 +114,16 @@ describe('Snowflake seed API offline integration', () => {
 
   it('serializes array bindings for AEP dual-load across all six industries', async () => {
     for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
-      const fixture = serviceWithConnection();
+      const fixture = serviceWithConnection((sql) => {
+        if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }];
+        if (sql.includes('GET_OBJECT_REFERENCES')) return [{
+          REFERENCED_DATABASE_NAME: 'DEMO_DB',
+          REFERENCED_SCHEMA_NAME: 'LAB',
+          REFERENCED_OBJECT_NAME: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+          REFERENCED_OBJECT_TYPE: 'TABLE',
+        }];
+        return [];
+      });
       const result = await fixture.service.handleInsertProfileFromAep({
         labUser: 'offline-user', sandbox: 'test', industry,
         email: 'aep@example.com', ecid: '12345678901234567890123456789012345678', attributes: {},
@@ -123,6 +146,7 @@ describe('Snowflake seed API offline integration', () => {
         }
       }
       assert.ok(fixture.calls.some(({ sqlText }) => sqlText === 'COMMIT'));
+      assert.equal(fixture.calls.some(({ sqlText }) => sqlText.startsWith('CREATE VIEW')), false);
       assert.equal(fixture.isDestroyed(), true);
     }
   });
