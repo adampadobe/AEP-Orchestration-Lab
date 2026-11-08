@@ -50,6 +50,24 @@ describe('Snowflake-first shared base seeding', () => {
       assert.equal(calls.some((sql) => sql.startsWith('MERGE INTO')), false);
     });
 
+    it(`prepares ${industry} with a hidden shared-view definition and preserves the view`, async () => {
+      const calls = [];
+      await prepareSeedTables(async (sql) => {
+        calls.push(sql);
+        if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }];
+        if (sql.includes('GET_OBJECT_REFERENCES')) return [{
+          REFERENCED_DATABASE_NAME: CFG.database,
+          REFERENCED_SCHEMA_NAME: CFG.schema,
+          REFERENCED_OBJECT_NAME: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+          REFERENCED_OBJECT_TYPE: 'TABLE',
+        }];
+        return [];
+      }, CFG, industry);
+      assert.ok(calls[1].includes('GET_OBJECT_REFERENCES'));
+      assert.equal(calls.some((sql) => sql.startsWith('CREATE VIEW') && sql.includes('REL.RECIPIENT')), false);
+      assert.ok(calls.some((sql) => sql.includes(getIndustryProfileConfig(industry).table)));
+    });
+
     it(`writes ${industry} rows atomically, then publishes every nonempty table in autocommit mode`, async () => {
       const item = record(industry);
       assert.equal(item.profile.RECIPIENT_ID, item.parent.RECIPIENT_ID);

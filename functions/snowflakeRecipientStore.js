@@ -152,8 +152,22 @@ WHERE t.TABLE_SCHEMA = 'REL' AND t.TABLE_NAME = 'RECIPIENT'`);
     const definition = String(readSnowflakeCell(objects[0], 1, 'VIEW_DEFINITION') || '')
       .replaceAll('"', '').toUpperCase();
     const expectedSource = new RegExp(`(?<![\\w.])(?:${database}\\.)?${schema || 'AEP_SCHEMA'}\\.${BASE_RECIPIENT_TABLE}\\b`, 'i');
-    if (type !== 'VIEW' || !expectedSource.test(definition)) {
+    if (type !== 'VIEW' || (definition && !expectedSource.test(definition))) {
       throw new Error('REL.RECIPIENT already exists with an incompatible definition. Review its migration to the shared base view before seeding.');
+    }
+    if (!definition) {
+      // SELECT on a non-secure view exposes dependencies even when its SQL text is hidden.
+      const references = await execute(`SELECT REFERENCED_DATABASE_NAME, REFERENCED_SCHEMA_NAME,
+REFERENCED_OBJECT_NAME, REFERENCED_OBJECT_TYPE
+FROM TABLE(GET_OBJECT_REFERENCES(DATABASE_NAME => '${database.trim().toUpperCase()}', SCHEMA_NAME => 'REL', OBJECT_NAME => 'RECIPIENT'))`);
+      const expected = [database.trim().toUpperCase(), (schema || 'AEP_SCHEMA').toUpperCase(), BASE_RECIPIENT_TABLE, 'TABLE'];
+      if (references.length !== 1 || !expected.every((value, index) => (
+        readSnowflakeCell(references[0], index, [
+          'REFERENCED_DATABASE_NAME', 'REFERENCED_SCHEMA_NAME', 'REFERENCED_OBJECT_NAME', 'REFERENCED_OBJECT_TYPE',
+        ][index]) === value
+      ))) {
+        throw new Error('REL.RECIPIENT definition is unavailable and its dependencies do not verify the shared base view. Review view metadata access and dependencies before seeding; no recipient changes were made.');
+      }
     }
   }
   const statements = recipientTableStatements(database, schema);
@@ -166,7 +180,8 @@ LIMIT 1`);
   if (conflicts.length) {
     throw new Error('Shared base contains duplicate ECIDs or incompatible recipient IDs. Review identity migration before seeding; existing IDs were not overwritten.');
   }
-  for (const sqlText of statements.slice(-3)) await execute(sqlText);
+  for (const sqlText of statements.slice(-3, -1)) await execute(sqlText);
+  if (!objects.length) await execute(statements.at(-1));
 }
 
 async function mergeRecipientRows(execute, database, rows, schema) {

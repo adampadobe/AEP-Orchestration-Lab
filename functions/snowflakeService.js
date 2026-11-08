@@ -171,7 +171,7 @@ function buildSnowflakeConnectOptions(resolved) {
 function describeConnectError(err) {
   const msg = (err && err.message) ? String(err.message) : String(err || 'unknown error');
   const hints = [];
-  if (/network policy|IP|access is restricted|allowlist/i.test(msg)) {
+  if (/network policy|\bIP(?:v[46])?\b|access is restricted|allowlist/i.test(msg)) {
     hints.push(
       'Snowflake rejected the inbound IP. Add the lab\'s static egress address ' +
       '(see docs/SNOWFLAKE_INTEGRATION.md) to your Snowflake NETWORK POLICY.'
