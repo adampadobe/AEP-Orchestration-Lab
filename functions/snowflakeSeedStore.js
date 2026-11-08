@@ -219,6 +219,32 @@ function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, her
   };
 }
 
+function buildSportsEventCatalog(events, testProfile = true) {
+  const catalog = new Map();
+  for (const event of events) {
+    const eventTime = new Date(event.GATE_SCAN_TIME ?? event.TIMESTAMP);
+    const versionTime = new Date(event._RECORDCREATEDTIMESTAMP);
+    if (!event.EVENT_ID || !event.EVENT_NAME || !event.SPORT || !event.VENUE
+      || !(event.GATE_SCAN_TIME ?? event.TIMESTAMP) || !event._RECORDCREATEDTIMESTAMP
+      || !Number.isFinite(eventTime.getTime()) || !Number.isFinite(versionTime.getTime())) {
+      throw new Error('Sports catalog requires complete fixture metadata and valid event/version timestamps.');
+    }
+    const row = {
+      EVENT_ID: event.EVENT_ID, EVENT_NAME: event.EVENT_NAME, SPORT: event.SPORT,
+      VENUE: event.VENUE, EVENT_DATE: eventTime.toISOString().slice(0, 10), SECTION: event.SECTION,
+      TICKET_TYPE: event.TICKET_TYPE, PRICE_FROM: event.TICKET_PRICE,
+      VERSION_TS: versionTime.toISOString(), _RECORDCREATEDTIMESTAMP: versionTime.toISOString(),
+      _RECORDUPDATEDTIMESTAMP: versionTime.toISOString(), TESTPROFILE: testProfile, INDUSTRY: 'sports',
+    };
+    const existing = catalog.get(row.EVENT_ID);
+    if (existing && JSON.stringify(existing) !== JSON.stringify(row)) {
+      throw new Error('Sports catalog has conflicting metadata for the same fixture key.');
+    }
+    catalog.set(row.EVENT_ID, row);
+  }
+  return [...catalog.values()];
+}
+
 async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50) {
   const config = getIndustryProfileConfig(industry);
   const counts = {};
@@ -261,14 +287,16 @@ async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50)
         await merge(sourceTable(cfg, table.table), table.kind === 'event' ? 'EVENTID' : 'GENERATIONID', rows);
       }
       if (industry === 'sports') {
-        const catalog = records.flatMap(({ events, parent }) => events.rowsByType.attendance.map((event) => ({
-          EVENT_ID: event.EVENT_ID, EVENT_NAME: event.EVENT_NAME, SPORT: event.SPORT,
-          VENUE: event.VENUE, EVENT_DATE: event.TIMESTAMP.slice(0, 10), SECTION: event.SECTION,
-          TICKET_TYPE: event.TICKET_TYPE, PRICE_FROM: event.TICKET_PRICE,
-          VERSION_TS: parent.VERSION_TS, _RECORDCREATEDTIMESTAMP: parent.VERSION_TS,
-          _RECORDUPDATEDTIMESTAMP: parent.VERSION_TS, TESTPROFILE: parent.TESTPROFILE, INDUSTRY: 'sports',
-        })));
-        const uniqueCatalog = [...new Map(catalog.map((row) => [row.EVENT_ID, row])).values()];
+        const catalog = records.flatMap(({ events, parent }) =>
+          buildSportsEventCatalog(events.rowsByType.attendance, parent.TESTPROFILE));
+        const byId = new Map();
+        for (const row of catalog) {
+          if (byId.has(row.EVENT_ID) && JSON.stringify(byId.get(row.EVENT_ID)) !== JSON.stringify(row)) {
+            throw new Error('Sports catalog has conflicting metadata across seed records.');
+          }
+          byId.set(row.EVENT_ID, row);
+        }
+        const uniqueCatalog = [...byId.values()];
         await merge(rel('REL_SPORTS_EVENT_CATALOG'), 'EVENT_ID', uniqueCatalog);
       }
     }
@@ -295,4 +323,4 @@ async function writeSeedRecords(execute, cfg, industry, records, batchSize = 50)
   return counts;
 }
 
-module.exports = { prepareSeedTables, buildSeedRecord, writeSeedRecords, mergeRows, withTransaction, sourceTable, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration, CRM_BLOCK_SIZE, CRM_SEQUENCE };
+module.exports = { prepareSeedTables, buildSeedRecord, buildSportsEventCatalog, writeSeedRecords, mergeRows, withTransaction, sourceTable, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration, CRM_BLOCK_SIZE, CRM_SEQUENCE };

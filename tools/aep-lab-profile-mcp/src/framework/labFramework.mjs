@@ -607,6 +607,19 @@ export function getExecutionFramework() {
         ],
         doc: 'docs/SNOWFLAKE_INTEGRATION.md',
       },
+      extend_existing_person: {
+        tools: ['lab_get_profile', 'lab_snowflake_create_profile', 'lab_snowflake_enrich_profiles', 'lab_snowflake_get_profile_by_email', 'lab_snowflake_get_profile_bundle', 'lab_update_profile'],
+        when: 'Add operational CRM/activity for an existing AEP person without generating a new email or ECID.',
+        steps: [
+          'Read the authoritative AEP profile by Email and ECID; require an unambiguous same-person match. Do not call a new-profile seed tool.',
+          'lab_snowflake_create_profile with that exact email, ecid, selected industry and supported persona attributes; capture allocated/reused CRMID and recipientId.',
+          'For non-travel, lab_snowflake_enrich_profiles with the exact identity and approved manifest event keys; run serially. Sports attendance requires the existing REL sports event catalog.',
+          'Read complete CRM and paginated activity bundles, then independently verify exact stored XDM/REL keys, relationships, values and record_updated versions after downstream ingestion.',
+          'For Snowflake-first people, wait until the approved Profile-enabled flow makes the same ECID discoverable in AEP before lab_update_profile full-snapshot updates. Never regenerate to compensate for ingestion lag.',
+        ],
+        boundaries: 'No automatic flow/schema changes, cross-industry parent overwrite, campaign configuration or delivery. Synthetic consent/tokens do not authorize sends.',
+        doc: 'docs/SNOWFLAKE_RELATIONAL_LAYER.md',
+      },
       snowflake_travel_catalog: {
         tools: ['lab_snowflake_industry_catalog', 'lab_snowflake_table_structure'],
         when: 'Read-only Snowflake travel manifest introspection before generate-full or enrich (no arbitrary SQL).',

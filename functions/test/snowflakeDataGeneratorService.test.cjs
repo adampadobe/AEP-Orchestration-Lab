@@ -82,6 +82,39 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('reuses an existing CRM person without allocating another CRM block or email', async () => {
+    const fixture = serviceWithConnection((sql) => sql.endsWith('WHERE ECID = ? LIMIT 2')
+      ? [{ ECID: 'existing-ecid', EMAIL: 'same@example.test', CRMID: 'CRM2000', TESTPROFILE: true }]
+      : [], { allocator: false });
+    const result = await fixture.service.handleInsertProfileFromAep({
+      labUser: 'offline', sandbox: 'test', industry: 'retail', ecid: 'existing-ecid', email: 'same@example.test',
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.error));
+    assert.equal(result.idempotent, true);
+    assert.equal(result.crmId, 'CRM2000');
+    assert.ok(result.recipientId);
+    assert.equal(fixture.reservedEmailCount(), 0);
+    assert.equal(fixture.calls.some(({ sqlText }) => /NEXTVAL|SELECT "INCREMENT"|^INSERT INTO/.test(sqlText)), false);
+  });
+
+  it('refuses duplicate ECIDs or a conflicting email without allocating or writing a person', async () => {
+    for (const duplicate of [false, true]) {
+      const existing = { ECID: 'existing-ecid', EMAIL: 'right@example.test', CRMID: 'CRM2000' };
+      const fixture = serviceWithConnection((sql) => sql.endsWith('WHERE ECID = ? LIMIT 2')
+        ? duplicate ? [existing, { ...existing, CRMID: 'CRM2001' }] : [existing]
+        : []);
+      const result = await fixture.service.handleInsertProfileFromAep({
+        labUser: 'offline', sandbox: 'test', industry: 'retail', ecid: existing.ECID,
+        email: duplicate ? existing.EMAIL : 'wrong@example.test',
+      });
+      assert.equal(result.ok, false);
+      assert.match(result.error.message, duplicate ? /multiple CRM rows/ : /different email/);
+      assert.equal(result.error.phase, 'check_existing_ecid');
+      assert.equal(fixture.calls.some(({ sqlText }) => /NEXTVAL|^INSERT INTO|^UPDATE |^MERGE /.test(sqlText)), false);
+      assert.equal(fixture.reservedEmailCount(), 0);
+    }
+  });
+
   it('does not misclassify recipient or privilege errors as inbound IP failures', () => {
     for (const message of [
       'REL.RECIPIENT already exists with an incompatible definition.',
