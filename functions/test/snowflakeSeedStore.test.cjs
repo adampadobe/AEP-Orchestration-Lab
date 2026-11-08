@@ -7,7 +7,7 @@ const path = require('node:path');
 const { generateTravelProfileRow } = require('../snowflakeTravelProfileGenerator');
 const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGenerator');
 const { seedNewProfiles } = require('../scripts/generate-relational-snowflake');
-const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
+const { prepareSeedTables, buildSeedRecord, buildSportsEventCatalog, writeSeedRecords, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
 const { getIndustryProfileConfig, listSnowflakeProfileIndustries } = require('../snowflakeIndustryProfileRegistry');
 const { listIndustryEventTables } = require('../snowflakeIndustryEventRegistry');
 const travelDefinitions = require('../snowflakeTravelTableDefinitions.json');
@@ -36,6 +36,18 @@ function record(industry, index = 0) {
 }
 
 describe('Snowflake-first shared base seeding', () => {
+  it('rejects incomplete or contradictory catalog source metadata instead of choosing an arbitrary row', () => {
+    const event = record('sports').events.rowsByType.attendance[0];
+    assert.equal(buildSportsEventCatalog([event, event]).length, 1);
+    for (const invalid of [
+      { ...event, EVENT_NAME: null }, { ...event, _RECORDCREATEDTIMESTAMP: null },
+      { ...event, GATE_SCAN_TIME: 'invalid' },
+    ]) {
+      assert.throws(() => buildSportsEventCatalog([invalid]), /complete fixture metadata/);
+    }
+    assert.throws(() => buildSportsEventCatalog([event, { ...event, VENUE: 'Different venue' }]), /conflicting metadata/);
+  });
+
   for (const industry of listSnowflakeProfileIndustries()) {
     it(`prepares only the shared parent and selected ${industry} schema in the configured database`, async () => {
       const calls = [];

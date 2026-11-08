@@ -6,6 +6,7 @@ import { registerGenerateProfileTool } from '../src/tools/generateProfile.mjs';
 import { registerGenerateProfilesBatchTool } from '../src/tools/generateProfilesBatch.mjs';
 import { registerPreflightProfileGenerateTool } from '../src/tools/preflightProfileGenerate.mjs';
 import { getExecutionFramework } from '../src/framework/labFramework.mjs';
+import { registerSnowflakeTools } from '../src/tools/snowflakeTools.mjs';
 import { assessIndustrySandboxConfig, buildOnboardingPlan, buildSandboxProfileConfigReport } from '../src/sandboxConfig.mjs';
 
 process.env.AEP_LAB_MCP_FIRESTORE = 'off';
@@ -14,8 +15,35 @@ const server = { registerTool: (name, config, callback) => tools.set(name, { con
 registerGenerateProfileTool(server);
 registerGenerateProfilesBatchTool(server);
 registerPreflightProfileGenerateTool(server);
+const crmTools = new Map();
+registerSnowflakeTools({
+  registerTool: (name, config, callback) => crmTools.set(name, { config, callback }),
+}, { include: new Set(['lab_snowflake_create_profile']) });
 const decoded = result => JSON.parse(result.content[0].text);
 let key = 0;
+
+test('existing-person workflow preserves identity and separate stored-data acceptance gates', () => {
+  const workflow = getExecutionFramework().workflows.extend_existing_person;
+  assert.ok(workflow.tools.includes('lab_snowflake_create_profile'));
+  assert.ok(workflow.tools.includes('lab_update_profile'));
+  assert.equal(workflow.tools.includes('lab_generate_profile'), false);
+  assert.ok(workflow.steps.some((step) => step.includes('record_updated')));
+  assert.match(workflow.boundaries, /No automatic flow\/schema changes/);
+});
+
+test('same-person CRM tool returns allocated/reused recipient identity without an AEP generation call', async () => {
+  const expected = { crmId: 'CRM1000', recipientId: 'R-existing', ecid: 'existing-ecid', email: 'same@example.test', idempotent: true };
+  const { body, calls } = await invoke('lab_snowflake_create_profile', {
+    sandbox: 'apalmer', industry: 'retail', email: expected.email, ecid: expected.ecid,
+  }, () => ({ ok: true, result: expected }));
+  assert.equal(body.crmId, expected.crmId);
+  assert.equal(body.recipientId, expected.recipientId);
+  assert.equal(body.idempotent, true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].body.email, expected.email);
+  assert.equal(calls[0].body.ecid, expected.ecid);
+  assert.equal(calls.some((call) => call.path === '/api/profile/generate'), false);
+});
 
 async function invoke(name, params, respond, source = 'firestore', allowedSandboxes = ['apalmer']) {
   const originalFetch = globalThis.fetch;
@@ -65,7 +93,7 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
     const result = await requestContext.run({
       keyId: `snowflake-routing-${++key}`, mcpApiKey: 'test-user-key',
       principalAccess: { source, allowedSandboxes },
-    }, () => tools.get(name).callback(params));
+    }, () => (tools.get(name) || crmTools.get(name)).callback(params));
     return { result, body: decoded(result), calls };
   } finally {
     globalThis.fetch = originalFetch;

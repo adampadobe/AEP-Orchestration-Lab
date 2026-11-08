@@ -82,9 +82,14 @@ function snowflakeMemoryFixture({ now = () => new Date().toISOString() } = {}) {
       return [{ ROW_COUNT: rows(table).filter((row) => row.GENERATIONID === binds[0]
         || (binds[1] && row.GENERATIONID.startsWith(binds[1]))).length }];
     }
-    if (/WHERE (ECID|EMAIL|CRMID) = \? LIMIT 1$/.test(sql)) {
-      const [, table, column] = sql.match(/FROM (\S+) WHERE (\w+) = \? LIMIT 1$/);
-      return rows(table).filter((row) => row[column] === binds[0]).slice(0, 1);
+    if (/WHERE (ECID|EMAIL|CRMID) = \? LIMIT [12]$/.test(sql)) {
+      const [, table, column, limit] = sql.match(/FROM (\S+) WHERE (\w+) = \? LIMIT ([12])$/);
+      return rows(table).filter((row) => row[column] === binds[0]).slice(0, Number(limit));
+    }
+    if (sql.startsWith('SELECT ') && sql.includes('WHERE GENERATIONID = ? OR STARTSWITH(GENERATIONID, ?)')) {
+      const table = sql.match(/FROM (\S+)/)[1];
+      return rows(table).filter((row) => row.GENERATIONID === binds[0]
+        || row.GENERATIONID.startsWith(binds[1]));
     }
     if (/^(CREATE|ALTER|UPDATE) |INFORMATION_SCHEMA|HAVING COUNT\(\*\)/.test(sql)) return [];
     if (sql.startsWith('SELECT MAX(MX)')) return [{ MX: null }];

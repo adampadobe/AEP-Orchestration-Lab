@@ -423,7 +423,8 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       title: 'Insert one industry Snowflake CRM profile (dual-load)',
       description:
         'POST /api/snowflake/insert-profile-from-aep — default mode crm_generate builds a full industry CRM row ' +
-        'with shared email/ECID/CRMID from AEP; supported supplied persona values are preserved and missing operational fields are generated. ' +
+        'with the existing AEP email and ECID. Snowflake allocates CRMID for a new CRM row or reuses it for an existing same-ECID, same-email person; conflicting or duplicate matches fail. ' +
+        'Supported supplied persona values are preserved and missing operational fields are generated. This operation does not write to AEP or complete downstream ingestion. ' +
         'Pass mode mirror only for legacy AEP dot-path attribute mapping. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
@@ -438,7 +439,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         attributes: z
           .record(z.unknown())
           .optional()
-          .describe('Optional AEP attributes — crm_generate uses FIRSTNAME/LASTNAME only; mirror maps all dot-paths'),
+          .describe('Optional shared persona attributes supported by snowflakePersonaContract.js (names, contact, address, testProfile and selected industry CRM paths); missing operational values are generated. mirror uses the legacy travel dot-path mapper.'),
       },
     },
     async ({ sandbox, email, ecid, industry, table, mode, attributes }) => {
@@ -481,6 +482,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       return fromLabApi(apiResult, {
         sandbox: allowed.sandbox,
         crmId: result.crmId,
+        recipientId: result.recipientId,
         mode: result.mode || mode || 'crm_generate',
         table: result.table,
         ecid: result.ecid,

@@ -847,31 +847,30 @@ async function handleInsertProfileFromAep(input) {
     if (!skipCreateTable) {
       await execAsync(conn, { sqlText: `CREATE TABLE IF NOT EXISTS ${fqTable} (\n  ${COLUMN_DDL.join(',\n  ')}\n)` });
     }
-    phase = 'prepare_recipient_store';
-    if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
-    phase = 'allocate_crm_id';
-    const startIndex = industry
-      ? await getNextSeedCrmIndex((sqlText, binds) => execAsync(conn, { sqlText, binds }), cfg, [industry])
-      : await getNextCrmStartIndex(conn, fqTable);
-    const crmId = `CRM${startIndex}`;
-
     phase = 'check_existing_ecid';
+    const lookupColumns = insertColumns.filter((column) => !['RECIPIENT_ID', 'PUSHTOKENS'].includes(column));
     const existing = await execAsync(conn, {
-      sqlText: `SELECT ${insertColumns.join(', ')} FROM ${fqTable} WHERE ECID = ? LIMIT 1`,
+      sqlText: `SELECT ${lookupColumns.join(', ')} FROM ${fqTable} WHERE ECID = ? LIMIT 2`,
       binds: [ecid],
     });
-    if (existing.length > 0) {
-      const existingProfile = Object.fromEntries(insertColumns.map((column, index) => [
+    if (existing.length > 1) throw new Error('Existing ECID matches multiple CRM rows; inspect duplicate identities before extending this person.');
+    if (existing.length === 1) {
+      const existingProfile = Object.fromEntries(lookupColumns.map((column, index) => [
         column,
         readSnowflakeCell(existing[0], index, column),
       ]));
       const existingCrmId = String(existingProfile.CRMID || '');
+      if (String(existingProfile.EMAIL || '').trim().toLowerCase() !== email.toLowerCase()) {
+        throw new Error('Existing ECID belongs to a different email; do not link these people.');
+      }
+      phase = 'prepare_recipient_store';
+      if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
       const recipient = industry ? createRecipient({
         industry,
         crmId: existingCrmId,
         ecid,
         email: existingProfile.EMAIL || email,
-        index: Number(existingCrmId.match(/(\d+)$/)?.[1] || startIndex),
+        index: Number(existingCrmId.match(/(\d+)$/)?.[1]),
       }) : null;
       if (recipient) {
         phase = 'refresh_existing_recipient';
@@ -908,6 +907,13 @@ async function handleInsertProfileFromAep(input) {
       };
     }
 
+    phase = 'prepare_recipient_store';
+    if (industry) await prepareRecipientStore(conn, cfg.database, fqTable, cfg.schema);
+    phase = 'allocate_crm_id';
+    const startIndex = industry
+      ? await getNextSeedCrmIndex((sqlText, binds) => execAsync(conn, { sqlText, binds }), cfg, [industry])
+      : await getNextCrmStartIndex(conn, fqTable);
+    const crmId = `CRM${startIndex}`;
     phase = 'build_crm_row';
     const normalizedAttrs = normalizeAepAttributesForSnowflake(input.attributes);
     const testProfileAttr = getAttr(normalizedAttrs, 'testProfile');

@@ -70,8 +70,8 @@ After deploying this change, start a new MCP chat to refresh tool descriptions.
 
 Compare emitted writable fields with stored AEP Profile data by both Email and
 ECID; include false booleans, arrays and numeric leaves. For dual-load, verify
-one Snowflake CRM row with matching EMAIL, ECID and CRMID. Operational CRM
-values are generated independently from behavioral persona values. Inspect
+one Snowflake CRM row with matching EMAIL, ECID and CRMID. Supported supplied persona values are preserved by the shared CRM contract;
+missing operational values are generated separately. Inspect
 source-specific batch mappings separately from merged Profile data. Readiness
 and inlet acceptance alone do not prove storage. Historical failed records do
 not block verified new-profile acceptance and need separate repair approval.
@@ -115,7 +115,7 @@ Codex should call these **before** improvising lab conventions:
 9. **Decisioning Edge evaluate** — use `lab_decision_lab_config` then `lab_decisioning_edge_evaluate` (POST `/api/decisioning/edge-evaluate`, **not** `/api/aep`). Pass **email + ecid** from generate; ECID primary when both. Follow with `lab_explain_decision_response` and `lab_decisioning_resolve_treatment_name` for offer-item ids. Sandbox allowlist required.
 10. **Decisioning catalog** — use allowlisted DPS proxies only: `lab_decisioning_catalog_schema` → `lab_decisioning_catalog_list` / `lab_decisioning_catalog_get` → `lab_decisioning_catalog_assess`. **offer-items** requires **x-schema-id** (Firestore `/api/catalog/config` or auto-detect). Never call `/api/aep` from MCP. Run **assess** before Edge evaluate demos.
 11. **Brand scrape offline fallback** — when `lab_brand_scrape` returns `scrapeStatus: failed` or crawl is blocked (403/bot protection), **do not retry crawl in a loop**. Chain: **`lab_brand_scrape_brief`** → colleague runs external LLM or manual Chrome save-page + Image Eye → **`lab_brand_scrape_upload`** with `upload.zip_base64` (≤30 MB, ~40 files) → **`lab_poll_brand_scrape`** → optional **`lab_build_demo_website`**. Resource: `lab://framework/brand-scrape-offline`. Upload path matches Portal Options → HTML upload (Alan/kirkham sandboxes).
-12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all returned** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Snowflake CRM fields (LTV, holidays, preferences) are **generated independently** — not mirrored from AEP attributes. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
+12. **Snowflake full profile readback** — **NEVER** tell the user to run Snowflake console SQL or raw Snowflake MCP `SELECT *` for dual-load verification. After `lab_generate_profile` with `dual_load_snowflake:true`, call **`lab_snowflake_get_profile_by_email`** (preferred) or **`lab_snowflake_query_profiles`** with `email=<same email>`. Response includes `profiles[].columns` with **all returned** AGENTIC_TRAVEL columns plus `createdAt` from `_RECORDCREATEDTIMESTAMP`. Supported supplied persona fields are preserved; missing operational fields are generated. This is not a mirror of every XDM path. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment.
 13. **Live Activity confirmation gate** — use **`lab_live_activity_list_templates`** → **`lab_live_activity_profile_context`** → **`lab_live_activity_preflight`**. Profile context returns the ECID recipient and, when present, suggests `live_activity_id` from **`liveActivityPushNotificationDetails.0.token`**. When a colleague supplies a campaign ID, call **`lab_live_activity_save_execution_state`** so the same per-user, per-sandbox value restores in the Portal UI; preflight also persists supplied execution IDs as a fallback. Ask only for `missingFields`; when ready, show the redacted summary and obtain explicit colleague confirmation before **`lab_live_activity_send`**. AJO unitary execution still uses **ECID** as the recipient. Never pass arbitrary payloads or claim the campaign asset is being edited.
 14. **RTDB demo configuration is inspect → preview → confirm → apply** — use **`lab_demo_config_inspect`** first; **`lab_demo_config_preview`** with explicit changes or a complete `scrape_id`; show the diff; then **`lab_demo_config_apply`** only after explicit colleague confirmation. The Firebase API derives the workspace from the user-generated MCP key or independently validated Adobe IMS enrollment for the requested sandbox and creates a reversible revision. Coworker forwards IMS, not a plaintext Portal key or the shared ops key. Never write raw RTDB JSON or protected/uncatalogued paths.
 15. **Audience deletion is list → audit → exact confirmation → single delete** — use **`lab_audience_list`** to find candidates, then **`lab_audience_audit`** for one exact `id`. Show sandbox, ID, name, dependencies/dependents and audit limitations; obtain explicit colleague confirmation of that exact ID + name before **`lab_audience_delete`**. Requires a user-generated MCP key or validated Adobe IMS Portal enrollment scoped to the same sandbox. Never use `/api/aep`, infer confirmation, or batch-delete.
@@ -253,7 +253,7 @@ Example (user on sandbox **prisacar**):
 
 Requires **a user-generated MCP key or validated Adobe IMS Portal enrollment** (Profile Viewer → MCP servers). Ops shared key returns `MCP_USER_KEY_REQUIRED`.
 
-**Roles:** **AEP** = behavioral intent (events, segmentation, travel persona paths). **Snowflake** = operational CRM (bookings, LTV, holiday history, preferences). Dual-load shares join keys only: **EMAIL**, **ECID**, **CRMID** (+ optional **FIRSTNAME/LASTNAME** from AEP).
+**Roles:** **AEP** = behavioral intent (events, segmentation, travel persona paths). **Snowflake** = operational CRM (bookings, LTV, holiday history, preferences). Dual-load reuses **EMAIL** and **ECID**, with **CRMID** allocated/reused by Snowflake. Supported supplied persona fields follow `snowflakePersonaContract.js`; missing operational fields are generated. Verify CRMID projection into AEP separately.
 
 1. **Check Snowflake config**
 
@@ -347,6 +347,24 @@ Use the corresponding `{industry}.all.v1` recipe and manifest event keys for fsi
 **Snowflake-only UI parity:** after confirming shared email preferences and the requested count, call **lab_snowflake_generate_base_profiles** with explicit `industry` (`travel`, `fsi`, `retail`, `telecom`, `media`, or `sports`) and `count`. This uses the UI's governed CRM batch generator, not legacy `BASE_PROFILES`, and returns `profiles` containing email/ECID/CRMID for **lab_snowflake_enrich_profiles**. Pass only those identity selectors and manifest event keys. It does not stream into AEP. For travel use generate-full to populate every phase, or CRM generation plus runner enrichment for selected activity.
 
 All six industries have checked-in creation recipes matching their UI catalog: **travel 16**, **each other industry 6**. Verify the same UID+sandbox connection, explicit database/schema, network access, grants, and catalog readiness before generating. Confirm a small sample first, then scale within tool count/rate limits. Enrichment commits non-travel table chunks together; run same-profile enrichment serially. Profile generation creates new identities and must not be automatically retried. Realistic rules may produce no rows for particular types (e.g. sports betting for a non-bettor); do not fabricate activity merely to fill every table.
+
+### Existing-person extension without a new seed
+
+Read `lab_get_execution_framework` workflow `extend_existing_person`. Resolve
+the authoritative AEP Email and ECID, then call `lab_snowflake_create_profile`
+with that exact pair and selected industry. Capture its allocated/reused CRMID
+and recipientId; do not call a new-person seed. Duplicate ECIDs and conflicting
+emails fail explicitly. Reuse preserves the existing CRM persona and consumes
+no CRM sequence block. For non-travel, enrich the exact approved identity
+serially and verify complete source bundles plus actual downstream XDM/REL
+storage, keys and `record_updated` versions.
+
+Sports attendance enrichment requires the existing reviewed REL event catalog;
+attendance/catalog changes commit atomically, and serial replay reconciles
+catalog gaps from stored attendance. The six-table source recipe alone does not
+create that catalog. For Snowflake-first people, wait until their existing
+Profile-enabled flow makes the same ECID visible before `lab_update_profile`.
+Do not regenerate around ingestion lag or silently change parent industry/consent.
 
 ## Workflow 1e — AJO Live Activity customer test (v3.29+)
 

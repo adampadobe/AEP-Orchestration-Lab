@@ -58,7 +58,7 @@ describe('Snowflake industry event inserts', () => {
         const { sqlText: sql, binds } = options;
         assert.deepEqual(Array.from(binds), [profile.ECID]);
         let result;
-        if (sql.endsWith('LIMIT 1')) result = [profile];
+        if (sql.endsWith('LIMIT 2')) result = [profile];
         else {
           const table = sql.match(/FROM DB\.AEP_SCHEMA\.(\w+) WHERE ECID = \?/)[1];
           const stored = tables.get(table);
@@ -109,7 +109,7 @@ describe('Snowflake industry event inserts', () => {
       for (const failOn of ['SELECT COUNT(*)', 'ORDER BY']) {
         const service = enrichService({ connection: { execute(options) {
           if (options.sqlText.includes(failOn)) options.complete(new Error('offline query rejected'));
-          else options.complete(null, null, options.sqlText.endsWith('LIMIT 1')
+          else options.complete(null, null, options.sqlText.endsWith('LIMIT 2')
             ? [{ ECID: base.ecid }] : [{ ROW_COUNT: 1 }]);
         } } });
         await assert.rejects(service.handleIndustryProfileBundle({ ...base, tableKey: 'usage' }), /offline query rejected/);
@@ -119,7 +119,7 @@ describe('Snowflake industry event inserts', () => {
     it('rejects an inconsistent empty page after deletion instead of returning a nonadvancing continuation', async () => {
       for (const eventOffset of [0, 10]) {
         const service = enrichService({ connection: { execute(options) {
-          options.complete(null, null, options.sqlText.endsWith('LIMIT 1')
+          options.complete(null, null, options.sqlText.endsWith('LIMIT 2')
             ? [{ ECID: base.ecid }]
             : options.sqlText.startsWith('SELECT COUNT(*)')
               ? [{ ROW_COUNT: 125 }]
@@ -352,5 +352,74 @@ describe('Snowflake industry event inserts', () => {
     });
     assert.equal(result.insertedRowCount, 0);
     assert.equal(db.rows('DB.AEP_SCHEMA.AGENTIC_RETAIL_PROFILE_REWARDS').length, 1);
+  });
+
+  it('commits sports attendance and catalog together and reconciles old catalog gaps from stored events', async () => {
+    const db = snowflakeMemoryFixture();
+    const profile = { ECID: 'sports-catalog-ecid', EMAIL: 'sports@example.test', CRMID: 'CRM1000', TESTPROFILE: false };
+    db.rows('DB.AEP_SCHEMA.AGENTIC_SPORTS_PROFILE_CUSTOMER').push(profile);
+    const service = enrichService(db);
+    const input = { labUser: 'offline', sandbox: 'test', industry: 'sports',
+      profiles: [{ ecid: profile.ECID, email: profile.EMAIL, crmId: profile.CRMID }], eventTypes: ['attendance'] };
+    const result = await service.handleIndustryEnrich(input);
+    const attendance = db.rows('DB.AEP_SCHEMA.AGENTIC_SPORTS_EVENT_ATTENDANCE');
+    const catalog = db.rows('DB.REL.REL_SPORTS_EVENT_CATALOG');
+    assert.equal(catalog.length, attendance.length);
+    assert.equal(result.profileResults[0].tableResults[0].catalogRowCount, attendance.length);
+    for (const event of attendance) {
+      const fixture = catalog.find((row) => row.EVENT_ID === event.EVENT_ID);
+      assert.equal(fixture.EVENT_DATE, event.GATE_SCAN_TIME.slice(0, 10));
+      assert.equal(fixture._RECORDUPDATEDTIMESTAMP, event._RECORDCREATEDTIMESTAMP);
+      assert.equal(fixture.TESTPROFILE, false);
+    }
+    const original = structuredClone(attendance);
+    const originalCatalog = structuredClone(catalog);
+    catalog.length = 0;
+    const repeated = await service.handleIndustryEnrich(input);
+    assert.equal(repeated.insertedRowCount, 0);
+    assert.equal(repeated.profileResults[0].tableResults[0].idempotent, true);
+    assert.deepEqual(db.rows('DB.AEP_SCHEMA.AGENTIC_SPORTS_EVENT_ATTENDANCE'), original);
+    assert.deepEqual(db.rows('DB.REL.REL_SPORTS_EVENT_CATALOG'), originalCatalog);
+  });
+
+  it('rolls back new sports attendance when the existing REL catalog cannot be written', async () => {
+    const db = snowflakeMemoryFixture();
+    const profile = { ECID: 'rollback-ecid', EMAIL: 'sports@example.test', CRMID: 'CRM1000' };
+    db.rows('DB.AEP_SCHEMA.AGENTIC_SPORTS_PROFILE_CUSTOMER').push(profile);
+    const service = enrichService({ connection: { execute(options) {
+      if (options.sqlText.startsWith('MERGE INTO DB.REL.REL_SPORTS_EVENT_CATALOG')) {
+        options.complete(new Error('catalog unavailable; provision reviewed REL objects first'));
+      } else db.connection.execute(options);
+    } } });
+    await assert.rejects(service.handleIndustryEnrich({
+      labUser: 'offline', sandbox: 'test', industry: 'sports',
+      profiles: [{ ecid: profile.ECID }], eventTypes: ['attendance'],
+    }), /catalog unavailable/);
+    assert.equal(db.rows('DB.AEP_SCHEMA.AGENTIC_SPORTS_EVENT_ATTENDANCE').length, 0);
+    assert.equal(db.rows('DB.REL.REL_SPORTS_EVENT_CATALOG').length, 0);
+  });
+
+  it('rejects duplicate CRM matches and conflicting supplied identities before any enrichment write', async () => {
+    for (const duplicate of [false, true]) {
+      const db = snowflakeMemoryFixture();
+      const profile = { ECID: 'identity-ecid', EMAIL: 'right@example.test', CRMID: 'CRM1000' };
+      db.rows('DB.AEP_SCHEMA.AGENTIC_RETAIL_PROFILE_CUSTOMER').push(profile);
+      if (duplicate) db.rows('DB.AEP_SCHEMA.AGENTIC_RETAIL_PROFILE_CUSTOMER').push({ ...profile, CRMID: 'CRM1001' });
+      const service = enrichService(db);
+      const selector = { ecid: profile.ECID, email: duplicate ? profile.EMAIL : 'wrong@example.test' };
+      await assert.rejects(service.handleIndustryEnrich({
+        labUser: 'offline', sandbox: 'test', industry: 'retail', profiles: [selector],
+      }), duplicate ? /ambiguous/ : /same CRM person/);
+      await assert.rejects(service.handleIndustryProfileBundle({
+        labUser: 'offline', sandbox: 'test', industry: 'retail', ...selector,
+      }), duplicate ? /ambiguous/ : /same CRM person/);
+      if (!duplicate) {
+        await assert.rejects(service.handleIndustryProfileBundle({
+          labUser: 'offline', sandbox: 'test', industry: 'retail',
+          ecid: profile.ECID, crmId: profile.CRMID, crmid: 'different-crmid',
+        }), /same CRM person/);
+      }
+      assert.equal(db.rows('DB.AEP_SCHEMA.AGENTIC_RETAIL_EVENT_ORDER').length, 0);
+    }
   });
 });
