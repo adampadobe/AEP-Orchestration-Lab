@@ -10,14 +10,18 @@ const source = fs.readFileSync(path.join(root, 'tui-decisioning-runtime.js'), 'u
 test('departure-day edits and scenarios read, write and confirm daysToDeparture', () => {
   const model = require(path.join(root, 'tui-decisioning-model.js'));
   const profile = require(path.join(root, 'tui-decisioning-profile.js'));
-  const fullPath = '_demoemea.travelReservations.flightReservations.daysToDeparture';
-  const relativePath = 'travelReservations.flightReservations.daysToDeparture';
+  const fullPath = '_demoemea.airlineCustomer.daysToDeparture';
+  const relativePath = 'airlineCustomer.daysToDeparture';
   assert.equal(model.fields.find(field => field.key === 'days').path, fullPath);
   const data = {
     rows: [{ path: fullPath, value: 30, valueType: 'number', industry: 'travel', writable: true }],
     industries: { travel: { writable: true, schemaId: 'fixture-schema' } },
   };
   assert.equal(profile.signals(data.rows).days, 30);
+  assert.equal(profile.signals([
+    { path: '_demoemea.travelReservations.flightReservations.daysToDeparture', value: 99, valueType: 'number' },
+    ...data.rows,
+  ]).days, 30);
   for (const days of [0, 365, ...model.scenarios.filter(scenario => 'days' in scenario.preset).map(scenario => scenario.preset.days)]) {
     const batch = profile.snapshots(data, { ...model.defaults, days }, ['days']);
     assert.deepEqual(batch.expected, { [relativePath]: days });
@@ -26,7 +30,7 @@ test('departure-day edits and scenarios read, write and confirm daysToDeparture'
   }
   assert.ok(!JSON.stringify(model.objectives).includes('daysUntilDeparture'));
   for (const file of ['tui-decisioning-demo.html', 'tui-decisioning-visualiser.html']) {
-    assert.ok(fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-model.js?v=20261109-days-to-departure'));
+    assert.ok(fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-model.js?v=20261109-airline-days-to-departure'));
   }
 });
 
