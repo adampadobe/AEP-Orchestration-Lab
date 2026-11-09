@@ -7,6 +7,31 @@ const { test } = require('node:test');
 const root = path.join(__dirname, '..', 'web', 'profile-viewer');
 const source = fs.readFileSync(path.join(root, 'tui-decisioning-runtime.js'), 'utf8');
 
+test('TUI campaign attribution preserves campaign identity and separates CBE from preview modes', () => {
+  const attribution = require(path.join(root, 'tui-decisioning-attribution.js'));
+  const prefix = '_experience.decisioning.propositions.0.';
+  const rows = [
+    { path: prefix + 'scopeDetails.activity.id', value: 'campaign-fixture' },
+    { path: prefix + 'scopeDetails.decisionProvider', value: 'CJM' },
+    { path: prefix + 'scope', value: 'web://example.test/#hero-banner' },
+  ];
+  assert.deepEqual(attribution.details({ rows }), [{
+    campaignId: 'campaign-fixture', campaignName: '', delivery: 'Code-based experience (CBE)',
+  }]);
+  for (const [channel, label] of [['email', 'Email'], ['mobile', 'App'], ['web', 'Web']]) {
+    assert.equal(attribution.preview({ rows: [{
+      path: 'web.webPageDetails.URL', value: 'https://example.test/profile-viewer/tui-decisioning-demo.html?channel=' + channel,
+    }] }), label);
+  }
+  assert.deepEqual(attribution.details({ rows: [] }), []);
+  assert.equal(attribution.preview({ rows: [] }), '');
+  assert.equal(attribution.preview({ rows: [{ path: 'web.webPageDetails.URL', value: 'invalid' }] }), '');
+  assert.equal(attribution.details({ rows: [
+    ...rows.filter(row => !row.path.endsWith('decisionProvider')),
+    { path: prefix + 'scopeDetails.decisionProvider', value: 'TGT' },
+  ] })[0].delivery, '');
+});
+
 test('departure-day edits and scenarios read, write and confirm daysToDeparture', () => {
   const model = require(path.join(root, 'tui-decisioning-model.js'));
   const profile = require(path.join(root, 'tui-decisioning-profile.js'));

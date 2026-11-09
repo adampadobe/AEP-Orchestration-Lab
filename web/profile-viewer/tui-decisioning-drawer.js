@@ -3638,6 +3638,55 @@ function renderEventTimeline(events) {
   renderClassicEventItems(list);
 }
 
+const tuiCampaignNames = new Map();
+
+function appendTuiAttribution(text, ev) {
+  const attribution = global.TuiDecisioningAttribution;
+  if (!attribution) return;
+  const append = value => {
+    const line = document.createElement('span');
+    line.className = 'aep-profile-drawer-event-decision-detail';
+    line.textContent = value;
+    text.appendChild(line);
+    return line;
+  };
+  const details = attribution.details(ev);
+  if (!details.some(detail => detail.campaignName || detail.campaignId)) append('Campaign: attribution unavailable');
+  for (const detail of details) {
+    if (detail.delivery) append('Delivery: ' + detail.delivery);
+    if (detail.campaignName) {
+      append('Campaign: ' + detail.campaignName);
+    } else if (detail.campaignId) {
+      const line = append('Campaign: resolving… (' + detail.campaignId + ')');
+      const sandbox = getSandboxParam();
+      const key = sandbox + '|' + detail.campaignId;
+      let entry = tuiCampaignNames.get(key);
+      if (!entry || entry.expires < Date.now()) {
+        entry = { expires: Date.now() + 60000 };
+        entry.promise = fetch('/api/campaign-name?id=' + encodeURIComponent(detail.campaignId) + sandbox)
+          .then(async response => {
+            if (!response.ok) throw new Error('Campaign lookup failed (HTTP ' + response.status + ')');
+            const data = await response.json();
+            if (!data.name) throw new Error('Campaign name unavailable for ' + detail.campaignId);
+            return String(data.name);
+          })
+          .catch(error => {
+            labLog('warn', 'TUI campaign attribution lookup failed', { message: error.message });
+            return null;
+          });
+        tuiCampaignNames.set(key, entry);
+      }
+      entry.promise.then(name => {
+        if (line.isConnected && sandbox === getSandboxParam()) {
+          line.textContent = name ? 'Campaign: ' + name : 'Campaign: name unavailable (' + detail.campaignId + ')';
+        }
+      });
+    }
+  }
+  const preview = attribution.preview(ev);
+  if (preview) append('Preview: ' + preview);
+}
+
 function renderCompactEventTimeline(events) {
   const heading = getProfileDrawerEventsHeadingRow();
   heading.querySelector('h2').textContent = 'Last Events';
@@ -3670,6 +3719,7 @@ function renderCompactEventTimeline(events) {
       why.title = why.textContent;
       text.appendChild(why);
     }
+    if (isDisplay) appendTuiAttribution(text, ev);
     const sub = text.querySelector('.aep-profile-drawer-event-sub') || document.createElement('span');
     sub.className = 'aep-profile-drawer-event-sub';
     const eventType = isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event');
