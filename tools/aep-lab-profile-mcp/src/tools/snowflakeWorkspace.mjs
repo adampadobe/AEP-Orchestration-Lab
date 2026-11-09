@@ -7,6 +7,10 @@ import { jsonResult, toolError } from './helpers.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
 
 const identifier = z.string().regex(/^[A-Za-z_][A-Za-z0-9_$]{0,254}$/);
+const tableName = z.string().regex(
+  /^[A-Za-z_][A-Za-z0-9_$]{0,254}(?:\.[A-Za-z_][A-Za-z0-9_$]{0,254}){0,2}$/,
+  'Use a simple, schema-qualified or fully qualified table name',
+);
 const scalar = z.union([z.string().max(65536), z.number().finite(), z.boolean(), z.null()]);
 const values = z.record(identifier, scalar).refine(
   (record) => Object.keys(record).length > 0 && Object.keys(record).length <= 100,
@@ -17,8 +21,12 @@ const column = z.object({
   type: z.string().min(1).max(100).describe('Supported Snowflake scalar type, optionally with precision/scale or length'),
   nullable: z.boolean().optional(),
 }).strict();
+const fsiDynamicTable = z.string().regex(
+  /^[A-Za-z_][A-Za-z0-9_$]{0,254}\.REL\.REL_FSI_(ACCOUNT|CARD|TRANSACTION)$/,
+  'Use a fully qualified canonical FSI dynamic-table target in the REL schema',
+);
 const grant = {
-  table: identifier,
+  table: tableName,
   role: identifier,
   privileges: z.array(z.enum(['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'REFERENCES'])).min(1).max(5),
 };
@@ -34,20 +42,21 @@ function snowflakePreviewReviewUrl(previewId, sandbox) {
 }
 
 export const snowflakeChangeOperation = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('create_table'), table: identifier, columns: z.array(column).min(1).max(100) }).strict(),
-  z.object({ kind: z.literal('add_column'), table: identifier, column }).strict(),
-  z.object({ kind: z.literal('insert'), table: identifier, values }).strict(),
-  z.object({ kind: z.literal('update'), table: identifier, values, where: values }).strict(),
-  z.object({ kind: z.literal('delete'), table: identifier, where: values }).strict(),
+  z.object({ kind: z.literal('create_table'), table: tableName, columns: z.array(column).min(1).max(100) }).strict(),
+  z.object({ kind: z.literal('add_column'), table: tableName, column }).strict(),
+  z.object({ kind: z.literal('insert'), table: tableName, values }).strict(),
+  z.object({ kind: z.literal('update'), table: tableName, values, where: values }).strict(),
+  z.object({ kind: z.literal('delete'), table: tableName, where: values }).strict(),
+  z.object({ kind: z.literal('replace_fsi_dynamic_table'), table: fsiDynamicTable }).strict(),
   z.object({ kind: z.literal('grant'), ...grant }).strict(),
   z.object({ kind: z.literal('revoke'), ...grant }).strict(),
 ]);
 
 const definitions = [
   ['capabilities', 'Inspect Snowflake workspace policy and connection readiness',
-    'Inspect configured access and limits without treating saved credentials as proof of Snowflake privileges.', {}],
+    'Inspect configured access, default schema and allowlisted schemas without treating saved credentials as proof of Snowflake privileges.', {}],
   ['objects_list', 'List Snowflake workspace objects',
-    'List tables, views or schemas within the administrator-approved workspace.',
+    'List tables, views or schemas within the administrator-approved database and allowlisted schemas.',
     { kind: z.enum(['tables', 'views', 'schemas']), database: identifier.optional(), schema: identifier.optional(), limit: z.number().int().min(1).max(500).optional() }],
   ['object_describe', 'Describe a Snowflake table',
     'Read column metadata for one exact table in the approved workspace.',
@@ -66,9 +75,9 @@ const definitions = [
     { job_id: z.string().min(1).max(200) }],
   ['data_check', 'Check Snowflake data quality',
     'Compute a row count, null count, duplicate-value groups, or maximum freshness timestamp for one workspace table. Freshness reports evidence, not an invented SLA.',
-    { table: identifier, column: identifier.optional(), check: z.enum(['row_count', 'null_count', 'duplicates', 'freshness']) }],
+    { table: tableName, column: identifier.optional(), check: z.enum(['row_count', 'null_count', 'duplicates', 'freshness']) }],
   ['change_preview', 'Preview a Snowflake table, data or grant change',
-    'Prepare one typed operation and inspect exact SQL, bound values, target and expiry. Does not execute changes. Returns review_url, a Portal deep link that opens and loads this exact preview. Separate Portal approval is required; the MCP cannot approve its own changes.',
+    'Prepare one typed operation and inspect exact SQL, bound values, target and expiry. The only CREATE OR REPLACE operation is a fixed registry replacement for REL_FSI_ACCOUNT, REL_FSI_CARD or REL_FSI_TRANSACTION using checked-in FSI SQL; it requires AEP_SCHEMA and REL in the admin allowlist and refreshes asynchronously. Does not execute changes. Returns review_url, a Portal deep link that opens and loads this exact preview. Separate Portal approval is required; the MCP cannot approve its own changes.',
     { operation: snowflakeChangeOperation }],
   ['change_apply', 'Apply a separately approved Snowflake change',
     'Consume one unexpired, server-approved preview exactly once. Rechecks connection and policy. Never automatically retry an unknown result. DDL is not transactionally reversible.',

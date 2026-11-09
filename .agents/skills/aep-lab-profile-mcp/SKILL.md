@@ -5,7 +5,7 @@ description: >-
   (Streamable HTTP on Cloud Run v3.54.0). Use when choosing an MCP context, generating test profiles, sending
   experience events, evaluating Edge decisioning (Decision lab), browsing Decisioning catalog (DPS),
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
-  provisioning profile pipelines, or reading lab execution framework / industry playbooks.
+  provisioning profile pipelines, using the governed Snowflake workspace, or reading lab execution framework / industry playbooks.
 ---
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
@@ -365,6 +365,42 @@ catalog gaps from stored attendance. The six-table source recipe alone does not
 create that catalog. For Snowflake-first people, wait until their existing
 Profile-enabled flow makes the same ECID visible before `lab_update_profile`.
 Do not regenerate around ingestion lag or silently change parent industry/consent.
+
+## Workflow 1f — Governed Snowflake workspace and FSI REL maintenance
+
+Use the signed-in user's existing saved lab Snowflake connection. Check it with
+**lab_snowflake_config** and **lab_snowflake_test_connection** for the same
+sandbox before workspace operations. Do not select or inspect legacy local key
+files or copy credentials into prompts, skills, or repository files. A healthy
+connection alone does not grant workspace access: an administrator-managed
+`snowflakeWorkspacePolicies` document is also required, and MCP cannot change
+that policy.
+
+The policy's default `schema` must remain the saved connection's schema
+(`AEP_SCHEMA` for this FSI workflow); explicitly set `allowedSchemas` to
+`["AEP_SCHEMA", "REL"]`. Backward-compatible policies without this property
+allow only their default schema. Check **lab_snowflake_capabilities** for the
+effective list, then inspect metadata with **lab_snowflake_objects_list**
+(`kind: tables`, `schema: REL`) and **lab_snowflake_object_describe** for each
+target. The policy list only scopes metadata and typed operations; arbitrary
+read SQL remains bounded by the actual Snowflake role, so never rely on the
+metadata filter as a SQL security boundary.
+
+After both the Firebase Function and MCP server changes are released, the only
+supported `CREATE OR REPLACE` is the fixed
+`replace_fsi_dynamic_table` change operation for the exact targets
+`<database>.REL.REL_FSI_ACCOUNT`, `REL_FSI_CARD`, and
+`REL_FSI_TRANSACTION`. It compiles each definition from
+`functions/sql/rel/20_fsi.sql`, includes `COPY GRANTS`, and accepts no
+caller-supplied SQL. Before preview, inspect the live definitions, grants,
+dependencies and ingestion state; replace one target at a time through
+**lab_snowflake_change_preview** and the Portal's Firebase-authenticated review
+and approval panel. Show the exact preview SQL and non-transactional warning;
+never apply an unreviewed preview, infer approval from a general request, or
+automatically retry an uncertain outcome. Readback confirms metadata only;
+check asynchronous refresh and dependent outputs separately before declaring
+the migration complete. This operation does not authorize changes to any
+other dynamic table or Snowflake object.
 
 ## Workflow 1e — AJO Live Activity customer test (v3.29+)
 
