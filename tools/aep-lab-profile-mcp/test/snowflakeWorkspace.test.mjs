@@ -42,11 +42,23 @@ test('workspace schema rejects broad mutations, unsafe identifiers and missing p
     { kind: 'update', table: 'T', values: { FLAG: true }, where: {} },
     { kind: 'delete', table: 'T', where: {} },
     { kind: 'grant', table: 'T', role: 'R', privileges: ['OWNERSHIP'] },
-    { kind: 'insert', table: 'DB.OTHER.T', values: { ID: 1 } },
+    { kind: 'insert', table: 'DB.SCHEMA.REL.T', values: { ID: 1 } },
+    { kind: 'replace_fsi_dynamic_table', table: 'DB.PUBLIC.REL_FSI_ACCOUNT' },
+    { kind: 'replace_fsi_dynamic_table', table: 'DB.REL.REL_FSI_OTHER' },
+    { kind: 'replace_fsi_dynamic_table', table: 'REL_FSI_ACCOUNT' },
     { kind: 'insert', table: 'T', values: { 'ID); DROP TABLE X': 1 } },
   ]) {
     assert.equal(schema.safeParse({ sandbox: 'test', operation }).success, false);
   }
+  assert.equal(schema.safeParse({
+    sandbox: 'test', operation: { kind: 'replace_fsi_dynamic_table', table: 'DB.REL.REL_FSI_ACCOUNT' },
+  }).success, true);
+  assert.equal(schema.safeParse({
+    sandbox: 'test', operation: { kind: 'insert', table: 'DB.REL.T', values: { ID: 1 } },
+  }).success, true);
+  assert.equal(z.object(tools.get('lab_snowflake_data_check').config.inputSchema).safeParse({
+    sandbox: 'test', table: 'REL.T', check: 'row_count',
+  }).success, true);
   assert.equal(schema.safeParse({
     sandbox: 'test', operation: { kind: 'update', table: 'T', values: { FLAG: false }, where: { ID: 0 } },
   }).success, true);

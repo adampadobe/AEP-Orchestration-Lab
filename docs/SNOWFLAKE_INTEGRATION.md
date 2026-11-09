@@ -35,7 +35,7 @@ modify that policy or approve its own changes.
 | Readiness and metadata | `lab_snowflake_capabilities`, `lab_snowflake_objects_list`, `lab_snowflake_object_describe` | Policy and saved connection must agree; metadata is scoped to the workspace |
 | SQL jobs | `lab_snowflake_query_submit`, `lab_snowflake_query_status`, `lab_snowflake_query_results`, `lab_snowflake_query_cancel` | One read-only SELECT/WITH statement; durable request IDs; bounded results |
 | Data checks | `lab_snowflake_data_check` | Row count, null count, duplicate-value groups, maximum freshness timestamp; no invented freshness SLA |
-| Table/data changes | `lab_snowflake_change_preview`, `lab_snowflake_change_apply` | Typed create-table, add-column, insert, update and delete operations; updates/deletes require exact predicates |
+| Table/data changes | `lab_snowflake_change_preview`, `lab_snowflake_change_apply` | Typed create-table, add-column, insert, update and delete operations; updates/deletes require exact predicates. One fixed registry operation replaces only the three canonical FSI REL dynamic tables |
 | Permissions | `lab_snowflake_grants_inspect`, the same preview/apply tools | Allowlisted target roles and table privileges only |
 | Snowflake AI | `lab_snowflake_agents_list`, `lab_snowflake_agent_run` | Explicitly allowlisted Cortex Agents, native REST delegation and optional thread continuation |
 
@@ -55,6 +55,7 @@ The required shape is:
   "warehouse": "LAB_WH",
   "database": "LAB_DB",
   "schema": "DEMO",
+  "allowedSchemas": ["DEMO"],
   "allowSharedCredential": false,
   "read": true,
   "write": false,
@@ -65,6 +66,13 @@ The required shape is:
   "maxRows": 500
 }
 ```
+
+`allowedSchemas` is optional for existing policy documents and defaults to
+`[schema]`. When present, it must be a distinct list of at most 20 simple
+identifiers and include the default `schema`. The saved connection must still
+match the default schema exactly. Metadata and typed operations may address
+only the listed schemas; this does not restrict arbitrary read SQL, whose
+boundary remains the privileges of the pinned Snowflake role.
 
 Match saved connection identifiers exactly, including case. Grant targets are
 simple role names; agents use `DATABASE.SCHEMA.AGENT`. Enabling `write` or
@@ -117,18 +125,38 @@ has already discarded the underlying result.
 5. Apply the approved preview once. Connection/policy changes invalidate it.
    An expired or consumed preview cannot authorise another operation.
 
+### FSI REL dynamic-table replacement
+
+The typed workspace does not accept arbitrary DDL. It has one narrow operation,
+`replace_fsi_dynamic_table`, which accepts only the fully qualified targets
+`<database>.REL.REL_FSI_ACCOUNT`, `REL_FSI_CARD`, and
+`REL_FSI_TRANSACTION`. The generated definition comes from
+`functions/sql/rel/20_fsi.sql`; it is not caller-supplied SQL. The policy must
+explicitly allow both `AEP_SCHEMA` and `REL`, with `AEP_SCHEMA` remaining the
+default schema pinned to the saved connection.
+
+Before creating a preview, inspect the current dynamic-table definitions,
+grants, downstream dependencies, and relevant ingestion state. Preview and
+review one target at a time through the standard Portal approval flow. The
+operation uses `CREATE OR REPLACE ... COPY GRANTS`; this DDL auto-commits and
+the replacement refreshes asynchronously. `DESCRIBE DYNAMIC TABLE` readback
+confirms metadata only, not refresh completion or downstream correctness.
+Reconcile any ambiguous outcome before requesting another replacement.
+
 The API is `POST /api/snowflake/workspace` (direct Cloud Function:
 `/snowflakeWorkspace`). All actions carry `sandbox`; responses contain the
 workspace result under `result`. Use the direct function for potentially
 long-running calls; Hosting has the shorter timeout described below.
 
-No arbitrary mutation SQL, DROP, CREATE OR REPLACE, ownership transfers,
-future grants, grant option, user creation or broad account administration is
-provided. Table privileges are SELECT, INSERT, UPDATE, DELETE and REFERENCES.
-DDL is not transactionally reversible. Cancellation does not prove rollback.
-Unknown, partial or timed-out outcomes must be reconciled against the original
-job/preview and Snowflake history before new work is submitted. The transport
-does not automatically retry workspace operations.
+No arbitrary mutation SQL, DROP, arbitrary `CREATE OR REPLACE`, ownership
+transfers, future grants, grant option, user creation or broad account
+administration is provided. The fixed FSI operation above is the only
+`CREATE OR REPLACE` exception. Table privileges are SELECT, INSERT, UPDATE,
+DELETE and REFERENCES. DDL is not transactionally reversible. Cancellation
+does not prove rollback. Unknown, partial or timed-out outcomes must be
+reconciled against the original job/preview and Snowflake history before new
+work is submitted. The transport does not automatically retry workspace
+operations.
 
 Read SQL is enforced in a Snowflake read-only session; lexical validation is
 defence in depth, **not an SQL sandbox**. The configured Snowflake role is the

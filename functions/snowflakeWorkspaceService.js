@@ -138,6 +138,7 @@ function createWorkspaceService(deps) {
     switch (a.action) {
       case 'capabilities':
         return {ok: true, available: true, read: policy.read, write: policy.write, grants: policy.grants,
+          schema: policy.schema, allowedSchemas: policy.allowedSchemas,
           agents: policy.agents, maxRows: policy.maxRows, timeoutSeconds: policy.timeoutSeconds,
           actions: ACTIONS.filter(action => !['change_get', 'change_approve'].includes(action) || a.principal.authSource === 'firebase'),
           limitations: LIMITATIONS};
@@ -147,20 +148,29 @@ function createWorkspaceService(deps) {
       case 'objects_list': {
         assert(['tables', 'views', 'schemas'].includes(a.kind), 'INVALID_INPUT', 'kind must be tables, views or schemas.');
         assert(a.database === undefined || a.database === policy.database, 'SCOPE_DENIED', 'Database must equal policy database.');
-        assert(a.schema === undefined || a.schema === policy.schema, 'SCOPE_DENIED', 'Schema must equal policy schema.');
+        const schemas = a.schema === undefined ? policy.allowedSchemas : [identifier(a.schema)];
+        assert(schemas.every(schema => policy.allowedSchemas.includes(schema)),
+          'SCOPE_DENIED', 'Schema must be included in the workspace allowlist.');
         const db = quote(policy.database);
+        const schemaPlaceholders = schemas.map(() => '?').join(', ');
         const sql = a.kind === 'schemas' ?
-          `SELECT SCHEMA_NAME FROM ${db}.INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ? LIMIT ?` :
-          `SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM ${db}.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_TYPE = ? LIMIT ?`;
+          `SELECT SCHEMA_NAME FROM ${db}.INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME IN (${schemaPlaceholders}) LIMIT ?` :
+          `SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE FROM ${db}.INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA IN (${schemaPlaceholders}) AND ` +
+            (a.kind === 'views' ? 'TABLE_TYPE = ?' : 'TABLE_TYPE IN (?, ?)') + ' LIMIT ?';
         const limit = integer(a.limit, policy.maxRows, 1, policy.maxRows);
-        return read(a, ctx, sql, a.kind === 'schemas' ? [policy.schema, limit] :
-          [policy.schema, a.kind === 'views' ? 'VIEW' : 'BASE TABLE', limit]);
+        const bindings = [...schemas];
+        if (a.kind === 'views') bindings.push('VIEW');
+        else if (a.kind === 'tables') bindings.push('BASE TABLE', 'DYNAMIC TABLE');
+        bindings.push(limit);
+        return read(a, ctx, sql, bindings);
       }
-      case 'object_describe':
+      case 'object_describe': {
         assert(a.database === undefined || a.database === policy.database, 'SCOPE_DENIED', 'Database must equal policy database.');
-        assert(a.schema === undefined || a.schema === policy.schema, 'SCOPE_DENIED', 'Schema must equal policy schema.');
+        const schema = a.schema === undefined ? policy.schema : identifier(a.schema);
+        assert(policy.allowedSchemas.includes(schema), 'SCOPE_DENIED', 'Schema must be included in the workspace allowlist.');
         identifier(a.name);
-        return read(a, ctx, `DESCRIBE TABLE ${P.tableName(a.name, policy)}`);
+        return read(a, ctx, `DESCRIBE TABLE ${P.tableName(`${schema}.${a.name}`, policy)}`);
+      }
       case 'data_check': {
         const table = P.tableName(a.table, policy);
         assert(['row_count', 'null_count', 'duplicates', 'freshness'].includes(a.check), 'INVALID_INPUT', 'Unsupported data check.');
@@ -260,8 +270,8 @@ function createWorkspaceService(deps) {
         const expiresAt = typeof preview.expiresAt?.toDate === 'function' ?
           preview.expiresAt.toDate() : new Date(preview.expiresAt);
         return {ok: true, preview_id: a.preview_id, ...compiled, state: preview.state,
-          context: Object.fromEntries(['account', 'user', 'role', 'warehouse', 'database', 'schema']
-            .map(key => [key, policy[key]])),
+          context: {...Object.fromEntries(['account', 'user', 'role', 'warehouse', 'database', 'schema']
+            .map(key => [key, policy[key]])), allowedSchemas: policy.allowedSchemas},
           expiresAt, serverNow: date(now())};
       }
       case 'change_approve': {
@@ -313,6 +323,8 @@ function createWorkspaceService(deps) {
               } else if (compiled.readbackKind === 'object_metadata') {
                 const expected = compiled.operation.kind === 'add_column' ? [compiled.operation.column] : compiled.operation.columns;
                 verified = expected.every(column => checked.rows.some(row => row.name === column.name));
+              } else if (compiled.readbackKind === 'dynamic_table_metadata') {
+                verified = checked.rows.length > 0;
               } else {
                 verified = compiled.operation.privileges.every(privilege => {
                   const present = checked.rows.some(row => row.privilege === privilege && row.grantee_name === compiled.operation.role);
