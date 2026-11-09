@@ -26,6 +26,20 @@ test('telecom catalog and subscription use the same composite key over the catal
   assert.match(validation, /HAVING COUNT\(c\.PLAN_CODE\) <> 1/);
 });
 
+test('FSI relational views expose normalized account links, balance limits, and rates', () => {
+  const account = statement('20_fsi.sql', 'REL_FSI_ACCOUNT');
+  const card = statement('20_fsi.sql', 'REL_FSI_CARD');
+  const transaction = statement('20_fsi.sql', 'REL_FSI_TRANSACTION');
+  assert.match(account, /p\.OPENING_BALANCE/);
+  assert.match(account, /p\.OVERDRAFT_LIMIT/);
+  assert.match(account, /IN \('current_account', 'savings_account'\)/);
+  assert.match(card, /p\.OPENING_BALANCE/);
+  assert.match(card, /p\.CREDIT_LIMIT/);
+  assert.match(transaction, /e\.BALANCE_AFTER/);
+  assert.match(transaction, /e\.ACCOUNT_ID/);
+  assert.match(transaction, /e\.CARD_ID/);
+});
+
 for (const industry of ['telecom', 'media']) {
   test(`${industry} subscription watermarks prefer source update time, retaining creation time`, () => {
     const source = statement(industry === 'telecom' ? '40_telecom.sql' : '50_media.sql',

@@ -62,16 +62,22 @@ industry or consent ownership to model a cross-industry person.
 
 The operational generators are consumed by both the existing XDM flows and the
 REL projections. These rules improve newly generated source rows without changing
-source columns, Adobe schemas or existing flow mappings:
+Adobe schemas or existing flow mappings. FSI adds source columns for explicit
+account/card links and balance limits; existing Snowflake tables need the
+reviewed additive-column migration before they can accept the new FSI rows.
 
 - Retail returns reference delivered orders, use the purchased item and price,
   and occur at least two hours after purchase, no later than the generation time
   or 60 days after purchase. No eligible purchase means no return. SKU keys are
   stable for product name/category; pre-link order keys use the unique event key.
-- FSI transactions are ordered by occurrence before computing running balances
-  separately for current, savings and credit-card account types. Explicit zero
-  opening balances are preserved. This synthetic ledger is not account-ID-level
-  accounting, and signed balances may be negative.
+- FSI uses `current_account`, `savings_account` and `credit_card` consistently.
+  Transactions link by `ACCOUNT_ID` or `CARD_ID`; `DIRECTION=credit` increases
+  the displayed balance and `DIRECTION=debit` reduces it. Card balances represent
+  amount owed, so purchases increase the balance and payments/refunds reduce it.
+  `INTEREST_RATE` is an annual APR fraction (`0.25` means 25%). Account balances
+  are opening balance plus signed transactions, with a configured current-account
+  overdraft and a credit-card limit. Salary is monthly and only posts to current
+  accounts; savings activity is limited to transfers and interest.
 - Media viewing, engagement, downloads and watchlists reuse title/genre/type
   catalog identities. Expired download dates fall between download day and
   generation day; active downloads expire later.
