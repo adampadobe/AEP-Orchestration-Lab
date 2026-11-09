@@ -12,6 +12,7 @@ const {
 const { generateIndustryEventRows } = require('./snowflakeIndustryEventGenerator');
 const { fullyQualified } = require('./snowflakeProvisionRecipes');
 const { readSnowflakeCell } = require('./snowflakeRow');
+const { buildSportsEventCatalog, mergeRows, withTransaction } = require('./snowflakeSeedStore');
 
 function execAsync(conn, options) {
   return new Promise((resolve, reject) => {
@@ -55,10 +56,25 @@ async function findProfile(conn, cfg, industry, selectorInput) {
   const selector = normalizeProfileSelector(selectorInput);
   const fqTable = fullyQualified(cfg.database, cfg.schema, profileConfig.table);
   const rows = await execAsync(conn, {
-    sqlText: `SELECT ${profileConfig.columns.join(', ')} FROM ${fqTable} WHERE ${selector.column} = ? LIMIT 1`,
+    sqlText: `SELECT ${profileConfig.columns.join(', ')} FROM ${fqTable} WHERE ${selector.column} = ? LIMIT 2`,
     binds: [selector.value],
   });
-  return rows.length ? rowObject(rows[0], profileConfig.columns) : null;
+  if (rows.length > 1) throw new Error('Profile selector is ambiguous; inspect duplicate CRM identities before enrichment or readback.');
+  if (!rows.length) return null;
+  const profile = rowObject(rows[0], profileConfig.columns);
+  for (const [column, aliases] of [
+    ['ECID', ['ecid', 'ECID']], ['EMAIL', ['email', 'EMAIL']], ['CRMID', ['crmId', 'crmid', 'CRMID']],
+  ]) {
+    for (const alias of aliases) {
+      if (selectorInput[alias] == null || String(selectorInput[alias]).trim() === '') continue;
+      const expected = String(selectorInput[alias]).trim();
+      const actual = String(profile[column] ?? '').trim();
+      if ((column === 'EMAIL' ? actual.toLowerCase() !== expected.toLowerCase() : actual !== expected)) {
+        throw new Error('Supplied profile identity selectors do not resolve to the same CRM person.');
+      }
+    }
+  }
+  return profile;
 }
 
 function bindValue(value, isArray) {
@@ -87,7 +103,7 @@ WHERE GENERATIONID = ? OR STARTSWITH(GENERATIONID, ?)`,
   return Number(readSnowflakeCell(rows[0], 0, 'ROW_COUNT') || 0) > 0;
 }
 
-async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
+async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50, afterInsert) {
   if (!rows.length) return 0;
   const arrayColumns = new Set(tableConfig.arrayColumns);
   let inserted = 0;
@@ -105,6 +121,7 @@ async function insertRows(conn, fqTable, tableConfig, rows, chunkSize = 50) {
       });
       inserted += chunk.length;
     }
+    if (afterInsert) await afterInsert();
     await execAsync(conn, { sqlText: 'COMMIT' });
   } catch (error) {
     try {
@@ -171,23 +188,49 @@ async function handleIndustryEnrich(input) {
         const tableConfig = getIndustryEventTable(industry, eventType);
         const fqTable = fullyQualified(cfg.database, cfg.schema, tableConfig.table);
         const rows = generated.rowsByType[eventType] || [];
+        const syncCatalog = industry === 'sports' && eventType === 'attendance'
+          ? async (attendance) => {
+            const catalog = buildSportsEventCatalog(attendance, profile.TESTPROFILE !== false);
+            await mergeRows(
+              (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+              fullyQualified(cfg.database, 'REL', 'REL_SPORTS_EVENT_CATALOG'), 'EVENT_ID', catalog,
+            );
+            return catalog.length;
+          }
+          : null;
         if (await generationExists(conn, fqTable, generationId)) {
+          let catalogRowCount;
+          if (syncCatalog) {
+            const stored = await execAsync(conn, {
+              sqlText: `SELECT ${tableConfig.columns.join(', ')} FROM ${fqTable}
+WHERE GENERATIONID = ? OR STARTSWITH(GENERATIONID, ?)`,
+              binds: [generationId, `${generationId}-`],
+            });
+            catalogRowCount = await withTransaction(
+              (sqlText, binds) => execAsync(conn, { sqlText, binds }),
+              () => syncCatalog(stored.map((row) => rowObject(row, tableConfig.columns))),
+            );
+          }
           tableResults.push({
             eventType,
             table: fqTable,
             rowCount: 0,
             generatedRowCount: rows.length,
             idempotent: true,
+            ...(syncCatalog ? { catalogRowCount } : {}),
           });
           continue;
         }
-        const inserted = await insertRows(conn, fqTable, tableConfig, rows);
+        let catalogRowCount;
+        const inserted = await insertRows(conn, fqTable, tableConfig, rows, 50,
+          syncCatalog ? async () => { catalogRowCount = await syncCatalog(rows); } : undefined);
         tableResults.push({
           eventType,
           table: fqTable,
           rowCount: inserted,
           generatedRowCount: rows.length,
           idempotent: false,
+          ...(syncCatalog ? { catalogRowCount: catalogRowCount ?? 0 } : {}),
         });
       }
       profileResults.push({
@@ -239,14 +282,8 @@ async function handleIndustryProfileBundle(input) {
   if (!selectedTables.length) {
     throw new Error(`tableKey must be a registered ${industry} table key: ${registeredTables.map((tableConfig) => tableConfig.key).join(', ')}`);
   }
-  const selector = {
-    email: input.email,
-    ecid: input.ecid,
-    crmId: input.crmId || input.crmid,
-  };
-
   return withSnowflakeConnection(labUser, sandbox, async (conn, cfg) => {
-    const profile = await findProfile(conn, cfg, industry, selector);
+    const profile = await findProfile(conn, cfg, industry, input);
     if (!profile) {
       return {
         ok: false,

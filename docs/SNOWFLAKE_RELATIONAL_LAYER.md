@@ -33,6 +33,69 @@ it is not the shared parent described here.
 
 ## Run the generator
 
+### New person versus existing-person extension
+
+A Snowflake seed allocates a **new** email, ECID and CRMID. It does not find an
+existing AEP person simply because the persona looks similar. For an existing
+person, read the authoritative AEP profile by Email and ECID first, then call
+`lab_snowflake_create_profile` with that exact pair and selected industry.
+Snowflake allocates CRMID only if that ECID has no CRM row; a matching existing
+row keeps its CRMID and consumes no CRM sequence block. Duplicate ECID matches
+and a different stored email fail before recipient-store changes. Reuse does
+not overwrite the existing CRM persona with new attributes.
+
+For non-travel activity, call `lab_snowflake_enrich_profiles` with the same
+Email/ECID/CRMID and approved event keys, then read the complete paginated bundle.
+Conflicting selectors and duplicate CRM matches fail explicitly. Run enrichment
+serially. Travel's standalone legacy runner is a separate contract, not equivalent
+to the Node recipient-first relational seed.
+
+For a Snowflake-first person, wait until the existing Profile-enabled flow makes
+the same ECID discoverable in AEP. Use `lab_update_profile` for a full-snapshot
+behavioral update to that person; do not seed a replacement or generate again
+to compensate for ingestion lag. HTTP `appendIfExisting` is opportunistic reuse,
+not an existing-person-only guarantee. Neither identity reuse nor a REL row alone
+proves the merged AEP identity graph. Do not silently change the shared parent's
+industry or consent ownership to model a cross-industry person.
+
+### Shared source quality rules
+
+The operational generators are consumed by both the existing XDM flows and the
+REL projections. These rules improve newly generated source rows without changing
+source columns, Adobe schemas or existing flow mappings:
+
+- Retail returns reference delivered orders, use the purchased item and price,
+  and occur at least two hours after purchase, no later than the generation time
+  or 60 days after purchase. No eligible purchase means no return. SKU keys are
+  stable for product name/category; pre-link order keys use the unique event key.
+- FSI transactions are ordered by occurrence before computing running balances
+  separately for current, savings and credit-card account types. Explicit zero
+  opening balances are preserved. This synthetic ledger is not account-ID-level
+  accounting, and signed balances may be negative.
+- Media viewing, engagement, downloads and watchlists reuse title/genre/type
+  catalog identities. Expired download dates fall between download day and
+  generation day; active downloads expire later.
+- Sports seed and standalone attendance enrichment use the same validated event
+  catalog builder. Attendance and its catalog MERGE commit together or roll back
+  together. Serial replay reconciles catalog gaps from **actual stored attendance**,
+  preserving source occurrence/version values rather than regenerated timestamps.
+
+Standalone sports attendance requires the existing
+`REL.REL_SPORTS_EVENT_CATALOG` with its reviewed column contract and MERGE
+permissions. The six-table sports source recipe alone does not provide that
+REL prerequisite. Missing/incompatible catalog objects fail explicitly; enrichment
+does not create them automatically. Transactions are per source table, not per
+whole enrichment request: earlier successful tables can remain committed when a
+later table fails. Inspect stored state before a separately approved retry.
+
+These changes do not retroactively rewrite historical source or AEP rows.
+Source business dates and REL `record_updated` versions must be checked separately
+in actual AEP storage, at exact precision. A successful Data Prep preview is not
+stored-data acceptance. Flow replacements remain an independently coordinated
+canary operation; identity namespace resolution, OC targeting dimensions,
+channel configuration and delivery consent require separate verification.
+Synthetic consent flags and demo push tokens do not authorize campaign sends.
+
 ### MCP
 
 `lab_generate_profile`, `lab_generate_profiles_batch`, and
@@ -312,6 +375,18 @@ Rows without ECIDs need identity remediation, not a guessed cross-industry join.
 Industry source joins use ECID; relational children expose `RECIPIENT_ID`.
 `INDUSTRY` on the shared parent is the most recently seeded industry, **not**
 an exclusive membership filter; use child-table relationships for membership.
+
+Both Snowflake-first seeding and the Snowflake leg of AEP dual-load validate an
+existing `REL.RECIPIENT` before preparing the shared parent. When
+`INFORMATION_SCHEMA.VIEWS.VIEW_DEFINITION` is hidden from the integration role,
+the validator uses Snowflake `GET_OBJECT_REFERENCES` and requires exactly the
+configured database/schema's physical base table as its dependency. Missing,
+unexpected, or inaccessible dependency metadata blocks preparation; it does not
+bypass validation or change grants. Existing recipient views are not recreated.
+Secure-view dependency inspection can require ownership and remains blocked
+without separately reviewed access. AEP XDM streaming is independent: a failed
+Snowflake leg can leave a stored AEP profile, so preserve its identity and inspect
+the partial-success receipt rather than generating it again.
 
 Travel owns the parent's passport, upcoming holiday, and seat-preference fields.
 Other industry writes omit those columns when their profiles do not supply them,

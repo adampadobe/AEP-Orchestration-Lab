@@ -48,7 +48,7 @@ function context(industry, profile, generationId, now) {
     ...values,
     _RECORDCREATEDTIMESTAMP: now.toISOString(),
   });
-  return { random, int, number, pick, chance, timestamp, date, futureDate, event, enrichment };
+  return { now, random, int, number, pick, chance, timestamp, date, futureDate, event, enrichment };
 }
 
 function generateFsi(profile, ctx) {
@@ -66,7 +66,6 @@ function generateFsi(profile, ctx) {
     });
   });
 
-  let balance = Number(profile.CHECKINGBALANCE || 4000);
   const transaction = Array.from({ length: ctx.int(30, 80) }, () => {
     const transactionType = ctx.pick([
       'salary', 'direct_debit', 'card_payment', 'ATM_withdrawal',
@@ -76,7 +75,6 @@ function generateFsi(profile, ctx) {
     const amount = transactionType === 'salary'
       ? ctx.number(1800, Math.max(2200, Number(profile.HOUSEHOLDINCOME || 60000) / 12))
       : ctx.number(2, 450);
-    balance = Math.max(0, balance + (credit ? amount : -amount));
     return ctx.event('transaction', {
       TRANSACTION_TYPE: transactionType,
       DIRECTION: credit ? 'credit' : 'debit',
@@ -84,11 +82,22 @@ function generateFsi(profile, ctx) {
       CURRENCY: 'GBP',
       MERCHANT: credit ? (transactionType === 'salary' ? 'Employer Payroll' : 'Bank Credit') : ctx.pick(['Tesco', 'Netflix', 'British Gas', 'TfL', 'Pret A Manger']),
       CATEGORY: credit ? 'income' : ctx.pick(['groceries', 'entertainment', 'utilities', 'transport', 'dining']),
-      BALANCE_AFTER: Number(balance.toFixed(2)),
+      BALANCE_AFTER: null,
       ACCOUNT_TYPE: ctx.pick(['current', 'savings', 'credit_card']),
       REFERENCE: `FSI-${ctx.int(100000, 999999)}`,
     });
   }).sort((a, b) => a.TIMESTAMP.localeCompare(b.TIMESTAMP));
+  const balancesByAccount = new Map([
+    ['current', Number(profile.CHECKINGBALANCE ?? 4000)],
+    ['savings', Number(profile.SAVINGSBALANCE ?? 0)],
+    ['credit_card', 0],
+  ]);
+  for (const row of transaction) {
+    const balance = balancesByAccount.get(row.ACCOUNT_TYPE)
+      + (row.DIRECTION === 'credit' ? row.AMOUNT : -row.AMOUNT);
+    row.BALANCE_AFTER = Number(balance.toFixed(2));
+    balancesByAccount.set(row.ACCOUNT_TYPE, row.BALANCE_AFTER);
+  }
 
   const application = [];
   for (let app = 0; app < ctx.int(1, 4); app += 1) {
@@ -152,9 +161,10 @@ function generateFsi(profile, ctx) {
 
 function retailItem(ctx, category) {
   const price = ctx.number(8, 250);
+  const name = `${category} ${ctx.pick(['Essential', 'Classic', 'Premium', 'Edition'])}`;
   return {
-    sku: `SKU-${ctx.int(10000, 99999)}`,
-    name: `${category} ${ctx.pick(['Essential', 'Classic', 'Premium', 'Edition'])}`,
+    sku: `SKU-${createHash('sha256').update(JSON.stringify([category, name])).digest('hex').slice(0, 32)}`,
+    name,
     category,
     qty: ctx.int(1, 3),
     price,
@@ -167,8 +177,7 @@ function generateRetail(profile, ctx) {
   const order = Array.from({ length: orderCount }, () => {
     const items = Array.from({ length: ctx.int(1, 4) }, () => retailItem(ctx, ctx.chance(0.65) ? category : ctx.pick(['fashion', 'beauty', 'home', 'electronics', 'sports'])));
     const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
-    return ctx.event('order', {
-      ORDER_ID: `ORD-${ctx.int(100000, 999999)}`,
+    const row = ctx.event('order', {
       ITEMS: items,
       ITEM_COUNT: items.reduce((sum, item) => sum + item.qty, 0),
       ORDER_TOTAL: Number(total.toFixed(2)),
@@ -179,6 +188,8 @@ function generateRetail(profile, ctx) {
       STATUS: ctx.pick(['confirmed', 'dispatched', 'delivered', 'delivered', 'delivered']),
       PROMO_CODE: ctx.chance(0.3) ? `SAVE${ctx.pick([10, 15, 20])}` : null,
     }, ctx.timestamp(365));
+    row.ORDER_ID = row.EVENTID;
+    return row;
   });
   const browse = Array.from({ length: ctx.int(20, 60) }, () => {
     const page = ctx.pick(['homepage', 'category', 'product', 'search_results', 'cart', 'checkout']);
@@ -194,15 +205,24 @@ function generateRetail(profile, ctx) {
     });
   });
   const returnCount = Math.min(5, Math.max(0, Math.round(orderCount * Number(profile.RETURNRATE || 0))));
-  const returns = order.slice(0, returnCount).map((original) => ctx.event('return', {
-    RETURN_ID: `RET-${ctx.int(100000, 999999)}`,
-    ORDER_ID: original.ORDER_ID,
-    ITEMS: original.ITEMS.slice(0, 1).map((item) => ({ sku: item.sku, name: item.name, qty: 1, reason: 'changed_mind' })),
-    REASON: ctx.pick(['wrong_size', 'defective', 'not_as_described', 'changed_mind', 'late_delivery']),
-    REFUND_AMOUNT: Math.min(original.ORDER_TOTAL, original.ITEMS[0].price),
-    METHOD: ctx.pick(['refund_to_card', 'store_credit', 'exchange']),
-    STATUS: ctx.pick(['initiated', 'received', 'processed', 'refunded']),
-  }));
+  const minimumReturnAgeMs = 2 * 60 * 60 * 1000;
+  const returns = order.filter((original) =>
+    original.STATUS === 'delivered'
+      && ctx.now.getTime() - Date.parse(original.TIMESTAMP) >= minimumReturnAgeMs)
+    .slice(0, returnCount).map((original) => {
+      const reason = ctx.pick(['wrong_size', 'defective', 'not_as_described', 'changed_mind', 'late_delivery']);
+      const orderTime = Date.parse(original.TIMESTAMP);
+      const offset = ctx.int(minimumReturnAgeMs, Math.min(60 * DAY_MS, ctx.now.getTime() - orderTime));
+      return ctx.event('return', {
+        RETURN_ID: `RET-${ctx.int(100000, 999999)}`,
+        ORDER_ID: original.ORDER_ID,
+        ITEMS: original.ITEMS.slice(0, 1).map((item) => ({ sku: item.sku, name: item.name, qty: 1, reason })),
+        REASON: reason,
+        REFUND_AMOUNT: Math.min(original.ORDER_TOTAL, original.ITEMS[0].price),
+        METHOD: ctx.pick(['refund_to_card', 'store_credit', 'exchange']),
+        STATUS: ctx.pick(['initiated', 'received', 'processed', 'refunded']),
+      }, new Date(orderTime + offset).toISOString());
+    });
   const service = Array.from({ length: ctx.int(1, 8) }, () => ctx.event('service', {
     CASE_ID: `CASE-${ctx.int(100000, 999999)}`,
     CHANNEL: ctx.pick(['live_chat', 'phone', 'email', 'social_media']),
@@ -300,20 +320,25 @@ function generateTelecom(profile, ctx) {
 }
 
 function content(ctx, genre) {
+  const title = `${ctx.pick(['The', 'Beyond', 'Inside', 'Last', 'Secret'])} ${ctx.pick(['Signal', 'Kingdom', 'Journey', 'Match', 'Story'])}`;
+  const type = ctx.pick(['movie', 'series_episode', 'documentary', 'live_sport', 'short']);
   return {
-    CONTENT_ID: `CNT-${ctx.int(100000, 999999)}`,
-    TITLE: `${ctx.pick(['The', 'Beyond', 'Inside', 'Last', 'Secret'])} ${ctx.pick(['Signal', 'Kingdom', 'Journey', 'Match', 'Story'])}`,
+    CONTENT_ID: `CNT-${createHash('sha256').update(JSON.stringify([title, genre, type])).digest('hex').slice(0, 32)}`,
+    TITLE: title,
     GENRE: genre,
+    CONTENT_TYPE: type,
   };
 }
 
 function generateMedia(profile, ctx) {
   const genre = profile.PRIMARYGENRE || 'drama';
-  const viewing = Array.from({ length: ctx.int(20, 80) }, () => {
-    const item = content(ctx, ctx.chance(0.7) ? genre : ctx.pick(['drama', 'comedy', 'thriller', 'documentary', 'sci_fi', 'sport']));
+  const catalog = Array.from({ length: ctx.int(8, 15) }, () =>
+    content(ctx, ctx.chance(0.7) ? genre : ctx.pick(['drama', 'comedy', 'thriller', 'documentary', 'sci_fi', 'sport'])));
+  const viewing = Array.from({ length: ctx.int(20, 80) }, (_, index) => {
+    const item = index < catalog.length ? catalog[index] : ctx.pick(catalog);
     const total = ctx.int(20, 150);
     const watched = ctx.int(2, total);
-    const type = ctx.pick(['movie', 'series_episode', 'documentary', 'live_sport', 'short']);
+    const type = item.CONTENT_TYPE;
     return ctx.event('viewing', {
       ...item,
       CONTENT_TYPE: type,
@@ -329,7 +354,7 @@ function generateMedia(profile, ctx) {
   });
   const engagement = Array.from({ length: ctx.int(5, 20) }, () => {
     const action = ctx.pick(['add_to_list', 'remove_from_list', 'rate', 'review', 'share', 'like', 'skip_intro', 'report']);
-    const item = content(ctx, genre);
+    const item = ctx.pick(catalog);
     return ctx.event('engagement', {
       ACTION: action,
       CONTENT_ID: item.CONTENT_ID,
@@ -349,22 +374,26 @@ function generateMedia(profile, ctx) {
   }, ctx.timestamp(365)));
   const downloadCount = Math.max(2, Math.min(15, Number(profile.DOWNLOADSPERMONTH || 4)));
   const download = Array.from({ length: downloadCount }, () => {
-    const item = content(ctx, genre);
+    const item = ctx.pick(catalog);
+    const status = ctx.pick(['downloaded', 'expired', 'deleted']);
+    const downloadedAt = ctx.timestamp(30);
     return ctx.event('download', {
       CONTENT_ID: item.CONTENT_ID,
       TITLE: item.TITLE,
-      CONTENT_TYPE: ctx.pick(['movie', 'episode', 'podcast']),
+      CONTENT_TYPE: item.CONTENT_TYPE,
       FILE_SIZE_MB: ctx.number(80, 4500),
       DEVICE: ctx.pick(['mobile', 'tablet']),
-      EXPIRY_DATE: ctx.futureDate(2, 30),
-      STATUS: ctx.pick(['downloaded', 'expired', 'deleted']),
-    }, ctx.timestamp(30));
+      EXPIRY_DATE: status === 'expired'
+        ? new Date(ctx.int(Date.parse(downloadedAt), ctx.now.getTime())).toISOString().slice(0, 10)
+        : ctx.futureDate(2, 30),
+      STATUS: status,
+    }, downloadedAt);
   });
   const watchlist = Array.from({ length: ctx.int(5, 20) }, (_, index) => {
-    const item = content(ctx, ctx.chance(0.7) ? genre : ctx.pick(['drama', 'comedy', 'documentary']));
+    const item = ctx.pick(catalog);
     return ctx.enrichment({
       ...item,
-      CONTENT_TYPE: ctx.pick(['movie', 'series', 'documentary']),
+      CONTENT_TYPE: item.CONTENT_TYPE,
       ADDED_DATE: ctx.date(365),
       PRIORITY: index + 1,
       ESTIMATED_DURATION_MINUTES: ctx.int(20, 180),

@@ -604,6 +604,16 @@ values, Travel cabin/seat/meal, and Telecom/Media/Sports flags. Missing fields
 retain synthetic operational defaults. CRM-only seeding with no supplied persona
 retains its randomized behavior. The legacy `mirror` mode is unchanged.
 
+To add Snowflake CRM data to an **existing AEP person**, pass the authoritative
+Email and ECID to `lab_snowflake_create_profile`, not to a new-person seed.
+The CRMID is allocated by Snowflake for a new CRM row or reused for an existing
+same-ECID, same-email row; it is not automatically an identifier supplied by AEP.
+Duplicate ECIDs and conflicting emails fail before recipient-store updates.
+Existing-row reuse consumes no CRM sequence block and does not replace its
+persona. Downstream Profile/REL ingestion and same-person graph resolution still
+need their own exact stored-data acceptance. See
+[the shared-source and existing-person contracts](SNOWFLAKE_RELATIONAL_LAYER.md#new-person-versus-existing-person-extension).
+
 Explicit `false`, zero, empty arrays and null are not replaced with random
 values. Conflicting aliases, invalid column types, oversized strings and unknown
 paths inside the selected CRM profile root fail explicitly rather than silently

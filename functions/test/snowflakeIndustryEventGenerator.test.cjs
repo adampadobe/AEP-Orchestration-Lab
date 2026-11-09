@@ -42,7 +42,7 @@ describe('Snowflake industry event registry and generators', () => {
       assert.deepEqual(first, generateIndustryEventRows(industry, profiles[industry], options));
       assert.deepEqual(Object.keys(first.rowsByType), listIndustryEventTypes(industry));
       for (const [type, rows] of Object.entries(first.rowsByType)) {
-        assert.ok(rows.length >= 1);
+        assert.ok(rows.length >= 1 || (industry === 'retail' && type === 'return'));
         for (const [index, row] of rows.entries()) {
           assert.equal(row.EMAIL, identity.EMAIL);
           assert.equal(row.ECID, identity.ECID);
@@ -60,6 +60,105 @@ describe('Snowflake industry event registry and generators', () => {
     });
     const orderIds = new Set(generated.rowsByType.order.map((row) => row.ORDER_ID));
     for (const row of generated.rowsByType.return) assert.ok(orderIds.has(row.ORDER_ID));
+  });
+
+  it('keeps retail returns order-relative, within 60 days, nonfuture and item-consistent across cohorts', () => {
+    const now = '2026-11-08T16:00:00.947Z';
+    for (let index = 0; index < 100; index++) {
+      const generated = generateIndustryEventRows('retail', {
+        ...profiles.retail, ECID: `retail-cohort-${index}`, RETURNRATE: 1, ORDERSYTD: 25,
+      }, { now });
+      const orders = new Map(generated.rowsByType.order.map((row) => [row.ORDER_ID, row]));
+      assert.ok(generated.rowsByType.return.length);
+      for (const row of generated.rowsByType.return) {
+        const original = orders.get(row.ORDER_ID);
+        const delay = Date.parse(row.TIMESTAMP) - Date.parse(original.TIMESTAMP);
+        assert.equal(original.STATUS, 'delivered');
+        assert.ok(delay >= 2 * 60 * 60 * 1000);
+        assert.ok(delay <= 60 * 24 * 60 * 60 * 1000);
+        assert.ok(Date.parse(row.TIMESTAMP) <= Date.parse(now));
+        const purchased = original.ITEMS.find((item) => item.sku === row.ITEMS[0].sku);
+        assert.ok(purchased);
+        assert.ok(row.ITEMS[0].qty <= purchased.qty);
+        assert.equal(row.ITEMS[0].reason, row.REASON);
+        assert.equal(row.REFUND_AMOUNT, purchased.price);
+      }
+    }
+  });
+
+  it('calculates FSI running balances in event-time order separately per account type', () => {
+    const profile = { ...profiles.fsi, CHECKINGBALANCE: 0, SAVINGSBALANCE: 0 };
+    const generated = generateIndustryEventRows('fsi', profile, { now: '2026-11-08T16:00:00.947Z' });
+    const balances = new Map([['current', 0], ['savings', 0], ['credit_card', 0]]);
+    let previous = '';
+    for (const row of generated.rowsByType.transaction) {
+      assert.ok(row.TIMESTAMP >= previous);
+      previous = row.TIMESTAMP;
+      const next = Number((balances.get(row.ACCOUNT_TYPE)
+        + (row.DIRECTION === 'credit' ? row.AMOUNT : -row.AMOUNT)).toFixed(2));
+      assert.equal(row.BALANCE_AFTER, next);
+      balances.set(row.ACCOUNT_TYPE, next);
+    }
+  });
+
+  it('keeps retail SKU metadata stable across recipients without changing registered columns', () => {
+    const metadata = new Map();
+    for (let index = 0; index < 50; index++) {
+      const generated = generateIndustryEventRows('retail', {
+        ...profiles.retail, ECID: `retail-sku-${index}`,
+      }, { now: '2026-11-08T16:00:00.947Z' });
+      for (const order of generated.rowsByType.order) {
+        assert.equal(order.ORDER_TOTAL, Number(order.ITEMS.reduce((sum, item) => sum + item.qty * item.price, 0).toFixed(2)));
+        for (const item of order.ITEMS) {
+          const identity = JSON.stringify([item.name, item.category]);
+          if (metadata.has(item.sku)) assert.equal(metadata.get(item.sku), identity);
+          metadata.set(item.sku, identity);
+        }
+      }
+    }
+  });
+
+  it('reuses media title identities across viewing, engagement, downloads and watchlists', () => {
+    const now = '2026-11-08T16:00:00.947Z';
+    const globalCatalog = new Map();
+    for (let index = 0; index < 50; index++) {
+      const generated = generateIndustryEventRows('media', {
+        ...profiles.media, ECID: `media-catalog-${index}`,
+      }, { now });
+      const titles = new Map();
+      for (const row of generated.rowsByType.viewing) {
+        const metadata = JSON.stringify([row.TITLE, row.GENRE, row.CONTENT_TYPE]);
+        if (globalCatalog.has(row.CONTENT_ID)) assert.equal(globalCatalog.get(row.CONTENT_ID), metadata);
+        globalCatalog.set(row.CONTENT_ID, metadata);
+        titles.set(row.CONTENT_ID, row);
+        assert.ok(row.DURATION_WATCHED_MINUTES <= row.TOTAL_DURATION_MINUTES);
+        assert.ok(row.COMPLETION_PCT <= 100);
+      }
+      for (const type of ['engagement', 'download', 'watchlist']) {
+        for (const row of generated.rowsByType[type]) {
+          const title = titles.get(row.CONTENT_ID);
+          assert.ok(title, `${type} must refer to an existing viewed/catalog title`);
+          assert.equal(row.TITLE, title.TITLE);
+          if (row.CONTENT_TYPE) assert.equal(row.CONTENT_TYPE, title.CONTENT_TYPE);
+          if (type === 'download') {
+            assert.ok(row.EXPIRY_DATE >= row.TIMESTAMP.slice(0, 10));
+            if (row.STATUS === 'expired') assert.ok(row.EXPIRY_DATE <= now.slice(0, 10));
+            if (row.STATUS === 'downloaded') assert.ok(row.EXPIRY_DATE > now.slice(0, 10));
+          }
+        }
+      }
+    }
+  });
+
+  it('keeps all generated event and enrichment rows within their existing source column contracts', () => {
+    for (const [industry, profile] of Object.entries(profiles)) {
+      const generated = generateIndustryEventRows(industry, profile, { now: '2026-11-08T16:00:00.947Z' });
+      for (const table of listIndustryEventTables(industry)) {
+        for (const row of generated.rowsByType[table.key]) {
+          assert.ok(Object.keys(row).every((column) => table.columns.includes(column)), `${industry}.${table.key}`);
+        }
+      }
+    }
   });
 
   it('sports betting is omitted when the profile does not bet regularly', () => {

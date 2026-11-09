@@ -7,7 +7,7 @@ const path = require('node:path');
 const { generateTravelProfileRow } = require('../snowflakeTravelProfileGenerator');
 const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGenerator');
 const { seedNewProfiles } = require('../scripts/generate-relational-snowflake');
-const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
+const { prepareSeedTables, buildSeedRecord, buildSportsEventCatalog, writeSeedRecords, getNextSeedCrmIndex, readNextSeedCrmIndex, planCrmSequenceMigration } = require('../snowflakeSeedStore');
 const { getIndustryProfileConfig, listSnowflakeProfileIndustries } = require('../snowflakeIndustryProfileRegistry');
 const { listIndustryEventTables } = require('../snowflakeIndustryEventRegistry');
 const travelDefinitions = require('../snowflakeTravelTableDefinitions.json');
@@ -36,6 +36,18 @@ function record(industry, index = 0) {
 }
 
 describe('Snowflake-first shared base seeding', () => {
+  it('rejects incomplete or contradictory catalog source metadata instead of choosing an arbitrary row', () => {
+    const event = record('sports').events.rowsByType.attendance[0];
+    assert.equal(buildSportsEventCatalog([event, event]).length, 1);
+    for (const invalid of [
+      { ...event, EVENT_NAME: null }, { ...event, _RECORDCREATEDTIMESTAMP: null },
+      { ...event, GATE_SCAN_TIME: 'invalid' },
+    ]) {
+      assert.throws(() => buildSportsEventCatalog([invalid]), /complete fixture metadata/);
+    }
+    assert.throws(() => buildSportsEventCatalog([event, { ...event, VENUE: 'Different venue' }]), /conflicting metadata/);
+  });
+
   for (const industry of listSnowflakeProfileIndustries()) {
     it(`prepares only the shared parent and selected ${industry} schema in the configured database`, async () => {
       const calls = [];
@@ -48,6 +60,24 @@ describe('Snowflake-first shared base seeding', () => {
       assert.doesNotMatch(calls.join('\n'), /DEMO_DB\.DEMO_DB/);
       assert.equal(calls.some((sql) => sql === 'BEGIN TRANSACTION'), false);
       assert.equal(calls.some((sql) => sql.startsWith('MERGE INTO')), false);
+    });
+
+    it(`prepares ${industry} with a hidden shared-view definition and preserves the view`, async () => {
+      const calls = [];
+      await prepareSeedTables(async (sql) => {
+        calls.push(sql);
+        if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{ TABLE_TYPE: 'VIEW', VIEW_DEFINITION: null }];
+        if (sql.includes('GET_OBJECT_REFERENCES')) return [{
+          REFERENCED_DATABASE_NAME: CFG.database,
+          REFERENCED_SCHEMA_NAME: CFG.schema,
+          REFERENCED_OBJECT_NAME: 'AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+          REFERENCED_OBJECT_TYPE: 'TABLE',
+        }];
+        return [];
+      }, CFG, industry);
+      assert.ok(calls[1].includes('GET_OBJECT_REFERENCES'));
+      assert.equal(calls.some((sql) => sql.startsWith('CREATE VIEW') && sql.includes('REL.RECIPIENT')), false);
+      assert.ok(calls.some((sql) => sql.includes(getIndustryProfileConfig(industry).table)));
     });
 
     it(`writes ${industry} rows atomically, then publishes every nonempty table in autocommit mode`, async () => {
