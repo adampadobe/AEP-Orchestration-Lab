@@ -78,6 +78,15 @@ window.envBar.registerTagsInjection(tags);
 
 TUI runtime regression checks: `node --test scripts/test-tui-decisioning-runtime.cjs`.
 
+TUI's compact drawer resolves `scopeDetails.activity.id` through the existing
+sandbox-specific `/api/campaign-name` lookup, or uses `scopeDetails.activity.name`
+when supplied. Missing attribution and failed name lookups are shown explicitly.
+An AJO/CJM provider with a `web://` surface is labelled Code-based experience
+(CBE); this is separate from the Email/App/Web preview mode. New TUI display
+events preserve the preview mode in the standard page URL's `channel` query
+parameter. Historical events without that parameter do not receive a guessed
+preview label. No shared drawer behaviour is changed.
+
 **Decisioning mount zones:** iframe / parent HTML needs `#TopRibbon`, `#hero-banner` (or `[data-hero-mount]`), and `#ContentCardContainer` — see [CONTRIBUTING.md § Decisioning mount zones](CONTRIBUTING.md#decisioning-mount-zones-site-clone-demos) and `shared/decisioning-mount-zones.fragment.html`.
 
 | `decisioning.iframeId` | auto | Override iframe for mount injection |

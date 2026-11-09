@@ -271,11 +271,14 @@
       mark('image-ready');
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
+      const displayUrl = new URL(result.personalizationPageUrl || location.origin + location.pathname);
+      const previewChannel = new URLSearchParams(location.search).get('channel') || 'email';
+      if (['email', 'mobile', 'web'].includes(previewChannel)) displayUrl.searchParams.set('channel', previewChannel);
       const displayPayload = { ...result.manualDisplay.edgeOptions,
         renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
         xdm: { eventType: 'decisioning.propositionDisplay', identityMap,
           ...result.manualDisplay.eventXdm,
-          web: { webPageDetails: { URL: result.personalizationPageUrl || location.origin + location.pathname,
+          web: { webPageDetails: { URL: displayUrl.href,
             name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,
             items: p.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}), ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
