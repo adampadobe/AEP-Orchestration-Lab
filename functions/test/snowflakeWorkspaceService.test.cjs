@@ -280,6 +280,10 @@ test('FSI dynamic-table replacement is limited to canonical targets and retains 
   assert.match(compiled.sql, /"DB"\."AEP_SCHEMA"\."AGENTIC_FSI_PROFILE_PRODUCTS"/);
   assert.match(compiled.sql, /"DB"\."REL"\."RECIPIENT"/);
   assert.match(compiled.sql, /WAREHOUSE = "WH"/);
+  assert.match(compiled.sql, /REFRESH_MODE = INCREMENTAL\s+AS\s+SELECT/);
+  assert.match(compiled.sql, /p\.OPENING_BALANCE/);
+  assert.match(compiled.sql, /p\.OVERDRAFT_LIMIT/);
+  assert.match(compiled.sql, /WHERE LOWER\(p\.PRODUCT_TYPE\) IN \('current_account', 'savings_account', 'savings'\)/);
   assert.doesNotMatch(compiled.sql, /IF NOT EXISTS|\{\{WAREHOUSE\}\}/);
   assert.equal(compiled.readbackKind, 'dynamic_table_metadata');
   assert.equal(compiled.readbackSql, 'DESCRIBE DYNAMIC TABLE "DB"."REL"."REL_FSI_ACCOUNT"');
