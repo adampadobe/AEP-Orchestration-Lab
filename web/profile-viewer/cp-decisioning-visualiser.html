@@ -37,7 +37,7 @@
         <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Mobile App</button>
         <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
       </div></div>
-      <p id="preview-source" class="cp-source" role="status">Simulated CP offer / no live decision yet</p>
+      <p id="preview-source" class="cp-source" role="status">Awaiting a live decision / no local offer images or copy</p>
       <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">Fictional preview / Alex Morgan</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
       <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden>
         <div class="phone-frame tui-app" aria-label="Center Parcs mobile app preview"><div class="phone-status">9:41</div>
@@ -52,18 +52,13 @@
           <div class="site-utility">Short breaks, designed to bring families together <span>Help / My booking</span></div>
           <div class="site-nav"><strong class="cp-wordmark">Center Parcs</strong><span>Our villages &nbsp; Accommodation &nbsp; Activities &nbsp; Forest Spa</span></div>
           <div id="web-preview"></div>
-          <div class="site-inspiration"><span class="eyebrow">YOUR HOME IN THE FOREST</span><h3>Less everyday. More together.</h3><div class="destination-grid">
-            <figure><img src="cp-decisioning-assets/lodge.webp" alt="Woodland Lodge nestled in the forest"><figcaption>Woodland Lodges</figcaption></figure>
-            <figure><img src="cp-decisioning-assets/pool.webp" alt="Subtropical Swimming Paradise"><figcaption>Time to splash</figcaption></figure>
-            <figure><img src="cp-decisioning-assets/spa.webp" alt="Aqua Sana Forest Spa"><figcaption>A moment for you</figcaption></figure>
-          </div></div>
         </div>
       </div>
       <p id="preview-feedback" class="preview-feedback" role="status" aria-live="polite"></p>
     </section>
   </main>
   <details class="fictional-drawer"><summary>Local fixture / no live identity or activity</summary><div><p>No real ECID, audience or journey is simulated. Open the parent lab to look up an existing test profile.</p><p id="fixture-summary"></p></div></details>
-  <script src="cp-decisioning-model.js?v=20261110-cp-apply"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261109-hospitality"></script>
+  <script src="cp-decisioning-model.js?v=20261110-cp-live-only"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261110-live-copy"></script>
 </body>
 </html>

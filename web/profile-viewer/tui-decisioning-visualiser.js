@@ -245,9 +245,9 @@
     row(brand.name ? el('strong', brand.name, 'cp-wordmark') : image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
     row(image(offer.image, offer.imageAlt, 'email-photo'), 'email-photo-cell');
     row(el('span', 'Hi ' + recipient + ', here is your next ' + (brand.moment || 'holiday moment') + '.', 'eyebrow'));
-    row(el('div', offer.content.title), 'email-heading');
-    row(el('div', offer.content.fullDescription), 'email-copy');
-    row(cta(offer.content.fullCTA));
+    if (offer.content.title) row(el('div', offer.content.title), 'email-heading');
+    if (offer.content.fullDescription) row(el('div', offer.content.fullDescription), 'email-copy');
+    if (offer.content.fullCTA) row(cta(offer.content.fullCTA));
     table.append(tbody);
     return table;
   }
@@ -259,8 +259,9 @@
   function mobileApp(offer) {
     const card = el('article', undefined, 'app-offer');
     const copy = el('div', undefined, 'app-offer-copy');
-    copy.append(el('span', 'YOUR NEXT BEST MOMENT', 'eyebrow'),
-      el('h3', offer.content.title, 'app-offer-title'), el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
+    if (offer.content.title) copy.append(el('h3', offer.content.title, 'app-offer-title'));
+    if (offer.content.fullDescription) copy.append(el('p', offer.content.fullDescription));
+    if (offer.content.fullCTA) copy.append(cta(offer.content.fullCTA));
     card.append(image(offer.image, offer.imageAlt, 'app-offer-image'), copy);
     return card;
   }
@@ -268,23 +269,26 @@
     $('app-greeting').textContent = 'Hi ' + recipient;
     if ($('preview-source')) {
       $('preview-source').dataset.live = String(!!live);
-      $('preview-source').textContent = live ? 'Live AJO / Edge content from the configured policy. Not proof of CP catalog eligibility.'
-        : 'Simulated CP eligibility / local catalog preview. No live AJO response.';
+      $('preview-source').textContent = live ? 'Live AJO / Edge content from the configured policy. Not proof of CP catalog eligibility.' +
+        (!live.title && !live.description ? ' The decision returned an image without headline or description.' : '')
+        : brand.showSimulation === false ? 'Awaiting a live decision. Scenarios simulate eligibility only; no local offer images or copy are displayed.'
+          : 'Simulated eligibility / local catalog preview. No live AJO response.';
     }
     if (live && displayed === live && !held) return;
     const objective = model.objectives.find(o => o.key === result.objective);
-    let offer = (!embedded || brand.showSimulation) && objective && objective.offers.find(item => item.key === result.offer);
+    let offer = brand.showSimulation !== false && (!embedded || brand.showSimulation) &&
+      objective && objective.offers.find(item => item.key === result.offer);
     if (live) offer = { image: live.url, imageAlt: 'Image returned by the configured live decision',
-      content: { title: live.title || 'Live decision image', fullDescription: live.description || 'No copy was returned by the live decision.',
-        fullCTA: 'Preview interaction' } };
+      content: { title: live.title || '', fullDescription: live.description || '' } };
     if (held && !live) offer = null;
     $('preview-feedback').textContent = '';
     document.querySelectorAll('.subject-line').forEach(node => {
-      node.textContent = offer ? 'Subject: ' + offer.content.title : 'Content held / no email';
+      node.textContent = offer && offer.content.title ? 'Subject: ' + offer.content.title : 'No subject returned / no email sent';
     });
     displayed = live;
     if (!offer) {
-      const reason = held || (embedded ? 'Run live decision to retrieve content for the selected profile.' : result.reason);
+      const reason = held || (embedded || brand.showSimulation === false
+        ? 'Run live decision to retrieve content for the selected profile.' : result.reason);
       for (const id of ['email-preview', 'mobile-preview', 'web-preview']) $(id).replaceChildren(hold(reason));
       return;
     }
@@ -292,8 +296,9 @@
     $('mobile-preview').replaceChildren(mobileApp(offer));
     const hero = el('div', undefined, 'web-hero');
     const copy = el('div', undefined, 'web-hero-copy');
-    copy.append(el('span', brand.eyebrow || 'A LITTLE MORE YOU', 'eyebrow'), el('h3', offer.content.title),
-      el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
+    if (offer.content.title) copy.append(el('h3', offer.content.title));
+    if (offer.content.fullDescription) copy.append(el('p', offer.content.fullDescription));
+    if (offer.content.fullCTA) copy.append(cta(offer.content.fullCTA));
     hero.append(image(offer.image, offer.imageAlt), copy);
     $('web-preview').replaceChildren(hero);
   }

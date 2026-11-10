@@ -162,7 +162,7 @@ test('catalog plan is schema-verified and contains visual rules and tag collecti
   assert.throws(() => model.catalogPlan(null), /verification/);
 });
 
-test('CP applies on button click without a dialog while retaining profile safeguards', () => {
+test('CP customer content is live-only while retaining explicit Apply and profile safeguards', () => {
   const html = fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8');
   assert.match(html, /data-demo-env-strip-prefix="cpDecisioning"/);
   assert.match(html, /tui-decisioning-attribution\.js\?v=20261110-cp-live/);
@@ -173,6 +173,9 @@ test('CP applies on button click without a dialog while retaining profile safegu
   assert.match(visualiser, /not the current live inventory/);
   assert.match(visualiser, /This page does not create or activate catalog assets/);
   assert.doesNotMatch(visualiser, /No assets created or activated/);
+  assert.equal(model.brand.showSimulation, false);
+  assert.doesNotMatch(visualiser, /<img\b/);
+  assert.match(visualiser, /Awaiting a live decision/);
   const source = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
   assert.doesNotMatch(source, /global\.confirm\(/);
   assert.equal(model.brand.confirmProfileChanges, undefined);

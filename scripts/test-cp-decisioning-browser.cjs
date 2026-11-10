@@ -14,25 +14,33 @@ async function main() {
     const errors = [];
     context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
     const page = await context.newPage();
+    const localImageRequests = [];
+    page.on('request', request => {
+      if (request.url().includes('/cp-decisioning-assets/')) localImageRequests.push(request.url());
+    });
     await page.goto(origin + '/profile-viewer/cp-decisioning-visualiser.html');
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
     assert.equal(await page.locator('#scenario-pills button').count(), 7);
+    assert.equal(await page.locator('img').count(), 0, 'No static photography or simulated hero before a decision');
     for (let i = 0; i < model.demoScenarios.length; i++) {
       const scenario = model.demoScenarios[i];
       await page.locator('#scenario-pills button').nth(i).click();
       assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
-      const selected = model.objectives.find(o => o.key === scenario.expectedObjective).offers.find(o => o.key === scenario.expectedOffer);
-      assert.equal(await page.locator('.email-heading').textContent(), selected.content.title);
+      assert.equal(await page.locator('.nba-card--winner').getAttribute('data-offer'), scenario.expectedOffer);
+      assert.equal(await page.locator('img').count(), 0, 'Scenario must not display local images');
+      assert.equal(await page.locator('.email-heading,.app-offer-title,.web-hero,.preview-cta').count(), 0);
+      assert.equal(await page.locator('#email-preview .hold-card,#mobile-preview .hold-card,#web-preview .hold-card').count(), 3);
       const expectedGroups = [...new Set(scenario.signalKeys.map(key => model.fields.find(f => f.key === key).group))].sort();
       assert.deepEqual((await page.locator('.signal-group[open]').evaluateAll(nodes => nodes.map(node => node.dataset.group))).sort(), expectedGroups);
     }
+    assert.deepEqual(localImageRequests, [], 'Scenario changes must not even request local offer photography');
     await page.getByRole('tab', { name: 'Mobile App', exact: true }).click();
     assert.ok(await page.locator('#panel-mobile').isVisible());
     await page.getByRole('tab', { name: 'Web', exact: true }).click();
     const webWidth = await page.locator('.website-preview').evaluate(node => node.getBoundingClientRect().width);
     assert.ok(webWidth > 1400, 'Web must be full-width, not a narrow emulator: ' + webWidth);
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
-    assert.ok(await page.locator('.web-hero img').evaluate(img => img.complete && img.naturalWidth > 0));
+    assert.ok(await page.locator('#web-preview .hold-card').isVisible());
     await page.evaluate(async () => {
       const api = window.TuiDecisioningVisualiser;
       api.setEmbedded();
@@ -40,8 +48,15 @@ async function main() {
       await api.setDecision({ url: location.origin + '/profile-viewer/cp-decisioning-assets/forest.webp',
         title: 'Verified live fixture', description: 'Browser-test fixture, not real AJO content.' });
     });
-    await page.locator('#scenario-pills button').nth(0).click();
-    assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    for (let i = 0; i < model.demoScenarios.length; i++) {
+      await page.locator('#scenario-pills button').nth(i).click();
+      assert.deepEqual(await page.locator('.email-heading,.app-offer-title,.web-hero h3').allTextContents(),
+        Array(3).fill('Verified live fixture'));
+      assert.deepEqual(await page.locator('.email-copy,.app-offer-copy p,.web-hero-copy p').allTextContents(),
+        Array(3).fill('Browser-test fixture, not real AJO content.'));
+      assert.equal(await page.locator('.email-photo,.app-offer-image,.web-hero img').count(), 3);
+      assert.ok(await page.locator('.web-hero img').evaluate(img => img.complete && img.naturalWidth > 0));
+    }
     await page.evaluate(() => window.TuiDecisioningVisualiser.hold('Consent hold / retain last successful live response'));
     assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
     const failure = await page.evaluate(async () => {
@@ -50,11 +65,38 @@ async function main() {
     });
     assert.match(failure, /could not load/);
     assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    await page.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/lodge.webp',
+    }));
+    assert.equal(await page.locator('.email-photo,.app-offer-image,.web-hero img').count(), 3);
+    assert.equal(await page.locator('.email-heading,.email-copy,.app-offer-title,.app-offer-copy p,.web-hero h3,.web-hero-copy p,.preview-cta').count(), 0,
+      'Image-only decisions must not invent offer copy or CTA');
+    assert.match(await page.locator('#preview-source').textContent(), /without headline or description/);
+    await page.locator('#scenario-pills button').nth(3).click();
+    assert.equal(await page.locator('.web-hero h3').count(), 0);
+    assert.ok((await page.locator('.web-hero img').getAttribute('src')).endsWith('/lodge.webp'));
     await page.evaluate(() => window.TuiDecisioningVisualiser.setProfile({ contextKey: 'different-person', state: window.DecisioningDemoModel.defaults }));
-    assert.notEqual(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    assert.equal(await page.locator('img').count(), 0, 'Identity change clears the previous image without local fallback');
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile layout must not overflow');
     assert.deepEqual(errors, []);
+
+    const tui = await context.newPage();
+    await tui.goto(origin + '/profile-viewer/tui-decisioning-visualiser.html');
+    await tui.evaluate(() => window.TuiDecisioningVisualiser.setEmbedded());
+    assert.equal(await tui.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0);
+    await tui.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/forest.webp',
+      title: 'TUI returned headline', description: 'TUI returned description',
+    }));
+    await tui.locator('#scenario-pills button').first().click();
+    assert.deepEqual(await tui.locator('.email-heading,.app-offer-title,.web-hero h3').allTextContents(),
+      Array(3).fill('TUI returned headline'));
+    await tui.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/lodge.webp',
+    }));
+    assert.equal(await tui.locator('.email-heading,.email-copy,.app-offer-title,.app-offer-copy p,.web-hero h3,.web-hero-copy p,.preview-cta').count(), 0);
+    await tui.close();
 
     const write = await fetch(origin + '/api/profile/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(write.status, 403);
@@ -161,6 +203,7 @@ async function main() {
     assert.equal(await shell.locator('#profileDrawerMessageSentValue').textContent(), '1', 'Email count must refresh from ingested events');
     const frame = shell.frames().find(frame => frame.url().includes('cp-decisioning-visualiser.html'));
     await frame.locator('#scenario-pills button').nth(4).click();
+    assert.equal(await frame.locator('img').count(), 0, 'Embedded scenario must also wait for live decision imagery');
     assert.ok(await shell.locator('#tuiApplyProfile').isEnabled());
     const dialogs = [];
     shell.on('dialog', async dialog => {
