@@ -22,7 +22,7 @@
     if (!row) return '';
     try {
       const url = new URL(String(row.value));
-      if (!url.pathname.endsWith('/tui-decisioning-demo.html')) return '';
+      if (!/\/(?:tui|cp)-decisioning-demo\.html$/.test(url.pathname)) return '';
       return { email: 'Email', mobile: 'App', web: 'Web' }[url.searchParams.get('channel')] || '';
     } catch {
       return '';

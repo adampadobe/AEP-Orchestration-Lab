@@ -1,14 +1,14 @@
 (function (root) {
   'use strict';
   const model = typeof module !== 'undefined' && module.exports
-    ? require('./tui-decisioning-model.js') : root.TuiDecisioning;
+    ? require('./tui-decisioning-model.js') : (root.DecisioningDemoModel || root.TuiDecisioning);
   const relative = path => String(path).replace(/^_[A-Za-z0-9]+\./, '');
-  const industry = field => /^(consents\.|_[^.]+\.(scoring|loyaltyDetails)\.)/.test(field.path) ? 'generic' : 'travel';
+  const industry = field => /^(consents\.|_[^.]+\.(scoring|loyaltyDetails|complaint)\.)/.test(field.path) ? 'generic' : 'travel';
   function knownOwner(path) {
     const value = relative(path);
     if (/^(airlineCustomer|travelReservations|travelPreferences|industryTravel|hotel)\./.test(value) ||
       value.startsWith('individualCharacteristics.travel.')) return 'travel';
-    if (/^(consents|scoring\.core|scoring\.churn|loyaltyDetails)\./.test(value)) return 'generic';
+    if (/^(consents|scoring\.core|scoring\.churn|loyaltyDetails|complaint)\./.test(value)) return 'generic';
     return null;
   }
   function schemaLeaf(schema, config, path) {
@@ -51,12 +51,13 @@
     for (const field of model.fields) {
       const row = rows.find(row => relative(row.path) === relative(field.path));
       if (row && scalar(row) !== null) {
-        if (typeof scalar(row) !== field.type) throw new Error('Profile type mismatch: ' + row.path);
-        result[field.key] = scalar(row);
+        if (typeof scalar(row) !== (field.schemaType || field.type)) throw new Error('Profile type mismatch: ' + row.path);
+        result[field.key] = field.fromProfile ? field.fromProfile(scalar(row)) : scalar(row);
       }
     }
     return result;
   }
+  const valueForWrite = (field, value) => field.toProfile ? field.toProfile(value) : value;
   function snapshots(data, state, edited) {
     const groups = new Map(), expected = {};
     for (const key of edited) {
@@ -78,8 +79,8 @@
         }])) });
       }
       const path = relative(field.path);
-      expected[path] = state[key];
-      groups.get(owner).updates.set(path, { path, value: state[key], valueType: field.type });
+      expected[path] = valueForWrite(field, state[key]);
+      groups.get(owner).updates.set(path, { path, value: expected[path], valueType: field.schemaType || field.type });
     }
     return { expected, snapshots: [...groups].map(([owner, group]) => ({
       industry: owner, schemaPaths: group.schemaPaths, updates: [...group.updates.values()],
@@ -96,7 +97,7 @@
         ? value.toLowerCase() !== wanted.toLowerCase() : value !== wanted;
     });
   }
-  const api = { relative, industry, schemaLeaf, scalar, signals, snapshots, differences };
+  const api = { relative, industry, schemaLeaf, scalar, signals, snapshots, differences, valueForWrite };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TuiDecisioningProfile = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

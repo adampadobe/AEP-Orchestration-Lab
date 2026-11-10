@@ -1,6 +1,7 @@
 (function (global) {
   'use strict';
   const doc = document, $ = id => doc.getElementById(id);
+  const model = global.DecisioningDemoModel || global.TuiDecisioning;
   let selectTab = () => {};
   function classic() {
     try {
@@ -35,7 +36,7 @@
     if (avatar?.getAttribute('src')) $('tuiPhAvatar').src = avatar.src;
     ['Email', 'Phone', 'City'].forEach(name => { $('tuiPh' + name).textContent = text('profileDrawer' + name); });
     $('tuiPhDesktopId').textContent = values ? text('profileDrawerDesktopId') : 'Not loaded';
-    for (const field of global.TuiDecisioning.fields) {
+    for (const field of model.fields) {
       const value = values ? values[field.key] : undefined;
       $('tuiPhSignal-' + field.key).textContent = value === undefined ? (values ? 'Not set' : 'Not loaded') : String(value);
     }
@@ -93,7 +94,7 @@
     const details = el('div', undefined, 'dph-details tui-profile-sections');
     const tabs = el('div', undefined, 'dph-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Traveller attributes');
     details.append(tabs);
-    const labels = ['Contact', ...new Set(global.TuiDecisioning.fields.map(f => f.group))];
+    const labels = ['Contact', ...new Set(model.fields.map(f => f.group))];
     const panels = [], buttons = [];
     function select(index, focus) {
       buttons.forEach((button, i) => {
@@ -117,7 +118,7 @@
       const isSignals = index > 0;
       const list = el('dl', undefined, isSignals ? 'dph-signals' : '');
       const fields = index === 0 ? [['Email', 'Email'], ['Phone', 'Phone'], ['City', 'City']]
-        : global.TuiDecisioning.fields.filter(f => f.group === label).map(f => [f.key, f.label]);
+        : model.fields.filter(f => f.group === label).map(f => [f.key, f.label]);
       for (const [key, title] of fields) {
         const value = el('dd', 'Not loaded'); value.id = isSignals ? 'tuiPhSignal-' + key : 'tuiPh' + key;
         const pair = el(isSignals ? 'div' : 'span', undefined, isSignals ? 'dph-signal' : '');

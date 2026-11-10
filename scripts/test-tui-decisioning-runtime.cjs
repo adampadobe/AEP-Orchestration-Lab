@@ -18,9 +18,9 @@ test('TUI campaign attribution preserves campaign identity and separates CBE fro
   assert.deepEqual(attribution.details({ rows }), [{
     campaignId: 'campaign-fixture', campaignName: '', delivery: 'Code-based experience (CBE)',
   }]);
-  for (const [channel, label] of [['email', 'Email'], ['mobile', 'App'], ['web', 'Web']]) {
+  for (const demo of ['tui', 'cp']) for (const [channel, label] of [['email', 'Email'], ['mobile', 'App'], ['web', 'Web']]) {
     assert.equal(attribution.preview({ rows: [{
-      path: 'web.webPageDetails.URL', value: 'https://example.test/profile-viewer/tui-decisioning-demo.html?channel=' + channel,
+      path: 'web.webPageDetails.URL', value: 'https://example.test/profile-viewer/' + demo + '-decisioning-demo.html?channel=' + channel,
     }] }), label);
   }
   assert.deepEqual(attribution.details({ rows: [] }), []);
@@ -100,7 +100,7 @@ function fixture(options = {}) {
   return { runtime, calls, alloy, browserEcid, propositions };
 }
 
-test('only TUI opts into its compatible runtime; other demos retain the shared runtime', async () => {
+test('TUI and CP opt into the compatible manual runtime; other demos retain the shared runtime', async () => {
   const env = fs.readFileSync(path.join(root, 'shared', 'env-bar.js'), 'utf8');
   const start = env.indexOf('function loadDecisioningScripts(');
   const end = env.indexOf('\n  /**', start);
@@ -120,12 +120,13 @@ test('only TUI opts into its compatible runtime; other demos retain the shared r
   await context.loadDecisioningScripts({ assets: {} }, { decisioning: { runtimeScript } });
   assert.ok(chain.includes('tui-decisioning-runtime.js'));
   assert.ok(!chain.includes('decisioning-profile-module/decisioning-profile-runtime.js'));
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && file !== 'tui-decisioning-demo.html')) {
+  assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes("runtimeScript: 'tui-decisioning-runtime.js'"), file);
   }
 });
 
-test('only TUI loads its decisioning drawer with offer/strategy event cards', () => {
+test('TUI and CP load the decisioning drawer with offer/strategy event cards', () => {
   const html = fs.readFileSync(path.join(root, 'tui-decisioning-demo.html'), 'utf8');
   assert.match(html, /<script src="tui-decisioning-drawer\.js\?v=[^"]+"><\/script>/);
   assert.match(html, /href="tui-decisioning-drawer\.css\?v=[^"]+"/);
@@ -135,7 +136,8 @@ test('only TUI loads its decisioning drawer with offer/strategy event cards', ()
     assert.ok(drawer.includes(marker), marker);
   }
   assert.ok(fs.readFileSync(path.join(root, 'tui-decisioning-drawer.css'), 'utf8').includes('.aep-profile-drawer-event-decision-detail'));
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && file !== 'tui-decisioning-demo.html')) {
+  assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-drawer.'), file);
   }
 });

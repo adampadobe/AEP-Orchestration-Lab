@@ -1,6 +1,7 @@
 (function () {
   'use strict';
-  const model = window.TuiDecisioning;
+  const model = window.DecisioningDemoModel || window.TuiDecisioning;
+  const brand = model.brand || {};
   let state = { ...model.defaults };
   const $ = id => document.getElementById(id);
   const controls = new Map();
@@ -113,10 +114,14 @@
           input.value = range.value; input.dispatchEvent(new Event('input', { bubbles: true }));
         });
         label.append(range);
+        const stored = field.toProfile ? el('small', undefined, 'rule-label') : null;
+        if (stored) label.append(stored);
         signalWidgets.set(field.key, () => {
           range.max = Math.max(field.max, Number(input.value) || 0);
           range.value = input.value;
           range.disabled = input.disabled;
+          if (stored) stored.textContent = Number.isInteger(Number(input.value)) && input.value !== ''
+            ? 'Stored arrival: ' + field.toProfile(Number(input.value)) : 'Enter a whole number of days.';
         });
       }
       groups.get(field.group).append(label);
@@ -133,7 +138,7 @@
       input.removeAttribute('aria-invalid');
     }
     groups.forEach(detail => { detail.open = false; });
-    for (const key of updates) {
+    for (const key of scenario.signalKeys) {
       const field = model.fields.find(f => f.key === key);
       groups.get(field.group).open = true;
     }
@@ -237,9 +242,9 @@
       tr.append(td);
       tbody.append(tr);
     }
-    row(image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
+    row(brand.name ? el('strong', brand.name, 'cp-wordmark') : image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
     row(image(offer.image, offer.imageAlt, 'email-photo'), 'email-photo-cell');
-    row(el('span', 'Hi ' + recipient + ', here is your next holiday moment.', 'eyebrow'));
+    row(el('span', 'Hi ' + recipient + ', here is your next ' + (brand.moment || 'holiday moment') + '.', 'eyebrow'));
     row(el('div', offer.content.title), 'email-heading');
     row(el('div', offer.content.fullDescription), 'email-copy');
     row(cta(offer.content.fullCTA));
@@ -261,13 +266,18 @@
   }
   function renderPreview(result) {
     $('app-greeting').textContent = 'Hi ' + recipient;
+    if ($('preview-source')) {
+      $('preview-source').dataset.live = String(!!live);
+      $('preview-source').textContent = live ? 'Live AJO / Edge content from the configured policy. Not proof of CP catalog eligibility.'
+        : 'Simulated CP eligibility / local catalog preview. No live AJO response.';
+    }
     if (live && displayed === live && !held) return;
     const objective = model.objectives.find(o => o.key === result.objective);
-    let offer = !embedded && objective && objective.offers.find(item => item.key === result.offer);
+    let offer = (!embedded || brand.showSimulation) && objective && objective.offers.find(item => item.key === result.offer);
     if (live) offer = { image: live.url, imageAlt: 'Image returned by the configured live decision',
       content: { title: live.title || 'Live decision image', fullDescription: live.description || 'No copy was returned by the live decision.',
         fullCTA: 'Preview interaction' } };
-    if (held) offer = null;
+    if (held && !live) offer = null;
     $('preview-feedback').textContent = '';
     document.querySelectorAll('.subject-line').forEach(node => {
       node.textContent = offer ? 'Subject: ' + offer.content.title : 'Content held / no email';
@@ -282,7 +292,7 @@
     $('mobile-preview').replaceChildren(mobileApp(offer));
     const hero = el('div', undefined, 'web-hero');
     const copy = el('div', undefined, 'web-hero-copy');
-    copy.append(el('span', 'A LITTLE MORE YOU', 'eyebrow'), el('h3', offer.content.title),
+    copy.append(el('span', brand.eyebrow || 'A LITTLE MORE YOU', 'eyebrow'), el('h3', offer.content.title),
       el('p', offer.content.fullDescription), cta(offer.content.fullCTA));
     hero.append(image(offer.image, offer.imageAlt), copy);
     $('web-preview').replaceChildren(hero);
@@ -292,7 +302,7 @@
     const result = model.evaluate(state);
     const invalid = Array.from(controls.values()).some(input => input.getAttribute('aria-invalid') === 'true');
     if (invalid || held) {
-      if (held || !embedded) live = null;
+      if (!embedded) live = null;
       result.objective = null;
       result.offer = null;
       result.reason = held || (embedded && live
@@ -305,7 +315,7 @@
     }
     renderLadder(result, scenarioChosen);
     renderPreview(result);
-    $('fixture-summary').textContent = 'Holiday stage: ' + state.booking + '. Documents: ' + state.documents +
+    $('fixture-summary').textContent = 'Journey stage: ' + state.booking +
       '. Email consent: ' + state.emailConsent + '. Personalisation: ' + state.personalize +
       (embedded ? '. Staged signals, not confirmed profile facts.' : '. No data was loaded from AEP.');
     $('preview-feedback').textContent = '';
@@ -318,6 +328,7 @@
       tab.tabIndex = active ? 0 : -1;
       $('panel-' + tab.dataset.channel).hidden = !active;
     });
+    if (brand.fullWidthWeb) $('workspace').dataset.channel = channel;
     if (push || parent !== window) {
       const url = new URL(location.href);
       url.searchParams.set('channel', channel);
@@ -355,7 +366,7 @@
     setChannel(new URLSearchParams(location.search).get('channel'), false);
   }
   function resizePanes() {
-    const workspace = $('workspace'), storage = 'tuiDecisioningPaneRatios';
+    const workspace = $('workspace'), storage = (brand.prefix || 'tuiDecisioning') + 'PaneRatios';
     const minima = { signals: 230, decision: 300, preview: 340 };
     let ratios = { signals: .22, preview: .36 }, widths;
     try {
@@ -476,14 +487,24 @@
       }
       render();
     },
-    hold(reason) { generation++; live = null; held = reason; render(); },
-    async setDecision(decision) {
+    hold(reason) { generation++; held = reason; render(); },
+    async prepareDecision(decision) {
       const current = generation;
       await new Promise((resolve, reject) => {
-        const img = new Image(); img.onload = resolve; img.onerror = () => reject(new Error('Live decision image could not load. Previous preview retained.')); img.src = decision.url;
+        const img = new Image();
+        const timer = setTimeout(() => { img.onload = img.onerror = null; reject(new Error('Live image timed out. Previous preview retained.')); }, 30000);
+        img.onload = () => { clearTimeout(timer); resolve(); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error('Live decision image could not load. Previous preview retained.')); };
+        img.src = decision.url;
       });
       if (current !== generation) throw new Error('Profile context changed while loading decision image.');
+    },
+    commitDecision(decision) {
       live = decision; held = ''; render();
+    },
+    async setDecision(decision) {
+      await this.prepareDecision(decision);
+      this.commitDecision(decision);
     },
   };
   render();
