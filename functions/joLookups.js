@@ -5,6 +5,53 @@ const DPS_BASE = 'https://platform.adobe.io/data/core/dps';
 const CJM_CAMPAIGN_BASE = process.env.CJM_CAMPAIGN_BASE || 'https://journey.adobe.io/campaign/campaigns';
 const AJO_JOURNEY_BASE = process.env.AJO_JOURNEY_BASE || 'https://platform.adobe.io/ajo/journey';
 const CJM_JOURNEY_BASE = process.env.CJM_JOURNEY_BASE || 'https://journey.adobe.io/journey/journeys';
+const CAMPAIGN_QUERY_URL = 'https://platform.adobe.io/data/foundation/query/accelerated-queries';
+const CAMPAIGN_NAME_TTL_MS = 5 * 60 * 1000;
+const campaignNameCache = new Map();
+
+async function getAcceleratedCampaignNameById(id, sandboxName, token, clientId, orgId) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    const error = new Error('Campaign id must be a UUID.');
+    error.status = 400;
+    throw error;
+  }
+  const key = JSON.stringify([orgId, clientId, sandboxName, id]);
+  const cached = campaignNameCache.get(key);
+  if (cached && cached.expires > Date.now()) return cached.name;
+  campaignNameCache.delete(key);
+  const res = await fetch(CAMPAIGN_QUERY_URL, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+      'x-api-key': clientId,
+      'x-gw-ims-org-id': orgId,
+      'x-sandbox-name': sandboxName,
+    },
+    body: JSON.stringify({
+      dbName: 'kirkham:qsaccel',
+      sql: `SELECT DISTINCT campaign_id, campaign_name FROM qsaccel.ajo_lookup.ajo_campaign_names WHERE campaign_id = '${id}' ORDER BY campaign_name`,
+      name: 'AJO Campaign Name Lookup',
+      description: 'Resolve a campaign name for profile event attribution',
+    }),
+    signal: AbortSignal.timeout(30000),
+  });
+  if (!res.ok) throw new Error(`Campaign name query failed (HTTP ${res.status}).`);
+  const data = await res.json();
+  if (!Array.isArray(data.results) || data.results.some(row =>
+    !row || row.campaign_id !== id || typeof row.campaign_name !== 'string' || !row.campaign_name.trim())) {
+    throw new Error('Campaign name query returned invalid results.');
+  }
+  const names = [...new Set(data.results.map(row => row.campaign_name.trim()))];
+  if (names.length > 1) throw new Error('Campaign name query returned conflicting names for this id.');
+  const name = names[0] || null;
+  if (name) {
+    if (campaignNameCache.size >= 200) campaignNameCache.delete(campaignNameCache.keys().next().value);
+    campaignNameCache.set(key, { name, expires: Date.now() + CAMPAIGN_NAME_TTL_MS });
+  }
+  return name;
+}
 
 async function getTreatmentNameById(id, sandboxName, token, clientId, orgId) {
   const trimmed = String(id || '').trim();
@@ -29,6 +76,10 @@ async function getTreatmentNameById(id, sandboxName, token, clientId, orgId) {
 async function getCampaignNameById(id, sandboxName, token, clientId, orgId) {
   const trimmed = String(id || '').trim();
   if (!trimmed) return null;
+  // Only kirkham has the verified accelerated-store campaign lookup table.
+  if (sandboxName === 'kirkham') {
+    return getAcceleratedCampaignNameById(trimmed, sandboxName, token, clientId, orgId);
+  }
   const url = `${CJM_CAMPAIGN_BASE}/${encodeURIComponent(trimmed)}`;
   const res = await fetch(url, {
     method: 'GET',

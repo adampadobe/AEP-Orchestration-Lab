@@ -49,6 +49,9 @@ jobs:
           npm run verify:demo-env-strip
           node --test scripts/test-tui-decisioning-runtime.cjs scripts/test-cp-decisioning.cjs scripts/test-cp-coworker-handoff.mjs
 
+      - name: Verify server-side campaign name lookups (offline)
+        run: node --test functions/test/joLookups.test.cjs
+
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
