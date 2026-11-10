@@ -18,6 +18,15 @@ walkthroughs: new Snowflake-first profile, direct AEP profile, dual-load,
 existing-profile update, and an event. Play/Next never generate identities,
 send events, change data, or invoke a repair.
 
+The diagram automatically fills the available width and adjusts its height to
+the flow's proportions. Zoom controls enlarge the flow for scrollable inspection;
+manual zoom survives viewport resizing until **Fit diagram** restores auto-fit.
+**Flow view** is the default: simulation steps progressively reveal their nodes
+and connections without changing node coordinates. **Full architecture** shows
+the entire topology, dimming unrelated paths without resetting playback.
+Live flow view starts at the Lab and retains systems once their checks begin;
+waiting, failed and unavailable checks never imply verified arrival.
+
 The static page is only a shell. Reference content, flow identifiers, inventory
 and dated evidence are returned by
 `GET /api/architecture/my-data-flows?sandbox=apalmer` after server-side Firebase

@@ -42,13 +42,16 @@
 .my-data-flows-page .flows-node[data-live-state="unavailable"] rect { stroke: var(--dash-muted); stroke-dasharray: 3 4; }
 .my-data-flows-page :focus-visible { outline: 3px solid var(--dash-blue); outline-offset: 3px; }
 .my-data-flows-page .flows-graph {
-  height: 25rem;
+  width: 100%;
+  box-sizing: border-box;
+  height: auto;
+  aspect-ratio: var(--flows-aspect-ratio, auto);
   overflow: auto;
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm);
   background: var(--dash-surface-alt);
 }
-.my-data-flows-page .flows-graph[data-expanded="true"] { height: 42rem; }
+.my-data-flows-page .flows-graph[data-expanded="true"] { min-height: 75dvh; }
 .my-data-flows-page .flows-graph svg { display: block; max-width: none; }
 .my-data-flows-page .flows-edge { fill: none; stroke: var(--dash-muted); stroke-width: 1.5; }
 .my-data-flows-page .flows-arrow { fill: var(--dash-muted); }
@@ -56,6 +59,8 @@
 .my-data-flows-page .flows-node rect { fill: var(--dash-surface); stroke: var(--dash-border); stroke-width: 2; }
 .my-data-flows-page .flows-node text { fill: var(--dash-text); font-size: 14px; font-family: inherit; }
 .my-data-flows-page .flows-node { cursor: pointer; }
+.my-data-flows-page .flows-context { opacity: .25; }
+.my-data-flows-page .flows-concealed { display: none; }
 .my-data-flows-page .flows-node[data-active="true"] rect,
 .my-data-flows-page .flows-node:focus rect { stroke: var(--dash-blue); stroke-width: 3; }
 .my-data-flows-page .flows-node[data-active="true"] text { fill: var(--dash-blue); }
@@ -75,12 +80,11 @@
 .my-data-flows-page .flows-dialog { width: calc(100vw - 3rem); max-width: none; height: calc(100dvh - 3rem); max-height: none; margin: auto; padding: 1rem; }
 .my-data-flows-page .flows-dialog::backdrop { background: var(--dash-bg); opacity: .85; }
 .my-data-flows-page .flows-dialog .flows-panel { border: 0; padding: 0; }
-.my-data-flows-page .flows-dialog .flows-graph { height: 55dvh; }
+.my-data-flows-page .flows-dialog .flows-graph { height: 55dvh; min-height: 0; aspect-ratio: auto; }
 .my-data-flows-page [hidden] { display: none; }
 @media (max-width: 600px) {
   .my-data-flows-page .flows-panel { padding: 1rem; }
   .my-data-flows-page .flows-dialog { width: calc(100vw - 1rem); height: calc(100dvh - 1rem); padding: .75rem; }
   .my-data-flows-page .flows-toolbar { gap: .5rem; }
-  .my-data-flows-page .flows-graph { height: 22rem; }
   .my-data-flows-page .flows-card dl { grid-template-columns: 1fr; }
 }
