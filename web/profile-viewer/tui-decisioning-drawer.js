@@ -3652,8 +3652,18 @@ function appendTuiAttribution(text, ev) {
   };
   const details = attribution.details(ev);
   if (!details.some(detail => detail.campaignName || detail.campaignId)) append('Campaign: attribution unavailable');
+  const deliveries = new Set();
+  const campaigns = new Map();
   for (const detail of details) {
-    if (detail.delivery) append('Delivery: ' + detail.delivery);
+    if (detail.delivery && !deliveries.has(detail.delivery)) {
+      append('Delivery: ' + detail.delivery);
+      deliveries.add(detail.delivery);
+    }
+    if (!detail.campaignId && !detail.campaignName) continue;
+    const key = detail.campaignId || 'name:' + detail.campaignName;
+    if (!campaigns.has(key) || detail.campaignName) campaigns.set(key, detail);
+  }
+  for (const detail of campaigns.values()) {
     if (detail.campaignName) {
       append('Campaign: ' + detail.campaignName);
     } else if (detail.campaignId) {

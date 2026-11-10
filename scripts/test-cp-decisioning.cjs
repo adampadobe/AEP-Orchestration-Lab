@@ -166,7 +166,7 @@ test('CP customer content is live-only while retaining explicit Apply and profil
   const html = fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8');
   assert.match(html, /data-demo-env-strip-prefix="cpDecisioning"/);
   assert.match(html, /tui-decisioning-attribution\.js\?v=20261110-cp-live/);
-  assert.match(html, /tui-decisioning-drawer\.js\?v=20261109-campaign/);
+  assert.match(html, /tui-decisioning-drawer\.js\?v=20261110-campaign-names/);
   assert.match(html, /tui-profile-hero\.js/);
   assert.match(html, /autoRunDecisioning: false/);
   const visualiser = fs.readFileSync(path.join(root, 'cp-decisioning-visualiser.html'), 'utf8');

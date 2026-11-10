@@ -113,6 +113,9 @@ async function main() {
     const outboundUpdates = [];
     let fixtureEvents = [];
     let fixtureAudiences = { realized: [], exited: [] };
+    const campaignId = 'd360b9ce-7303-465d-93eb-d31c3f19a6c4#3b882acb-398f-4faa-8331-a1ec279336ac';
+    const campaignName = 'AEP-LAB-Decisioning-Hero-Banner';
+    const campaignLookups = [];
     const schema = { version: '1.12', 'meta:tenantNamespace': '_demoemea', properties: {} };
     for (const field of model.fields) {
       let node = schema;
@@ -140,6 +143,15 @@ async function main() {
       else if (url.pathname === '/api/profile/consent') data = { found: true, firstName: 'Alex', email: 'fixture@example.invalid',
         ecid: '12345678901234567890123456789012345678', channels: { email: 'in', sms: 'not_provided', push: 'not_provided' } };
       else if (url.pathname === '/api/profile/events') data = { events: fixtureEvents };
+      else if (url.pathname === '/api/campaign-name') {
+        assert.equal(url.searchParams.get('sandbox'), 'kirkham');
+        campaignLookups.push(url.searchParams.get('id'));
+        if (url.searchParams.get('id') !== campaignId) {
+          await route.fulfill({ status: 500, json: { error: 'Campaign query unavailable', name: null } });
+          return;
+        }
+        data = { id: campaignId, name: campaignName };
+      }
       else if (url.pathname === '/api/profile/audiences') data = fixtureAudiences;
       else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/tags/reactor') data = { data: [] };
@@ -177,11 +189,13 @@ async function main() {
     fixtureEvents = [
       { eventType: 'decisioning.propositionDisplay', timestamp: Date.now(), rows: [
         { path: proposition + 'scope', value: 'web://fixture.invalid/profile-viewer/cp-decisioning-visualiser.html#hero-banner' },
-        { path: proposition + 'scopeDetails.activity.id', value: 'fixture-campaign' },
-        { path: proposition + 'scopeDetails.activity.name', value: 'CP fixture campaign' },
+        { path: proposition + 'scopeDetails.activity.id', value: campaignId },
         { path: proposition + 'scopeDetails.decisionProvider', value: 'CJM' },
         { path: proposition + 'items.0.name', value: 'CP - Guest care' },
         { path: proposition + 'items.0.itemSelection.selectionDetail.strategyName', value: 'CP - Protect / Recover strategy' },
+        { path: '_experience.decisioning.propositions.1.scopeDetails.activity.id', value: campaignId },
+        { path: '_experience.decisioning.propositions.1.scopeDetails.decisionProvider', value: 'CJM' },
+        { path: '_experience.decisioning.propositions.1.scope', value: 'web://fixture.invalid/#second-placement' },
         { path: 'web.webPageDetails.URL', value: origin + '/profile-viewer/cp-decisioning-demo.html?channel=email' },
       ] },
       { eventType: 'message.feedback', eventName: 'message.feedback', timestamp: Date.now() - 1, rows: [
@@ -196,11 +210,33 @@ async function main() {
     }, null, { timeout: 15000 });
     const decisionCard = shell.locator('.aep-event-decision').filter({ hasText: 'CP - Guest care' });
     assert.match(await decisionCard.textContent(), /Won via CP - Protect \/ Recover strategy/);
-    assert.match(await decisionCard.textContent(), /Campaign: CP fixture campaign/);
+    await shell.waitForFunction(name => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: ' + name), campaignName);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Delivery: ' }).count(), 1);
+    assert.match(await decisionCard.textContent(), /Campaign: AEP-LAB-Decisioning-Hero-Banner/);
+    assert.deepEqual(campaignLookups, [campaignId], 'Repeated propositions share one campaign lookup');
     assert.match(await decisionCard.textContent(), /Delivery: Code-based experience/);
     assert.match(await decisionCard.textContent(), /Preview: Email/);
     assert.ok(await decisionCard.locator('svg').count() > 0, 'Decision card must use the shared TUI event icon');
     assert.equal(await shell.locator('#profileDrawerMessageSentValue').textContent(), '1', 'Email count must refresh from ingested events');
+    await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+    assert.ok(await decisionCard.isVisible(), 'Resolved attribution remains visible in dark theme');
+    fixtureEvents[0].rows.push({
+      path: '_experience.decisioning.propositions.1.scopeDetails.activity.name', value: 'Name supplied by event',
+    });
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: Name supplied by event'),
+      null, { timeout: 15000 });
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.deepEqual(campaignLookups, [campaignId], 'An embedded campaign name takes precedence over lookup');
+    fixtureEvents[0].rows = fixtureEvents[0].rows.filter(row => !row.path.endsWith('scopeDetails.activity.name'));
+    const unavailableId = '00000000-0000-0000-0000-000000000001';
+    for (const row of fixtureEvents[0].rows) {
+      if (row.path.endsWith('scopeDetails.activity.id')) row.value = unavailableId;
+    }
+    await shell.waitForFunction(id => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: name unavailable (' + id + ')'),
+      unavailableId, { timeout: 15000 });
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.deepEqual(campaignLookups, [campaignId, unavailableId], 'Failed lookups remain explicit without duplicate requests');
     const frame = shell.frames().find(frame => frame.url().includes('cp-decisioning-visualiser.html'));
     await frame.locator('#scenario-pills button').nth(4).click();
     assert.equal(await frame.locator('img').count(), 0, 'Embedded scenario must also wait for live decision imagery');
