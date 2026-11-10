@@ -5,7 +5,6 @@
 .cp-demo-shell .mod-demo-top-anchor::after { display: none !important; }
 .cp-demo-shell #aepLabEnvOverlayPanel { position: relative; inset: auto !important; width: 100%; max-height: min(340px, 35dvh); transform: none; }
 .cp-demo-shell .mod-demo-top-anchor:not(.lab-env-top-anchor--expanded) #aepLabEnvOverlayPanel { display: none; }
-.cp-demo-shell .tui-action-controls a { color: var(--dash-blue); white-space: nowrap; font-size: 11px; }
 .cp-source { border: 1px solid var(--dash-info-border); background: var(--dash-info-bg); color: var(--dash-info-text); border-radius: var(--dash-radius-sm); padding: 8px 10px; margin-bottom: 12px !important; font-size: 11px; }
 .cp-source[data-live="true"] { background: var(--dash-success-bg); color: var(--dash-success-text); border-color: var(--dash-success-border); }
 .cp-visualiser .preview-cta { background: var(--dash-success-text); color: var(--dash-surface); border-radius: 24px; }
@@ -16,9 +15,6 @@
 .cp-visualiser .site-nav { flex-wrap: wrap; }
 .cp-visualiser .ranking-panel { --tui-rank-bg: color-mix(in srgb, var(--dash-success-text) 45%, var(--dash-text)); }
 html[data-aep-theme="dark"] .cp-visualiser .ranking-panel { --tui-rank-bg: color-mix(in srgb, var(--dash-success-text) 20%, var(--dash-bg)); }
-.cp-visualiser .tui-workspace[data-channel="web"] { grid-template-columns: minmax(230px, .35fr) minmax(300px, 1fr); gap: 16px; }
-.cp-visualiser .tui-workspace[data-channel="web"] > .gutter { display: none; }
-.cp-visualiser .tui-workspace[data-channel="web"] > .preview-pane { grid-column: 1 / -1; width: 100%; }
 .cp-visualiser .tui-workspace[data-channel="web"] .website-preview { width: 100%; max-width: none; }
 .cp-visualiser .tui-workspace[data-channel="web"] .web-hero { min-height: 430px; }
 .cp-visualiser .tui-workspace[data-channel="web"] .destination-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -27,7 +23,5 @@ html[data-aep-theme="dark"] .cp-visualiser .ranking-panel { --tui-rank-bg: color
 .cp-decision-metadata summary { cursor: pointer; }
 .cp-decision-metadata pre { white-space: pre-wrap; overflow-wrap: anywhere; overflow-y: auto; max-height: 35vh; }
 @media (max-width: 800px) {
-  .cp-visualiser .tui-workspace[data-channel="web"] { display: flex; flex-direction: column; }
-  .cp-visualiser .tui-workspace[data-channel="web"] > .pane { width: 100%; }
   .cp-visualiser .tui-workspace[data-channel="web"] .destination-grid { grid-template-columns: 1fr; }
 }

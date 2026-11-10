@@ -8,7 +8,7 @@
   <title>Center Parcs | Forest decisioning experiences</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261108">
+  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261110-web-panel">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser cp-visualiser">
@@ -28,7 +28,6 @@
         <div id="objectives" class="objective-ladder"></div>
       </section>
       <details id="eligible-details" class="ranking-panel"><summary><span>Eligible CP offers</span><small id="eligible-objective"></small></summary><p class="nba-ranking-note">Simulated static item priority / not an AJO or ML score</p><div id="eligible-items"></div></details>
-      <details class="mapping-details"><summary>Historical AJO catalog plan / confirmation boundary</summary><p>The draft plan describes 21 CP offer items, seven CP tags, seven tag-based collections and seven ranked strategies, not the current live inventory. No BA/TUI tags are reused. Simple objective and item rules include Adobe visual attribute models.</p><p id="catalog-stats"></p><p>This page does not create or activate catalog assets. Inspect existing assets and confirm exact catalog payloads and rule attachment scope separately before making changes. Live results come from the configured AJO campaign/policy; simulated eligibility is not proof of live CP eligibility.</p><a href="cp-decisioning-catalog-plan.json" target="_blank" rel="noopener">Inspect the historical verified catalog plan</a></details>
     </section>
     <div class="gutter" role="separator" aria-label="Resize channel preview" aria-orientation="vertical" tabindex="0" data-pane="preview" aria-valuemin="340" aria-valuemax="1200" aria-valuenow="560"></div>
     <section class="preview-pane pane" aria-labelledby="preview-title">
@@ -59,6 +58,6 @@
   </main>
   <details class="fictional-drawer"><summary>Local fixture / no live identity or activity</summary><div><p>No real ECID, audience or journey is simulated. Open the parent lab to look up an existing test profile.</p><p id="fixture-summary"></p></div></details>
   <script src="cp-decisioning-model.js?v=20261110-cp-live-only"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261110-live-copy"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261110-catalog-ui"></script>
 </body>
 </html>

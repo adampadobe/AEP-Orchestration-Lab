@@ -449,9 +449,11 @@
   });
   $('expand').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = true; }));
   $('collapse').addEventListener('click', () => document.querySelectorAll('.objective').forEach(detail => { detail.open = false; }));
-  const rules = model.objectives.reduce((count, o) => count + 1 + o.offers.filter(item => item.rule).length, 0);
-  $('catalog-stats').textContent = rules + ' eligibility rules / 7 scenario buttons, one per objective. ' +
-    model.scenarios.length + ' regression cases cover all items and consent holds. Priorities run from 730 to 110.';
+  if ($('catalog-stats')) {
+    const rules = model.objectives.reduce((count, o) => count + 1 + o.offers.filter(item => item.rule).length, 0);
+    $('catalog-stats').textContent = rules + ' eligibility rules / 7 scenario buttons, one per objective. ' +
+      model.scenarios.length + ' regression cases cover all items and consent holds. Priorities run from 730 to 110.';
+  }
   buildSignals();
   buildScenarios();
   document.querySelectorAll('[data-app-action]').forEach(button => {

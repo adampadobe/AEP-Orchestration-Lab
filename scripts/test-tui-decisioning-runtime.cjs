@@ -59,6 +59,27 @@ test('departure-day edits and scenarios read, write and confirm daysToDeparture'
   }
 });
 
+test('decision item attribution uses only displayed event metadata, including original IDs', () => {
+  const { items } = require(path.join(root, 'tui-decisioning-attribution.js'));
+  for (const prefix of ['_experience.decisioning.propositions.0.', 'xdm._experience.decisioning.proposition.0.']) {
+    const event = { eventType: 'decisioning.propositionDisplay', eventName: 'Not an offer name', rows: [
+      { path: prefix + 'items.1.id', value: 'second-offer' },
+      { path: prefix + 'items.0.id', value: 'actual-offer-id' },
+      { path: prefix + 'items.0.name', value: 'Actual delivered item' },
+      { path: prefix + 'items.0.itemSelection.selectionDetail.strategyID', value: 'actual-strategy-id' },
+      { path: prefix + 'items.0.itemSelection.selectionDetail.strategyName', value: 'Actual delivered strategy' },
+      { path: prefix + 'items.0.itemSelection.rankingDetail.strategyID', value: 'not-the-selection-strategy' },
+    ] };
+    assert.deepEqual(items(event), [
+      { proposition: 0, item: 0, offerId: 'actual-offer-id', offer: 'Actual delivered item',
+        strategyId: 'actual-strategy-id', strategy: 'Actual delivered strategy' },
+      { proposition: 0, item: 1, offerId: 'second-offer' },
+    ]);
+    assert.deepEqual(items({ ...event, eventType: 'web.webinteraction.linkClicks' }), []);
+  }
+  assert.deepEqual(items({ eventType: 'decisioning.propositionDisplay', eventName: 'Scenario seven', rows: [] }), []);
+});
+
 test('TUI disruption reads, writes and confirms the airlineCustomer field', () => {
   const model = require(path.join(root, 'tui-decisioning-model.js'));
   const profile = require(path.join(root, 'tui-decisioning-profile.js'));

@@ -3554,19 +3554,9 @@ function onProfileDrawerEventsStoryKeydown(e) {
 }
 
 function decisioningDisplayCardFields(ev) {
-  if (String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') return [];
-  const items = new Map();
-  for (const row of Array.isArray(ev && ev.rows) ? ev.rows : []) {
-    const match = String(row.path || '').match(/^(?:xdm\.)?_experience\.decisioning\.propositions\.(\d+)\.items\.(\d+)\.(name|itemSelection\.selectionDetail\.strategyName)$/);
-    if (!match || row.value == null || !String(row.value).trim()) continue;
-    const key = match[1] + ':' + match[2];
-    if (!items.has(key)) items.set(key, { proposition: Number(match[1]), item: Number(match[2]) });
-    items.get(key)[match[3] === 'name' ? 'offer' : 'strategy'] = String(row.value).trim();
-  }
-  return Array.from(items.values()).sort((a, b) => a.proposition - b.proposition || a.item - b.item)
-    .flatMap(item => [
-      ...(item.offer ? [['Offer', item.offer]] : []),
-      ...(item.strategy ? [['Strategy', item.strategy]] : []),
+  return (global.TuiDecisioningAttribution?.items(ev) || []).flatMap(item => [
+      ...(item.offer || item.offerId ? [['Offer', item.offer || item.offerId]] : []),
+      ...(item.strategy || item.strategyId ? [['Strategy', item.strategy || item.strategyId]] : []),
     ]);
 }
 
@@ -3639,6 +3629,67 @@ function renderEventTimeline(events) {
 }
 
 const tuiCampaignNames = new Map();
+const tuiDecisionNames = new Map();
+
+function resolveTuiDecisionName(entityType, id, sandbox) {
+  const key = sandbox + '|' + entityType + '|' + id;
+  let entry = tuiDecisionNames.get(key);
+  if (!entry || entry.expires < Date.now()) {
+    entry = { expires: Date.now() + 60000 };
+    entry.promise = fetch('/api/decisioning/catalog/get?entity_type=' + encodeURIComponent(entityType) +
+      '&id=' + encodeURIComponent(id) + sandbox)
+      .then(async response => {
+        if (!response.ok) throw new Error('Decision name lookup failed (HTTP ' + response.status + ')');
+        const data = await response.json();
+        if (!data.ok || data.id !== id || !data.item?.name || data.item.name === '(unnamed)') {
+          throw new Error('Decision name unavailable for ' + id);
+        }
+        return String(data.item.name);
+      })
+      .catch(error => {
+        labLog('warn', 'TUI decision attribution lookup failed', { message: error.message });
+        return null;
+      });
+    tuiDecisionNames.set(key, entry);
+  }
+  return entry.promise;
+}
+
+function appendTuiDecisionItems(text, title, ev) {
+  const items = global.TuiDecisioningAttribution?.items(ev) || [];
+  const append = value => {
+    const line = document.createElement('span');
+    line.className = 'aep-profile-drawer-event-decision-detail';
+    line.textContent = value;
+    text.appendChild(line);
+    return line;
+  };
+  title.textContent = items.length ? items.map(item => item.offer || item.offerId || 'Offer not returned on event').join(' / ')
+    : 'Decision displayed / offer not returned on event';
+  title.title = title.textContent;
+  if (!items.length) append('Strategy: not returned on event');
+  const sandbox = getSandboxParam();
+  for (const item of items) {
+    const strategy = append(item.strategy ? 'Won via ' + item.strategy
+      : item.strategyId ? 'Strategy: resolving name (' + item.strategyId + ')' : 'Strategy: not returned on event');
+    if (item.offerId) append('Offer ID: ' + item.offerId);
+    if (item.strategyId) append('Strategy ID: ' + item.strategyId);
+    if (!item.offer && item.offerId) {
+      resolveTuiDecisionName('offer-items', item.offerId, sandbox).then(name => {
+        if (!title.isConnected || sandbox !== getSandboxParam()) return;
+        item.offer = name || 'Offer name unavailable (' + item.offerId + ')';
+        title.textContent = items.map(value => value.offer || value.offerId || 'Offer not returned on event').join(' / ');
+        title.title = title.textContent;
+      });
+    }
+    if (!item.strategy && item.strategyId) {
+      resolveTuiDecisionName('selection-strategies', item.strategyId, sandbox).then(name => {
+        if (!strategy.isConnected || sandbox !== getSandboxParam()) return;
+        strategy.textContent = name ? 'Won via ' + name : 'Strategy name unavailable (' + item.strategyId + ')';
+      });
+    }
+  }
+}
 
 function appendTuiAttribution(text, ev) {
   const attribution = global.TuiDecisioningAttribution;
@@ -3707,11 +3758,8 @@ function renderCompactEventTimeline(events) {
   for (const [index, ev] of list.entries()) {
     appendDrawerEventTimelineItem(ev);
     const card = profileDrawerEvents.lastElementChild;
-    const fields = decisioningDisplayCardFields(ev);
-    const offers = fields.filter(([label]) => label === 'Offer').map(([, value]) => value);
-    const strategies = fields.filter(([label]) => label === 'Strategy').map(([, value]) => value);
     const isDisplay = String(ev.eventType || ev.eventName || '').toLowerCase() === 'decisioning.propositiondisplay';
-    card.classList.add('aep-event-decision');
+    if (isDisplay) card.classList.add('aep-event-decision');
     if (index === 0) card.classList.add('aep-event-latest');
     const text = card.lastElementChild;
     const time = text.querySelector('.aep-profile-drawer-event-time');
@@ -3719,17 +3767,12 @@ function renderCompactEventTimeline(events) {
     time.title = fullDate;
     time.textContent = fullDate.includes(', ') ? fullDate.split(', ')[1] : fullDate;
     const title = text.querySelector('.aep-profile-drawer-event-title');
-    if (offers.length) title.textContent = offers.join(' / ');
     title.title = title.textContent;
     text.querySelectorAll('.aep-profile-drawer-event-decision-detail').forEach(node => node.remove());
-    if (strategies.length) {
-      const why = document.createElement('span');
-      why.className = 'aep-profile-drawer-event-decision-detail';
-      why.textContent = 'Won via ' + strategies.join(' / ');
-      why.title = why.textContent;
-      text.appendChild(why);
+    if (isDisplay) {
+      appendTuiDecisionItems(text, title, ev);
+      appendTuiAttribution(text, ev);
     }
-    if (isDisplay) appendTuiAttribution(text, ev);
     const sub = text.querySelector('.aep-profile-drawer-event-sub') || document.createElement('span');
     sub.className = 'aep-profile-drawer-event-sub';
     const eventType = isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event');
