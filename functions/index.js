@@ -873,6 +873,7 @@ Object.assign(exports, registerMyDataFlowsTraceRoutes({
     const { createMyDataFlowsTraceStore } = require('./myDataFlowsTraceStore');
     const { createMyDataFlowsSnowflake } = require('./myDataFlowsSnowflake');
     const { createMyDataFlowsTraceAep } = require('./myDataFlowsTraceAep');
+    const db = getAdminFirestore();
     const getAdobeAuth = async () => ({
       accessToken: await getAdobeAccessToken(),
       clientId: ADOBE_CLIENT_ID.value(), orgId: ADOBE_IMS_ORG.value(),
@@ -880,7 +881,7 @@ Object.assign(exports, registerMyDataFlowsTraceRoutes({
     return {
       auth: require('firebase-admin').auth(),
       trace: createMyDataFlowsTraceService({
-        store: createMyDataFlowsTraceStore(getAdminFirestore()),
+        store: createMyDataFlowsTraceStore(db),
         snowflake: createMyDataFlowsSnowflake(),
         aep: createMyDataFlowsTraceAep({ getAdobeAuth }),
         getPrefs: require('./labProfileGenerationPrefsStore').getPrefs,
