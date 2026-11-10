@@ -8,6 +8,12 @@ delivery label once per event.
 The local Express endpoint uses the same server helper and honors the requested
 sandbox, so local and hosted drawers resolve names consistently.
 
+Edge events may identify an activity as `<campaign UUID>#<version UUID>`.
+For `kirkham`, the resolver validates both UUIDs and queries/caches by the
+lowercase campaign UUID only. The API still echoes the original activity ID,
+and stored event attribution is not rewritten. A malformed version suffix is
+rejected rather than silently discarded.
+
 For sandbox `kirkham`, `functions/joLookups.js` resolves the UUID through
 `POST https://platform.adobe.io/data/foundation/query/accelerated-queries`:
 

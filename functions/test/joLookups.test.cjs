@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const campaignId = 'd360b9ce-7303-465d-93eb-d31c3f19a6c4';
+const activityId = campaignId + '#3b882acb-398f-4faa-8331-a1ec279336ac';
 const campaignName = 'AEP-LAB-Decisioning-Hero-Banner';
 
 function lookups() {
@@ -51,6 +52,20 @@ test('campaign cache does not cross org or API client boundaries', async t => {
   assert.equal(fetch.mock.callCount(), 3);
 });
 
+test('Edge campaign#version activity IDs resolve by campaign UUID and share the campaign cache', async t => {
+  const fetch = t.mock.method(global, 'fetch', async (_url, options) => {
+    assert.equal(JSON.parse(options.body).sql,
+      `SELECT DISTINCT campaign_id, campaign_name FROM qsaccel.ajo_lookup.ajo_campaign_names WHERE campaign_id = '${campaignId}' ORDER BY campaign_name`);
+    return { ok: true, json: async () => ({ results: [{ campaign_id: campaignId, campaign_name: campaignName }] }) };
+  });
+  const { getCampaignNameById } = lookups();
+  for (const id of [activityId, campaignId, activityId.toUpperCase(),
+    campaignId + '#00000000-0000-0000-0000-000000000001']) {
+    assert.equal(await getCampaignNameById(id, 'kirkham', 'token', 'client', 'org'), campaignName);
+  }
+  assert.equal(fetch.mock.callCount(), 1);
+});
+
 test('other sandboxes retain the existing campaign API and never query kirkham data', async t => {
   const fetch = t.mock.method(global, 'fetch', async (url, options) => {
     assert.equal(url, 'https://journey.adobe.io/campaign/campaigns/' + campaignId);
@@ -64,8 +79,12 @@ test('other sandboxes retain the existing campaign API and never query kirkham d
 
 test('invalid campaign IDs cannot enter SQL', async t => {
   const fetch = t.mock.method(global, 'fetch', async () => { throw new Error('Unexpected request'); });
-  await assert.rejects(lookups().getCampaignNameById("' OR 1=1 --", 'kirkham', 'token', 'client', 'org'),
-    error => error.status === 400 && /UUID/.test(error.message));
+  const { getCampaignNameById } = lookups();
+  for (const id of ["' OR 1=1 --", campaignId + '#', campaignId + '#invalid',
+    activityId + '#extra', campaignId + "#' OR 1=1 --", activityId + '\nextra']) {
+    await assert.rejects(getCampaignNameById(id, 'kirkham', 'token', 'client', 'org'),
+      error => error.status === 400 && /UUID/.test(error.message));
+  }
   assert.equal(fetch.mock.callCount(), 0);
 });
 
@@ -108,19 +127,19 @@ test('hosted campaign endpoint preserves its contract and surfaces validation an
     ADOBE_IMS_ORG: { value: () => 'fixture-org' },
     console: { warn: (...args) => warnings.push(args) },
     joLookups: { getCampaignNameById: async (...args) => {
-      assert.deepEqual(args, [campaignId, 'kirkham', 'fixture-token', 'fixture-client', 'fixture-org']);
+      assert.deepEqual(args, [activityId, 'kirkham', 'fixture-token', 'fixture-client', 'fixture-org']);
       return campaignName;
     } },
   };
   vm.runInNewContext(source.slice(start, end), context);
-  const request = { method: 'GET', query: { id: campaignId, sandbox: 'kirkham' } };
+  const request = { method: 'GET', query: { id: activityId, sandbox: 'kirkham' } };
   const response = {
     status(code) { this.code = code; return this; },
     json(body) { this.body = body; return this; },
   };
   await context.exports.campaignNameProxy(request, response);
   assert.equal(response.code, 200);
-  assert.equal(response.body.id, campaignId);
+  assert.equal(response.body.id, activityId);
   assert.equal(response.body.name, campaignName);
   for (const [status, message] of [[400, 'Campaign id must be a UUID.'], [500, 'Campaign name query failed (HTTP 403).']]) {
     context.joLookups.getCampaignNameById = async () => { const error = new Error(message); error.status = status; throw error; };

@@ -8,14 +8,18 @@ const CJM_JOURNEY_BASE = process.env.CJM_JOURNEY_BASE || 'https://journey.adobe.
 const CAMPAIGN_QUERY_URL = 'https://platform.adobe.io/data/foundation/query/accelerated-queries';
 const CAMPAIGN_NAME_TTL_MS = 5 * 60 * 1000;
 const campaignNameCache = new Map();
+const CAMPAIGN_ACTIVITY_ID = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:#[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})?$/i;
 
 async function getAcceleratedCampaignNameById(id, sandboxName, token, clientId, orgId) {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
-    const error = new Error('Campaign id must be a UUID.');
+  const activityId = CAMPAIGN_ACTIVITY_ID.exec(id);
+  if (!activityId) {
+    const error = new Error('Campaign id must be a UUID or a UUID#UUID activity id.');
     error.status = 400;
     throw error;
   }
-  const key = JSON.stringify([orgId, clientId, sandboxName, id]);
+  // Edge activity IDs may include a version UUID; the lookup table keys the campaign UUID only.
+  const campaignId = activityId[1].toLowerCase();
+  const key = JSON.stringify([orgId, clientId, sandboxName, campaignId]);
   const cached = campaignNameCache.get(key);
   if (cached && cached.expires > Date.now()) return cached.name;
   campaignNameCache.delete(key);
@@ -31,7 +35,7 @@ async function getAcceleratedCampaignNameById(id, sandboxName, token, clientId, 
     },
     body: JSON.stringify({
       dbName: 'kirkham:qsaccel',
-      sql: `SELECT DISTINCT campaign_id, campaign_name FROM qsaccel.ajo_lookup.ajo_campaign_names WHERE campaign_id = '${id}' ORDER BY campaign_name`,
+      sql: `SELECT DISTINCT campaign_id, campaign_name FROM qsaccel.ajo_lookup.ajo_campaign_names WHERE campaign_id = '${campaignId}' ORDER BY campaign_name`,
       name: 'AJO Campaign Name Lookup',
       description: 'Resolve a campaign name for profile event attribution',
     }),
@@ -40,7 +44,7 @@ async function getAcceleratedCampaignNameById(id, sandboxName, token, clientId, 
   if (!res.ok) throw new Error(`Campaign name query failed (HTTP ${res.status}).`);
   const data = await res.json();
   if (!Array.isArray(data.results) || data.results.some(row =>
-    !row || row.campaign_id !== id || typeof row.campaign_name !== 'string' || !row.campaign_name.trim())) {
+    !row || row.campaign_id !== campaignId || typeof row.campaign_name !== 'string' || !row.campaign_name.trim())) {
     throw new Error('Campaign name query returned invalid results.');
   }
   const names = [...new Set(data.results.map(row => row.campaign_name.trim()))];

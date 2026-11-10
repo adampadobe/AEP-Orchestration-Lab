@@ -113,7 +113,7 @@ async function main() {
     const outboundUpdates = [];
     let fixtureEvents = [];
     let fixtureAudiences = { realized: [], exited: [] };
-    const campaignId = 'd360b9ce-7303-465d-93eb-d31c3f19a6c4';
+    const campaignId = 'd360b9ce-7303-465d-93eb-d31c3f19a6c4#3b882acb-398f-4faa-8331-a1ec279336ac';
     const campaignName = 'AEP-LAB-Decisioning-Hero-Banner';
     const campaignLookups = [];
     const schema = { version: '1.12', 'meta:tenantNamespace': '_demoemea', properties: {} };
