@@ -47,7 +47,7 @@ jobs:
         run: |
           npm run verify:env-bar-versions
           npm run verify:demo-env-strip
-          node --test scripts/test-tui-decisioning-runtime.cjs
+          node --test scripts/test-tui-decisioning-runtime.cjs scripts/test-cp-decisioning.cjs scripts/test-cp-coworker-handoff.mjs
 
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
@@ -135,5 +135,7 @@ jobs:
         run: npm run test:demo-env-bar
       - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
         run: npm run test:riyadh-air
+      - name: Exercise CP decisioning, attribution and profile refresh (local fixtures)
+        run: node scripts/test-cp-decisioning-browser.cjs
       - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
         run: npm run test:vuse-italia

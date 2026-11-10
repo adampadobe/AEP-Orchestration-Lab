@@ -120,11 +120,31 @@ test('metadata and check SQL are fully qualified, values bound, freshness is MAX
   const h = harness();
   await h.call('objects_list', {kind: 'tables', limit: 3});
   assert.match(h.calls.at(-1).args[2], /"DB"\.INFORMATION_SCHEMA\.TABLES/);
-  assert.deepEqual(h.calls.at(-1).args[3], ['SCHEMA', 'BASE TABLE', 3]);
+  assert.deepEqual(h.calls.at(-1).args[3], ['SCHEMA', 'BASE TABLE', 'DYNAMIC TABLE', 3]);
   assert.equal((await h.call('objects_list', {kind: 'tables', database: 'OTHER'})).error.code, 'SCOPE_DENIED');
   await h.call('data_check', {table: 'T', column: 'TIME', check: 'freshness'});
   assert.equal(h.calls.at(-1).args[2], 'SELECT MAX("TIME") AS MAX_TIMESTAMP FROM "DB"."SCHEMA"."T"');
   assert.equal((await h.call('grants_inspect', {role: 'ADMIN'})).error.code, 'PERMISSION_DENIED');
+});
+test('multi-schema metadata and table names remain limited to the explicit allowlist', async () => {
+  const h = harness({policy: {allowedSchemas: ['SCHEMA', 'REL', 'AEP_SCHEMA']}});
+  const caps = await h.call('capabilities');
+  assert.deepEqual(caps.allowedSchemas, ['SCHEMA', 'REL', 'AEP_SCHEMA']);
+  await h.call('objects_list', {kind: 'tables', schema: 'REL'});
+  assert.match(h.calls.at(-1).args[2], /TABLE_SCHEMA IN \(\?\)/);
+  assert.deepEqual(h.calls.at(-1).args[3], ['REL', 'BASE TABLE', 'DYNAMIC TABLE', 10]);
+  await h.call('objects_list', {kind: 'schemas'});
+  assert.deepEqual(h.calls.at(-1).args[3], ['SCHEMA', 'REL', 'AEP_SCHEMA', 10]);
+  await h.call('object_describe', {schema: 'REL', name: 'REL_FSI_ACCOUNT'});
+  assert.equal(h.calls.at(-1).args[2], 'DESCRIBE TABLE "DB"."REL"."REL_FSI_ACCOUNT"');
+  assert.equal(P.tableName('REL.REL_FSI_ACCOUNT', P.validatePolicy(h.policy)),
+    '"DB"."REL"."REL_FSI_ACCOUNT"');
+  assert.equal(P.tableName('DB.AEP_SCHEMA.SOURCE', P.validatePolicy(h.policy)),
+    '"DB"."AEP_SCHEMA"."SOURCE"');
+  assert.equal((await h.call('objects_list', {kind: 'tables', schema: 'PRIVATE'})).error.code, 'SCOPE_DENIED');
+  assert.equal((await h.call('object_describe', {schema: 'PRIVATE', name: 'T'})).error.code, 'SCOPE_DENIED');
+  assert.throws(() => P.tableName('OTHER.REL.T', P.validatePolicy(h.policy)), {code: 'SCOPE_DENIED'});
+  assert.throws(() => P.tableName('DB.PRIVATE.T', P.validatePolicy(h.policy)), {code: 'SCOPE_DENIED'});
 });
 test('grant snapshots page beyond the SQL row window without rerunning SHOW or exposing other jobs', async () => {
   const h = harness();
@@ -157,7 +177,7 @@ test('Portal preview review exposes exact compiled change only to the same owner
   assert.equal(reviewed.sql, preview.sql);
   assert.deepEqual(reviewed.bindings, preview.bindings);
   assert.deepEqual(reviewed.context, {account: 'org-account', user: 'USER', role: 'ROLE',
-    warehouse: 'WH', database: 'DB', schema: 'SCHEMA'});
+    warehouse: 'WH', database: 'DB', schema: 'SCHEMA', allowedSchemas: ['SCHEMA']});
   assert.equal(reviewed.state, 'previewed');
   assert.equal(reviewed.expiresAt - reviewed.serverNow, 600000);
   assert.equal(reviewed.fingerprint, undefined);
@@ -252,6 +272,53 @@ test('typed operations enforce exact fields, simple identifiers, binds, scope an
     {...h.policy, grants: false}), {code: 'PERMISSION_DENIED'});
   assert.match(P.compileOperation({kind: 'add_column', table: 'T', column: {name: 'X', type: 'INT', nullable: false}}, h.policy).sql, /NOT NULL/);
 });
+test('FSI dynamic-table replacement is limited to canonical targets and retains grants', () => {
+  const h = harness({policy: {schema: 'AEP_SCHEMA', allowedSchemas: ['AEP_SCHEMA', 'REL']}});
+  const compiled = P.compileOperation({kind: 'replace_fsi_dynamic_table',
+    table: 'DB.REL.REL_FSI_ACCOUNT'}, h.policy);
+  assert.match(compiled.sql, /^CREATE OR REPLACE DYNAMIC TABLE "DB"\."REL"\."REL_FSI_ACCOUNT" COPY GRANTS/);
+  assert.match(compiled.sql, /"DB"\."AEP_SCHEMA"\."AGENTIC_FSI_PROFILE_PRODUCTS"/);
+  assert.match(compiled.sql, /"DB"\."REL"\."RECIPIENT"/);
+  assert.match(compiled.sql, /WAREHOUSE = "WH"/);
+  assert.match(compiled.sql, /REFRESH_MODE = INCREMENTAL\s+AS\s+SELECT/);
+  assert.match(compiled.sql, /p\.OPENING_BALANCE/);
+  assert.match(compiled.sql, /p\.OVERDRAFT_LIMIT/);
+  assert.match(compiled.sql, /WHERE LOWER\(p\.PRODUCT_TYPE\) IN \('current_account', 'savings_account', 'savings'\)/);
+  assert.doesNotMatch(compiled.sql, /IF NOT EXISTS|\{\{WAREHOUSE\}\}/);
+  assert.equal(compiled.readbackKind, 'dynamic_table_metadata');
+  assert.equal(compiled.readbackSql, 'DESCRIBE DYNAMIC TABLE "DB"."REL"."REL_FSI_ACCOUNT"');
+  assert.match(compiled.warning, /auto-commits/);
+  const transaction = P.compileOperation({kind: 'replace_fsi_dynamic_table',
+    table: 'DB.REL.REL_FSI_TRANSACTION'}, h.policy);
+  assert.match(transaction.sql, /"DB"\."AEP_SCHEMA"\."AGENTIC_FSI_EVENT_TRANSACTION"/);
+  for (const table of ['DB.REL.REL_FSI_OTHER', 'DB.SCHEMA.REL_FSI_ACCOUNT',
+    'OTHER.REL.REL_FSI_ACCOUNT', 'REL_FSI_ACCOUNT']) {
+    assert.throws(() => P.compileOperation({kind: 'replace_fsi_dynamic_table', table}, h.policy));
+  }
+  assert.throws(() => P.compileOperation({kind: 'replace_fsi_dynamic_table',
+    table: 'DB.REL.REL_FSI_ACCOUNT'}, {...h.policy, allowedSchemas: ['AEP_SCHEMA']}),
+  {code: 'SCOPE_DENIED'});
+  assert.throws(() => P.compileOperation({kind: 'replace_fsi_dynamic_table',
+    table: 'DB.REL.REL_FSI_ACCOUNT'}, {...h.policy, read: false}),
+  {code: 'PERMISSION_DENIED'});
+});
+test('FSI dynamic-table replacement uses the normal fresh Portal approval and readback path', async () => {
+  const h = harness({policy: {schema: 'AEP_SCHEMA', allowedSchemas: ['AEP_SCHEMA', 'REL']},
+    read: async (_resolved, _policy, sql) => {
+      assert.equal(sql, 'DESCRIBE DYNAMIC TABLE "DB"."REL"."REL_FSI_CARD"');
+      return {rows: [{name: 'CARD_ID'}]};
+    }});
+  const preview = await h.call('change_preview', {operation: {
+    kind: 'replace_fsi_dynamic_table', table: 'DB.REL.REL_FSI_CARD'}});
+  assert.equal(preview.ok, true, JSON.stringify(preview));
+  assert.match(preview.sql, /CREATE OR REPLACE DYNAMIC TABLE/);
+  assert.equal((await h.call('change_apply', {preview_id: preview.preview_id})).error.code, 'HUMAN_APPROVAL_REQUIRED');
+  await h.call('change_approve', {preview_id: preview.preview_id});
+  const result = await h.call('change_apply', {preview_id: preview.preview_id});
+  assert.equal(result.state, 'succeeded');
+  assert.equal(result.verification.verified, true, JSON.stringify(result.verification));
+  assert.equal(h.calls.filter(call => call.method === 'mutate').length, 1);
+});
 test('approval is Firebase only, supplied booleans rejected, single-use apply is atomic under concurrency', async () => {
   const h = harness(), p = await h.call('change_preview', {operation: insert()});
   assert.equal((await h.call('change_apply', {preview_id: p.preview_id})).error.code, 'HUMAN_APPROVAL_REQUIRED');
@@ -334,7 +401,9 @@ test('Cortex ambiguous failure is durable and never retried', async () => {
 });
 test('policy malformed allowlists, booleans, host URLs and resource caps are rejected without provider calls', async () => {
   for (const patch of [{account: 'https://evil.example'}, {account: 'account/extra'}, {read: 'true'},
-    {grantRoles: ['ADMIN; --']}, {agents: ['not-qualified']}, {maxRows: 100000}, {timeoutSeconds: 0}]) {
+    {grantRoles: ['ADMIN; --']}, {agents: ['not-qualified']}, {maxRows: 100000}, {timeoutSeconds: 0},
+    {allowedSchemas: []}, {allowedSchemas: ['SCHEMA', 'SCHEMA']},
+    {allowedSchemas: ['REL']}, {allowedSchemas: ['DB.REL']}, {allowedSchemas: Array(21).fill('REL')}]) {
     const h = harness({policy: patch});
     assert.equal((await h.call('capabilities')).ok, false);
     assert.equal(h.calls.length, 0);
@@ -450,4 +519,15 @@ test('public preview fingerprints are not credential-derived password guessing o
   const second = await h.call('change_preview', {operation: insert()});
   assert.equal(first.fingerprint, second.fingerprint);
   assert.notEqual(h.records.previews.get(first.preview_id).fingerprint, h.records.previews.get(second.preview_id).fingerprint);
+});
+test('schema allowlist changes invalidate both private and public workspace fingerprints', () => {
+  const policy = P.validatePolicy({enabled: true, account: 'org-account', user: 'USER', role: 'ROLE',
+    warehouse: 'WH', database: 'DB', schema: 'AEP_SCHEMA', allowSharedCredential: false,
+    read: true, write: true, grants: true, grantRoles: [], agents: []});
+  const resolved = {config: {...policy, credentialScope: 'user'}, credential: 'credential'};
+  const first = P.context(policy, resolved), publicFirst = P.publicContext(policy);
+  const expanded = P.validatePolicy({...policy, allowedSchemas: ['AEP_SCHEMA', 'REL']});
+  assert.notEqual(P.context(expanded, resolved), first);
+  assert.notEqual(P.publicContext(expanded), publicFirst);
+  assert.deepEqual(P.validatePolicy({...policy}).allowedSchemas, ['AEP_SCHEMA']);
 });

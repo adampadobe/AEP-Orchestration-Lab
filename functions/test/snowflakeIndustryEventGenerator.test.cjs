@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { describe, it } = require('node:test');
+const { getRecipientId } = require('../snowflakeRecipientFactory');
 const {
   listIndustryEventTables,
   listIndustryEventTypes,
@@ -42,7 +43,7 @@ describe('Snowflake industry event registry and generators', () => {
       assert.deepEqual(first, generateIndustryEventRows(industry, profiles[industry], options));
       assert.deepEqual(Object.keys(first.rowsByType), listIndustryEventTypes(industry));
       for (const [type, rows] of Object.entries(first.rowsByType)) {
-        assert.ok(rows.length >= 1 || (industry === 'retail' && type === 'return'));
+        assert.ok(rows.length >= 1 || (industry === 'retail' && type === 'return') || (industry === 'fsi' && type === 'advisory'));
         for (const [index, row] of rows.entries()) {
           assert.equal(row.EMAIL, identity.EMAIL);
           assert.equal(row.ECID, identity.ECID);
@@ -86,19 +87,58 @@ describe('Snowflake industry event registry and generators', () => {
     }
   });
 
-  it('calculates FSI running balances in event-time order separately per account type', () => {
+  it('links FSI transactions to accounts and keeps chronological running balances within limits', () => {
     const profile = { ...profiles.fsi, CHECKINGBALANCE: 0, SAVINGSBALANCE: 0 };
     const generated = generateIndustryEventRows('fsi', profile, { now: '2026-11-08T16:00:00.947Z' });
-    const balances = new Map([['current', 0], ['savings', 0], ['credit_card', 0]]);
+    const recipientId = getRecipientId('fsi', identity.CRMID, identity.ECID);
+    const products = new Map(generated.rowsByType.products.map((row) => [row.ACCOUNT_NUMBER, row]));
+    const balances = new Map();
+    const accountProducts = new Map();
+    const cardProducts = new Map();
+    for (const product of products.values()) {
+      if (['current_account', 'savings_account'].includes(product.PRODUCT_TYPE)) {
+        const id = `${recipientId}-ACC-${product.ACCOUNT_NUMBER}`;
+        balances.set(id, product.OPENING_BALANCE);
+        accountProducts.set(id, product);
+      } else if (product.PRODUCT_TYPE === 'credit_card') {
+        const id = `${recipientId}-CARD-${product.ACCOUNT_NUMBER}`;
+        balances.set(id, product.OPENING_BALANCE);
+        cardProducts.set(id, product);
+        assert.ok(product.INTEREST_RATE >= 0.18 && product.INTEREST_RATE <= 0.30);
+      }
+    }
     let previous = '';
     for (const row of generated.rowsByType.transaction) {
       assert.ok(row.TIMESTAMP >= previous);
       previous = row.TIMESTAMP;
-      const next = Number((balances.get(row.ACCOUNT_TYPE)
+      assert.notEqual(row.ACCOUNT_ID != null, row.CARD_ID != null, 'each transaction has exactly one account or card link');
+      const id = row.ACCOUNT_ID || row.CARD_ID;
+      assert.ok(balances.has(id), 'transaction points to an existing account or card');
+      const product = (row.ACCOUNT_ID ? accountProducts : cardProducts).get(id);
+      assert.equal(row.ACCOUNT_TYPE, product.PRODUCT_TYPE);
+      if (product.PRODUCT_TYPE === 'savings_account') {
+        assert.ok(['transfer', 'interest'].includes(row.TRANSACTION_TYPE));
+      }
+      if (product.PRODUCT_TYPE === 'credit_card') {
+        assert.ok(!['salary', 'payroll', 'interest'].includes(row.TRANSACTION_TYPE));
+      }
+      const next = Number((balances.get(id)
         + (row.DIRECTION === 'credit' ? row.AMOUNT : -row.AMOUNT)).toFixed(2));
       assert.equal(row.BALANCE_AFTER, next);
-      balances.set(row.ACCOUNT_TYPE, next);
+      balances.set(id, next);
+      if (product.PRODUCT_TYPE === 'current_account') {
+        assert.ok(next >= -product.OVERDRAFT_LIMIT);
+      } else if (product.PRODUCT_TYPE === 'credit_card') {
+        assert.ok(next <= product.CREDIT_LIMIT);
+      }
     }
+    for (const [id, product] of [...accountProducts, ...cardProducts]) {
+      assert.ok(Math.abs(product.BALANCE - balances.get(id)) <= 0.01);
+    }
+    const salaries = generated.rowsByType.transaction.filter((row) => row.TRANSACTION_TYPE === 'salary');
+    assert.equal(salaries.length, 6);
+    assert.ok(salaries.every((row) => row.ACCOUNT_ID && row.ACCOUNT_TYPE === 'current_account'));
+    assert.equal(new Set(salaries.map((row) => row.AMOUNT)).size, 1);
   });
 
   it('keeps retail SKU metadata stable across recipients without changing registered columns', () => {
@@ -139,6 +179,7 @@ describe('Snowflake industry event registry and generators', () => {
           const title = titles.get(row.CONTENT_ID);
           assert.ok(title, `${type} must refer to an existing viewed/catalog title`);
           assert.equal(row.TITLE, title.TITLE);
+          if (row.GENRE) assert.equal(row.GENRE, title.GENRE);
           if (row.CONTENT_TYPE) assert.equal(row.CONTENT_TYPE, title.CONTENT_TYPE);
           if (type === 'download') {
             assert.ok(row.EXPIRY_DATE >= row.TIMESTAMP.slice(0, 10));
@@ -180,7 +221,7 @@ describe('Snowflake industry event registry and generators', () => {
     assert.ok(loan, 'FSI products must include a loan scenario');
     assert.ok(loan.BALANCE > 0);
     assert.ok(loan.INTEREST_RATE > 0);
-    assert.ok(loan.MONTHLY_PAYMENT > loan.BALANCE * loan.INTEREST_RATE / 1200);
+    assert.ok(loan.MONTHLY_PAYMENT > loan.BALANCE * loan.INTEREST_RATE / 12);
     assert.ok(Date.parse(loan.TERM_END_DATE) > Date.parse(now));
     assert.ok(products.length <= 7);
     assert.equal(new Set(products.map((row) => row.ACCOUNT_NUMBER)).size, products.length);
@@ -190,7 +231,7 @@ describe('Snowflake industry event registry and generators', () => {
     const generated = generateIndustryEventRows('fsi', {
       ...profiles.fsi, TOTALACCOUNTS: 2,
     }, { now: '2026-10-16T11:00:00.000Z' });
-    assert.deepEqual(generated.rowsByType.products.map((row) => row.PRODUCT_TYPE), ['current_account', 'savings']);
+    assert.deepEqual(generated.rowsByType.products.map((row) => row.PRODUCT_TYPE), ['current_account', 'savings_account']);
   });
 
   it('sports merchandise has stable product SKUs across recipients and distinct team/size variants', () => {

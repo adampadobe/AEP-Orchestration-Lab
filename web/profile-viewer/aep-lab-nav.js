@@ -164,9 +164,22 @@
     } catch (e) {}
   }
 
-  /** Demos (donate / Race for Life): visible when in-dev capabilities are on for this sandbox, unless hidden via Global values */
+  /** Released demos remain visible without enabling in-development capabilities. */
   function isDemosNavVisible() {
-    return isInDevCapabilitiesEnabled() && !isNavInDevHidden('demos');
+    if (isNavInDevHidden('demos')) return false;
+    if (isInDevCapabilitiesEnabled()) return true;
+    var released = [];
+    (NAV || []).forEach(function (group) {
+      if (group.id !== 'demos') return;
+      released = released.concat(group.items || []);
+      (group.subgroups || []).forEach(function (subgroup) {
+        released = released.concat(subgroup.items || []);
+        (subgroup.channels || []).forEach(function (channel) {
+          released = released.concat(channel.items || []);
+        });
+      });
+    });
+    return released.some(function (item) { return !item.inDevelopment && shouldShowNavItem(item); });
   }
 
   function legacyHideKeysForNavHideKey(navHideKey) {
@@ -668,6 +681,15 @@
                 },
               ],
             },
+          ],
+        },
+        {
+          id: 'demoCp',
+          label: 'Center Parcs',
+          demoCustomer: true,
+          items: [
+            { label: 'Decisioning', href: 'cp-decisioning-demo.html', navHideKey: 'cpDecisioningDemo',
+              demoMeta: { owners: ['kirkham'], sandboxes: ['kirkham'] }, ico: '\uD83C\uDF32' },
           ],
         },
         {

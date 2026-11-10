@@ -32,6 +32,8 @@
     "test:hm": "node --test scripts/test-hm-events.cjs && node scripts/test-hm-storefront.cjs",
     "test:vuse-italia": "node scripts/test-vuse-italia.cjs && node scripts/test-vuse-storefront.cjs && node --test scripts/test-vuse-italia-profile.cjs",
     "test:demo-env-bar": "node scripts/test-demo-env-bar.cjs",
+    "test:cp-decisioning": "node --test scripts/test-cp-decisioning.cjs scripts/test-tui-decisioning-runtime.cjs && node scripts/test-cp-decisioning-browser.cjs",
+    "preview:cp-decisioning": "node scripts/preview-cp-decisioning.mjs",
     "test:sidebar-account-theme": "node scripts/test-sidebar-account-theme.mjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
     "validate:aep-architecture-tour": "node scripts/validate-aep-architecture-tour.mjs",

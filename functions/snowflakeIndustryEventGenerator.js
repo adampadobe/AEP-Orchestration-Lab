@@ -5,6 +5,7 @@ const {
   getIndustryEventConfig,
   listIndustryEventTypes,
 } = require('./snowflakeIndustryEventRegistry');
+const { getRecipientId } = require('./snowflakeRecipientFactory');
 
 const DAY_MS = 86400000;
 
@@ -52,6 +53,196 @@ function context(industry, profile, generationId, now) {
 }
 
 function generateFsi(profile, ctx) {
+  const recipientId = profile.RECIPIENT_ID || getRecipientId('fsi', profile.CRMID, profile.ECID);
+  const money = (value) => Number(Number(value).toFixed(2));
+  const overdraftLimit = 500;
+  const monthlySalary = Number((Number(profile.HOUSEHOLDINCOME || 60000) / 12).toFixed(2));
+  const monthlyCreditSpend = Math.max(0, Number(profile.MONTHLYCREDITSPEND || 0));
+  const creditLimit = Math.max(1000, Number(profile.CREDITCARDLIMIT || monthlyCreditSpend * 3));
+  const accountProducts = [
+    {
+      type: 'current_account',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: money(Math.max(0, Number(profile.CHECKINGBALANCE || 0))),
+      interestRate: ctx.number(0, 0.005, 4),
+      overdraftLimit,
+    },
+    {
+      type: 'savings_account',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: money(Math.max(0, Number(profile.SAVINGSBALANCE || 0))),
+      interestRate: ctx.number(0.01, 0.05, 4),
+      overdraftLimit: 0,
+    },
+    {
+      type: 'mortgage',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: null,
+      balance: Math.max(0, Number(profile.MORTGAGEBALANCE || 0)),
+      interestRate: ctx.number(0.025, 0.065, 4),
+    },
+    {
+      type: 'credit_card',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: money(Math.min(monthlyCreditSpend * 0.25, creditLimit * 0.25)),
+      balance: 0,
+      interestRate: ctx.number(0.18, 0.30, 4),
+      creditLimit,
+    },
+    {
+      type: 'personal_loan',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: null,
+      balance: ctx.number(1000, Math.max(5000, Number(profile.HOUSEHOLDINCOME || 60000) * 0.25)),
+      interestRate: ctx.number(0.059, 0.149, 4),
+      termMonths: ctx.pick([12, 24, 36, 48, 60]),
+    },
+    {
+      type: 'isa',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: null,
+      balance: Math.max(0, Number(profile.INVESTMENTVALUE || 0)),
+      interestRate: ctx.number(0.01, 0.052, 4),
+    },
+    {
+      type: 'pension',
+      accountNumber: `GB-${ctx.int(10000000, 99999999)}`,
+      openingBalance: null,
+      balance: Math.max(0, Number(profile.INVESTMENTVALUE || 0) * 0.75),
+      interestRate: ctx.number(0.01, 0.052, 4),
+    },
+  ];
+  const accountCount = Math.max(2, Math.min(7, Number(profile.TOTALACCOUNTS || 3)));
+  const products = accountProducts.slice(0, accountCount);
+  const byType = new Map(products.map((product) => [product.type, product]));
+  const accountId = (product) => `${recipientId}-ACC-${product.accountNumber}`;
+  const cardId = (product) => `${recipientId}-CARD-${product.accountNumber}`;
+  const current = byType.get('current_account');
+  const savings = byType.get('savings_account');
+  const card = byType.get('credit_card');
+  const balances = new Map();
+  if (current) balances.set(accountId(current), current.openingBalance);
+  if (savings) balances.set(accountId(savings), savings.openingBalance);
+  if (card) balances.set(cardId(card), card.openingBalance);
+
+  const transaction = [];
+  const addTransaction = ({
+    type, direction, amount, product, cardTransaction = false, merchant, category, reference, monthAgo, day,
+  }) => {
+    const roundedAmount = Number(amount.toFixed(2));
+    const id = cardTransaction ? cardId(product) : accountId(product);
+    const balance = balances.get(id);
+    const nextBalance = Number((balance + (direction === 'credit' ? roundedAmount : -roundedAmount)).toFixed(2));
+    if (cardTransaction && nextBalance > product.creditLimit + 0.01) {
+      throw new Error('Generated credit-card balance exceeds its credit limit.');
+    }
+    if (!cardTransaction && product.type === 'current_account' && nextBalance < -product.overdraftLimit - 0.01) {
+      throw new Error('Generated current-account balance exceeds its overdraft limit.');
+    }
+    if (!cardTransaction && product.type === 'savings_account' && nextBalance < -0.01) {
+      throw new Error('Generated savings-account balance is negative.');
+    }
+    balances.set(id, nextBalance);
+    transaction.push(ctx.event('transaction', {
+      TRANSACTION_TYPE: type,
+      DIRECTION: direction,
+      AMOUNT: roundedAmount,
+      CURRENCY: 'GBP',
+      MERCHANT: merchant,
+      CATEGORY: category,
+      BALANCE_AFTER: nextBalance,
+      ACCOUNT_TYPE: product.type,
+      ACCOUNT_ID: cardTransaction ? null : id,
+      CARD_ID: cardTransaction ? id : null,
+      REFERENCE: reference,
+    }, new Date(ctx.now.getTime() - (monthAgo * 30 + (30 - day)) * DAY_MS).toISOString()));
+    return nextBalance;
+  };
+
+  for (let monthAgo = 5; monthAgo >= 0; monthAgo -= 1) {
+    if (current) {
+      addTransaction({
+        type: 'salary', direction: 'credit', amount: monthlySalary, product: current,
+        merchant: 'Employer Payroll', category: 'income', reference: `SAL-${monthAgo}`,
+        monthAgo, day: 1,
+      });
+    }
+    if (current && savings) {
+      const available = Math.max(0, balances.get(accountId(current)) + current.overdraftLimit);
+      const transfer = Math.min(Number((monthlySalary * ctx.number(0.05, 0.12)).toFixed(2)), available);
+      if (transfer >= 1) {
+        const reference = `TRF-${monthAgo}`;
+        addTransaction({
+          type: 'transfer', direction: 'debit', amount: transfer, product: current,
+          merchant: 'Monthly savings transfer', category: 'transfer', reference, monthAgo, day: 2,
+        });
+        addTransaction({
+          type: 'transfer', direction: 'credit', amount: transfer, product: savings,
+          merchant: 'Current account transfer', category: 'transfer', reference, monthAgo, day: 2,
+        });
+      }
+    }
+    if (current) {
+      for (let index = 0; index < 3; index += 1) {
+        const available = Math.max(0, balances.get(accountId(current)) + current.overdraftLimit);
+        if (available < 2) break;
+        const amount = ctx.number(2, Math.min(1200, available));
+        addTransaction({
+          type: ctx.pick(['direct_debit', 'standing_order', 'ATM_withdrawal']),
+          direction: 'debit', amount, product: current,
+          merchant: ctx.pick(['Tesco', 'Netflix', 'British Gas', 'TfL', 'Pret A Manger']),
+          category: ctx.pick(['groceries', 'entertainment', 'utilities', 'transport', 'dining']),
+          reference: `CUR-${monthAgo}-${index}`, monthAgo, day: 3 + index,
+        });
+      }
+    }
+    if (card) {
+      for (let index = 0; index < 2; index += 1) {
+        const available = Math.max(0, card.creditLimit - balances.get(cardId(card)));
+        if (available < 2) break;
+        const amount = ctx.number(2, Math.min(monthlyCreditSpend || 450, available, 450));
+        addTransaction({
+          type: 'card_purchase', direction: 'credit', amount, product: card, cardTransaction: true,
+          merchant: ctx.pick(['Tesco', 'Netflix', 'British Gas', 'TfL', 'Pret A Manger']),
+          category: ctx.pick(['groceries', 'entertainment', 'utilities', 'transport', 'dining']),
+          reference: `CARD-${monthAgo}-${index}`, monthAgo, day: 7 + index,
+        });
+      }
+      const owed = balances.get(cardId(card));
+      const available = Math.max(0, balances.get(accountId(current)) + current.overdraftLimit);
+      const payment = Math.min(owed, available, Math.max(50, monthlyCreditSpend * 0.7));
+      if (current && payment >= 1) {
+        const reference = `PAY-${monthAgo}`;
+        addTransaction({
+          type: 'card_payment', direction: 'debit', amount: payment, product: current,
+          merchant: 'Credit card payment', category: 'card_payment', reference, monthAgo, day: 10,
+        });
+        addTransaction({
+          type: 'card_payment', direction: 'debit', amount: payment, product: card, cardTransaction: true,
+          merchant: 'Current account payment', category: 'card_payment', reference, monthAgo, day: 10,
+        });
+      }
+    }
+    if (savings && balances.get(accountId(savings)) > 0) {
+      const interest = Number((balances.get(accountId(savings)) * savings.interestRate / 12).toFixed(2));
+      if (interest > 0) {
+        addTransaction({
+          type: 'interest', direction: 'credit', amount: interest, product: savings,
+          merchant: 'Savings interest', category: 'interest', reference: `INT-${monthAgo}`,
+          monthAgo, day: 20,
+        });
+      }
+    }
+  }
+
+  for (const product of products) {
+    if (['current_account', 'savings_account'].includes(product.type)) {
+      product.balance = balances.get(accountId(product));
+    } else if (product.type === 'credit_card') {
+      product.balance = balances.get(cardId(product));
+    }
+  }
+
   const digital = Array.from({ length: ctx.int(10, 30) }, () => {
     const action = ctx.pick(['login', 'transfer', 'payment', 'statement_download', 'balance_check', 'beneficiary_add']);
     return ctx.event('digital', {
@@ -65,39 +256,6 @@ function generateFsi(profile, ctx) {
       AUTHENTICATION_METHOD: ctx.pick(['biometric', 'password', '2fa']),
     });
   });
-
-  const transaction = Array.from({ length: ctx.int(30, 80) }, () => {
-    const transactionType = ctx.pick([
-      'salary', 'direct_debit', 'card_payment', 'ATM_withdrawal',
-      'standing_order', 'interest', 'refund',
-    ]);
-    const credit = ['salary', 'interest', 'refund'].includes(transactionType);
-    const amount = transactionType === 'salary'
-      ? ctx.number(1800, Math.max(2200, Number(profile.HOUSEHOLDINCOME || 60000) / 12))
-      : ctx.number(2, 450);
-    return ctx.event('transaction', {
-      TRANSACTION_TYPE: transactionType,
-      DIRECTION: credit ? 'credit' : 'debit',
-      AMOUNT: amount,
-      CURRENCY: 'GBP',
-      MERCHANT: credit ? (transactionType === 'salary' ? 'Employer Payroll' : 'Bank Credit') : ctx.pick(['Tesco', 'Netflix', 'British Gas', 'TfL', 'Pret A Manger']),
-      CATEGORY: credit ? 'income' : ctx.pick(['groceries', 'entertainment', 'utilities', 'transport', 'dining']),
-      BALANCE_AFTER: null,
-      ACCOUNT_TYPE: ctx.pick(['current', 'savings', 'credit_card']),
-      REFERENCE: `FSI-${ctx.int(100000, 999999)}`,
-    });
-  }).sort((a, b) => a.TIMESTAMP.localeCompare(b.TIMESTAMP));
-  const balancesByAccount = new Map([
-    ['current', Number(profile.CHECKINGBALANCE ?? 4000)],
-    ['savings', Number(profile.SAVINGSBALANCE ?? 0)],
-    ['credit_card', 0],
-  ]);
-  for (const row of transaction) {
-    const balance = balancesByAccount.get(row.ACCOUNT_TYPE)
-      + (row.DIRECTION === 'credit' ? row.AMOUNT : -row.AMOUNT);
-    row.BALANCE_AFTER = Number(balance.toFixed(2));
-    balancesByAccount.set(row.ACCOUNT_TYPE, row.BALANCE_AFTER);
-  }
 
   const application = [];
   for (let app = 0; app < ctx.int(1, 4); app += 1) {
@@ -127,36 +285,27 @@ function generateFsi(profile, ctx) {
     NPS_SCORE: ctx.int(5, 10),
   }));
 
-  const balances = [
-    ['current_account', Number(profile.CHECKINGBALANCE || 0)],
-    ['savings', Number(profile.SAVINGSBALANCE || 0)],
-    ['mortgage', Number(profile.MORTGAGEBALANCE || 0)],
-    ['credit_card', Number(profile.MONTHLYCREDITSPEND || 0)],
-    ['personal_loan', ctx.number(1000, Math.max(5000, Number(profile.HOUSEHOLDINCOME || 60000) * 0.25))],
-    ['isa', Number(profile.INVESTMENTVALUE || 0)],
-    ['pension', Number(profile.INVESTMENTVALUE || 0) * 0.75],
-  ].filter(([, value]) => value > 0);
-  const products = balances.slice(0, Math.max(2, Math.min(7, Number(profile.TOTALACCOUNTS || 3))))
-    .map(([type, value]) => {
-      const loanMonths = type === 'personal_loan' ? ctx.pick([12, 24, 36, 48, 60]) : null;
-      const interestRate = ctx.number(type === 'personal_loan' ? 5.9 : 0.1,
-        type === 'personal_loan' ? 14.9 : type === 'mortgage' ? 6.5 : 5.2, 4);
-      const monthlyRate = interestRate / 1200;
-      return ctx.enrichment({
-        PRODUCT_TYPE: type,
-        ACCOUNT_NUMBER: `GB-${ctx.int(10000000, 99999999)}`,
-        OPEN_DATE: ctx.date(3650),
-        BALANCE: Number(value.toFixed(2)),
-        INTEREST_RATE: interestRate,
-        TERM_END_DATE: loanMonths ? ctx.futureDate(loanMonths * 30, loanMonths * 30)
-          : type === 'mortgage' ? ctx.futureDate(180, 3650) : null,
-        MONTHLY_PAYMENT: loanMonths
-          ? Number((value * monthlyRate / (1 - (1 + monthlyRate) ** -loanMonths)).toFixed(2))
-          : type === 'mortgage' ? ctx.number(500, 3500) : null,
-        STATUS: 'active',
-      });
+  const productRows = products.map((product) => {
+    const loanMonths = product.termMonths || null;
+    const monthlyRate = product.interestRate / 12;
+    return ctx.enrichment({
+      PRODUCT_TYPE: product.type,
+      ACCOUNT_NUMBER: product.accountNumber,
+      OPEN_DATE: ctx.date(3650),
+      OPENING_BALANCE: product.openingBalance,
+      BALANCE: Number(product.balance.toFixed(2)),
+      OVERDRAFT_LIMIT: product.overdraftLimit ?? null,
+      CREDIT_LIMIT: product.creditLimit ?? null,
+      INTEREST_RATE: product.interestRate,
+      TERM_END_DATE: loanMonths ? ctx.futureDate(loanMonths * 30, loanMonths * 30)
+        : product.type === 'mortgage' ? ctx.futureDate(180, 3650) : null,
+      MONTHLY_PAYMENT: loanMonths
+        ? Number((product.balance * monthlyRate / (1 - (1 + monthlyRate) ** -loanMonths)).toFixed(2))
+        : product.type === 'mortgage' ? ctx.number(500, 3500) : null,
+      STATUS: 'active',
     });
-  return { digital, transaction, application, advisory, products };
+  });
+  return { digital, transaction, application, advisory, products: productRows };
 }
 
 function retailItem(ctx, category) {

@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const FsiDynamicTables = require('./snowflakeFsiDynamicTables');
 const CONTEXT_FIELDS = ['account', 'user', 'role', 'warehouse', 'database', 'schema'];
 const ACTIONS = Object.freeze(['capabilities', 'objects_list', 'object_describe', 'query_submit',
   'query_status', 'query_results', 'query_cancel', 'data_check', 'change_preview',
@@ -57,9 +58,14 @@ function validatePolicy(policy) {
   assert(['read', 'write', 'grants'].every(k => typeof policy[k] === 'boolean'), 'POLICY_INVALID', 'Policy permission booleans are required.');
   assert(Array.isArray(policy.grantRoles) && policy.grantRoles.length <= 100 &&
     Array.isArray(policy.agents) && policy.agents.length <= 100, 'POLICY_INVALID', 'Policy allowlists are required.');
+  const allowedSchemas = policy.allowedSchemas === undefined ? [policy.schema] : policy.allowedSchemas;
+  assert(Array.isArray(allowedSchemas) && allowedSchemas.length > 0 && allowedSchemas.length <= 20 &&
+    allowedSchemas.includes(policy.schema) && new Set(allowedSchemas).size === allowedSchemas.length,
+  'POLICY_INVALID', 'allowedSchemas must be a distinct bounded list that includes the default schema.');
+  allowedSchemas.forEach(identifier);
   policy.grantRoles.forEach(identifier);
   policy.agents.forEach(agentParts);
-  return {...policy, timeoutSeconds: integer(policy.timeoutSeconds, 60, 1, 600),
+  return {...policy, allowedSchemas: [...allowedSchemas], timeoutSeconds: integer(policy.timeoutSeconds, 60, 1, 600),
     maxRows: integer(policy.maxRows, 500, 1, 5000)};
 }
 function context(policy, resolved) {
@@ -71,6 +77,7 @@ function context(policy, resolved) {
     assert(resolved.config[key] === policy[key], 'CONTEXT_MISMATCH', `Saved ${key} does not match administrator policy.`);
   }
   return hash({context: Object.fromEntries(CONTEXT_FIELDS.map(k => [k, policy[k]])),
+    allowedSchemas: [...(policy.allowedSchemas || [policy.schema])].sort(),
     credentialVersion: hash(resolved.credential), passphraseVersion: hash(resolved.passphrase || ''),
     authMethod: resolved.config.authMethod, credentialScope: resolved.config.credentialScope,
     read: policy.read, write: policy.write, grants: policy.grants,
@@ -79,16 +86,20 @@ function context(policy, resolved) {
 function publicContext(policy) {
   // Never publish the internal credential-rotation fingerprint as a password
   // guessing oracle. The portal displays only this non-secret context digest.
-  return hash(Object.fromEntries(CONTEXT_FIELDS.map(k => [k, policy[k]])));
+  return hash({...Object.fromEntries(CONTEXT_FIELDS.map(k => [k, policy[k]])),
+    allowedSchemas: [...(policy.allowedSchemas || [policy.schema])].sort()});
 }
 function tableName(table, policy) {
   assert(typeof table === 'string', 'INVALID_INPUT', 'table is required.');
   const parts = table.split('.');
-  assert(parts.length === 1 || parts.length === 3, 'INVALID_INPUT', 'Use a simple or fully qualified table name.');
+  assert(parts.length >= 1 && parts.length <= 3, 'INVALID_INPUT', 'Use a table name qualified by up to database and schema.');
   parts.forEach(identifier);
-  if (parts.length === 3) assert(parts[0] === policy.database && parts[1] === policy.schema,
-    'SCOPE_DENIED', 'Typed operations must target the policy database and schema.');
-  return [policy.database, policy.schema, parts.at(-1)].map(quote).join('.');
+  const schemas = policy.allowedSchemas || [policy.schema];
+  const database = parts.length === 3 ? parts[0] : policy.database;
+  const schema = parts.length === 1 ? policy.schema : parts.at(-2);
+  assert(database === policy.database && schemas.includes(schema),
+    'SCOPE_DENIED', 'Typed operations must target the policy database and an allowlisted schema.');
+  return [policy.database, schema, parts.at(-1)].map(quote).join('.');
 }
 function agentParts(agent) {
   assert(typeof agent === 'string' && agent.split('.').length === 3, 'INVALID_INPUT', 'agent must be DATABASE.SCHEMA.NAME.');
@@ -154,6 +165,15 @@ function compileOperation(op, policy) {
     readbackKind = 'matching_rows';
   };
   switch (op.kind) {
+    case 'replace_fsi_dynamic_table': {
+      fields(op, ['kind', 'table'], ['kind', 'table']);
+      assert(policy.read, 'PERMISSION_DENIED', 'FSI dynamic-table replacement requires metadata readback permission.');
+      const replacement = FsiDynamicTables.compileReplacement(op.table, policy, {assert, identifier, quote});
+      sql = replacement.sql;
+      readbackSql = `DESCRIBE DYNAMIC TABLE ${table}`;
+      readbackKind = 'dynamic_table_metadata';
+      break;
+    }
     case 'create_table':
       fields(op, ['kind', 'table', 'columns'], ['kind', 'table', 'columns']);
       assert(Array.isArray(op.columns) && op.columns.length > 0 && op.columns.length <= 100 &&
@@ -196,7 +216,9 @@ function compileOperation(op, policy) {
   return {sql, bindings: binds, targets: [table], operation: op, permission: grant ? 'grants' : 'write',
     readbackSql: readbackSql || (grant ? `SHOW GRANTS ON TABLE ${table}` : `DESCRIBE TABLE ${table}`),
     readbackBindings, readbackKind: grant ? 'grants' : readbackKind,
-    warning: 'Single-use approval; DDL auto-commits. No rollback is promised. NOT NULL additions can fail on existing data.'};
+    warning: op.kind === 'replace_fsi_dynamic_table' ?
+      'Replaces one allowlisted FSI dynamic table using the checked-in definition and COPY GRANTS. Snowflake DDL auto-commits; downstream consumers and asynchronous refresh must be checked separately.' :
+      'Single-use approval; DDL auto-commits. No rollback is promised. NOT NULL additions can fail on existing data.'};
 }
 module.exports = {ACTIONS, WorkspaceError, assert, fields, scalar, integer, uuid, hash, scopeId,
   identifier, quote, validatePolicy, context, publicContext, tableName, agentParts, readSql, compileOperation};
