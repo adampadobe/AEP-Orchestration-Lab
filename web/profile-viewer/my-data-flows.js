@@ -2,6 +2,9 @@
   'use strict';
   var auth, snapshot = null, scenario = null, stepIndex = 0, timer = null;
   var generation = 0, controller = null, zoom = 1, graphWidth = 1000, graphHeight = 600;
+  var autoFit = true;
+  var fullArchitecture = false, graphPositions = new Map(), fullGraphWidth = 1000, fullGraphHeight = 600;
+  var revealedLiveNodes = new Set(['lab']), revealedRunId = null;
   var traceRun = null, tracePrefs = null, tracePendingId = null, traceBusy = false, traceDenied = false;
   var traceController = null, traceSequence = 0, tracePoll = null, traceClock = null;
   var traceWatching = false, traceWatchStarted = 0, traceMode = false;
@@ -58,6 +61,12 @@
     scenario = null;
     stepIndex = 0;
     zoom = 1;
+    autoFit = true;
+    fullArchitecture = false;
+    revealedLiveNodes = new Set(['lab']); revealedRunId = null;
+    el('flowsFocusView').setAttribute('aria-pressed', 'true');
+    el('flowsFullView').setAttribute('aria-pressed', 'false');
+    el('flowsRevealStatus').textContent = '';
     el('flowsResults').hidden = true;
     ['flowsReferenceTitle', 'flowsSummary', 'flowsAsOf', 'flowsGraph', 'flowsInspect', 'flowsEdges',
       'flowsScenarios', 'flowsScenarioDescription', 'flowsStep', 'flowsTimeline', 'flowsProgress',
@@ -79,15 +88,21 @@
       stages.forEach(function (stage) { el('flowsInspect').appendChild(stageDetails(stage)); });
     }
   }
-  function applyZoom(value) {
-    zoom = Math.max(.05, Math.min(3, value));
+  function applyZoom(value, fitting) {
+    var viewport = el('flowsGraph');
+    var centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / zoom;
+    var centerY = (viewport.scrollTop + viewport.clientHeight / 2) / zoom;
+    autoFit = !!fitting;
+    zoom = Math.max(.01, Math.min(Math.max(3, viewport.clientWidth / graphWidth * 3), value));
     var graph = el('flowsGraph').querySelector('svg');
     if (graph) { graph.style.width = graphWidth * zoom + 'px'; graph.style.height = graphHeight * zoom + 'px'; }
     el('flowsZoom').textContent = Math.round(zoom * 100) + '%';
+    viewport.scrollLeft = fitting ? 0 : centerX * zoom - viewport.clientWidth / 2;
+    viewport.scrollTop = fitting ? 0 : centerY * zoom - viewport.clientHeight / 2;
   }
   function fit() {
     if (!snapshot) return;
-    applyZoom(Math.min((el('flowsGraph').clientWidth - 16) / graphWidth, (el('flowsGraph').clientHeight - 16) / graphHeight));
+    applyZoom((el('flowsGraph').clientWidth - 2) / graphWidth, true);
   }
   function renderGraph(reference) {
     var nodes = reference.nodes || [], edges = reference.edges || [], positions = new Map();
@@ -109,13 +124,16 @@
     });
     var columnCount = Math.max(1, ...Array.from(columns.keys()).map(function (value) { return value + 1; }));
     var rowCount = Math.max(1, ...Array.from(columns.values()).map(function (values) { return values.length; }));
-    graphWidth = columnCount * 390 + 40;
+    graphWidth = (columnCount - 1) * 390 + 320;
     graphHeight = Math.max(280, rowCount * 210 + 80);
+    el('flowsGraph').style.setProperty('--flows-aspect-ratio', graphWidth + ' / ' + graphHeight);
     columns.forEach(function (values, column) {
       values.forEach(function (value, index) {
         positions.set(value.id, { x: 40 + column * 390, y: 40 + (graphHeight - 80) * (index + .5) / values.length - 55 });
       });
     });
+    graphPositions = positions;
+    fullGraphWidth = graphWidth; fullGraphHeight = graphHeight;
     var root = svg('svg', { viewBox: '0 0 ' + graphWidth + ' ' + graphHeight, role: 'group', 'aria-label': 'Protected reference flow diagram' });
     var defs = svg('defs'), marker = svg('marker', { id: 'flowsArrow', viewBox: '0 0 10 10', refX: '9', refY: '5', markerWidth: '7', markerHeight: '7', orient: 'auto-start-reverse' });
     marker.appendChild(svg('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: 'flows-arrow' }));
@@ -130,9 +148,11 @@
         ? 'M' + x1 + ',' + y1 + ' L' + (x1 + 35) + ',' + y1 + ' L' + (x1 + 35) + ',20 L' + (x2 - 35) + ',20 L' + (x2 - 35) + ',' + y2 + ' L' + x2 + ',' + y2
         : 'M' + x1 + ',' + y1 + ' C' + bend + ',' + y1 + ' ' + (x2 - 65) + ',' + y2 + ' ' + x2 + ',' + y2;
       var path = svg('path', { d: route, class: 'flows-edge', 'marker-end': 'url(#flowsArrow)' });
+      path.dataset.from = edge.from; path.dataset.to = edge.to;
       var title = svg('title'); title.textContent = text(edge.label); path.appendChild(title);
       root.appendChild(path);
       var edgeLabel = svg('text', { x: (x1 + x2) / 2, y: x2 - x1 > 200 ? 14 : (y1 + y2) / 2 - 8, 'text-anchor': 'middle', class: 'flows-edge-label' });
+      edgeLabel.dataset.from = edge.from; edgeLabel.dataset.to = edge.to;
       var labelText = text(edge.label);
       edgeLabel.textContent = labelText.length > 38 ? labelText.slice(0, 35) + '…' : labelText;
       var edgeTitle = svg('title'); edgeTitle.textContent = labelText; edgeLabel.appendChild(edgeTitle);
@@ -238,6 +258,81 @@
       var label = snapshot?.reference.nodes.find(function (value) { return value.id === group.dataset.nodeId; })?.label;
       group.setAttribute('aria-label', 'Inspect ' + text(label) + (traceMode ? ' — ' + (state ? state.replaceAll('_', ' ') : 'not checked') : ''));
     });
+    revealGraph();
+  }
+  function revealGraph() {
+    if (!snapshot) return;
+    var visible = new Set(['lab']), relevant = new Set(['lab']);
+    if (traceMode) {
+      var runId = traceRun?.id || tracePendingId || null;
+      if (runId !== revealedRunId) {
+        revealedRunId = runId; revealedLiveNodes = new Set(['lab']);
+      }
+      (traceRun?.stages || []).forEach(function (stage) {
+        (stage.nodeIds || []).forEach(function (id) {
+          relevant.add(id);
+          if (stage.checkedAt || ['checking', 'verified', 'failed', 'unavailable'].includes(stage.state)) revealedLiveNodes.add(id);
+        });
+      });
+      visible = new Set(revealedLiveNodes);
+    } else {
+      (scenario?.steps || []).forEach(function (step, index) {
+        (step.nodeIds || []).forEach(function (id) {
+          relevant.add(id);
+          if (index <= stepIndex) visible.add(id);
+        });
+      });
+    }
+    var viewport = el('flowsGraph'), root = viewport.querySelector('svg');
+    if (!root) return;
+    root.querySelectorAll('[data-node-id]').forEach(function (group) {
+      var id = group.dataset.nodeId, concealed = !fullArchitecture && !visible.has(id);
+      group.classList.toggle('flows-concealed', concealed);
+      group.classList.toggle('flows-context', fullArchitecture && !relevant.has(id));
+      group.setAttribute('tabindex', concealed ? '-1' : '0');
+      group.setAttribute('aria-hidden', String(concealed));
+    });
+    root.querySelectorAll('[data-from]').forEach(function (edge) {
+      edge.classList.toggle('flows-concealed', !fullArchitecture && (!visible.has(edge.dataset.from) || !visible.has(edge.dataset.to)));
+      edge.classList.toggle('flows-context', fullArchitecture && (!relevant.has(edge.dataset.from) || !relevant.has(edge.dataset.to)));
+    });
+    el('flowsRevealStatus').textContent = fullArchitecture
+      ? 'Full architecture · unrelated paths are dimmed. Playback position is preserved.'
+      : (traceMode ? 'Live flow · systems appear when checks begin; waiting or unavailable is not verified arrival.'
+        : 'Flow view · steps reveal the selected path; earlier steps remain visible.');
+    var bounds = fullArchitecture ? { x: 0, y: 0, width: fullGraphWidth, height: fullGraphHeight } : null;
+    if (!bounds) {
+      var boxes = [];
+      visible.forEach(function (id) {
+        var p = graphPositions.get(id);
+        if (p) boxes.push({ x: p.x, y: p.y, width: 240, height: 110 });
+      });
+      root.querySelectorAll('[data-from]:not(.flows-concealed)').forEach(function (edge) { boxes.push(edge.getBBox()); });
+      if (!boxes.length) return;
+      var left = Math.min(...boxes.map(function (box) { return box.x; })) - 40;
+      var top = Math.min(...boxes.map(function (box) { return box.y; })) - 40;
+      bounds = { x: left, y: top,
+        width: Math.max(...boxes.map(function (box) { return box.x + box.width; })) - left + 40,
+        height: Math.max(...boxes.map(function (box) { return box.y + box.height; })) - top + 40 };
+    }
+    var previous = root.viewBox.baseVal;
+    var scrollX = viewport.scrollLeft, scrollY = viewport.scrollTop;
+    var oldX = previous.x, oldY = previous.y;
+    if (!autoFit) {
+      var right = Math.max(bounds.x + bounds.width, previous.x + previous.width);
+      var bottom = Math.max(bounds.y + bounds.height, previous.y + previous.height);
+      bounds.x = Math.min(bounds.x, previous.x); bounds.y = Math.min(bounds.y, previous.y);
+      bounds.width = right - bounds.x; bounds.height = bottom - bounds.y;
+    }
+    graphWidth = bounds.width; graphHeight = bounds.height;
+    root.setAttribute('viewBox', [bounds.x, bounds.y, bounds.width, bounds.height].join(' '));
+    viewport.style.setProperty('--flows-aspect-ratio', graphWidth + ' / ' + graphHeight);
+    if (autoFit) fit();
+    else {
+      root.style.width = graphWidth * zoom + 'px'; root.style.height = graphHeight * zoom + 'px';
+      viewport.scrollLeft = scrollX + (oldX - bounds.x) * zoom;
+      viewport.scrollTop = scrollY + (oldY - bounds.y) * zoom;
+    }
   }
   function safeLink(href) {
     try {
@@ -595,7 +690,17 @@
   document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
   el('flowsZoomIn').addEventListener('click', function () { applyZoom(zoom + .2); });
   el('flowsZoomOut').addEventListener('click', function () { applyZoom(zoom - .2); });
-  el('flowsFit').addEventListener('click', fit);
+  el('flowsFit').addEventListener('click', function () { autoFit = true; revealGraph(); });
+  el('flowsFocusView').addEventListener('click', function () {
+    fullArchitecture = false; autoFit = true;
+    el('flowsFocusView').setAttribute('aria-pressed', 'true'); el('flowsFullView').setAttribute('aria-pressed', 'false');
+    revealGraph();
+  });
+  el('flowsFullView').addEventListener('click', function () {
+    fullArchitecture = true; autoFit = true;
+    el('flowsFocusView').setAttribute('aria-pressed', 'false'); el('flowsFullView').setAttribute('aria-pressed', 'true');
+    revealGraph();
+  });
   el('flowsExpand').addEventListener('click', function () {
     var expanded = el('flowsGraph').dataset.expanded !== 'true';
     el('flowsGraph').dataset.expanded = String(expanded);
@@ -612,7 +717,7 @@
   el('flowsDialog').addEventListener('cancel', function (event) {
     event.preventDefault(); closeFullscreen(); el('flowsFullscreen').focus(); fit();
   });
-  var resizeObserver = new ResizeObserver(function () { if (snapshot && zoom <= 1) fit(); });
+  var resizeObserver = new ResizeObserver(function () { if (snapshot && autoFit) fit(); });
   resizeObserver.observe(el('flowsGraph'));
   window.addEventListener('pagehide', function () { generation += 1; if (controller) controller.abort(); clear(); status('Page closed. Reload to check owner access.'); });
   window.addEventListener('pageshow', function (event) { if (event.persisted && auth) load(false); });

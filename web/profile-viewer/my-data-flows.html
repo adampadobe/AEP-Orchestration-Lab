@@ -7,7 +7,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>My data flows - AEP Profile Viewer</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="my-data-flows.css?v=20261110-live-trace">
+  <link rel="stylesheet" href="my-data-flows.css?v=20261110-viewport-fit">
   <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -80,14 +80,19 @@
                 <button type="button" id="flowsFullscreen">Fullscreen diagram</button>
                 <button type="button" id="flowsCloseFullscreen" hidden>Close fullscreen</button>
               </div>
+              <div class="flows-toolbar" role="group" aria-label="Diagram view">
+                <button type="button" id="flowsFocusView" aria-pressed="true">Flow view</button>
+                <button type="button" id="flowsFullView" aria-pressed="false">Full architecture</button>
+              </div>
               <div class="flows-toolbar" aria-label="Diagram zoom controls">
                 <button type="button" id="flowsZoomOut" aria-label="Zoom diagram out">−</button>
                 <output id="flowsZoom" aria-live="polite">100%</output>
                 <button type="button" id="flowsZoomIn" aria-label="Zoom diagram in">+</button>
                 <button type="button" id="flowsFit">Fit diagram</button>
               </div>
-              <p class="flows-muted">Tab to a node and press Enter or Space to inspect it. Zoomed diagrams can be scrolled in either direction.</p>
+              <p class="flows-muted">The diagram fits the available width. Use + to zoom into the flow and scroll in either direction; Fit diagram restores the full-width view. Tab to a node and press Enter or Space to inspect it.</p>
               <p id="flowsGraphMode" class="flows-muted">Simulation · illustrative highlights only</p>
+              <p id="flowsRevealStatus" class="flows-muted" role="status" aria-live="polite"></p>
               <div id="flowsGraph" class="flows-graph" tabindex="0" role="region" aria-label="Data-flow diagram"></div>
               <div id="flowsInspect" class="flows-inspect" role="status" aria-live="polite"></div>
               <details><summary>All connections in text</summary><ul id="flowsEdges"></ul></details>
@@ -137,6 +142,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
-  <script defer src="my-data-flows.js?v=20261110-live-trace"></script>
+  <script defer src="my-data-flows.js?v=20261110-viewport-fit"></script>
 </body>
 </html>
