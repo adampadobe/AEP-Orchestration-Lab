@@ -22,7 +22,10 @@ const { describeConnectError } = require('../snowflakeService');
 const TRAVEL_CREATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDCREATEDTIMESTAMP');
 const TRAVEL_UPDATED_IDX = TRAVEL_COLUMNS.indexOf('_RECORDUPDATEDTIMESTAMP');
 
-function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEmail = 'demo@example.com', failureStatementId = null } = {}) {
+function serviceWithConnection(rowsForSql = () => [], {
+  allocator = true, baseEmail = 'demo@example.com', mobilePhone = '+441234567890',
+  reservedMobilePhone = mobilePhone, failureStatementId = null,
+} = {}) {
   const calls = [];
   let destroyed = false;
   let emailCounter = 0;
@@ -63,7 +66,7 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
         }),
       };
       if (id === './labProfileGenerationPrefsStore') return {
-        getPrefs: async () => ({ baseEmail }),
+        getPrefs: async () => ({ baseEmail, mobilePhone }),
         isValidEmail: (email) => !!email,
         reserveNextEmail: async () => ({ scaledEmail: `demo+${++emailCounter}@example.com` }),
         reserveEmails: async (_uid, _sandbox, count, options) => {
@@ -72,8 +75,11 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
           const emails = Array.from({ length: count }, () => ({
             scaledEmail: `demo+${++emailCounter}@example.com`, counterN: emailCounter,
           }));
-          return { emails, baseEmail, counterN: first, nextCounterN: emailCounter + 1, counterDate: '20261016' };
+          return { emails, baseEmail, mobilePhone: reservedMobilePhone, counterN: first, nextCounterN: emailCounter + 1, counterDate: '20261016' };
         },
+      };
+      if (id === './myDataFlowsSnowflake') return {
+        verifySeedReadiness: async (execute) => execute('SELECT READ_ONLY_READY'),
       };
       return originalRequire(id);
     },
@@ -82,6 +88,110 @@ function serviceWithConnection(rowsForSql = () => [], { allocator = true, baseEm
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('prepares safe identities durably before any row writes, without provisioning when opted out', async () => {
+    const fixture = serviceWithConnection();
+    let prepared;
+    const result = await fixture.service.handleGenerateIndustryProfiles({
+      labUser: 'offline', sandbox: 'apalmer', industry: 'retail', count: 1, prepareTables: false,
+      async onPrepared(receipt) {
+        await Promise.resolve();
+        assert.equal(fixture.calls.some(({ sqlText }) => /^(MERGE|INSERT|UPDATE|BEGIN)/.test(sqlText)), false);
+        assert.deepEqual(Object.keys(receipt).sort(), ['profiles', 'runStamp']);
+        assert.deepEqual(Object.keys(receipt.profiles[0]).sort(), ['crmId', 'ecid', 'email', 'recipientId']);
+        prepared = JSON.parse(JSON.stringify(receipt));
+      },
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.error));
+    assert.equal(prepared.profiles[0].ecid, result.profiles[0].ecid);
+    assert.equal(prepared.runStamp, result.runStamp);
+    assert.equal(fixture.calls.some(({ sqlText }) => /^(CREATE|ALTER TABLE|ALTER VIEW)/.test(sqlText)), false);
+    assert.ok(fixture.calls.some(({ sqlText }) => sqlText === 'SELECT READ_ONLY_READY'));
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
+  it('a rejected prepared receipt prevents every row write and leaves the reserved counter unused', async () => {
+    const fixture = serviceWithConnection();
+    const result = await fixture.service.handleGenerateIndustryProfiles({
+      labUser: 'offline', sandbox: 'apalmer', industry: 'fsi', count: 1, prepareTables: false,
+      async onPrepared() { throw new Error('receipt could not be persisted'); },
+    });
+    assert.equal(result.ok, false);
+    assert.match(result.error.message, /receipt could not be persisted/);
+    assert.equal(fixture.reservedEmailCount(), 1);
+    assert.equal(fixture.calls.some(({ sqlText }) => /^(MERGE|INSERT|UPDATE|BEGIN)/.test(sqlText)), false);
+    assert.equal(fixture.isDestroyed(), true);
+  });
+
+  it('writes the saved mobile in CRM and shared parent without replacing the primary landline', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection(undefined, { mobilePhone: '+447700900777' });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry, count: 1,
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      assert.equal(result.profiles[0].phoneNumber, '+447700900777');
+      assert.equal(result.profiles[0].columns.PHONENUMBER, '+447700900777');
+      const parent = fixture.calls.find(({ sqlText }) =>
+        sqlText.startsWith('MERGE INTO DEMO_DB.LAB.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE '));
+      const memory = require('./snowflakeMemoryFixture.cjs').snowflakeMemoryFixture();
+      memory.execute(parent.sqlText, parent.binds);
+      const stored = memory.rows(result.recipientTable)[0];
+      assert.equal(stored.PHONENUMBER, '+447700900777', industry);
+      assert.equal(stored.PRIMARYPHONE, result.profiles[0].columns.PRIMARYPHONE);
+      assert.notEqual(result.profiles[0].columns.PRIMARYPHONE, '+447700900777');
+    }
+  });
+
+  it('refuses mobile preference drift before reservation, and after atomic reservation before writes', async () => {
+    for (const duringReservation of [false, true]) {
+      const fixture = serviceWithConnection(undefined, { mobilePhone: '+447700900777', reservedMobilePhone: '+447700900999' });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry: 'retail', count: 1, prepareTables: false,
+        expectedMobilePhone: duringReservation ? '+447700900777' : '+447700900111',
+        onPrepared() { assert.fail('drift must prevent prepared callback'); },
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.error.code, 'MOBILE_PREFS_CHANGED');
+      assert.equal(fixture.reservedEmailCount(), duringReservation ? 1 : 0);
+      assert.equal(fixture.calls.some(({ sqlText }) => /^(MERGE|INSERT|UPDATE|BEGIN)/.test(sqlText)), false);
+    }
+  });
+
+  it('refuses a changed reviewed database/schema before opening a connection or allocating identities', async () => {
+    for (const expected of [{ expectedDatabase: 'TRAVEL_DATABASE' }, { expectedSchema: 'AEP_SCHEMA' }]) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry: 'fsi', count: 1, prepareTables: false, ...expected,
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.error.code, 'SNOWFLAKE_CONTEXT_CHANGED');
+      assert.equal(fixture.calls.length, 0);
+      assert.equal(fixture.reservedEmailCount(), 0);
+    }
+  });
+
+  it('returns uncertain prepared identities when COMMIT acknowledgement or rollback fails, without retrying', async () => {
+    for (const commitFailure of [true, false]) {
+      const fixture = serviceWithConnection((sql) => {
+        if ((commitFailure && sql === 'COMMIT')
+          || (!commitFailure && (sql.startsWith('MERGE INTO') || sql === 'ROLLBACK'))) {
+          throw new Error('injected uncertain write');
+        }
+        return [];
+      });
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry: 'fsi', count: 1, prepareTables: false,
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.outcomeUnknown, true);
+      assert.equal(result.error.code, 'SEED_OUTCOME_UNKNOWN');
+      assert.equal(result.profiles.length, 1);
+      assert.equal(fixture.reservedEmailCount(), 1);
+      assert.equal(fixture.calls.filter(({ sqlText }) => sqlText === 'COMMIT').length, commitFailure ? 1 : 0);
+      assert.equal(fixture.isDestroyed(), true);
+    }
+  });
+
   it('reuses an existing CRM person without allocating another CRM block or email', async () => {
     const fixture = serviceWithConnection((sql) => sql.endsWith('WHERE ECID = ? LIMIT 2')
       ? [{ ECID: 'existing-ecid', EMAIL: 'same@example.test', CRMID: 'CRM2000', TESTPROFILE: true }]
