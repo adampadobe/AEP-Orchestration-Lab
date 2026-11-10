@@ -143,6 +143,28 @@ the replacement refreshes asynchronously. `DESCRIBE DYNAMIC TABLE` readback
 confirms metadata only, not refresh completion or downstream correctness.
 Reconcile any ambiguous outcome before requesting another replacement.
 
+The ACCOUNT definition pins `REFRESH_MODE = INCREMENTAL` for its AEP CDC
+consumer. Do not omit this setting: Snowflake can resolve `AUTO` to `FULL`
+while reporting successful refreshes, but the consumer's `CHANGES` reads then
+fail because full-refresh dynamic tables do not support change tracking
+without a `FROZEN WHERE` constraint. Deploy the reviewed definition before
+requesting a fresh replacement preview; an older preview still contains the
+older SQL.
+
+ACCOUNT also accepts the existing source product type `savings` alongside
+`savings_account` and `current_account`, without rewriting the emitted account
+type. Excluding that legacy spelling can silently remove historical savings
+accounts from Snowflake while those keys remain in AEP.
+
+Replacement also resets the table's change history. Even with incremental
+refresh, a consumer checkpoint predating the new table may need a separately
+approved recovery or backfill. Verify a post-replacement source export and AEP
+run, then compare the current stored dataset's keys, values and versions with
+Snowflake. A successful refresh, an older batch export, or completed AJO
+dataset enablement is not sufficient. New source columns additionally require
+matching destination schema fields and the flow's pinned Data Prep mapping;
+replacement alone does not add those fields or reconcile stale AEP records.
+
 The API is `POST /api/snowflake/workspace` (direct Cloud Function:
 `/snowflakeWorkspace`). All actions carry `sandbox`; responses contain the
 workspace result under `result`. Use the direct function for potentially
