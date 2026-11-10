@@ -115,6 +115,10 @@ const { registerSchemaRegistryRoutes } = require('./schemaRegistryRoutes');
 const { registerLabRoutes } = require('./labRoutes');
 const { registerMcpKeyRoutes } = require('./mcpKeyRoutes');
 const { registerLabUsageRoutes } = require('./labUsageRoutes');
+const { registerMyDataFlowsRoutes } = require('./myDataFlowsRoutes');
+const { createMyDataFlowsService } = require('./myDataFlowsService');
+const { registerMyDataFlowsTraceRoutes } = require('./myDataFlowsTraceRoutes');
+const { createMyDataFlowsTraceService, relevantBindings } = require('./myDataFlowsTraceService');
 const { registerLiveActivityRoutes } = require('./liveActivityRoutes');
 const mcpApiKeyStore = lazyRequireMod('./mcpApiKeyStore');
 const { registerSnowflakeRoutes } = require('./snowflakeRoutes');
@@ -836,6 +840,58 @@ const profileFnOpts = {
   timeoutSeconds: 120,
   memory: '512MiB',
 };
+
+Object.assign(exports, registerMyDataFlowsRoutes({
+  onRequest,
+  fnOpts: profileFnOpts,
+  setCors,
+  getServices: () => {
+    const { getAdminFirestore } = require('./adminFirestore');
+    const db = getAdminFirestore();
+    return {
+      auth: require('firebase-admin').auth(),
+      getAdobeAuth: async () => ({
+        accessToken: await getAdobeAccessToken(),
+        clientId: ADOBE_CLIENT_ID.value(),
+        orgId: ADOBE_IMS_ORG.value(),
+      }),
+      service: createMyDataFlowsService({
+        getConnection: async (industry) => {
+          const snap = await db.collection(`${industry}ProfileConnections`).doc('apalmer').get();
+          return snap.exists ? snap.data() : null;
+        },
+        getEventConfig: () => eventConfigStore.getEventConfig('apalmer'),
+      }),
+    };
+  },
+}));
+
+Object.assign(exports, registerMyDataFlowsTraceRoutes({
+  onRequest, fnOpts: { ...profileFnOpts, ...SNOWFLAKE_VPC_OPTS, maxInstances: 20 }, setCors,
+  getServices: () => {
+    const { getAdminFirestore } = require('./adminFirestore');
+    const { createMyDataFlowsTraceStore } = require('./myDataFlowsTraceStore');
+    const { createMyDataFlowsSnowflake } = require('./myDataFlowsSnowflake');
+    const { createMyDataFlowsTraceAep } = require('./myDataFlowsTraceAep');
+    const getAdobeAuth = async () => ({
+      accessToken: await getAdobeAccessToken(),
+      clientId: ADOBE_CLIENT_ID.value(), orgId: ADOBE_IMS_ORG.value(),
+    });
+    return {
+      auth: require('firebase-admin').auth(),
+      trace: createMyDataFlowsTraceService({
+        store: createMyDataFlowsTraceStore(getAdminFirestore()),
+        snowflake: createMyDataFlowsSnowflake(),
+        aep: createMyDataFlowsTraceAep({ getAdobeAuth }),
+        getPrefs: require('./labProfileGenerationPrefsStore').getPrefs,
+        flowSnapshot: async (industry) => createMyDataFlowsService({
+          registry: relevantBindings(industry),
+          getConnection: async () => null, getEventConfig: async () => null,
+        }).snapshot(await getAdobeAuth()),
+      }),
+    };
+  },
+}));
 
 const commerceFnOpts = {
   ...profileFnOpts,

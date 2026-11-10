@@ -35,6 +35,7 @@
     "test:cp-decisioning": "node --test scripts/test-cp-decisioning.cjs scripts/test-tui-decisioning-runtime.cjs && node scripts/test-cp-decisioning-browser.cjs",
     "preview:cp-decisioning": "node scripts/preview-cp-decisioning.mjs",
     "test:sidebar-account-theme": "node scripts/test-sidebar-account-theme.mjs",
+    "test:my-data-flows": "node --test functions/test/myDataFlows*.test.cjs && node scripts/test-my-data-flows-browser.cjs",
     "validate:architecture-logos-tags": "python3 scripts/validate-architecture-logos-tags.py",
     "validate:aep-architecture-tour": "node scripts/validate-aep-architecture-tour.mjs",
     "validate:ecosystem-vendor-index": "python3 scripts/validate-ecosystem-vendor-index.py",

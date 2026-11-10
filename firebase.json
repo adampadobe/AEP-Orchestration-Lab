@@ -1146,6 +1146,20 @@
         }
       },
       {
+        "source": "/api/architecture/my-data-flows/trace",
+        "function": {
+          "functionId": "myDataFlowsTrace",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/architecture/my-data-flows",
+        "function": {
+          "functionId": "myDataFlows",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/lab/usage",
         "function": {
           "functionId": "labUsageStats",

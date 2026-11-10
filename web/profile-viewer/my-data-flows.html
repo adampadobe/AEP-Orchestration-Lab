@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>My data flows - AEP Profile Viewer</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="my-data-flows.css?v=20261110-live-trace">
+  <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
+  <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="my-data-flows-page home-dashboard-concierge">
+  <div class="dashboard-shell">
+    <aside class="dashboard-sidebar" aria-label="Primary"></aside>
+    <div class="dashboard-main-wrap">
+      <header class="dashboard-topbar">
+        <h1 class="dashboard-topbar-title">My data flows</h1>
+        <div class="dashboard-topbar-right"><span class="dashboard-env-pill">Owner only</span></div>
+      </header>
+      <main class="dashboard-main app-page">
+        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="flowsHeading">
+          <div class="dashboard-hero-inner"><header class="dashboard-hero-header">
+            <h2 id="flowsHeading" class="dashboard-hero-title">My data flows</h2>
+            <p class="dashboard-hero-subtitle">A private architecture workspace. Sign in to load your reference and inspect read-only status.</p>
+          </header></div>
+        </section>
+        <p id="flowsStatus" class="flows-status" role="status" aria-live="polite">Checking owner access…</p>
+        <p id="flowsSignIn" hidden><a href="home-new.html">Open the lab sign-in</a></p>
+        <div id="flowsControls" class="flows-toolbar" hidden>
+          <button type="button" id="flowsReload">Reload reference</button>
+          <button type="button" id="flowsLive">Read live AEP status</button>
+          <span>Reference and status reads are read-only. Simulation never writes data.</span>
+        </div>
+        <div id="flowsResults" hidden>
+          <section class="flows-panel" aria-labelledby="flowsReferenceTitle">
+            <h2 id="flowsReferenceTitle"></h2>
+            <p id="flowsSummary"></p>
+            <p id="flowsAsOf" class="flows-muted"></p>
+          </section>
+          <div class="flows-toolbar" role="group" aria-label="Explorer mode">
+            <button type="button" id="flowsSimulationMode" aria-pressed="true">Simulation</button>
+            <button type="button" id="flowsTraceMode" aria-pressed="false">Live</button>
+          </div>
+          <section id="flowsTracePanel" class="flows-panel" aria-labelledby="flowsTraceHeading" hidden>
+            <h2 id="flowsTraceHeading">Create and trace a profile</h2>
+            <p>Create once, then follow verified readbacks through the architecture. Arrival follows natural ingestion; there is no estimated arrival time.</p>
+            <div class="flows-toolbar">
+              <label for="flowsTraceIndustry">Industry</label>
+              <select id="flowsTraceIndustry">
+                <option value="fsi">Financial services</option>
+                <option value="retail">Retail</option>
+                <option value="telecom">Telecommunications</option>
+                <option value="travel">Travel and hospitality</option>
+                <option value="sports">Sports</option>
+                <option value="media">Media and entertainment</option>
+              </select>
+              <button type="button" id="flowsTraceCreate" disabled>Create profile</button>
+            </div>
+            <label class="flows-write-disclosure"><input type="checkbox" id="flowsTraceConfirm"> I agree to create one test profile and linked sample data in apalmer. Natural ingestion only; no sends.</label>
+            <p id="flowsTraceStatus" role="status" aria-live="polite">Checking profile settings…</p>
+            <p id="flowsTraceSettings" hidden><a href="profile-generation.html" id="flowsTraceSettingsLink">Set up profile generation</a></p>
+            <div class="flows-toolbar">
+              <button type="button" id="flowsTraceCheck" disabled>Check now</button>
+              <button type="button" id="flowsTraceWatch" disabled>Resume watching</button>
+              <output id="flowsTraceElapsed" aria-label="Time since creation"></output>
+            </div>
+            <p class="flows-muted">Watching checks about every 30 seconds for up to 30 minutes. Stop watching stops reads only; it does not cancel creation or ingestion.</p>
+            <div id="flowsTraceIdentity" class="flows-card" hidden></div>
+            <ol id="flowsTraceStages" class="flows-trace-stages"></ol>
+            <ul id="flowsTraceLimitations" class="flows-muted"></ul>
+          </section>
+          <div id="flowsDiagramHome">
+            <section id="flowsDiagramPanel" class="flows-panel" aria-labelledby="flowsDiagramHeading">
+              <div class="flows-toolbar">
+                <h2 id="flowsDiagramHeading">Flow explorer</h2>
+                <button type="button" id="flowsExpand" aria-expanded="false" aria-controls="flowsGraph">Expand diagram</button>
+                <button type="button" id="flowsFullscreen">Fullscreen diagram</button>
+                <button type="button" id="flowsCloseFullscreen" hidden>Close fullscreen</button>
+              </div>
+              <div class="flows-toolbar" aria-label="Diagram zoom controls">
+                <button type="button" id="flowsZoomOut" aria-label="Zoom diagram out">−</button>
+                <output id="flowsZoom" aria-live="polite">100%</output>
+                <button type="button" id="flowsZoomIn" aria-label="Zoom diagram in">+</button>
+                <button type="button" id="flowsFit">Fit diagram</button>
+              </div>
+              <p class="flows-muted">Tab to a node and press Enter or Space to inspect it. Zoomed diagrams can be scrolled in either direction.</p>
+              <p id="flowsGraphMode" class="flows-muted">Simulation · illustrative highlights only</p>
+              <div id="flowsGraph" class="flows-graph" tabindex="0" role="region" aria-label="Data-flow diagram"></div>
+              <div id="flowsInspect" class="flows-inspect" role="status" aria-live="polite"></div>
+              <details><summary>All connections in text</summary><ul id="flowsEdges"></ul></details>
+            </section>
+          </div>
+          <section id="flowsSimulationPanel" class="flows-panel" aria-labelledby="flowsSimulationHeading">
+            <h2 id="flowsSimulationHeading">Walk a simulated path</h2>
+            <p>Illustration only, not a job runner or an elapsed-time measurement. Select a scenario, then step through it. Playback uses a presentation pace, not the pipeline schedule.</p>
+            <div id="flowsScenarios" class="flows-scenarios" role="group" aria-label="Simulation scenarios"></div>
+            <p id="flowsScenarioDescription"></p>
+            <p id="flowsMotionNote" class="flows-muted"></p>
+            <div class="flows-toolbar" aria-label="Simulation playback">
+              <button type="button" id="flowsPrevious" aria-label="Previous simulation step">Previous</button>
+              <button type="button" id="flowsPlay">Play simulation</button>
+              <button type="button" id="flowsNext" aria-label="Next simulation step">Next</button>
+              <output id="flowsProgress" aria-live="polite"></output>
+            </div>
+            <div id="flowsStep" class="flows-step" role="status" aria-live="polite"></div>
+            <ol id="flowsTimeline" class="flows-timeline"></ol>
+          </section>
+          <section class="flows-panel" aria-labelledby="flowsIndustriesHeading">
+            <h2 id="flowsIndustriesHeading">Sources and datasets</h2>
+            <div id="flowsIndustries" class="flows-cards"></div>
+          </section>
+          <section class="flows-panel" aria-labelledby="flowsLiveHeading">
+            <h2 id="flowsLiveHeading">Read-only status</h2>
+            <p id="flowsLiveStatus" role="status" aria-live="polite"></p>
+            <div id="flowsLiveResults"></div>
+          </section>
+          <section class="flows-panel" aria-labelledby="flowsEvidenceHeading">
+            <h2 id="flowsEvidenceHeading">Evidence and boundaries</h2>
+            <div id="flowsEvidence"></div>
+            <ul id="flowsNotes"></ul>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <dialog id="flowsDialog" class="flows-dialog" aria-label="Fullscreen flow explorer"></dialog>
+  <script src="aep-access-scope.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="firebase-database-config.js?v=20260527"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-lab-sandbox-sync.js?v=20260520c"></script>
+  <script src="aep-access-onboarding.js?v=20260527b"></script>
+  <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
+  <script defer src="aep-theme-prefs.js?v=20260416d"></script>
+  <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
+  <script defer src="my-data-flows.js?v=20261110-live-trace"></script>
+</body>
+</html>
