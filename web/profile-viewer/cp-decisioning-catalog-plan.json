@@ -1,0 +1,3277 @@
+{
+  "version": 1,
+  "customer": "CP",
+  "sandbox": "kirkham",
+  "status": "preview-only",
+  "evidence": {
+    "sandbox": "kirkham",
+    "schemaId": "https://ns.adobe.com/demoemea/schemas/a951877632f590031b11072842a80e09818b31874d291cec",
+    "schemaVersion": "1.12",
+    "schemaTitle": "Operational - Profile - Schema",
+    "verifiedAt": "2026-11-09T08:12:16.977Z",
+    "fields": [
+      {
+        "path": "_demoemea.hotel.customerContext.journeyStage",
+        "type": "string"
+      },
+      {
+        "path": "_demoemea.hotel.bookingDetails.checkInDate",
+        "type": "string",
+        "format": "date"
+      },
+      {
+        "path": "_demoemea.hotel.checkIn.roomReady",
+        "type": "boolean"
+      },
+      {
+        "path": "_demoemea.complaint.status",
+        "type": "string"
+      },
+      {
+        "path": "_demoemea.hotel.housekeeping.serviceRequested",
+        "type": "boolean"
+      },
+      {
+        "path": "_demoemea.hotel.customerContext.shoppingIntent",
+        "type": "string"
+      },
+      {
+        "path": "_demoemea.hotel.customerContext.abandonedSearchFlag",
+        "type": "boolean"
+      },
+      {
+        "path": "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType",
+        "type": "string"
+      },
+      {
+        "path": "_demoemea.scoring.core.propensityScore",
+        "type": "number"
+      },
+      {
+        "path": "_demoemea.hotel.customerContext.engagementStatus",
+        "type": "string"
+      },
+      {
+        "path": "_demoemea.loyaltyDetails.points",
+        "type": "number"
+      },
+      {
+        "path": "_demoemea.hotel.customerContext.mobileAppUser",
+        "type": "boolean"
+      },
+      {
+        "path": "consents.marketing.email.val",
+        "type": "string",
+        "enum": [
+          "y",
+          "n",
+          "p",
+          "u",
+          "dy",
+          "dn",
+          "LI",
+          "CT",
+          "CP",
+          "VI",
+          "PI"
+        ]
+      },
+      {
+        "path": "consents.personalize.content.val",
+        "type": "string",
+        "enum": [
+          "y",
+          "n",
+          "p",
+          "u",
+          "dy",
+          "dn",
+          "LI",
+          "CT",
+          "CP",
+          "VI",
+          "PI"
+        ]
+      }
+    ]
+  },
+  "approvalRequired": true,
+  "assetsCreated": false,
+  "activationAllowed": false,
+  "ruleEditorReference": [
+    "dps:eligibility-rule:1d4c6e5be446184a",
+    "dps:eligibility-rule:1d4c6e6e9246184c",
+    "dps:eligibility-rule:1d4c6ea010861852",
+    "588ec48d-766f-4774-8b02-d51931e8d5b6"
+  ],
+  "unresolved": [
+    "Confirm offer-level versus strategy-level rule attachments before any apply.",
+    "Resolve new CP tag/collection/rule IDs after individually confirmed creation.",
+    "Host approved media; review policy order and consent gate; no activation in this task.",
+    "Arrival windows use checkInDate and UTC calendar days; grow is limited to the next 365 days.",
+    "Verify the date editor preserves the today anchor before creating any live rules.",
+    "Generic experience-fit score and loyalty points remain explicitly labelled demo/informational signals."
+  ],
+  "consentGate": {
+    "name": "CP - Consent gate",
+    "exdRule": true,
+    "type": "DECISION_ITEM",
+    "condition": {
+      "type": "PQL",
+      "format": "pql/text",
+      "value": "(consents.marketing.email.val.equals(\"y\", false)) and (consents.personalize.content.val.equals(\"y\", false))"
+    },
+    "segmentModel": {
+      "lifecycleState": "published",
+      "name": "CP - Consent gate",
+      "namespace": "ups",
+      "isMissingAnsibleModel": false,
+      "relationalExpression": false,
+      "deprecated": {
+        "status": false,
+        "reason": ""
+      },
+      "description": "",
+      "evaluationInfo": {
+        "batch": {
+          "enabled": true
+        },
+        "continuous": {
+          "enabled": false
+        },
+        "synchronous": {
+          "enabled": false
+        }
+      },
+      "payloadInfo": {
+        "schemaPath": ""
+      },
+      "labels": [],
+      "tags": [],
+      "canHaveFolder": true,
+      "expression": {
+        "isValid": true,
+        "logicalOperator": "and",
+        "itemType": "segmentDefinition",
+        "profileAttributesContainer": {
+          "exclude": false,
+          "isCollapsed": false,
+          "logicalOperator": "and",
+          "itemType": "segmentContainer",
+          "items": [
+            {
+              "comparisonType": "equals",
+              "component": {
+                "id": "profile.consents.marketing.email.val",
+                "__entity__": true,
+                "type": "bx"
+              },
+              "isCaseSensitive": false,
+              "isPlaceholder": false,
+              "originalLocation": [],
+              "itemType": "segmentRule",
+              "value": [
+                "y"
+              ]
+            },
+            {
+              "comparisonType": "equals",
+              "component": {
+                "id": "profile.consents.personalize.content.val",
+                "__entity__": true,
+                "type": "bx"
+              },
+              "isCaseSensitive": false,
+              "isPlaceholder": false,
+              "originalLocation": [],
+              "itemType": "segmentRule",
+              "value": [
+                "y"
+              ]
+            }
+          ]
+        },
+        "xEventAttributesContainer": {
+          "exclude": false,
+          "isCollapsed": false,
+          "items": [],
+          "logicalOperator": "then",
+          "itemType": "eventTypeCardContainer"
+        }
+      }
+    }
+  },
+  "objectives": [
+    {
+      "key": "protect",
+      "rank": 1,
+      "policyOrder": 1,
+      "tag": {
+        "name": "CP - Protect / Recover"
+      },
+      "collection": {
+        "name": "CP - Protect / Recover collection",
+        "tagNames": [
+          "CP - Protect / Recover"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:protect}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:protect}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Protect / Recover strategy",
+        "priority": 1,
+        "ranking": "static item priority",
+        "collectionName": "CP - Protect / Recover collection",
+        "rank": {
+          "priority": 1,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:protect}}",
+          "filterName": "CP - Protect / Recover collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Protect / Recover eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.complaint.status.equals(\"Escalated\", false)) or (_demoemea.hotel.housekeeping.serviceRequested = true) or (_demoemea.complaint.status.equals(\"Pending\", false))"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Protect / Recover eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "or",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "or",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.complaint.status",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Escalated"
+                  ]
+                },
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.housekeeping.serviceRequested",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    true
+                  ]
+                },
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.complaint.status",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Pending"
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "guest-care",
+          "name": "CP - Guest care",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Let us take care of your break",
+            "briefMessage": "Find guest support while your query is being reviewed. Promotional suggestions take a back seat.",
+            "compactTitle": "Let us take care of your break",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Find guest support while your query is being reviewed. Promotional suggestions take a back seat.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Find guest support while your query is being reviewed. Promotional suggestions take a back seat.",
+            "fullCTA": "Find guest support",
+            "agentScript": "Find guest support while your query is being reviewed. Promotional suggestions take a back seat. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.complaint.status",
+                "op": "eq",
+                "value": "Escalated"
+              }
+            ]
+          },
+          "priority": 730,
+          "status": "draft",
+          "tagNames": [
+            "CP - Protect / Recover"
+          ],
+          "eligibility": {
+            "name": "CP - Guest care eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.complaint.status.equals(\"Escalated\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Guest care eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.complaint.status",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Escalated"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "lodge-care",
+          "name": "CP - Lodge care",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "A little help with your lodge",
+            "briefMessage": "Find the village guest services information for your lodge request.",
+            "compactTitle": "A little help with your lodge",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Find the village guest services information for your lodge request.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Find the village guest services information for your lodge request.",
+            "fullCTA": "View guest services",
+            "agentScript": "Find the village guest services information for your lodge request. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.housekeeping.serviceRequested",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "priority": 720,
+          "status": "draft",
+          "tagNames": [
+            "CP - Protect / Recover"
+          ],
+          "eligibility": {
+            "name": "CP - Lodge care eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.housekeeping.serviceRequested = true)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Lodge care eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.housekeeping.serviceRequested",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        true
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "support-guide",
+          "name": "CP - Support guide",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Your family break comes first",
+            "briefMessage": "Keep useful support information close at hand during your forest break.",
+            "compactTitle": "Your family break comes first",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Keep useful support information close at hand during your forest break.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Keep useful support information close at hand during your forest break.",
+            "fullCTA": "View help information",
+            "agentScript": "Keep useful support information close at hand during your forest break. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 710,
+          "status": "draft",
+          "tagNames": [
+            "CP - Protect / Recover"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "stay",
+      "rank": 2,
+      "policyOrder": 2,
+      "tag": {
+        "name": "CP - Enjoy the forest"
+      },
+      "collection": {
+        "name": "CP - Enjoy the forest collection",
+        "tagNames": [
+          "CP - Enjoy the forest"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:stay}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:stay}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Enjoy the forest strategy",
+        "priority": 2,
+        "ranking": "static item priority",
+        "collectionName": "CP - Enjoy the forest collection",
+        "rank": {
+          "priority": 2,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:stay}}",
+          "filterName": "CP - Enjoy the forest collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Enjoy the forest eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.journeyStage.equals(\"In-Trip\", false))"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Enjoy the forest eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "and",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "and",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.journeyStage",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "In-Trip"
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "family-activities",
+          "name": "CP - Family activities",
+          "image": "cp-decisioning-assets/activities.jpg",
+          "imageAlt": "Archery activity",
+          "content": {
+            "title": "Make a new family memory",
+            "briefMessage": "Explore activities for your forest break. Ages, booking requirements and availability vary.",
+            "compactTitle": "Make a new family memory",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore activities for your forest break. Ages, booking requirements and availability vary.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore activities for your forest break. Ages, booking requirements and availability vary.",
+            "fullCTA": "Explore activities",
+            "agentScript": "Explore activities for your forest break. Ages, booking requirements and availability vary. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "gte",
+                "value": 3
+              }
+            ]
+          },
+          "priority": 630,
+          "status": "draft",
+          "tagNames": [
+            "CP - Enjoy the forest"
+          ],
+          "eligibility": {
+            "name": "CP - Family activities eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.scoring.core.propensityScore >= 3)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Family activities eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": ">=",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 3
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "dine-together",
+          "name": "CP - Dine together",
+          "image": "cp-decisioning-assets/dining.jpg",
+          "imageAlt": "Dishes from Huck's menu",
+          "content": {
+            "title": "Bring everyone to the table",
+            "briefMessage": "Discover restaurants including Huck's, and find dining options for your village.",
+            "compactTitle": "Bring everyone to the table",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Discover restaurants including Huck's, and find dining options for your village.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Discover restaurants including Huck's, and find dining options for your village.",
+            "fullCTA": "Explore dining",
+            "agentScript": "Discover restaurants including Huck's, and find dining options for your village. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "gte",
+                "value": 2
+              },
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "lt",
+                "value": 3
+              }
+            ]
+          },
+          "priority": 620,
+          "status": "draft",
+          "tagNames": [
+            "CP - Enjoy the forest"
+          ],
+          "eligibility": {
+            "name": "CP - Dine together eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.scoring.core.propensityScore >= 2) and (_demoemea.scoring.core.propensityScore < 3)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Dine together eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": ">=",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 2
+                    },
+                    {
+                      "comparisonType": "<",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 3
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "swim-together",
+          "name": "CP - Swimming Paradise",
+          "image": "cp-decisioning-assets/pool.webp",
+          "imageAlt": "Subtropical Swimming Paradise",
+          "content": {
+            "title": "A splash of family time",
+            "briefMessage": "Discover the Subtropical Swimming Paradise and check village information before visiting.",
+            "compactTitle": "A splash of family time",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Discover the Subtropical Swimming Paradise and check village information before visiting.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Discover the Subtropical Swimming Paradise and check village information before visiting.",
+            "fullCTA": "Explore swimming",
+            "agentScript": "Discover the Subtropical Swimming Paradise and check village information before visiting. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 610,
+          "status": "draft",
+          "tagNames": [
+            "CP - Enjoy the forest"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "prepare",
+      "rank": 3,
+      "policyOrder": 3,
+      "tag": {
+        "name": "CP - Get ready to arrive"
+      },
+      "collection": {
+        "name": "CP - Get ready to arrive collection",
+        "tagNames": [
+          "CP - Get ready to arrive"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:prepare}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:prepare}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Get ready to arrive strategy",
+        "priority": 3,
+        "ranking": "static item priority",
+        "collectionName": "CP - Get ready to arrive collection",
+        "rank": {
+          "priority": 3,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:prepare}}",
+          "filterName": "CP - Get ready to arrive collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Get ready to arrive eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.journeyStage.equals(\"Booked\", false)) and (_demoemea.hotel.bookingDetails.checkInDate occurs <= 14 days after today)"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Get ready to arrive eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "and",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "and",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.journeyStage",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Booked"
+                  ]
+                },
+                {
+                  "comparisonType": "rolling-range-future",
+                  "component": {
+                    "id": "profile._demoemea.hotel.bookingDetails.checkInDate",
+                    "__entity__": true,
+                    "type": "rE"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "temporalConstraint": {
+                    "end": {
+                      "type": "rollingRangeConstraintRestriction",
+                      "unit": "days",
+                      "itemType": "rollingRangeConstraintRestriction",
+                      "quantity": 14
+                    },
+                    "type": "rolling-range-future",
+                    "start": {
+                      "type": "rollingRangeConstraintRestriction",
+                      "unit": "days",
+                      "itemType": "rollingRangeConstraintRestriction",
+                      "quantity": 14
+                    },
+                    "subType": "rolling-range-future-constraint",
+                    "itemType": "rolling-range",
+                    "showEndFields": false,
+                    "referencedDirection": "after"
+                  }
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "arrival-guide",
+          "name": "CP - Arrival guide",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "Your forest break is nearly here",
+            "briefMessage": "Review arrival guidance and your booking details before travelling. This demo does not confirm lodge access times.",
+            "compactTitle": "Your forest break is nearly here",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Review arrival guidance and your booking details before travelling. This demo does not confirm lodge access times.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Review arrival guidance and your booking details before travelling. This demo does not confirm lodge access times.",
+            "fullCTA": "Plan your arrival",
+            "agentScript": "Review arrival guidance and your booking details before travelling. This demo does not confirm lodge access times. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.bookingDetails.checkInDate",
+                "op": "lte",
+                "value": 1,
+                "dateWindow": true
+              }
+            ]
+          },
+          "priority": 530,
+          "status": "draft",
+          "tagNames": [
+            "CP - Get ready to arrive"
+          ],
+          "eligibility": {
+            "name": "CP - Arrival guide eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.bookingDetails.checkInDate occurs <= 1 days after today)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Arrival guide eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "rolling-range-future",
+                      "component": {
+                        "id": "profile._demoemea.hotel.bookingDetails.checkInDate",
+                        "__entity__": true,
+                        "type": "rE"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "temporalConstraint": {
+                        "end": {
+                          "type": "rollingRangeConstraintRestriction",
+                          "unit": "days",
+                          "itemType": "rollingRangeConstraintRestriction",
+                          "quantity": 1
+                        },
+                        "type": "rolling-range-future",
+                        "start": {
+                          "type": "rollingRangeConstraintRestriction",
+                          "unit": "days",
+                          "itemType": "rollingRangeConstraintRestriction",
+                          "quantity": 1
+                        },
+                        "subType": "rolling-range-future-constraint",
+                        "itemType": "rolling-range",
+                        "showEndFields": false,
+                        "referencedDirection": "after"
+                      }
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "lodge-information",
+          "name": "CP - Lodge information",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "Know your home in the forest",
+            "briefMessage": "Review accommodation information while preparing for your Woodland Lodge stay.",
+            "compactTitle": "Know your home in the forest",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Review accommodation information while preparing for your Woodland Lodge stay.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Review accommodation information while preparing for your Woodland Lodge stay.",
+            "fullCTA": "Explore your lodge",
+            "agentScript": "Review accommodation information while preparing for your Woodland Lodge stay. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType",
+                "op": "eq",
+                "value": "Woodland Lodge"
+              }
+            ]
+          },
+          "priority": 520,
+          "status": "draft",
+          "tagNames": [
+            "CP - Get ready to arrive"
+          ],
+          "eligibility": {
+            "name": "CP - Lodge information eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType.equals(\"Woodland Lodge\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Lodge information eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Woodland Lodge"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "activity-planning",
+          "name": "CP - Activity planning",
+          "image": "cp-decisioning-assets/activities.jpg",
+          "imageAlt": "Archery activity",
+          "content": {
+            "title": "A little planning, more togetherness",
+            "briefMessage": "Explore activity choices ahead of your stay. This preview does not book or reserve an activity.",
+            "compactTitle": "A little planning, more togetherness",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore activity choices ahead of your stay. This preview does not book or reserve an activity.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore activity choices ahead of your stay. This preview does not book or reserve an activity.",
+            "fullCTA": "Plan activities",
+            "agentScript": "Explore activity choices ahead of your stay. This preview does not book or reserve an activity. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 510,
+          "status": "draft",
+          "tagNames": [
+            "CP - Get ready to arrive"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "posttrip",
+      "rank": 4,
+      "policyOrder": 4,
+      "tag": {
+        "name": "CP - Welcome home"
+      },
+      "collection": {
+        "name": "CP - Welcome home collection",
+        "tagNames": [
+          "CP - Welcome home"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:posttrip}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:posttrip}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Welcome home strategy",
+        "priority": 4,
+        "ranking": "static item priority",
+        "collectionName": "CP - Welcome home collection",
+        "rank": {
+          "priority": 4,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:posttrip}}",
+          "filterName": "CP - Welcome home collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Welcome home eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.journeyStage.equals(\"Post-Trip\", false))"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Welcome home eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "and",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "and",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.journeyStage",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Post-Trip"
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "stay-followup",
+          "name": "CP - Stay follow-up",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Here to help after your stay",
+            "briefMessage": "Find support for an outstanding question about your recent forest break.",
+            "compactTitle": "Here to help after your stay",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Find support for an outstanding question about your recent forest break.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Find support for an outstanding question about your recent forest break.",
+            "fullCTA": "Find help",
+            "agentScript": "Find support for an outstanding question about your recent forest break. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.complaint.status",
+                "op": "eq",
+                "value": "Open"
+              }
+            ]
+          },
+          "priority": 430,
+          "status": "draft",
+          "tagNames": [
+            "CP - Welcome home"
+          ],
+          "eligibility": {
+            "name": "CP - Stay follow-up eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.complaint.status.equals(\"Open\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Stay follow-up eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.complaint.status",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Open"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "return-forest",
+          "name": "CP - Return to the forest",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Make room for another memory",
+            "briefMessage": "Explore future short breaks for your family. Dates, prices and accommodation remain subject to availability.",
+            "compactTitle": "Make room for another memory",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore future short breaks for your family. Dates, prices and accommodation remain subject to availability.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore future short breaks for your family. Dates, prices and accommodation remain subject to availability.",
+            "fullCTA": "Explore another break",
+            "agentScript": "Explore future short breaks for your family. Dates, prices and accommodation remain subject to availability. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.customerContext.engagementStatus",
+                "op": "eq",
+                "value": "Active"
+              }
+            ]
+          },
+          "priority": 420,
+          "status": "draft",
+          "tagNames": [
+            "CP - Welcome home"
+          ],
+          "eligibility": {
+            "name": "CP - Return to the forest eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.customerContext.engagementStatus.equals(\"Active\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Return to the forest eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.customerContext.engagementStatus",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Active"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "forest-gift",
+          "name": "CP - Gift cards",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "Give them time together",
+            "briefMessage": "Explore Center Parcs gift card information and check the current purchase and redemption terms.",
+            "compactTitle": "Give them time together",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore Center Parcs gift card information and check the current purchase and redemption terms.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore Center Parcs gift card information and check the current purchase and redemption terms.",
+            "fullCTA": "Explore gift cards",
+            "agentScript": "Explore Center Parcs gift card information and check the current purchase and redemption terms. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 410,
+          "status": "draft",
+          "tagNames": [
+            "CP - Welcome home"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "convert",
+      "rank": 5,
+      "policyOrder": 5,
+      "tag": {
+        "name": "CP - Find your short break"
+      },
+      "collection": {
+        "name": "CP - Find your short break collection",
+        "tagNames": [
+          "CP - Find your short break"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:convert}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:convert}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Find your short break strategy",
+        "priority": 5,
+        "ranking": "static item priority",
+        "collectionName": "CP - Find your short break collection",
+        "rank": {
+          "priority": 5,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:convert}}",
+          "filterName": "CP - Find your short break collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Find your short break eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.shoppingIntent.equals(\"High\", false)) or (_demoemea.hotel.customerContext.abandonedSearchFlag = true)"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Find your short break eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "or",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "or",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.shoppingIntent",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "High"
+                  ]
+                },
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.abandonedSearchFlag",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    true
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "resume-search",
+          "name": "CP - Resume break search",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Your forest escape is waiting to be explored",
+            "briefMessage": "Return to short-break search and explore dates and lodges again. No price or availability is held by this demo.",
+            "compactTitle": "Your forest escape is waiting to be explored",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Return to short-break search and explore dates and lodges again. No price or availability is held by this demo.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Return to short-break search and explore dates and lodges again. No price or availability is held by this demo.",
+            "fullCTA": "Search short breaks",
+            "agentScript": "Return to short-break search and explore dates and lodges again. No price or availability is held by this demo. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.customerContext.abandonedSearchFlag",
+                "op": "eq",
+                "value": true
+              }
+            ]
+          },
+          "priority": 330,
+          "status": "draft",
+          "tagNames": [
+            "CP - Find your short break"
+          ],
+          "eligibility": {
+            "name": "CP - Resume break search eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.customerContext.abandonedSearchFlag = true)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Resume break search eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.customerContext.abandonedSearchFlag",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        true
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "treehouse-search",
+          "name": "CP - Treehouse inspiration",
+          "image": "cp-decisioning-assets/treehouse.webp",
+          "imageAlt": "Treehouse in the forest",
+          "content": {
+            "title": "A special stay among the trees",
+            "briefMessage": "Discover Treehouse accommodation for a distinctive forest break. Village availability varies.",
+            "compactTitle": "A special stay among the trees",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Discover Treehouse accommodation for a distinctive forest break. Village availability varies.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Discover Treehouse accommodation for a distinctive forest break. Village availability varies.",
+            "fullCTA": "Explore Treehouses",
+            "agentScript": "Discover Treehouse accommodation for a distinctive forest break. Village availability varies. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType",
+                "op": "eq",
+                "value": "Treehouse"
+              }
+            ]
+          },
+          "priority": 320,
+          "status": "draft",
+          "tagNames": [
+            "CP - Find your short break"
+          ],
+          "eligibility": {
+            "name": "CP - Treehouse inspiration eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType.equals(\"Treehouse\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Treehouse inspiration eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Treehouse"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "woodland-search",
+          "name": "CP - Woodland breaks",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "Your home in the heart of the forest",
+            "briefMessage": "Explore Woodland Lodges and find a short break that suits your family.",
+            "compactTitle": "Your home in the heart of the forest",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore Woodland Lodges and find a short break that suits your family.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore Woodland Lodges and find a short break that suits your family.",
+            "fullCTA": "Explore Woodland Lodges",
+            "agentScript": "Explore Woodland Lodges and find a short break that suits your family. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 310,
+          "status": "draft",
+          "tagNames": [
+            "CP - Find your short break"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "grow",
+      "rank": 6,
+      "policyOrder": 6,
+      "tag": {
+        "name": "CP - Make it extra special"
+      },
+      "collection": {
+        "name": "CP - Make it extra special collection",
+        "tagNames": [
+          "CP - Make it extra special"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:grow}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:grow}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Make it extra special strategy",
+        "priority": 6,
+        "ranking": "static item priority",
+        "collectionName": "CP - Make it extra special collection",
+        "rank": {
+          "priority": 6,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:grow}}",
+          "filterName": "CP - Make it extra special collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Make it extra special eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.journeyStage.equals(\"Booked\", false)) and (_demoemea.hotel.bookingDetails.checkInDate occurs <= 365 days after today) and (not ((_demoemea.hotel.bookingDetails.checkInDate occurs <= 14 days after today)))"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Make it extra special eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "and",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "and",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.journeyStage",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Booked"
+                  ]
+                },
+                {
+                  "comparisonType": "rolling-range-future",
+                  "component": {
+                    "id": "profile._demoemea.hotel.bookingDetails.checkInDate",
+                    "__entity__": true,
+                    "type": "rE"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "temporalConstraint": {
+                    "end": {
+                      "type": "rollingRangeConstraintRestriction",
+                      "unit": "days",
+                      "itemType": "rollingRangeConstraintRestriction",
+                      "quantity": 365
+                    },
+                    "type": "rolling-range-future",
+                    "start": {
+                      "type": "rollingRangeConstraintRestriction",
+                      "unit": "days",
+                      "itemType": "rollingRangeConstraintRestriction",
+                      "quantity": 365
+                    },
+                    "subType": "rolling-range-future-constraint",
+                    "itemType": "rolling-range",
+                    "showEndFields": false,
+                    "referencedDirection": "after"
+                  }
+                },
+                {
+                  "exclude": true,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "rolling-range-future",
+                      "component": {
+                        "id": "profile._demoemea.hotel.bookingDetails.checkInDate",
+                        "__entity__": true,
+                        "type": "rE"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "temporalConstraint": {
+                        "end": {
+                          "type": "rollingRangeConstraintRestriction",
+                          "unit": "days",
+                          "itemType": "rollingRangeConstraintRestriction",
+                          "quantity": 14
+                        },
+                        "type": "rolling-range-future",
+                        "start": {
+                          "type": "rollingRangeConstraintRestriction",
+                          "unit": "days",
+                          "itemType": "rollingRangeConstraintRestriction",
+                          "quantity": 14
+                        },
+                        "subType": "rolling-range-future-constraint",
+                        "itemType": "rolling-range",
+                        "showEndFields": false,
+                        "referencedDirection": "after"
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "forest-spa",
+          "name": "CP - Forest Spa",
+          "image": "cp-decisioning-assets/spa.webp",
+          "imageAlt": "Aqua Sana Forest Spa",
+          "content": {
+            "title": "Take a moment just for you",
+            "briefMessage": "Explore Aqua Sana Forest Spa experiences. Eligibility, ages, prices and booking availability must be checked separately.",
+            "compactTitle": "Take a moment just for you",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore Aqua Sana Forest Spa experiences. Eligibility, ages, prices and booking availability must be checked separately.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore Aqua Sana Forest Spa experiences. Eligibility, ages, prices and booking availability must be checked separately.",
+            "fullCTA": "Explore Forest Spa",
+            "agentScript": "Explore Aqua Sana Forest Spa experiences. Eligibility, ages, prices and booking availability must be checked separately. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "gte",
+                "value": 3
+              }
+            ]
+          },
+          "priority": 230,
+          "status": "draft",
+          "tagNames": [
+            "CP - Make it extra special"
+          ],
+          "eligibility": {
+            "name": "CP - Forest Spa eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.scoring.core.propensityScore >= 3)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Forest Spa eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": ">=",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 3
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "adventure-planning",
+          "name": "CP - Adventure planning",
+          "image": "cp-decisioning-assets/activities.jpg",
+          "imageAlt": "Archery activity",
+          "content": {
+            "title": "Add a little adventure",
+            "briefMessage": "Browse activities for your family and plan ahead for your village stay.",
+            "compactTitle": "Add a little adventure",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Browse activities for your family and plan ahead for your village stay.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Browse activities for your family and plan ahead for your village stay.",
+            "fullCTA": "Explore adventures",
+            "agentScript": "Browse activities for your family and plan ahead for your village stay. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "gte",
+                "value": 2
+              },
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "lt",
+                "value": 3
+              }
+            ]
+          },
+          "priority": 220,
+          "status": "draft",
+          "tagNames": [
+            "CP - Make it extra special"
+          ],
+          "eligibility": {
+            "name": "CP - Adventure planning eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.scoring.core.propensityScore >= 2) and (_demoemea.scoring.core.propensityScore < 3)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Adventure planning eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": ">=",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 2
+                    },
+                    {
+                      "comparisonType": "<",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 3
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "restaurant-planning",
+          "name": "CP - Restaurant planning",
+          "image": "cp-decisioning-assets/dining.jpg",
+          "imageAlt": "Dishes from Huck's menu",
+          "content": {
+            "title": "Plan a meal worth sharing",
+            "briefMessage": "Discover restaurant options for your break and review village booking information.",
+            "compactTitle": "Plan a meal worth sharing",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Discover restaurant options for your break and review village booking information.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Discover restaurant options for your break and review village booking information.",
+            "fullCTA": "Explore restaurants",
+            "agentScript": "Discover restaurant options for your break and review village booking information. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.scoring.core.propensityScore",
+                "op": "lt",
+                "value": 2
+              }
+            ]
+          },
+          "priority": 210,
+          "status": "draft",
+          "tagNames": [
+            "CP - Make it extra special"
+          ],
+          "eligibility": {
+            "name": "CP - Restaurant planning eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.scoring.core.propensityScore < 2)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Restaurant planning eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "<",
+                      "component": {
+                        "id": "profile._demoemea.scoring.core.propensityScore",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": 2
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "key": "engage",
+      "rank": 7,
+      "policyOrder": 7,
+      "tag": {
+        "name": "CP - Stay inspired"
+      },
+      "collection": {
+        "name": "CP - Stay inspired collection",
+        "tagNames": [
+          "CP - Stay inspired"
+        ],
+        "constraints": [
+          {
+            "itemCatalogId": "xcore:decision-catalog:18c6b876319b00e4",
+            "constraint": "SELECT * FROM offer_items WHERE (_experience.decisioning.decisionitem.itemTags IN ('{{CP_TAG_ID:engage}}'))",
+            "uiModel": "{\"operator\":\"in\",\"value\":{\"left\":\"_experience.decisioning.decisionitem.itemTags\",\"right\":[\"{{CP_TAG_ID:engage}}\"],\"meta\":{\"left\":{\"title\":\"Tags\",\"source\":\"decisionItems\",\"type\":\"tag\",\"property\":{\"title\":\"Tags\",\"type\":\"array\",\"hasUUID\":true,\"description\":\"A set of tags to categorize an offer item\"}}}}}"
+          }
+        ],
+        "resolveTagIdsBeforeApply": true
+      },
+      "strategy": {
+        "name": "CP - Stay inspired strategy",
+        "priority": 7,
+        "ranking": "static item priority",
+        "collectionName": "CP - Stay inspired collection",
+        "rank": {
+          "priority": 7,
+          "order": {
+            "orderEvaluationType": "static"
+          }
+        },
+        "optionSelection": {
+          "filter": "{{CP_COLLECTION_ID:engage}}",
+          "filterName": "CP - Stay inspired collection"
+        },
+        "profileConstraint": {
+          "profileConstraintType": "none"
+        },
+        "attachmentScopeRequiresConfirmation": true
+      },
+      "eligibility": {
+        "name": "CP - Stay inspired eligibility",
+        "exdRule": true,
+        "type": "DECISION_ITEM",
+        "condition": {
+          "type": "PQL",
+          "format": "pql/text",
+          "value": "(_demoemea.hotel.customerContext.journeyStage.equals(\"Dreaming\", false)) and (_demoemea.hotel.customerContext.shoppingIntent.equals(\"None\", false))"
+        },
+        "segmentModel": {
+          "lifecycleState": "published",
+          "name": "CP - Stay inspired eligibility",
+          "namespace": "ups",
+          "isMissingAnsibleModel": false,
+          "relationalExpression": false,
+          "deprecated": {
+            "status": false,
+            "reason": ""
+          },
+          "description": "",
+          "evaluationInfo": {
+            "batch": {
+              "enabled": true
+            },
+            "continuous": {
+              "enabled": false
+            },
+            "synchronous": {
+              "enabled": false
+            }
+          },
+          "payloadInfo": {
+            "schemaPath": ""
+          },
+          "labels": [],
+          "tags": [],
+          "canHaveFolder": true,
+          "expression": {
+            "isValid": true,
+            "logicalOperator": "and",
+            "itemType": "segmentDefinition",
+            "profileAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "logicalOperator": "and",
+              "itemType": "segmentContainer",
+              "items": [
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.journeyStage",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "Dreaming"
+                  ]
+                },
+                {
+                  "comparisonType": "equals",
+                  "component": {
+                    "id": "profile._demoemea.hotel.customerContext.shoppingIntent",
+                    "__entity__": true,
+                    "type": "bx"
+                  },
+                  "isCaseSensitive": false,
+                  "isPlaceholder": false,
+                  "originalLocation": [],
+                  "itemType": "segmentRule",
+                  "value": [
+                    "None"
+                  ]
+                }
+              ]
+            },
+            "xEventAttributesContainer": {
+              "exclude": false,
+              "isCollapsed": false,
+              "items": [],
+              "logicalOperator": "then",
+              "itemType": "eventTypeCardContainer"
+            }
+          }
+        }
+      },
+      "offers": [
+        {
+          "key": "forest-inspiration",
+          "name": "CP - Forest inspiration",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Less everyday. More together.",
+            "briefMessage": "Discover short breaks in the forest, with lodges, activities and time to reconnect.",
+            "compactTitle": "Less everyday. More together.",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Discover short breaks in the forest, with lodges, activities and time to reconnect.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Discover short breaks in the forest, with lodges, activities and time to reconnect.",
+            "fullCTA": "Discover short breaks",
+            "agentScript": "Discover short breaks in the forest, with lodges, activities and time to reconnect. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "or",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.customerContext.engagementStatus",
+                "op": "eq",
+                "value": "New"
+              },
+              {
+                "path": "_demoemea.hotel.customerContext.engagementStatus",
+                "op": "eq",
+                "value": "Active"
+              }
+            ]
+          },
+          "priority": 130,
+          "status": "draft",
+          "tagNames": [
+            "CP - Stay inspired"
+          ],
+          "eligibility": {
+            "name": "CP - Forest inspiration eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.customerContext.engagementStatus.equals(\"New\", false)) or (_demoemea.hotel.customerContext.engagementStatus.equals(\"Active\", false))"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Forest inspiration eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "or",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "or",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.customerContext.engagementStatus",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "New"
+                      ]
+                    },
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.customerContext.engagementStatus",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        "Active"
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "digital-planning",
+          "name": "CP - Digital planning",
+          "image": "cp-decisioning-assets/lodge.webp",
+          "imageAlt": "Woodland Lodge in the forest",
+          "content": {
+            "title": "Your forest plans, close at hand",
+            "briefMessage": "Explore digital planning information for your next break. No app installation or account change is performed.",
+            "compactTitle": "Your forest plans, close at hand",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore digital planning information for your next break. No app installation or account change is performed.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore digital planning information for your next break. No app installation or account change is performed.",
+            "fullCTA": "Explore planning tools",
+            "agentScript": "Explore digital planning information for your next break. No app installation or account change is performed. Check availability, prices and terms with Center Parcs."
+          },
+          "rule": {
+            "operator": "and",
+            "conditions": [
+              {
+                "path": "_demoemea.hotel.customerContext.mobileAppUser",
+                "op": "eq",
+                "value": false
+              }
+            ]
+          },
+          "priority": 120,
+          "status": "draft",
+          "tagNames": [
+            "CP - Stay inspired"
+          ],
+          "eligibility": {
+            "name": "CP - Digital planning eligibility",
+            "exdRule": true,
+            "type": "DECISION_ITEM",
+            "condition": {
+              "type": "PQL",
+              "format": "pql/text",
+              "value": "(_demoemea.hotel.customerContext.mobileAppUser = false)"
+            },
+            "segmentModel": {
+              "lifecycleState": "published",
+              "name": "CP - Digital planning eligibility",
+              "namespace": "ups",
+              "isMissingAnsibleModel": false,
+              "relationalExpression": false,
+              "deprecated": {
+                "status": false,
+                "reason": ""
+              },
+              "description": "",
+              "evaluationInfo": {
+                "batch": {
+                  "enabled": true
+                },
+                "continuous": {
+                  "enabled": false
+                },
+                "synchronous": {
+                  "enabled": false
+                }
+              },
+              "payloadInfo": {
+                "schemaPath": ""
+              },
+              "labels": [],
+              "tags": [],
+              "canHaveFolder": true,
+              "expression": {
+                "isValid": true,
+                "logicalOperator": "and",
+                "itemType": "segmentDefinition",
+                "profileAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "logicalOperator": "and",
+                  "itemType": "segmentContainer",
+                  "items": [
+                    {
+                      "comparisonType": "equals",
+                      "component": {
+                        "id": "profile._demoemea.hotel.customerContext.mobileAppUser",
+                        "__entity__": true,
+                        "type": "bx"
+                      },
+                      "isCaseSensitive": false,
+                      "isPlaceholder": false,
+                      "originalLocation": [],
+                      "itemType": "segmentRule",
+                      "value": [
+                        false
+                      ]
+                    }
+                  ]
+                },
+                "xEventAttributesContainer": {
+                  "exclude": false,
+                  "isCollapsed": false,
+                  "items": [],
+                  "logicalOperator": "then",
+                  "itemType": "eventTypeCardContainer"
+                }
+              }
+            }
+          }
+        },
+        {
+          "key": "reconnect",
+          "name": "CP - Reconnect",
+          "image": "cp-decisioning-assets/forest.webp",
+          "imageAlt": "Lodges nestled in the forest",
+          "content": {
+            "title": "Find your way back to the forest",
+            "briefMessage": "Explore inspiration for a future family break. This is a demo suggestion, not a loyalty reward or member benefit.",
+            "compactTitle": "Find your way back to the forest",
+            "compactSubtitle": "Your forest moment",
+            "compactDescription": "Explore inspiration for a future family break. This is a demo suggestion, not a loyalty reward or member benefit.",
+            "fullSubtitle": "A short break, selected for you",
+            "fullDescription": "Explore inspiration for a future family break. This is a demo suggestion, not a loyalty reward or member benefit.",
+            "fullCTA": "Explore the forest",
+            "agentScript": "Explore inspiration for a future family break. This is a demo suggestion, not a loyalty reward or member benefit. Check availability, prices and terms with Center Parcs."
+          },
+          "priority": 110,
+          "status": "draft",
+          "tagNames": [
+            "CP - Stay inspired"
+          ]
+        }
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "Forest inspiration",
+      "preset": {
+        "booking": "Dreaming",
+        "days": 30,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 1,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "engage",
+      "expectedOffer": "forest-inspiration",
+      "rank": 7,
+      "signalKeys": [
+        "booking",
+        "intent",
+        "engagement"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Dreaming",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 1,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "A Forest Spa moment",
+      "preset": {
+        "booking": "Booked",
+        "days": 30,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 3,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "grow",
+      "expectedOffer": "forest-spa",
+      "rank": 6,
+      "signalKeys": [
+        "booking",
+        "days",
+        "score"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Booked",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 3,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "Return to break search",
+      "preset": {
+        "booking": "Dreaming",
+        "days": 30,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": true,
+        "room": "Woodland Lodge",
+        "score": 1,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "convert",
+      "expectedOffer": "resume-search",
+      "rank": 5,
+      "signalKeys": [
+        "abandoned",
+        "intent"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Dreaming",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": true,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 1,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "Welcome home",
+      "preset": {
+        "booking": "Post-Trip",
+        "days": 30,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 1,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "posttrip",
+      "expectedOffer": "return-forest",
+      "rank": 4,
+      "signalKeys": [
+        "booking",
+        "engagement"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Post-Trip",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 1,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "Arriving tomorrow",
+      "preset": {
+        "booking": "Booked",
+        "days": 1,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 1,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "prepare",
+      "expectedOffer": "arrival-guide",
+      "rank": 3,
+      "signalKeys": [
+        "booking",
+        "days"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Booked",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-11-10",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 1,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "Family activity moment",
+      "preset": {
+        "booking": "In-Trip",
+        "days": 30,
+        "ready": false,
+        "case": "None",
+        "service": false,
+        "intent": "None",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 3,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "stay",
+      "expectedOffer": "family-activities",
+      "rank": 2,
+      "signalKeys": [
+        "booking",
+        "score"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "In-Trip",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "None",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "None",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 3,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    },
+    {
+      "name": "Guest care first",
+      "preset": {
+        "booking": "Dreaming",
+        "days": 30,
+        "ready": false,
+        "case": "Escalated",
+        "service": false,
+        "intent": "High",
+        "abandoned": false,
+        "room": "Woodland Lodge",
+        "score": 1,
+        "engagement": "Active",
+        "points": 0,
+        "app": true,
+        "emailConsent": "y",
+        "personalize": "y"
+      },
+      "expectedObjective": "protect",
+      "expectedOffer": "guest-care",
+      "rank": 1,
+      "signalKeys": [
+        "case",
+        "intent",
+        "service"
+      ],
+      "attributes": {
+        "_demoemea.hotel.customerContext.journeyStage": "Dreaming",
+        "_demoemea.hotel.bookingDetails.checkInDate": "2026-12-09",
+        "_demoemea.hotel.checkIn.roomReady": false,
+        "_demoemea.complaint.status": "Escalated",
+        "_demoemea.hotel.housekeeping.serviceRequested": false,
+        "_demoemea.hotel.customerContext.shoppingIntent": "High",
+        "_demoemea.hotel.customerContext.abandonedSearchFlag": false,
+        "_demoemea.individualCharacteristics.travel.preferences.hotel.accommodationType": "Woodland Lodge",
+        "_demoemea.scoring.core.propensityScore": 1,
+        "_demoemea.hotel.customerContext.engagementStatus": "Active",
+        "_demoemea.loyaltyDetails.points": 0,
+        "_demoemea.hotel.customerContext.mobileAppUser": true,
+        "consents.marketing.email.val": "y",
+        "consents.personalize.content.val": "y"
+      }
+    }
+  ]
+}
