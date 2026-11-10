@@ -24,7 +24,7 @@
         data-demo-env-strip-variant="spectrum" data-demo-env-strip-prefix="cpDecisioning"
         data-demo-env-strip-title="CP Decisioning" data-demo-env-strip-subtitle="Site configuration / kirkham"
         data-demo-env-strip-message-id="cpDecisioningMessage" data-demo-env-strip-bc-bottom="1"
-        data-demo-env-strip-disclaimer="Apply updates the selected test profile after confirmation. Run requests the configured live policy. Catalog activation is separate."></div>
+        data-demo-env-strip-disclaimer="Click Apply to update the selected test profile after validation. Run requests the configured live policy. Catalog activation is separate."></div>
     </section>
   </div>
   <header class="tui-live-actions" aria-label="CP decision controls">
@@ -37,7 +37,7 @@
     </div>
   </header>
   <iframe id="cp-visualiser" class="mod-demo-site-frame" title="Center Parcs decisioning experiences"
-    src="cp-decisioning-visualiser.html?v=20261109-hospitality" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+    src="cp-decisioning-visualiser.html?v=20261110-cp-apply" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
   <div class="dashboard-shell"><aside class="dashboard-sidebar" aria-label="Lab navigation"></aside><div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div></div>
   <details class="cp-decision-metadata"><summary>Last successful live response / item and strategy metadata</summary><pre id="cpDecisionMetadata">No live response yet. Simulated eligibility is not a live AJO response.</pre></details>
   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
@@ -53,7 +53,7 @@
   <script src="tui-decisioning-attribution.js?v=20261110-cp-live"></script>
   <script src="tui-decisioning-drawer.js?v=20261109-campaign"></script>
   <script src="aep-demo-generator-targets.js"></script>
-  <script src="cp-decisioning-model.js?v=20261109-hospitality"></script>
+  <script src="cp-decisioning-model.js?v=20261110-cp-apply"></script>
   <script src="tui-decisioning-profile.js?v=20261109-hospitality"></script>
   <script src="tui-profile-hero.js?v=20261108-cp-model"></script>
   <script>
@@ -79,7 +79,7 @@
       decisioning: { iframeId: 'cp-visualiser', useParentDocument: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false,
         viewName: 'CP Decisioning', eventTenantNamespace: '_demoemea' },
-      labCoreScript: 'tui-decisioning-demo.js?v=20261110-cp-live'
+      labCoreScript: 'tui-decisioning-demo.js?v=20261110-cp-apply'
     };
   </script>
   <script src="decisioning-persona-journey.js?v=20261022-abandoned-search-icon"></script>

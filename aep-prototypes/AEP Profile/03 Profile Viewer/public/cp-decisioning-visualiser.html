@@ -17,7 +17,7 @@
     <section class="signals-pane pane" aria-labelledby="signals-title">
       <div class="pane-heading"><div><span class="eyebrow">01 / THE GUEST</span><h2 id="signals-title">Short-break signals</h2></div><button id="reset" type="button">Reset</button></div>
       <div id="signals"></div>
-      <details class="mapping-details"><summary>Verified schema / mapping boundary</summary><p>Verified against kirkham Operational Profile schema, version 1.12. All six hospitality additions are used. Arrival timing derives from <code>hotel.bookingDetails.checkInDate</code> using UTC calendar days; applying it writes a date, not a countdown. Complaint status uses <code>complaint.status</code>, and accommodation preference is separate from the booked lodge type. No airline fields are used.</p><p>The experience-fit score remains a labelled demo input; loyalty points and lodge readiness are informational. Controls are staged. Scenario defaults are not evidence of stored consent or profile values. Apply previews the exact test-profile updates and asks for confirmation. Each configured ingestion schema must also support these paths; the page never provisions it automatically.</p></details>
+      <details class="mapping-details"><summary>Verified schema / mapping boundary</summary><p>Verified against kirkham Operational Profile schema, version 1.12. All six hospitality additions are used. Arrival timing derives from <code>hotel.bookingDetails.checkInDate</code> using UTC calendar days; applying it writes a date, not a countdown. Complaint status uses <code>complaint.status</code>, and accommodation preference is separate from the booked lodge type. No airline fields are used.</p><p>The experience-fit score remains a labelled demo input; loyalty points and lodge readiness are informational. Controls are staged. Scenario defaults are not evidence of stored consent or profile values. Clicking Apply validates and sends the staged test-profile updates without an additional approval dialog. Each configured ingestion schema must also support these paths; the page never provisions it automatically.</p></details>
     </section>
     <div class="gutter" role="separator" aria-label="Resize guest signals" aria-orientation="vertical" tabindex="0" data-pane="signals" aria-valuemin="230" aria-valuemax="900" aria-valuenow="270"></div>
     <section class="decision-pane pane" aria-labelledby="decision-title">
@@ -63,7 +63,7 @@
     </section>
   </main>
   <details class="fictional-drawer"><summary>Local fixture / no live identity or activity</summary><div><p>No real ECID, audience or journey is simulated. Open the parent lab to look up an existing test profile.</p><p id="fixture-summary"></p></div></details>
-  <script src="cp-decisioning-model.js?v=20261109-hospitality"></script>
+  <script src="cp-decisioning-model.js?v=20261110-cp-apply"></script>
   <script src="tui-decisioning-visualiser.js?v=20261109-hospitality"></script>
 </body>
 </html>
