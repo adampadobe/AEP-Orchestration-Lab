@@ -7,6 +7,43 @@ const { createMyDataFlowsTraceStore } = require('../myDataFlowsTraceStore');
 const { createMyDataFlowsTraceAep } = require('../myDataFlowsTraceAep');
 const { registerMyDataFlowsTraceRoutes } = require('../myDataFlowsTraceRoutes');
 
+test('production trace wiring initializes the Admin app before requesting Auth on a cold start', () => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const source = fs.readFileSync(require.resolve('../index.js'), 'utf8');
+  const start = source.indexOf('Object.assign(exports, registerMyDataFlowsTraceRoutes({');
+  const end = source.indexOf('\nconst commerceFnOpts', start);
+  assert.ok(start >= 0 && end > start);
+  let initialized = false;
+  let getServices;
+  const db = {};
+  const auth = {};
+  const modules = {
+    './adminFirestore': { getAdminFirestore() { initialized = true; return db; } },
+    'firebase-admin': { auth() {
+      assert.equal(initialized, true, 'Auth must not run before Admin initialization');
+      return auth;
+    } },
+    './myDataFlowsTraceStore': { createMyDataFlowsTraceStore(value) {
+      assert.equal(value, db);
+      return {};
+    } },
+    './myDataFlowsSnowflake': { createMyDataFlowsSnowflake: () => ({}) },
+    './myDataFlowsTraceAep': { createMyDataFlowsTraceAep: () => ({}) },
+    './labProfileGenerationPrefsStore': { getPrefs: async () => ({}) },
+  };
+  vm.runInNewContext(source.slice(start, end), {
+    exports: {}, onRequest() {}, profileFnOpts: {}, SNOWFLAKE_VPC_OPTS: {}, setCors() {},
+    require(name) {
+      assert.ok(Object.hasOwn(modules, name), `Unexpected service dependency: ${name}`);
+      return modules[name];
+    },
+    registerMyDataFlowsTraceRoutes(options) { getServices = options.getServices; return {}; },
+    createMyDataFlowsTraceService: (options) => options,
+  });
+  assert.equal(getServices().auth, auth);
+});
+
 const id = '71cc1a4c-3861-4abd-929f-344b30fd37dc';
 const otherId = 'c0d933de-beca-433a-ade9-9b631258be81';
 const identity = { email: 'demo+10112026-1@example.test', ecid: '12345678901234567890123456789012345678', crmId: 'CRM1000', recipientId: 'R-demo' };

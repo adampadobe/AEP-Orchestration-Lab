@@ -111,6 +111,9 @@ async function main() {
         window.fixtureStatus = options.status || 200;
         window.traceRequests = [];
         window.fixtureTraceRun = options.run ? structuredClone(traceFixture) : null;
+        if (options.unchecked) window.fixtureTraceRun.stages.forEach(stage => {
+          stage.state = 'waiting'; stage.checkedAt = null; stage.verifiedAt = null;
+        });
         window.tracePostFailure = !!options.postFailure;
         const nativeFetch = window.fetch;
         window.fetch = async (url, init) => {
@@ -156,6 +159,19 @@ async function main() {
     const { context, page } = await open();
     await page.locator('#flowsResults').waitFor();
     assert.equal(await page.locator('.flows-node').count(), 6);
+    assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 1, 'Flow view starts with the first step only');
+    assert.equal(await page.locator('.flows-node.flows-concealed').first().evaluate(group => getComputedStyle(group).display), 'none');
+    await page.locator('#flowsNext').click();
+    assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 2, 'The next step retains the source and reveals its destination');
+    assert.equal(await page.locator('.flows-edge:not(.flows-concealed)').count(), 1);
+    const revealedPosition = await page.locator('.flows-node[data-node-id="snowflake"]').getAttribute('transform');
+    await page.locator('#flowsFullView').click();
+    assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 6);
+    assert.equal(await page.locator('#flowsProgress').textContent(), 'Step 2 of 4');
+    await page.locator('#flowsFocusView').click();
+    assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 2);
+    assert.equal(await page.locator('.flows-node[data-node-id="snowflake"]').getAttribute('transform'), revealedPosition);
+    await page.locator('#flowsPrevious').click();
     assert.equal(await page.locator('#flowsScenarios button').count(), 5);
     assert.equal(await page.locator('#flowsEvidence img').count(), 0, 'API strings must never become HTML');
     let requests = await page.evaluate(() => window.requests);
@@ -280,7 +296,11 @@ async function main() {
     assert.match(await real.page.locator('#flowsIndustries').textContent(), /rel_fsi_account/);
     for (const scenario of realReference.scenarios) {
       await real.page.locator('#flowsScenarios button').filter({ hasText: scenario.label }).click();
+      const revealed = new Set(['lab']);
       for (let i = 0; i < scenario.steps.length; i++) {
+        scenario.steps[i].nodeIds.forEach(id => revealed.add(id));
+        assert.deepEqual((await real.page.locator('.flows-node:not(.flows-concealed)').evaluateAll(nodes => nodes.map(n => n.dataset.nodeId))).sort(),
+          [...revealed].sort(), scenario.id + ' reveals only current and earlier steps');
         assert.deepEqual((await real.page.locator('.flows-node[data-active=true]').evaluateAll(nodes => nodes.map(n => n.dataset.nodeId))).sort(),
           [...scenario.steps[i].nodeIds].sort(), scenario.id + ' parallel highlights at step ' + i);
         assert.ok((await real.page.locator('#flowsStep').textContent()).includes(scenario.steps[i].timing.label));
@@ -294,10 +314,31 @@ async function main() {
     geometry.forEach((a, i) => geometry.slice(i + 1).forEach(b =>
       assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y,
         'Real reference nodes must not overlap')));
+    async function assertFullWidth(page) {
+      await page.waitForFunction(() => {
+        const viewport = document.getElementById('flowsGraph');
+        return Math.abs(viewport.querySelector('svg').getBoundingClientRect().width - viewport.clientWidth) <= 3;
+      });
+    }
+    await assertFullWidth(real.page);
+    await real.page.setViewportSize({ width: 2000, height: 1000 });
+    await assertFullWidth(real.page);
+    await real.page.locator('#flowsZoomIn').click();
+    const manualWidth = await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width);
+    assert.ok(await real.page.locator('#flowsGraph').evaluate(graph => graph.scrollWidth > graph.clientWidth),
+      'Zoom must enlarge the flow beyond its viewport for scrolling');
+    await real.page.setViewportSize({ width: 1800, height: 1000 });
+    await real.page.waitForTimeout(100);
+    assert.equal(await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width), manualWidth,
+      'Resizing must not discard manual zoom below 100%');
+    await real.page.locator('#flowsFit').click();
+    await assertFullWidth(real.page);
     await real.page.locator('#flowsExpand').click();
+    await assertFullWidth(real.page);
     await real.page.locator('#flowsFullscreen').click();
     await real.page.locator('#flowsZoomIn').click();
     await real.page.locator('#flowsFit').click();
+    await assertFullWidth(real.page);
     assert.equal(await real.page.locator('.flows-node').count(), 15);
     await real.page.keyboard.press('Escape');
     await real.page.setViewportSize({ width: 390, height: 844 });
@@ -343,6 +384,7 @@ async function main() {
     await trace.page.locator('#flowsResults').waitFor();
     await trace.page.waitForFunction(() => window.traceRequests.length === 1);
     await trace.page.locator('#flowsTraceMode').click();
+    assert.equal(await trace.page.locator('.flows-node:not(.flows-concealed)').count(), 1, 'Live without a receipt starts at the Lab');
     assert.ok(await trace.page.locator('#flowsSimulationPanel').isHidden());
     assert.equal(await trace.page.locator('#flowsTraceIndustry option').count(), 6);
     assert.ok(await trace.page.locator('#flowsTraceCreate').isDisabled(), 'Write requires explicit acknowledgement');
@@ -405,6 +447,23 @@ async function main() {
     assert.equal(await trace.page.locator('#flowsTraceIdentity').textContent(), '');
     assert.ok(await trace.page.locator('#flowsResults').isHidden());
     await trace.context.close();
+    const progressiveLive = await open(owner, { run: true, unchecked: true });
+    await progressiveLive.page.waitForFunction(() => document.getElementById('flowsTraceIdentity').textContent.includes('CRM0042'));
+    await progressiveLive.page.locator('#flowsTraceMode').click();
+    assert.equal(await progressiveLive.page.locator('.flows-node:not(.flows-concealed)').count(), 1);
+    await progressiveLive.page.evaluate(() => {
+      window.traceStates = ['verified', 'checking', 'waiting', 'waiting', 'unavailable', 'waiting'];
+    });
+    await progressiveLive.page.locator('#flowsTraceCheck').click();
+    await progressiveLive.page.waitForFunction(() => document.querySelectorAll('#flowsTraceStages [data-state=checking]').length === 1);
+    assert.deepEqual((await progressiveLive.page.locator('.flows-node:not(.flows-concealed)').evaluateAll(nodes => nodes.map(n => n.dataset.nodeId))).sort(),
+      ['lab', 'snowflake', 'rel', 'event'].sort(), 'Live reveals checks and unavailable systems, not untouched waiting destinations');
+    assert.equal(await progressiveLive.page.locator('.flows-node[data-node-id="event"]').getAttribute('data-live-state'), 'unavailable');
+    await progressiveLive.page.evaluate(() => { window.traceStates = Array(6).fill('waiting'); });
+    await progressiveLive.page.locator('#flowsTraceCheck').click();
+    await progressiveLive.page.waitForFunction(() => document.querySelectorAll('#flowsTraceStages [data-state=waiting]').length === 6);
+    assert.equal(await progressiveLive.page.locator('.flows-node:not(.flows-concealed)').count(), 4, 'Previously checked systems remain visible');
+    await progressiveLive.context.close();
     const resumed = await open(owner, { run: true });
     await resumed.page.locator('#flowsResults').waitFor();
     await resumed.page.waitForFunction(() => document.getElementById('flowsTraceIdentity').textContent.includes('CRM0042'));
