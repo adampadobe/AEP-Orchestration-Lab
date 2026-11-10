@@ -6,13 +6,20 @@ require the in-development switch; ordinary owner/sandbox filters and hide setti
 still apply. This reuses the latest TUI
 environment bar, manual-decision runtime, compact profile drawer, journey renderer
 and event icons rather than creating a generic website clone. Brand photography
-is selected from the supplied website ZIP; original site scripts and trackers are
-not executed. All new asset names use **CP**.
+from the supplied website ZIP remains catalog-authoring reference material only;
+it is never used as a fallback in the customer experiences. Original site scripts
+and trackers are not executed. All new asset names use **CP**.
 
 Email Desktop, Mobile App and full-width Web share the same selected content.
 Scenarios run 7 to 1; strategy precedence is 1 to 7. Only relevant signal groups
 expand for a scenario. Local simulated eligibility is explicitly labelled and
-never substituted for a live AJO result. A successful live result survives staged
+never substituted for a live AJO result. Before the first successful Run, all three
+offer areas show neutral placeholders without local images or promotional copy,
+including on the standalone visualiser. Scenario changes update signals and the
+simulated eligibility ladder, not the customer content. Only a live decision's
+image and returned headline/description populate those offer areas; missing copy
+is not filled from the local catalog, and no fabricated CTA is added. The static
+Web inspiration photography strip is omitted. A successful live result survives staged
 edits, consent holds, failed requests and failed image loads. After a new live
 decision succeeds and renders, display-tracking or refresh failures are reported
 explicitly as follow-up failures; they do not mislabel the decision as failed. Changing
