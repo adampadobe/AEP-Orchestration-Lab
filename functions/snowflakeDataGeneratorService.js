@@ -512,8 +512,11 @@ async function handleGenerateBaseProfiles(input) {
  * Generate CRM profile rows in the governed table for one supported industry.
  * Unlike the legacy BASE_PROFILES generator, callers cannot select an arbitrary
  * table: the registry owns the industry -> table/schema mapping.
+ * prepareTables:false verifies existing objects without schema changes. Expected
+ * email/mobile/context values pin a reviewed plan; allocation gaps are never retried.
+ * onPrepared receives identities only and must durably persist them before returning.
  *
- * @param {{ labUser: string, sandbox: string, industry?: string, count?: number, batchSize?: number }} input
+ * @param {{ labUser: string, sandbox: string, industry?: string, count?: number, batchSize?: number, prepareTables?: boolean, onPrepared?: function }} input
  */
 async function handleGenerateIndustryProfiles(input) {
   const labUser = String(input.labUser || '').trim();
@@ -521,6 +524,8 @@ async function handleGenerateIndustryProfiles(input) {
   const industry = String(input.industry || 'travel').trim().toLowerCase();
   if (!sandbox) throw new Error('sandbox is required');
   if (!labUser) throw new Error('labUser uid is required');
+  if (input.onPrepared != null && typeof input.onPrepared !== 'function') throw new Error('onPrepared must be a function');
+  if (input.prepareTables != null && typeof input.prepareTables !== 'boolean') throw new Error('prepareTables must be a boolean');
 
   const config = getIndustryProfileConfig(industry);
   if (!config) {
@@ -542,6 +547,10 @@ async function handleGenerateIndustryProfiles(input) {
   if (input.expectedBaseEmail != null && input.expectedBaseEmail !== generationPrefs.baseEmail) {
     return { ok: false, error: { code: 'EMAIL_PREFS_CHANGED',
       message: 'Saved base email changed. Refresh email settings before generating.', hints: [] } };
+  }
+  if (input.expectedMobilePhone != null && input.expectedMobilePhone !== generationPrefs.mobilePhone) {
+    return { ok: false, error: { code: 'MOBILE_PREFS_CHANGED',
+      message: 'Saved mobile changed. Refresh recipient settings before generating.', hints: [] } };
   }
 
   const resolved = await store.resolveConnection(labUser, sandbox);
@@ -573,6 +582,11 @@ async function handleGenerateIndustryProfiles(input) {
   }
 
   const cfg = resolved.config;
+  if ((input.expectedDatabase != null && String(cfg.database || '').toUpperCase() !== input.expectedDatabase)
+    || (input.expectedSchema != null && String(cfg.schema || '').toUpperCase() !== input.expectedSchema)) {
+    return { ok: false, error: { code: 'SNOWFLAKE_CONTEXT_CHANGED',
+      message: 'Saved Snowflake database or schema changed. No recipient was written.', hints: [] } };
+  }
   const fqTable = fullyQualified(cfg.database, cfg.schema, config.table);
   const runStamp = new Date().toISOString();
   const schema = resolveDualLoadInsertSchema(config.table, industry);
@@ -581,6 +595,10 @@ async function handleGenerateIndustryProfiles(input) {
   const profiles = [];
   let tableRowcounts;
   let committed = false;
+  let writeStarted = false;
+  let commitAttempted = false;
+  let commitAcknowledged = false;
+  let rollbackFailed = false;
   try {
     conn = await connectAsync(snowflake, buildSnowflakeConnectOptions(resolved));
     if (cfg.warehouse) {
@@ -593,12 +611,30 @@ async function handleGenerateIndustryProfiles(input) {
       await execAsync(conn, { sqlText: `USE SCHEMA ${safeIdentifier(cfg.schema, '')}` });
     }
 
-    const execute = (sqlText, binds) => execAsync(conn, { sqlText, binds });
-    await prepareSeedTables(execute, cfg, industry);
+    const execute = async (sqlText, binds) => {
+      if (sqlText === 'COMMIT') commitAttempted = true;
+      try {
+        const rows = await execAsync(conn, { sqlText, binds });
+        if (sqlText === 'COMMIT') commitAcknowledged = true;
+        return rows;
+      } catch (error) {
+        if (sqlText === 'ROLLBACK') rollbackFailed = true;
+        throw error;
+      }
+    };
+    if (input.prepareTables === false) {
+      // Lazy loading avoids a cycle: the bounded adapter invokes this generator.
+      await require('./myDataFlowsSnowflake').verifySeedReadiness(execute, cfg, industry);
+    } else await prepareSeedTables(execute, cfg, industry);
     const startIndex = await getNextSeedCrmIndex(execute, cfg, [industry], count);
     emailAllocation = await prefsStore.reserveEmails(labUser, sandbox, count, {
       expectedBaseEmail: generationPrefs.baseEmail,
     });
+    if (input.expectedMobilePhone != null && emailAllocation.mobilePhone !== input.expectedMobilePhone) {
+      throw Object.assign(new Error('Saved mobile changed during email reservation. No profile rows were written; start a new trace.'), {
+        code: 'MOBILE_PREFS_CHANGED',
+      });
+    }
     const records = [];
     for (let i = 0; i < count; i += 1) {
       const reserved = emailAllocation.emails[i];
@@ -617,6 +653,7 @@ async function handleGenerateIndustryProfiles(input) {
         testProfile: true,
         runStamp,
       });
+      if (generationPrefs.mobilePhone) generated.rowObject.PHONENUMBER = generationPrefs.mobilePhone;
       const record = buildSeedRecord(industry, generated.rowObject, {
         index: i, asOfDate: runStamp.slice(0, 10), runStamp,
       });
@@ -633,6 +670,13 @@ async function handleGenerateIndustryProfiles(input) {
       });
     }
 
+    if (input.onPrepared) {
+      await input.onPrepared({
+        profiles: profiles.map(({ email, ecid, crmId, recipientId }) => ({ email, ecid, crmId, recipientId })),
+        runStamp,
+      });
+    }
+    writeStarted = true;
     tableRowcounts = await writeSeedRecords(execute, cfg, industry, records, batchSize);
     committed = true;
     for (let offset = 0; offset < profiles.length; offset += 50) {
@@ -680,7 +724,7 @@ WHERE ECID IN (${selected.map(() => '?').join(', ')})`, selected.map(({ ecid }) 
     };
   } catch (err) {
     const described = describeConnectError(err.cause || err);
-    if (err.committed || committed) {
+    if ((writeStarted && err.committed) || committed || commitAcknowledged) {
       if (err.committed) described.message = `${err.message} ${described.message}`;
       described.code = err.code || 'SEED_METADATA_READBACK_FAILED';
       described.hints = ['The seed transaction already committed. Inspect timestamp publication for the returned identities; do not regenerate them or reuse their reserved emails.'];
@@ -689,6 +733,17 @@ WHERE ECID IN (${selected.map(() => '?').join(', ')})`, selected.map(({ ecid }) 
         tableRowcounts: err.tableRowcounts || tableRowcounts,
         timestampPublication: { refreshedTables: err.refreshedTables, failedTable: err.failedTable },
         error: described,
+      };
+    }
+    if (writeStarted && (commitAttempted || rollbackFailed)) {
+      return {
+        ok: false, outcomeUnknown: true, sandbox, industry,
+        profiles, runStamp,
+        error: {
+          ...described,
+          code: 'SEED_OUTCOME_UNKNOWN',
+          hints: ['The write outcome could not be confirmed. Inspect these prepared identities; do not retry generation or reuse reserved emails.'],
+        },
       };
     }
     const message = String(err && err.message || '');

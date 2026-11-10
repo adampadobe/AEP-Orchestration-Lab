@@ -8,6 +8,107 @@ recipient parent for every industry**, despite its historical travel name.
 `REL.RECIPIENT` is only a read-only view of that parent, not another writable
 table or a replacement ingestion source.
 
+## Private architecture reference and walkthrough
+
+The Lab owner's **Architecture -> My data flows** page
+(`web/profile-viewer/my-data-flows.html`) explains direct Lab streaming,
+Snowflake-first generation, and the separate XDM and REL ingestion paths.
+It includes expandable, zoomable diagrams and five **simulation-only**
+walkthroughs: new Snowflake-first profile, direct AEP profile, dual-load,
+existing-profile update, and an event. Play/Next never generate identities,
+send events, change data, or invoke a repair.
+
+The static page is only a shell. Reference content, flow identifiers, inventory
+and dated evidence are returned by
+`GET /api/architecture/my-data-flows?sandbox=apalmer` after server-side Firebase
+owner authorization, including revocation and current owner UID checks. Hiding
+the sidebar link is not the security boundary. Other users and direct
+unauthorized API requests receive no private content. Responses use
+`Cache-Control: private, no-store`; sign-out/account changes clear the page and
+invalidate pending requests. No Firestore client rules are relaxed.
+
+`refresh=true` requests bounded, read-only metadata from the reviewed
+`functions/myDataFlowsRegistry.js` bindings. The service verifies actual source
+tables and resolves target datasets, mapping versions, schedules and latest
+run metrics. It also checks saved HTTP streaming connections and reads the
+shared event configuration. It does not read Snowflake rows, run Query Service,
+inspect base-connection credentials, return inlet URLs, discover every sandbox
+flow, or automatically repair anything. Replaced/new flows require a reviewed
+registry update. Only `apalmer` in the reviewed Adobe organization is supported;
+changing the global sandbox does not silently rebind this owner-specific model.
+
+Complete snapshots may be reused for 60 seconds; their original `fetchedAt`
+remains visible. Errors and budget exhaustion produce explicit incomplete
+metadata, not empty green success. Missing counts remain unknown. The reference
+and historical stored-data evidence remain dated snapshots, not live claims.
+The source/reference modules are deployed server-side, not bundled under `web/`.
+
+Timing distinguishes **configured cadence**, **asynchronous refresh target**,
+**observed execution**, **unknown indexing/commit time**, and **illustrative
+playback**. A 15-minute source schedule is not an end-to-end availability SLA.
+Parallel XDM and REL steps are independent; OC extension completion is not
+campaign targeting, consent or send readiness.
+
+Run `npm run test:my-data-flows` for owner-access, service/reference contracts
+and browser fixtures without production credentials. Apply the standard
+Profile Viewer mirror/route checks. Hosting and the named `myDataFlows`
+Function must be released together through the normal approved release gates;
+the public shell cannot provide a private fallback if the API is absent.
+
+### Live create-and-trace mode
+
+The separate **Live** mode accepts an industry and an explicit **Create profile
+& trace** action. It creates exactly one Snowflake-first test recipient and the
+existing generator's linked industry sample data. It does not stream directly
+to AEP, send messages, repair flows, replay ingestion or alter schemas. Simulation
+Play/Next remain presentation-only. Natural XDM and REL ingestion runs independently.
+
+`/api/architecture/my-data-flows/trace` uses the same server-side owner gate.
+`POST {industry, requestId}` creates a durable run; the UUID request ID is scoped
+to the owner and is single-use for generation, including concurrent requests.
+Repeating that request returns its receipt, never another profile. GET without
+an ID resumes the latest run; `GET ?runId=<uuid>&refresh=true` checks that same
+identity. A persisted lease bounds overlapping checks; manual refresh and browser
+polling do not cause more generation. Source creation blocks concurrent new runs
+and subsequent creates have a one-minute cooldown.
+
+Server-only Firestore receipts live at
+`myDataFlowsTraces/{uid}/runs/{requestId}`. Identity is saved **before** row writes.
+An interrupted or uncertain write is never retried automatically; after six
+minutes a stale creation can be inspected as uncertain. Reserved counter values
+are not reused. Stop watching stops observation only, not the source write,
+ingestion or stored data. Refresh/reopening resumes the existing identity.
+
+The live adapter preflights existing objects without DDL and invokes the
+shared industry generator with `prepareTables:false`, count one and
+`testProfile:true`. Missing readiness blocks creation and points to existing
+settings/setup. Generation uses the shared UTC daily email counter, and the saved
+mobile is applied to both the industry CRM and shared parent. Identity settings
+must remain consistent with the preview/preflight; this is not a second counter
+or independent credential store.
+
+Snowflake checks are identity-filtered, parameter-bound and bounded. Source rows,
+REL projections, flow metadata and AEP Profile reads are independent evidence.
+Optional industry records may legitimately be absent. AEP Profile verification
+requires the same entity by Email and ECID with the expected mobile and test flag;
+it is not a complete industry-field comparison or a source-specific dataset audit.
+Read errors remain explicit and never become zero counts or green destinations.
+
+The current AEP REST integration cannot read general ad-hoc Query Service result
+rows. XDM/REL storage stages therefore stay **Unavailable**, even when a flow
+succeeds or Profile becomes visible. Their details show resolved destination
+datasets and clearly marked, unexecuted SQL templates: replace the Query Service
+table and mapped-field placeholders using that dataset's schema. No arbitrary
+SQL execution endpoint or unsupported results reader is introduced.
+
+The live trace adds named Function `myDataFlowsTrace` to the coordinated
+Hosting/Functions release. It inherits the existing Snowflake static-egress VPC
+options and binds the existing Adobe secrets; no new credential store is added.
+Offline tests cover duplicate protection, uncertain
+creation, owner isolation, readback semantics and browser controls; no real profile
+is generated by those tests. A separately authorized live run after deployment is
+still needed for end-to-end operational acceptance.
+
 ## Snowflake-first workflow
 
 1. Open **Profile generation – Snowflake**, save the connection, and select

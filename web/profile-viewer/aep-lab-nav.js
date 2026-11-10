@@ -478,6 +478,13 @@
       group: 'Architecture', id: 'architecture',
       items: [
         {
+          label: 'My data flows',
+          href: 'my-data-flows.html',
+          allowWorkspace: true,
+          onlyUserEmails: ['apalmer@adobe.com'],
+          ico: '<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1" y="7" width="5" height="6" rx="1"/><rect x="14" y="1" width="5" height="6" rx="1"/><rect x="14" y="13" width="5" height="6" rx="1"/><path d="M6 10h4V4h4M10 10v6h4"/></svg>',
+        },
+        {
           label: 'AEP & Apps',
           href: 'aep-architecture-apps.html',
           allowWorkspace: true,

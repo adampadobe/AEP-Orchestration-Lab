@@ -55,7 +55,30 @@ test('departure-day edits and scenarios read, write and confirm daysToDeparture'
   }
   assert.ok(!JSON.stringify(model.objectives).includes('daysUntilDeparture'));
   for (const file of ['tui-decisioning-demo.html', 'tui-decisioning-visualiser.html']) {
-    assert.ok(fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-model.js?v=20261109-airline-days-to-departure'));
+    assert.ok(fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-model.js?v=20261110-airline-disruption'));
+  }
+});
+
+test('TUI disruption reads, writes and confirms the airlineCustomer field', () => {
+  const model = require(path.join(root, 'tui-decisioning-model.js'));
+  const profile = require(path.join(root, 'tui-decisioning-profile.js'));
+  const fullPath = '_demoemea.airlineCustomer.flightDisruption.disruptionType';
+  const relativePath = 'airlineCustomer.flightDisruption.disruptionType';
+  const field = model.fields.find(field => field.key === 'disruption');
+  assert.equal(field.path, fullPath);
+  const data = {
+    rows: [
+      { path: '_demoemea.travelReservations.flightReservations.flightDisruption.disruptionType', value: 'cancelled', valueType: 'string' },
+      { path: fullPath, value: 'delay', valueType: 'string', industry: 'travel', writable: true },
+    ],
+    industries: { travel: { writable: true, schemaId: 'fixture-schema' } },
+  };
+  assert.equal(profile.signals(data.rows).disruption, 'delay');
+  for (const disruption of field.values) {
+    const batch = profile.snapshots(data, { ...model.defaults, disruption }, ['disruption']);
+    assert.deepEqual(batch.expected, { [relativePath]: disruption });
+    assert.ok(batch.snapshots[0].updates.some(update => update.path === relativePath && update.value === disruption));
+    assert.deepEqual(profile.differences([{ path: fullPath, value: disruption, valueType: 'string' }], batch.expected), []);
   }
 });
 

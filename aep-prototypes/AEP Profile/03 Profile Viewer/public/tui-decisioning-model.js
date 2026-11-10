@@ -7,7 +7,7 @@
     { key: 'booking', label: 'Holiday stage', path: airline + 'journeyStage', type: 'string', group: 'Holiday', values: ['Dreaming', 'Booked', 'In-Trip', 'Post-Trip'] },
     { key: 'days', label: 'Days until departure', path: flight + 'daysUntilDeparture', type: 'number', group: 'Holiday', min: 0, max: 365 },
     { key: 'documents', label: 'Travel documents', path: airline + 'documentsStatus', type: 'string', group: 'Holiday', values: ['Complete', 'Incomplete', 'Missing', 'Expiring'] },
-    { key: 'disruption', label: 'Journey disruption', path: flight + 'flightDisruption.disruptionType', type: 'string', group: 'Support', values: ['none', 'delay', 'cancelled', 'baggage'] },
+    { key: 'disruption', label: 'Journey disruption', path: airline + 'flightDisruption.disruptionType', type: 'string', group: 'Support', values: ['none', 'delay', 'cancelled', 'baggage'] },
     { key: 'case', label: 'Service case', path: airline + 'caseStatus', type: 'string', group: 'Support', values: ['None', 'Open', 'Pending', 'Escalated'] },
     { key: 'intent', label: 'Holiday shopping intent', path: airline + 'shoppingIntent', type: 'string', group: 'Shopping', values: ['None', 'Low', 'Medium', 'High'] },
     { key: 'abandoned', label: 'Abandoned search', path: airline + 'abandonedSearchFlag', type: 'boolean', group: 'Shopping' },

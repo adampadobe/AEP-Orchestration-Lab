@@ -55,6 +55,9 @@ jobs:
       - name: Verify owner-only usage statistics
         run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
 
+      - name: Verify private architecture, live trace and read-only evidence
+        run: node --test functions/test/myDataFlows*.test.cjs
+
       - name: Verify demo workspace APIs and UI regressions
         run: node --test functions/test/demo*.test.cjs
 
@@ -133,6 +136,8 @@ jobs:
         run: npm run test:demo-workspace-e2e
       - name: Exercise shared environment bar across customer demos (local fixtures)
         run: npm run test:demo-env-bar
+      - name: Exercise private data-flow walkthroughs (local fixtures)
+        run: node scripts/test-my-data-flows-browser.cjs
       - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
         run: npm run test:riyadh-air
       - name: Exercise CP decisioning, attribution and profile refresh (local fixtures)
