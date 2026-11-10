@@ -162,7 +162,7 @@ test('catalog plan is schema-verified and contains visual rules and tag collecti
   assert.throws(() => model.catalogPlan(null), /verification/);
 });
 
-test('CP uses the latest TUI drawer/runtime and exact confirmation before updates', () => {
+test('CP applies on button click without a dialog while retaining profile safeguards', () => {
   const html = fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8');
   assert.match(html, /data-demo-env-strip-prefix="cpDecisioning"/);
   assert.match(html, /tui-decisioning-attribution\.js\?v=20261110-cp-live/);
@@ -174,7 +174,10 @@ test('CP uses the latest TUI drawer/runtime and exact confirmation before update
   assert.match(visualiser, /This page does not create or activate catalog assets/);
   assert.doesNotMatch(visualiser, /No assets created or activated/);
   const source = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
-  assert.ok(source.indexOf('global.confirm(') < source.indexOf('await global.postProfileUpdate('));
+  assert.doesNotMatch(source, /global\.confirm\(/);
+  assert.equal(model.brand.confirmProfileChanges, undefined);
+  assert.ok(source.indexOf('await preflight(') < source.indexOf('await global.postProfileUpdate('));
+  assert.match(source, /if \(!isTest\(latest\)\)/);
   assert.ok(source.indexOf('await api().prepareDecision(') < source.indexOf('await result.manualDisplay.alloy('));
   assert.ok(source.indexOf('api().commitDecision(') < source.indexOf('await result.manualDisplay.alloy('));
   assert.match(source, /Live decision succeeded; follow-up failed:/);

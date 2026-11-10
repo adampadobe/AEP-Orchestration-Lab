@@ -19,9 +19,9 @@ explicitly as follow-up failures; they do not mislabel the decision as failed. C
 identity or sandbox clears it to avoid presenting another person's decision.
 
 The site configuration selects `kirkham`; profile reads and writes refuse another
-sandbox. Lookup is read-only. Apply validates existing write schemas, previews the
-exact changes and requires explicit confirmation before streaming full writable
-test-profile snapshots. An abandoned-search transition also sends its disclosed
+sandbox. Lookup is read-only. Clicking Apply validates existing write schemas
+and streams full writable test-profile snapshots without an additional approval
+dialog. Editing controls alone never sends updates. An abandoned-search transition also sends its disclosed
 event. Accepted/uncertain writes reconcile by readback; they are not resent.
 Run requires loaded actual consent and a test profile, configured Tags and a
 matching live policy; it never applies staged changes. Profile/drawer data refresh
@@ -125,4 +125,4 @@ origin; a failed live request does not erase the last successful response.
 This is not a production or Firebase deployment workflow.
 
 Run `npm run test:cp-decisioning` for schema-plan/model, shared runtime and browser
-regressions, including cancellation of Apply without any outbound profile write.
+regressions, including dialog-free Apply and schema/test-profile safeguards before any outbound write.

@@ -162,22 +162,15 @@ async function main() {
     const frame = shell.frames().find(frame => frame.url().includes('cp-decisioning-visualiser.html'));
     await frame.locator('#scenario-pills button').nth(4).click();
     assert.ok(await shell.locator('#tuiApplyProfile').isEnabled());
-    let confirmed = false;
-    shell.once('dialog', async dialog => {
-      assert.match(dialog.message(), /Update this test profile in kirkham/);
-      assert.match(dialog.message(), /fixture@example.invalid/);
-      assert.match(dialog.message(), /hotel\.customerContext\./);
-      assert.match(dialog.message(), /hotel\.bookingDetails\.checkInDate = "\d{4}-\d{2}-\d{2}"/);
-      assert.ok(!dialog.message().includes('airlineCustomer'));
-      confirmed = true; await dialog.dismiss();
+    const dialogs = [];
+    shell.on('dialog', async dialog => {
+      dialogs.push(dialog.message());
+      await dialog.dismiss();
     });
+    assert.deepEqual(writes, [], 'Staging signals must not send profile updates');
     await shell.locator('#tuiApplyProfile').click();
-    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('cancelled'));
-    assert.equal(confirmed, true);
-    assert.deepEqual(writes, []);
-    shell.once('dialog', dialog => dialog.accept());
-    await shell.locator('#tuiApplyProfile').click();
-    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Profile changes confirmed'));
+    await shell.waitForFunction(() => /Profile changes confirmed|cancelled/.test(document.getElementById('tuiLiveStatus').textContent));
+    assert.deepEqual(dialogs, [], 'Apply must not require a separate approval dialog');
     assert.ok(outboundUpdates.length > 0);
     const arrival = outboundUpdates.flatMap(body => body.updates).find(row => row.path === 'hotel.bookingDetails.checkInDate');
     assert.equal(arrival.valueType, 'string');
@@ -191,6 +184,11 @@ async function main() {
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Write schema missing/incompatible field'));
     assert.equal(writes.length, acceptedWrites, 'Missing ingestion fields must block before any new profile or event writes');
+    rows.find(row => row.path === 'testProfile').value = false;
+    await shell.locator('#tuiApplyProfile').click();
+    await shell.waitForFunction(() => document.getElementById('tuiLiveStatus').textContent.includes('Only AEP test profiles can be updated'));
+    assert.equal(writes.length, acceptedWrites, 'Non-test profiles must still be blocked');
+    assert.deepEqual(dialogs, []);
     assert.deepEqual(errors, []);
     console.log('CP browser checks passed: all seven scenarios, three channels, full-width Web, themes, retained live result, identity reset and read-only boundary.');
   } finally {

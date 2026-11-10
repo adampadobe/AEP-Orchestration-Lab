@@ -230,7 +230,7 @@
   const model = { fields, objectives, defaults, scenarios, demoScenarios, evaluate, attributes, describe, rulePayload, catalogPlan, arrivalDate, arrivalDays,
     brand: { name: 'Center Parcs', prefix: 'cpDecisioning', frameId: 'cp-visualiser',
       viewName: 'CP Decisioning', moment: 'forest moment', eyebrow: 'LESS EVERYDAY. MORE TOGETHER.',
-      fullWidthWeb: true, showSimulation: true, requiredSandbox: 'kirkham', confirmProfileChanges: true,
+      fullWidthWeb: true, showSimulation: true, requiredSandbox: 'kirkham',
       catalogBoundary: 'Live results come from the configured AJO campaign/policy. Catalog activation is managed separately.' } };
   if (typeof module !== 'undefined' && module.exports) module.exports = model;
   else root.DecisioningDemoModel = model;
