@@ -169,6 +169,10 @@ test('CP uses the latest TUI drawer/runtime and exact confirmation before update
   assert.match(html, /tui-decisioning-drawer\.js\?v=20261109-campaign/);
   assert.match(html, /tui-profile-hero\.js/);
   assert.match(html, /autoRunDecisioning: false/);
+  const visualiser = fs.readFileSync(path.join(root, 'cp-decisioning-visualiser.html'), 'utf8');
+  assert.match(visualiser, /not the current live inventory/);
+  assert.match(visualiser, /This page does not create or activate catalog assets/);
+  assert.doesNotMatch(visualiser, /No assets created or activated/);
   const source = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
   assert.ok(source.indexOf('global.confirm(') < source.indexOf('await global.postProfileUpdate('));
   assert.ok(source.indexOf('await api().prepareDecision(') < source.indexOf('await result.manualDisplay.alloy('));
