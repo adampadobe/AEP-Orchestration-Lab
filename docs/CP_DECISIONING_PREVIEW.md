@@ -11,6 +11,8 @@ it is never used as a fallback in the customer experiences. Original site script
 and trackers are not executed. All new asset names use **CP**.
 
 Email Desktop, Mobile App and full-width Web share the same selected content.
+On desktop, Web fills the right-hand customer-experience pane without moving it
+below the signals and strategies. Narrow screens retain the shared stacked layout.
 Scenarios run 7 to 1; strategy precedence is 1 to 7. Only relevant signal groups
 expand for a scenario. Local simulated eligibility is explicitly labelled and
 never substituted for a live AJO result. Before the first successful Run, all three
@@ -40,6 +42,12 @@ and campaign/CBE attribution helper. Display events retain the CP shell URL and
 selected email/app/web preview channel without presenting those preview modes as
 three separate AJO delivery channels. Campaign names come from returned metadata
 or the existing read-only name resolver, never from local offer predictions.
+Only proposition-display events receive decision-card styling. Offer names and
+selection-strategy names/IDs come from that event's proposition items, not the
+page action or selected scenario. Missing names are resolved by exact returned ID
+through the existing read-only catalog endpoint; unresolved IDs and absent metadata
+are shown explicitly. Catalog lookups provide current names, not historical name
+snapshots. The historical catalog-plan links are not displayed in the demo.
 Publishing this page does not create, activate or change Adobe catalog assets,
 campaigns, policies or profiles.
 
