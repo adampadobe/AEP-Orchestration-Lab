@@ -78,6 +78,10 @@ window.envBar.registerTagsInjection(tags);
 
 TUI runtime regression checks: `node --test scripts/test-tui-decisioning-runtime.cjs`.
 
+TUI's Journey disruption control, drawer and profile writes use
+`_demoemea.airlineCustomer.flightDisruption.disruptionType`. This does not
+migrate existing profile values or modify sandbox schemas.
+
 TUI's compact drawer resolves `scopeDetails.activity.id` through the existing
 sandbox-specific `/api/campaign-name` lookup, or uses `scopeDetails.activity.name`
 when supplied. Missing attribution and failed name lookups are shown explicitly.
