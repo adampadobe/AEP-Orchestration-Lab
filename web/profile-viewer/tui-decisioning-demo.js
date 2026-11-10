@@ -1,8 +1,11 @@
 (function (global) {
   'use strict';
-  const prefix = 'tuiDecisioning', $ = id => document.getElementById(id);
-  const frame = $('tui-visualiser'), model = global.TuiDecisioning, profile = global.TuiDecisioningProfile;
+  const model = global.DecisioningDemoModel || global.TuiDecisioning, brand = model.brand || {};
+  const prefix = brand.prefix || 'tuiDecisioning', $ = id => document.getElementById(id);
+  const frame = $(brand.frameId || 'tui-visualiser'), profile = global.TuiDecisioningProfile;
+  const viewName = brand.viewName || 'TUI Decisioning';
   const edited = new Set();
+  const abandonedPath = profile.relative(model.fields.find(field => field.key === 'abandoned').path);
   let loaded = null, version = 0, revision = 0, busy = false, pending = null, targets = [], tags;
   let appliedAbandoned, abandonmentEvent = null;
   const api = () => frame.contentWindow?.TuiDecisioningVisualiser;
@@ -23,6 +26,7 @@
     appliedAbandoned = undefined; abandonmentEvent = null;
     global.DemoProfileDrawer.clearDrawerVisitorState();
     api()?.setProfile(null); publish();
+    if ($('cpDecisionMetadata')) $('cpDecisionMetadata').textContent = 'Context changed. No live decision for this identity.';
     message('Context changed. Look up the selected test profile.');
   }
   function isTest(data) { return data.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && profile.scalar(row) === true); }
@@ -34,6 +38,7 @@
   }
   async function table(ctx, token) {
     if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier.');
+    if (brand.requiredSandbox && ctx.sandbox !== brand.requiredSandbox) throw new Error('This preview requires sandbox ' + brand.requiredSandbox + '.');
     const data = await json('/api/profile/table?' + new URLSearchParams(ctx)); same(ctx, token);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
     return data;
@@ -79,9 +84,11 @@
       if (schema.version !== meta.version || !schema.properties) throw new Error('Current resolved schema unavailable.');
       for (const update of group.updates.filter(update => Object.hasOwn(batch.expected, update.path) || group.schemaPaths.includes(update.path))) {
         const leaf = profile.schemaLeaf(schema, config, update.path);
+        const field = model.fields.find(field => profile.relative(field.path) === update.path);
         const type = typeof update.value;
         const types = Array.isArray(leaf?.type) ? leaf.type : [leaf?.type];
         if (!leaf || leaf.readOnly === true || !(types.includes(update.value === null ? 'null' : type) || types.includes('integer') && Number.isInteger(update.value)) ||
+          field?.format && leaf.format !== field.format ||
           Array.isArray(leaf.enum) && !leaf.enum.includes(update.value) ||
           type === 'number' && (leaf.minimum !== undefined && update.value < leaf.minimum || leaf.maximum !== undefined && update.value > leaf.maximum)) {
           throw new Error('Write schema missing/incompatible field: ' + update.path + ' (' + group.industry + ', sandbox ' + ctx.sandbox +
@@ -100,8 +107,9 @@
       if (!profile.differences(data.rows, pending).length) {
         const state = api().getState();
         for (const key of edited) {
-          const path = profile.relative(model.fields.find(field => field.key === key).path);
-          if (Object.hasOwn(pending, path) && state[key] === pending[path]) edited.delete(key);
+          const field = model.fields.find(field => field.key === key);
+          const path = profile.relative(field.path);
+          if (Object.hasOwn(pending, path) && profile.valueForWrite(field, state[key]) === pending[path]) edited.delete(key);
         }
         pending = null; await adopt(data, ctx, token); return true;
       }
@@ -110,7 +118,7 @@
     return true;
   }
   async function prepareAbandonment(data, batch, ctx, token) {
-    const path = 'airlineCustomer.abandonedSearchFlag';
+    const path = abandonedPath;
     const previous = appliedAbandoned ?? profile.signals(data.rows).abandoned;
     if (batch.expected[path] !== true || previous === true) {
       console.info('[tui-abandoned-search] Skipped: no transition to abandoned search Yes.');
@@ -139,7 +147,7 @@
         eventType: 'abandoned.search',
         identityMap: global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace),
         [tenant]: { identification: { core: { ecid, email: data.profileEmail } } },
-        web: { webPageDetails: { URL: location.origin + location.pathname, name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
+        web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
       },
     } };
   }
@@ -178,6 +186,14 @@
       const batch = profile.snapshots(latest, api().getState(), [...edited]);
       await preflight(latest, batch, ctx, token);
       if (!latest.profileEmail?.includes('@')) throw new Error('Profile has no email identity for streaming.');
+      if (brand.confirmProfileChanges) {
+        const changes = Object.entries(batch.expected).map(([path, value]) => path + ' = ' + JSON.stringify(value)).join('\n');
+        const confirmed = global.confirm('Update this test profile in ' + ctx.sandbox + '?\n' +
+          ctx.namespace + ': ' + ctx.identifier + '\n\n' + changes +
+          '\n\nFull writable snapshots will be streamed. An abandoned-search transition also sends an event. No AJO assets will change.');
+        if (!confirmed) { message('Profile update cancelled. Staged changes and previous live decision retained.'); return; }
+        same(ctx, token);
+      }
       const abandonment = await prepareAbandonment(latest, batch, ctx, token);
       for (const group of batch.snapshots) {
         same(ctx, token);
@@ -193,8 +209,8 @@
           throw new Error(global.formatProfileUpdateError(response.data));
         }
         accepted++;
-        if (Object.hasOwn(expected, 'airlineCustomer.abandonedSearchFlag')) {
-          appliedAbandoned = expected['airlineCustomer.abandonedSearchFlag'];
+        if (Object.hasOwn(expected, abandonedPath)) {
+          appliedAbandoned = expected[abandonedPath];
           if (abandonment || appliedAbandoned === false) abandonmentEvent = abandonment;
         }
         for (const key of edited) {
@@ -212,6 +228,7 @@
   async function run() {
     if (busy) return;
     const ctx = context(), token = version, changedAt = revision; busy = true;
+    let committed = false;
     message('Checking profile and consent before live decision...');
     const started = performance.now();
     let phaseStarted = started;
@@ -240,7 +257,7 @@
         throw new Error('Actual loaded consent must be y; defaults do not grant permission.');
       }
       mark('profile-readback');
-      message('Evaluating the configured policy. TUI draft catalog is not automatically activated.');
+      message('Evaluating the configured live policy. ' + (brand.catalogBoundary || 'TUI draft catalog is not automatically activated.'));
       const result = await runtime.runContentDecision({ manualDisplay: true, useBrowserEcid: true,
         eventTenantNamespace: global.envBarConfig.decisioning.eventTenantNamespace }); same(ctx, token);
       mark('edge-decision');
@@ -267,7 +284,7 @@
         Array.isArray(identities) && identities.some(identity => typeof identity?.id === 'string' && identity.id.trim()))) {
         throw new Error('Decision display attribution is missing the original request identity map.');
       }
-      await api().setDecision(matches[0]); same(ctx, token);
+      await api().prepareDecision(matches[0]); same(ctx, token);
       mark('image-ready');
       if (revision !== changedAt) throw new Error('Signals changed during image loading. No display event sent.');
       const p = matches[0].proposition;
@@ -279,18 +296,26 @@
         xdm: { eventType: 'decisioning.propositionDisplay', identityMap,
           ...result.manualDisplay.eventXdm,
           web: { webPageDetails: { URL: displayUrl.href,
-            name: 'TUI Decisioning', viewName: 'TUI Decisioning' } },
+            name: viewName, viewName } },
           _experience: { decisioning: { propositions: [{ id: p.id, scope: p.scope, scopeDetails: p.scopeDetails,
             items: p.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}), ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
             propositionEventType: { display: 1 } } } } };
       console.info('[tui-decisioning-display] Sending original decision attribution', displayPayload);
+      api().commitDecision(matches[0]);
+      committed = true;
+      if ($('cpDecisionMetadata')) $('cpDecisionMetadata').textContent = JSON.stringify({
+        receivedAt: new Date().toISOString(), sandbox: ctx.sandbox, source: 'Live AJO / Edge response',
+        propositionId: p.id, scope: p.scope, scopeDetails: p.scopeDetails, items: p.items,
+      }, null, 2);
       const displayResponse = await result.manualDisplay.alloy('sendEvent', displayPayload);
       mark('display-tracking');
       console.info('[tui-decisioning-display] Edge response', displayResponse);
       same(ctx, token);
+      if (revision !== changedAt) throw new Error('Signals changed during display tracking. Apply and run again for the new signals.');
       await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+      if (brand.requiredSandbox) await adopt(await table(ctx, token), ctx, token);
       same(ctx, token); message('Live hero displayed across all three views.');
-    } catch (error) { if (token === version) message(error.message + ' No automatic retry.', true); }
+    } catch (error) { if (token === version) message((committed ? 'Live decision succeeded; follow-up failed: ' : '') + error.message + ' No automatic retry.', true); }
     finally { busy = false; message($('tuiLiveStatus').textContent, $('tuiLiveStatus').dataset.error === 'true'); }
   }
   global.TuiDecisioningDrawer = { getSignals: () => loaded ? profile.signals(loaded.rows) : null };
@@ -301,15 +326,25 @@
     frame.contentWindow.addEventListener('tui-signals-changed', event => {
       revision++;
       for (const key of event.detail.keys) edited.add(key);
-      message('Signals staged. Apply validates and updates full test-profile snapshots.');
+      message('Signals staged. Apply validates full test-profile snapshots; live content is unchanged.');
     });
   }
   async function init() {
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
+    if (brand.requiredSandbox) {
+      const sandboxSelect = $('sandboxSelect');
+      await global.AepGlobalSandbox.loadSandboxesIntoSelect(sandboxSelect);
+      if (![...sandboxSelect.options].some(option => option.value === brand.requiredSandbox)) {
+        throw new Error('Required sandbox ' + brand.requiredSandbox + ' is not available to this session.');
+      }
+      sandboxSelect.value = brand.requiredSandbox;
+      sandboxSelect.disabled = true;
+      sandboxSelect.title = 'This preview is restricted to ' + brand.requiredSandbox + '.';
+    }
     global.AepIdentityPicker.init('customerEmail', prefix + 'Ns');
     global.attachEmailDatalist?.('customerEmail', 'recentEmails', prefix + 'Ns');
     tags = global.DemoTagsInjection.init({
-      storagePrefix: prefix, identityEventType: 'tui.decisioning.identity.stitch',
+      storagePrefix: prefix, identityEventType: brand.name ? prefix + '.identity.stitch' : 'tui.decisioning.identity.stitch',
       messageSetter: (text, type) => message(text, type === 'error'), infoEcidId: 'infoEcid',
       tagsCompanyId: prefix + 'TagsCompany', tagsPropertyInputId: prefix + 'TagsProperty', tagsPropertyListId: prefix + 'TagsPropertyList',
       tagsEnvironmentId: prefix + 'TagsEnvironment', injectButtonId: prefix + 'InjectSdkBtn', selectedScriptId: prefix + 'SelectedScript',
@@ -320,7 +355,7 @@
     });
     global.envBar.registerTagsInjection(tags);
     global.DemoProfileDrawer.init({ emailInputId: 'customerEmail', profileOpenClass: 'mod-demo-page--profile-open',
-      viewName: 'TUI Decisioning', eventTimeline: 'compact', emailGetter: () => email.value, messageSetter: (text, type) => message(text, type === 'error'),
+      viewName, eventTimeline: 'compact', emailGetter: () => email.value, messageSetter: (text, type) => message(text, type === 'error'),
       getSelectedGeneratorTarget: getTarget, fetchBrowserEcidOnInit: true });
     global.AepDemoGeneratorTargets.bindGeneratorTargetLifecycle(async () => {
       targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect($('generatorTarget'), {});
@@ -337,13 +372,24 @@
     function layout() {
       const toolbar = document.querySelector('.spectrum-env-status-bar');
       const hidden = anchor.classList.contains('lab-env-top-anchor--docked-hidden') || anchor.classList.contains('lab-env-top-anchor--presenter-strip-hidden');
-      const top = hidden ? 0 : toolbar ? toolbar.getBoundingClientRect().bottom : 48;
+      let top = hidden ? 0 : toolbar ? toolbar.getBoundingClientRect().bottom : 48;
+      if (brand.name && !hidden) top = Math.max(top, anchor.querySelector('.mod-demo-id-banner').getBoundingClientRect().bottom);
       document.body.style.setProperty('--tui-toolbar-top', top + 'px');
       document.body.style.setProperty('--tui-content-top', (top + actions.getBoundingClientRect().height) + 'px');
     }
     const observer = new ResizeObserver(layout); observer.observe(anchor); observer.observe(actions);
+    if (brand.name) observer.observe(anchor.querySelector('.mod-demo-id-banner'));
     new MutationObserver(layout).observe(anchor, { attributes: true, attributeFilter: ['class'] });
     layout(); message('Look up a test profile. Local ranking and live policy decisions are separate.');
+    if (brand.requiredSandbox) {
+      global.setInterval(async () => {
+        if (busy || !loaded || pending || !document.hasFocus()) return;
+        const ctx = context(), token = version; busy = true;
+        try { await adopt(await table(ctx, token), ctx, token); }
+        catch (error) { if (token === version) message('Automatic profile refresh failed: ' + error.message, true); }
+        finally { busy = false; message($('tuiLiveStatus').textContent, $('tuiLiveStatus').dataset.error === 'true'); }
+      }, 30000);
+    }
   }
   global.envBar.ready().then(init).catch(error => message('Demo initialization failed: ' + error.message, true));
 })(window);
