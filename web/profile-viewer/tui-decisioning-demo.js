@@ -186,14 +186,6 @@
       const batch = profile.snapshots(latest, api().getState(), [...edited]);
       await preflight(latest, batch, ctx, token);
       if (!latest.profileEmail?.includes('@')) throw new Error('Profile has no email identity for streaming.');
-      if (brand.confirmProfileChanges) {
-        const changes = Object.entries(batch.expected).map(([path, value]) => path + ' = ' + JSON.stringify(value)).join('\n');
-        const confirmed = global.confirm('Update this test profile in ' + ctx.sandbox + '?\n' +
-          ctx.namespace + ': ' + ctx.identifier + '\n\n' + changes +
-          '\n\nFull writable snapshots will be streamed. An abandoned-search transition also sends an event. No AJO assets will change.');
-        if (!confirmed) { message('Profile update cancelled. Staged changes and previous live decision retained.'); return; }
-        same(ctx, token);
-      }
       const abandonment = await prepareAbandonment(latest, batch, ctx, token);
       for (const group of batch.snapshots) {
         same(ctx, token);
