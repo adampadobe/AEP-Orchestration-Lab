@@ -32,7 +32,8 @@ test('FSI relational views expose normalized account links, balance limits, and 
   const transaction = statement('20_fsi.sql', 'REL_FSI_TRANSACTION');
   assert.match(account, /p\.OPENING_BALANCE/);
   assert.match(account, /p\.OVERDRAFT_LIMIT/);
-  assert.match(account, /IN \('current_account', 'savings_account'\)/);
+  assert.match(account, /REFRESH_MODE = INCREMENTAL/);
+  assert.match(account, /IN \('current_account', 'savings_account', 'savings'\)/);
   assert.match(card, /p\.OPENING_BALANCE/);
   assert.match(card, /p\.CREDIT_LIMIT/);
   assert.match(transaction, /e\.BALANCE_AFTER/);
