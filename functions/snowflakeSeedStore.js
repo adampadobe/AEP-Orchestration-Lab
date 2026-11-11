@@ -194,12 +194,12 @@ WHERE ${identifier(key)} IN (${selected.map(() => '?').join(', ')})`, [...binds,
   }
 }
 
-function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, hero = false }) {
+function buildSeedRecord(industry, profile, { index = 0, asOfDate, runStamp, hero = false, samplingMode }) {
   const recipient = createRecipient({
     industry, crmId: profile.CRMID, ecid: profile.ECID, email: profile.EMAIL, index, hero,
   });
   const trip = industry === 'travel'
-    ? generateTravelRelationalRecords({ recipient, profile, index, asOfDate, runStamp, hero })
+    ? generateTravelRelationalRecords({ recipient, profile, index, asOfDate, runStamp, hero, samplingMode })
     : null;
   const updatedProfile = {
     ...profile,

@@ -61,6 +61,9 @@ jobs:
       - name: Verify private architecture, live trace and read-only evidence
         run: node --test functions/test/myDataFlows*.test.cjs
 
+      - name: Verify business-hours profile seeding and duplicate-delivery safety (offline)
+        run: node --test functions/test/profileSeedSchedule.test.cjs
+
       - name: Verify demo workspace APIs and UI regressions
         run: node --test functions/test/demo*.test.cjs
 

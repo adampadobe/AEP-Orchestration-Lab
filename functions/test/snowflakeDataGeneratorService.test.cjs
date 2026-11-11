@@ -88,6 +88,25 @@ function serviceWithConnection(rowsForSql = () => [], {
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('ongoing mode uses the existing no-DDL writer, shared counter, static mobile and test identities', async () => {
+    const f = serviceWithConnection();
+    const result = await f.service.handleGenerateIndustryProfiles({
+      labUser: 'offline', sandbox: 'apalmer', industry: 'travel', count: 3,
+      prepareTables: false, samplingMode: 'ongoing', onPrepared: async (plan) => {
+        assert.equal(plan.profiles.length, 3);
+      },
+    });
+    assert.equal(result.ok, true, JSON.stringify(result.error));
+    assert.equal(f.reservedEmailCount(), 3);
+    assert.equal(result.rowcount, 3);
+    assert.ok(result.profiles.every(({ columns, phoneNumber }) =>
+      columns.TESTPROFILE === true && phoneNumber === '+441234567890'));
+    assert.equal(f.calls.some(({ sqlText }) => /^(CREATE|ALTER TABLE|ALTER VIEW)/.test(sqlText)), false);
+    await assert.rejects(f.service.handleGenerateIndustryProfiles({
+      labUser: 'offline', sandbox: 'apalmer', industry: 'travel', samplingMode: 'unsupported',
+    }), /Unsupported samplingMode/);
+  });
+
   it('prepares safe identities durably before any row writes, without provisioning when opted out', async () => {
     const fixture = serviceWithConnection();
     let prepared;

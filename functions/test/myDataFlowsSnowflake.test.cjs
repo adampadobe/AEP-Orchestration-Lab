@@ -125,6 +125,24 @@ test('preflight verifies all six fixed industry contracts using only SELECT and 
   }
 });
 
+test('scheduled batches reuse the pinned no-provisioning adapter with opt-in ongoing sampling', async () => {
+  const f = fixture();
+  const onPrepared = async () => {};
+  await f.adapter.generate({
+    uid: 'owner', industry: 'retail', count: 3, samplingMode: 'ongoing', onPrepared,
+    expectedBaseEmail: prefs.baseEmail, expectedMobilePhone: prefs.mobilePhone,
+  });
+  const input = f.generated();
+  assert.equal(input.count, 3);
+  assert.equal(input.samplingMode, 'ongoing');
+  assert.equal(input.prepareTables, false);
+  assert.equal(input.onPrepared, onPrepared);
+  assert.equal(input.expectedDatabase, 'TRAVEL_DATABASE');
+  assert.equal(input.expectedSchema, 'AEP_SCHEMA');
+  assert.equal(input.labUser, 'owner');
+  assert.equal(input.sandbox, 'apalmer');
+});
+
 test('preflight fails closed on missing columns, wrong types, narrow columns and wrong object kinds', async () => {
   for (const changeMetadata of [
     (rows) => rows.filter((row) => row.COLUMN_NAME !== 'PHONENUMBER'),
