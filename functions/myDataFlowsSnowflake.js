@@ -299,14 +299,14 @@ function createMyDataFlowsSnowflake(dependencies = {}) {
         throw safeProviderFailure();
       }
     },
-    async generate({ uid, industry, onPrepared, expectedBaseEmail, expectedMobilePhone }) {
+    async generate({ uid, industry, count = 1, samplingMode, onPrepared, expectedBaseEmail, expectedMobilePhone }) {
       validateInput(uid, industry);
       const [, generationPrefs] = await Promise.all([saved(uid), preferences(uid)]);
       if ((expectedBaseEmail != null && expectedBaseEmail !== generationPrefs.baseEmail)
         || (expectedMobilePhone != null && expectedMobilePhone !== generationPrefs.mobilePhone)) {
         throw failure('GENERATION_PREFS_CHANGED', 'Saved recipient email or mobile changed after preflight. Start a new trace.');
       }
-      return generateProfiles({ labUser: uid, sandbox: SANDBOX, industry, count: 1, prepareTables: false,
+      return generateProfiles({ labUser: uid, sandbox: SANDBOX, industry, count, samplingMode, prepareTables: false,
         expectedBaseEmail: generationPrefs.baseEmail, expectedMobilePhone: generationPrefs.mobilePhone,
         expectedDatabase: DATABASE, expectedSchema: SOURCE_SCHEMA, onPrepared });
     },

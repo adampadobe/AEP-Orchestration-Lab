@@ -86,6 +86,7 @@ function generateTravelRelationalRecords({
   asOfDate,
   runStamp = new Date().toISOString().replace('T', ' ').replace('Z', ''),
   hero = false,
+  samplingMode,
 } = {}) {
   if (!recipient || !recipient.recipientId) throw new Error('recipient is required');
   if (!profile || !profile.CRMID || !profile.ECID) throw new Error('profile CRMID and ECID are required');
@@ -94,14 +95,19 @@ function generateTravelRelationalRecords({
   }
 
   const recipientId = recipient.recipientId;
-  const scenario = hero ? 'seat_not_selected' : chooseScenario(Number(index) || 0);
+  const ongoing = samplingMode === 'ongoing' && !hero;
+  const scenario = hero ? 'seat_not_selected'
+    : chooseScenario(ongoing ? hashNumber(`${recipientId}:scenario`) : Number(index) || 0);
   const route = ROUTES[hashNumber(`${recipientId}:route`) % ROUTES.length];
-  const depart = dateAt(asOfDate, chooseOutboundOffset(Number(index) || 0, hero));
+  const outboundOffset = ongoing
+    ? scenario === 'disrupted' ? 0 : 1 + hashNumber(`${recipientId}:departure`) % 90
+    : chooseOutboundOffset(Number(index) || 0, hero);
+  const depart = dateAt(asOfDate, outboundOffset);
   const departureUtc = timeAt(depart, 9);
   const arrivalUtc = new Date(
     new Date(departureUtc).getTime() + (2 + (hashNumber(`${recipientId}:duration`) % 9)) * 3600000,
   ).toISOString();
-  const bookingDate = dateAt(asOfDate, -(hashNumber(`${recipientId}:booking`) % 31));
+  const bookingDate = dateAt(asOfDate, -(ongoing ? 1 : 0) - (hashNumber(`${recipientId}:booking`) % 31));
   const reservationId = `${recipientId}-RES-001`;
   const pnrLocator = hashNumber(`${recipientId}:pnr`).toString(36).toUpperCase().padStart(6, '0').slice(-6);
   const returnTrip = hashNumber(`${recipientId}:trip-type`) % 4 !== 0;
@@ -139,7 +145,7 @@ function generateTravelRelationalRecords({
   };
   const segments = [withMetadata(outbound, 'travel', runStamp, testProfile)];
   if (returnTrip) {
-    const returnDate = dateAt(asOfDate, chooseOutboundOffset(Number(index) || 0, hero) + 7);
+    const returnDate = dateAt(asOfDate, outboundOffset + 7);
     const returnArrival = new Date(returnDate.getTime() + 3 * 3600000);
     segments.push(withMetadata({
       segment_id: `${reservationId}-SEG-002`,
@@ -268,7 +274,9 @@ function generateTravelRelationalRecords({
     DISRUPTION_TYPE: 'delay',
     DISRUPTION_SEVERITY: 'moderate',
     ORIGINAL_DEPARTURE_TIME: outbound.departure_utc,
-    NEW_DEPARTURE_TIME: timeAt(depart, 10),
+    NEW_DEPARTURE_TIME: ongoing
+      ? new Date(Date.parse(departureUtc) + outbound.delay_minutes * 60_000).toISOString()
+      : timeAt(depart, 10),
     DELAY_MINUTES: outbound.delay_minutes,
     DISRUPTION_REASON: 'operational',
     NOTIFICATION_METHOD: 'push',

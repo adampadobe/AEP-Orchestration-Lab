@@ -14,6 +14,87 @@ API calls are required. The CLI uses the same seed writer. Existing AEP flows
 remain separate and unchanged; map added recipient and relational fields
 explicitly before using them in Campaign Orchestration.
 
+## Unattended business-hours seeding
+
+`profileSeedSchedule` is a private Firebase v2 scheduled function, not a public
+seed endpoint. It dispatches every five minutes **Sunday-Friday, 08:00-18:00
+Asia/Riyadh** (UTC+03:00, no DST). Saturday is off. A persisted daily plan
+creates **1-3 people total per slot**, with randomized 15/30/60-minute gaps
+and an initial 0-14-minute offset. Execution may lag a planned slot by up to
+one dispatcher interval. Industry selection balances all six industries without
+a fixed round-robin or simultaneous batches. Typical volume is 30-40 people/day,
+with a hard maximum of 50 attempted profiles, including failed attempts.
+
+**Missing configuration means disabled. Deploying the code does not enable
+generation.** Only an administrator can manage `labProfileSeedSchedules/apalmer`;
+client Firestore access remains denied. Following separate deployment and
+activation approval, the complete configuration is:
+
+```json
+{
+  "enabled": false,
+  "ownerUid": "<current lab owner's Firebase Auth UID>",
+  "sandbox": "apalmer",
+  "expectedBaseEmail": "<confirmed saved base email>",
+  "expectedMobilePhone": "<confirmed saved E.164 mobile>",
+  "timeZone": "Asia/Riyadh",
+  "startHour": 8,
+  "endHour": 18,
+  "days": [0, 1, 2, 3, 4, 5],
+  "dailyCap": 50,
+  "campaignIsolationReviewed": true
+}
+```
+
+Activation must independently verify that active campaigns/journeys do not
+select these synthetic test profiles. `testProfile:true` is not a universal
+campaign exclusion. The function itself never sends campaigns, email, SMS or
+push. The owner is resolved through the existing lab owner policy on every
+active tick and must match `ownerUid`. No other user/sandbox is enumerated.
+Pins must match the owner's existing saved generation preferences; the shared
+email scaler/counter and saved static mobile are reused, not copied into code.
+
+The function uses existing saved Secret Manager Snowflake credentials through
+the standard resolver and the `snowflake-egress` static-IP network path. Before
+release, verify the runtime service account's existing Firestore, Auth read,
+Adobe-secret and saved Snowflake-secret access; do not broaden IAM or create
+another credential. CLI/browser sign-ins are not runtime credentials.
+
+Before each batch it checks reviewed AEP XDM/REL flow bindings, enabled
+15-minute schedules and a successful, error-free last run within two hours,
+plus read-only Snowflake readiness. It invokes the existing generator with
+`prepareTables:false` against `TRAVEL_DATABASE.AEP_SCHEMA`: **no provisioning,
+schema migration, flow recreation or repair**. Ordinary source/REL row writes
+and shared catalog upserts still occur through the existing transactional seed
+writer. Travel uses an opt-in ongoing mode with identity-based scenario
+sampling and nearer-term departures; manual/demo and hero defaults are
+unchanged. Other industries retain their correlated generators. Activity is
+synthetic history, not a promise that every event occurred at the creation
+instant or that every table gets rows.
+
+Receipts live under `days/{Riyadh-date}` and include planned slots, counts,
+prepared email/ECID/CRMID/recipient identities and per-table commit counts.
+`state/dispatcher` serializes writers across instances and days. Prepared
+identities are durable before any row write. Duplicate deliveries never replay
+a claimed slot; missed slots older than ten minutes are skipped, not replayed.
+A stale writer or failed/uncertain result blocks subsequent work across days.
+Logs contain operational counts, not identities, payloads or credentials.
+
+Source commits are labelled `ingestion:pending`: existing XDM/REL flows load
+AEP independently. These receipts **do not claim AEP row-level verification**.
+Use the saved identities for source bundle/Profile lookups and AEP Query
+Service checks. Flow success is not stored-data proof.
+
+To pause, set `enabled:false`; pause is rechecked before prepared writes, but
+cannot cancel a transaction already in flight. To recover, first pause, inspect
+the referenced day/slot and exact identities, and reconcile source/REL and AEP
+state. Never reset a claimed slot to pending or reuse its identities. After
+separate operator approval, clear the dispatcher block/abandoned active marker
+only once no writer remains and its outcome is understood. Keep the receipt.
+Changing reviewed configuration mid-day fails closed rather than replacing
+that day's plan; plan a reviewed change for the next business day. No receipt
+TTL or automatic deletion is installed by this feature.
+
 ## Governed Snowflake workspace
 
 The focused **`/mcp/snowflake`** endpoint adds a general-purpose workspace

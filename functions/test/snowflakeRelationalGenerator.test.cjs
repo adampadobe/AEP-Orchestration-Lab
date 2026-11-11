@@ -96,4 +96,33 @@ describe('snowflakeRelationalGenerator travel model', () => {
       { seat_not_selected: 6, seat_bought_in_journey: 2, upgraded_cabin: 1, disrupted: 1 },
     );
   });
+
+  it('ongoing small batches vary scenarios by identity, not batch index, with coherent near-term dates', () => {
+    const scenarios = new Set();
+    for (let index = 0; index < 100; index++) {
+      const recipient = createRecipient({ industry: 'travel', crmId: `CRM${index}`, ecid: String(index).padStart(38, '0') });
+      const input = {
+        recipient, profile: { CRMID: `CRM${index}`, ECID: String(index).padStart(38, '0'), TESTPROFILE: true },
+        index: 0, samplingMode: 'ongoing', asOfDate: '2026-11-11', runStamp: '2026-11-11T05:00:00Z',
+      };
+      const trip = generateTravelRelationalRecords(input);
+      assert.deepEqual(trip, generateTravelRelationalRecords(input));
+      scenarios.add(trip.scenario);
+      const departure = Date.parse(trip.segments[0].departure_utc);
+      const days = (departure - Date.parse('2026-11-11T00:00:00Z')) / 86400000;
+      assert.ok(days >= 0 && days < 91);
+      assert.ok(Date.parse(trip.bookingEvent.TIMESTAMP) < Date.parse(input.runStamp));
+      for (const ancillary of trip.ancillaries) {
+        assert.ok(Date.parse(ancillary.purchased_at) <= Date.parse(input.runStamp));
+        assert.ok(Date.parse(ancillary.purchased_at) >= Date.parse(trip.reservation.booking_date));
+      }
+      if (trip.segments.length > 1) assert.ok(Date.parse(trip.segments[1].departure_utc) > departure);
+      if (trip.disruptionEvents.length) {
+        const event = trip.disruptionEvents[0];
+        assert.equal(Date.parse(event.NEW_DEPARTURE_TIME) - Date.parse(event.ORIGINAL_DEPARTURE_TIME), 75 * 60_000);
+        assert.equal(trip.upcomingTripDate, input.asOfDate);
+      }
+    }
+    assert.equal(scenarios.size, 4);
+  });
 });

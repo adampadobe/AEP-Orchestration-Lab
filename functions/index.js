@@ -899,6 +899,37 @@ const commerceFnOpts = {
   secrets: [...PROFILE_FN_SECRETS, ADOBE_COMMERCE_REST_ENDPOINT, AEP_LAB_COMMERCE_INTERNAL_KEY],
 };
 
+exports.profileSeedSchedule = onSchedule({
+  region: REGION,
+  schedule: '*/5 8-17 * * 0-5',
+  timeZone: 'Asia/Riyadh',
+  timeoutSeconds: 540,
+  memory: '1GiB',
+  maxInstances: 1,
+  concurrency: 1,
+  retryCount: 0,
+  secrets: PROFILE_FN_SECRETS,
+  ...SNOWFLAKE_VPC_OPTS,
+  environmentVariables: consentStoreRuntimeEnv(),
+}, async () => {
+  const { getAdminFirestore } = require('./adminFirestore');
+  const db = getAdminFirestore();
+  const { createProfileSeedScheduleRuntime } = require('./profileSeedScheduleRuntime');
+  try {
+    await createProfileSeedScheduleRuntime({
+      db,
+      auth: require('firebase-admin').auth(),
+      getAdobeAuth: async () => ({
+        accessToken: await getAdobeAccessToken(),
+        clientId: ADOBE_CLIENT_ID.value(), orgId: ADOBE_IMS_ORG.value(),
+      }),
+    }).tick();
+  } catch {
+    console.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.');
+    throw new Error('Profile seed dispatcher failed. Inspect its durable state; do not replay generation.');
+  }
+});
+
 const commerceOptimizerFnOpts = {
   ...profileFnOpts,
   secrets: [

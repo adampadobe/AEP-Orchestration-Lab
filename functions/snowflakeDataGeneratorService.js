@@ -526,6 +526,7 @@ async function handleGenerateIndustryProfiles(input) {
   if (!labUser) throw new Error('labUser uid is required');
   if (input.onPrepared != null && typeof input.onPrepared !== 'function') throw new Error('onPrepared must be a function');
   if (input.prepareTables != null && typeof input.prepareTables !== 'boolean') throw new Error('prepareTables must be a boolean');
+  if (input.samplingMode != null && input.samplingMode !== 'ongoing') throw new Error('Unsupported samplingMode');
 
   const config = getIndustryProfileConfig(industry);
   if (!config) {
@@ -655,7 +656,7 @@ async function handleGenerateIndustryProfiles(input) {
       });
       if (generationPrefs.mobilePhone) generated.rowObject.PHONENUMBER = generationPrefs.mobilePhone;
       const record = buildSeedRecord(industry, generated.rowObject, {
-        index: i, asOfDate: runStamp.slice(0, 10), runStamp,
+        index: i, asOfDate: runStamp.slice(0, 10), runStamp, samplingMode: input.samplingMode,
       });
       records.push(record);
       profiles.push({
