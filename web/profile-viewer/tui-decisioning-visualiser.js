@@ -242,7 +242,8 @@
       tr.append(td);
       tbody.append(tr);
     }
-    row(brand.name ? el('strong', brand.name, 'cp-wordmark') : image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
+    row(brand.logoUrl ? image(brand.logoUrl, brand.name, 'email-logo cp-logo')
+      : brand.name ? el('strong', brand.name, 'cp-wordmark') : image('tui-decisioning-assets/tui-logo.svg', 'TUI', 'email-logo'));
     row(image(offer.image, offer.imageAlt, 'email-photo'), 'email-photo-cell');
     row(el('span', 'Hi ' + recipient + ', here is your next ' + (brand.moment || 'holiday moment') + '.', 'eyebrow'));
     if (offer.content.title) row(el('div', offer.content.title), 'email-heading');

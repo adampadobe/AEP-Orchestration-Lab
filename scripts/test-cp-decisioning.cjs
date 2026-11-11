@@ -174,7 +174,13 @@ test('CP customer content is live-only while retaining explicit Apply and profil
   assert.match(visualiser, /Verified schema \/ mapping boundary/);
   assert.doesNotMatch(visualiser, /No assets created or activated/);
   assert.equal(model.brand.showSimulation, false);
-  assert.doesNotMatch(visualiser, /<img\b/);
+  const logos = [...visualiser.matchAll(/<img\b[^>]*>/g)].map(match => match[0]);
+  assert.equal(logos.length, 3, 'Only static brand logos are allowed before a live decision');
+  for (const logo of logos) {
+    assert.match(logo, /class="cp-logo"/);
+    assert.ok(logo.includes('src="' + model.brand.logoUrl.replace(/&/g, '&amp;') + '"'));
+    assert.match(logo, /alt="Center Parcs"/);
+  }
   assert.match(visualiser, /Awaiting a live decision/);
   const source = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
   assert.doesNotMatch(source, /global\.confirm\(/);

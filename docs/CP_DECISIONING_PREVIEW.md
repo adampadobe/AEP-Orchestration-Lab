@@ -16,7 +16,7 @@ below the signals and strategies. Narrow screens retain the shared stacked layou
 Scenarios run 7 to 1; strategy precedence is 1 to 7. Only relevant signal groups
 expand for a scenario. Local simulated eligibility is explicitly labelled and
 never substituted for a live AJO result. Before the first successful Run, all three
-offer areas show neutral placeholders without local images or promotional copy,
+offer areas show neutral placeholders without local offer images or promotional copy,
 including on the standalone visualiser. Scenario changes update signals and the
 simulated eligibility ladder, not the customer content. Only a live decision's
 image and returned headline/description populate those offer areas; missing copy
@@ -26,6 +26,11 @@ edits, consent holds, failed requests and failed image loads. After a new live
 decision succeeds and renders, display-tracking or refresh failures are reported
 explicitly as follow-up failures; they do not mislabel the decision as failed. Changing
 identity or sandbox clears it to avoid presenting another person's decision.
+
+Static Center Parcs branding uses the supplied Wikimedia `CenterparcsUKlogo.svg`
+in the standalone header, email, mobile app and Web navigation. Logos retain their
+square aspect ratio and a light token-based backing in both themes. They are
+independent of live offer imagery and do not change with scenarios.
 
 The site configuration selects `kirkham`; profile reads and writes refuse another
 sandbox. Lookup is read-only. Clicking Apply validates existing write schemas
