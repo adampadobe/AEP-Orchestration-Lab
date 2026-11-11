@@ -169,6 +169,8 @@ test('CP customer content is live-only while retaining explicit Apply and profil
   assert.match(html, /tui-decisioning-drawer\.js\?v=20261111-compact-names/);
   assert.match(html, /tui-profile-hero\.js/);
   assert.match(html, /autoRunDecisioning: false/);
+  assert.match(html, /class="tui-lab-brand"><img class="cp-logo"/);
+  assert.doesNotMatch(html, /class="cp-wordmark"/);
   const visualiser = fs.readFileSync(path.join(root, 'cp-decisioning-visualiser.html'), 'utf8');
   assert.doesNotMatch(html + visualiser, /href="cp-decisioning-catalog-plan\.json"|Historical AJO catalog plan|AJO catalog plan/);
   assert.match(visualiser, /Verified schema \/ mapping boundary/);

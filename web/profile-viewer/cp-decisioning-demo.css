@@ -2,6 +2,9 @@
 .cp-visualiser .app-header .cp-logo { width: 80px; height: 80px; }
 .cp-demo-shell #cp-visualiser { top: var(--tui-content-top, 110px); height: calc(100dvh - var(--tui-content-top, 110px) - 26px); border: 0; }
 .cp-demo-shell .tui-live-actions { background: var(--dash-surface); }
+.cp-demo-shell .tui-lab-brand { gap: 12px; }
+.cp-demo-shell .tui-lab-brand .cp-logo { width: 64px; height: 64px; }
+.cp-demo-shell .tui-lab-brand .eyebrow { max-width: 220px; }
 .cp-demo-shell .mod-demo-top-anchor { height: auto; }
 .cp-demo-shell .mod-demo-top-anchor::after { display: none !important; }
 .cp-demo-shell #aepLabEnvOverlayPanel { position: relative; inset: auto !important; width: 100%; max-height: min(340px, 35dvh); transform: none; }
