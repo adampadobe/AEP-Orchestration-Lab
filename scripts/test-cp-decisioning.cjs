@@ -162,17 +162,28 @@ test('catalog plan is schema-verified and contains visual rules and tag collecti
   assert.throws(() => model.catalogPlan(null), /verification/);
 });
 
-test('CP applies on button click without a dialog while retaining profile safeguards', () => {
+test('CP customer content is live-only while retaining explicit Apply and profile safeguards', () => {
   const html = fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8');
   assert.match(html, /data-demo-env-strip-prefix="cpDecisioning"/);
-  assert.match(html, /tui-decisioning-attribution\.js\?v=20261110-cp-live/);
-  assert.match(html, /tui-decisioning-drawer\.js\?v=20261109-campaign/);
+  assert.match(html, /tui-decisioning-attribution\.js\?v=20261111-selected-offer/);
+  assert.match(html, /tui-decisioning-drawer\.js\?v=20261111-compact-names/);
   assert.match(html, /tui-profile-hero\.js/);
   assert.match(html, /autoRunDecisioning: false/);
+  assert.match(html, /class="tui-lab-brand"><img class="cp-logo"/);
+  assert.doesNotMatch(html, /class="cp-wordmark"/);
   const visualiser = fs.readFileSync(path.join(root, 'cp-decisioning-visualiser.html'), 'utf8');
-  assert.match(visualiser, /not the current live inventory/);
-  assert.match(visualiser, /This page does not create or activate catalog assets/);
+  assert.doesNotMatch(html + visualiser, /href="cp-decisioning-catalog-plan\.json"|Historical AJO catalog plan|AJO catalog plan/);
+  assert.match(visualiser, /Verified schema \/ mapping boundary/);
   assert.doesNotMatch(visualiser, /No assets created or activated/);
+  assert.equal(model.brand.showSimulation, false);
+  const logos = [...visualiser.matchAll(/<img\b[^>]*>/g)].map(match => match[0]);
+  assert.equal(logos.length, 3, 'Only static brand logos are allowed before a live decision');
+  for (const logo of logos) {
+    assert.match(logo, /class="cp-logo"/);
+    assert.ok(logo.includes('src="' + model.brand.logoUrl.replace(/&/g, '&amp;') + '"'));
+    assert.match(logo, /alt="Center Parcs"/);
+  }
+  assert.match(visualiser, /Awaiting a live decision/);
   const source = fs.readFileSync(path.join(root, 'tui-decisioning-demo.js'), 'utf8');
   assert.doesNotMatch(source, /global\.confirm\(/);
   assert.equal(model.brand.confirmProfileChanges, undefined);

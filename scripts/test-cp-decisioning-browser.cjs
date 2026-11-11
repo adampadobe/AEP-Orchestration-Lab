@@ -11,28 +11,65 @@ async function main() {
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+    const logoFixture = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><path d="M0 0h192v192H0z"/></svg>';
+    await context.route(model.brand.logoUrl, route => route.fulfill({ contentType: 'image/svg+xml', body: logoFixture }));
     const errors = [];
     context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
     const page = await context.newPage();
+    const localImageRequests = [];
+    page.on('request', request => {
+      if (request.url().includes('/cp-decisioning-assets/')) localImageRequests.push(request.url());
+    });
     await page.goto(origin + '/profile-viewer/cp-decisioning-visualiser.html');
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
     assert.equal(await page.locator('#scenario-pills button').count(), 7);
+    assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'No static photography or simulated hero before a decision');
+    assert.equal(await page.locator('.cp-logo').count(), 3);
+    assert.deepEqual(await page.locator('.cp-logo').evaluateAll(nodes => nodes.map(img => img.src)), Array(3).fill(model.brand.logoUrl));
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+      assert.ok(await page.locator('.cp-logo').evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0 &&
+        getComputedStyle(img).backgroundColor === 'rgb(255, 255, 255)' &&
+        getComputedStyle(img).width === getComputedStyle(img).height)), 'Logos load without distortion in ' + theme + ' mode');
+    }
+    await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
     for (let i = 0; i < model.demoScenarios.length; i++) {
       const scenario = model.demoScenarios[i];
       await page.locator('#scenario-pills button').nth(i).click();
       assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
-      const selected = model.objectives.find(o => o.key === scenario.expectedObjective).offers.find(o => o.key === scenario.expectedOffer);
-      assert.equal(await page.locator('.email-heading').textContent(), selected.content.title);
+      assert.equal(await page.locator('.nba-card--winner').getAttribute('data-offer'), scenario.expectedOffer);
+      assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'Scenario must not display local offer images');
+      assert.equal(await page.locator('.email-heading,.app-offer-title,.web-hero,.preview-cta').count(), 0);
+      assert.equal(await page.locator('#email-preview .hold-card,#mobile-preview .hold-card,#web-preview .hold-card').count(), 3);
       const expectedGroups = [...new Set(scenario.signalKeys.map(key => model.fields.find(f => f.key === key).group))].sort();
       assert.deepEqual((await page.locator('.signal-group[open]').evaluateAll(nodes => nodes.map(node => node.dataset.group))).sort(), expectedGroups);
     }
+    assert.deepEqual(localImageRequests, [], 'Scenario changes must not even request local offer photography');
     await page.getByRole('tab', { name: 'Mobile App', exact: true }).click();
     assert.ok(await page.locator('#panel-mobile').isVisible());
     await page.getByRole('tab', { name: 'Web', exact: true }).click();
-    const webWidth = await page.locator('.website-preview').evaluate(node => node.getBoundingClientRect().width);
-    assert.ok(webWidth > 1400, 'Web must be full-width, not a narrow emulator: ' + webWidth);
+    async function assertWebPanel(frame) {
+      const bounds = await frame.locator('#workspace').evaluate(node => {
+        const rect = selector => {
+          const r = node.querySelector(selector).getBoundingClientRect();
+          return { left: r.left, right: r.right, top: r.top, width: r.width, bottom: r.bottom };
+        };
+        const panel = node.querySelector('#panel-web'), style = getComputedStyle(panel);
+        return { decision: rect('.decision-pane'), preview: rect('.preview-pane'), web: rect('.website-preview'),
+          panelWidth: panel.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight),
+          width: innerWidth, height: innerHeight };
+      });
+      assert.ok(bounds.preview.left >= bounds.decision.right, 'Web preview stays to the right of the strategies');
+      assert.ok(Math.abs(bounds.preview.top - bounds.decision.top) < 2, 'Web must not move to a hidden second row');
+      assert.ok(bounds.preview.right <= bounds.width + 1 && bounds.preview.top < bounds.height, 'Web panel is inside the viewport');
+      assert.ok(bounds.web.width > 300 && Math.abs(bounds.web.width - bounds.panelWidth) < 2,
+        'Web fills the visible preview width, not a fixed phone emulator');
+    }
+    await assertWebPanel(page);
+    assert.equal(await page.locator('a[href*="cp-decisioning-catalog-plan"]').count(), 0);
+    assert.equal(await page.getByText('Historical AJO catalog plan', { exact: false }).count(), 0);
     await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
-    assert.ok(await page.locator('.web-hero img').evaluate(img => img.complete && img.naturalWidth > 0));
+    assert.ok(await page.locator('#web-preview .hold-card').isVisible());
     await page.evaluate(async () => {
       const api = window.TuiDecisioningVisualiser;
       api.setEmbedded();
@@ -40,8 +77,17 @@ async function main() {
       await api.setDecision({ url: location.origin + '/profile-viewer/cp-decisioning-assets/forest.webp',
         title: 'Verified live fixture', description: 'Browser-test fixture, not real AJO content.' });
     });
-    await page.locator('#scenario-pills button').nth(0).click();
-    assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    assert.equal(await page.locator('#email-preview .cp-logo').getAttribute('src'), model.brand.logoUrl);
+    assert.ok(await page.locator('#email-preview .cp-logo').evaluate(img => img.complete && img.naturalWidth > 0));
+    for (let i = 0; i < model.demoScenarios.length; i++) {
+      await page.locator('#scenario-pills button').nth(i).click();
+      assert.deepEqual(await page.locator('.email-heading,.app-offer-title,.web-hero h3').allTextContents(),
+        Array(3).fill('Verified live fixture'));
+      assert.deepEqual(await page.locator('.email-copy,.app-offer-copy p,.web-hero-copy p').allTextContents(),
+        Array(3).fill('Browser-test fixture, not real AJO content.'));
+      assert.equal(await page.locator('.email-photo,.app-offer-image,.web-hero img').count(), 3);
+      assert.ok(await page.locator('.web-hero img').evaluate(img => img.complete && img.naturalWidth > 0));
+    }
     await page.evaluate(() => window.TuiDecisioningVisualiser.hold('Consent hold / retain last successful live response'));
     assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
     const failure = await page.evaluate(async () => {
@@ -50,11 +96,39 @@ async function main() {
     });
     assert.match(failure, /could not load/);
     assert.equal(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    await page.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/lodge.webp',
+    }));
+    assert.equal(await page.locator('.email-photo,.app-offer-image,.web-hero img').count(), 3);
+    assert.equal(await page.locator('.email-heading,.email-copy,.app-offer-title,.app-offer-copy p,.web-hero h3,.web-hero-copy p,.preview-cta').count(), 0,
+      'Image-only decisions must not invent offer copy or CTA');
+    assert.match(await page.locator('#preview-source').textContent(), /without headline or description/);
+    await page.locator('#scenario-pills button').nth(3).click();
+    assert.equal(await page.locator('.web-hero h3').count(), 0);
+    assert.ok((await page.locator('.web-hero img').getAttribute('src')).endsWith('/lodge.webp'));
     await page.evaluate(() => window.TuiDecisioningVisualiser.setProfile({ contextKey: 'different-person', state: window.DecisioningDemoModel.defaults }));
-    assert.notEqual(await page.locator('.web-hero h3').textContent(), 'Verified live fixture');
+    assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'Identity change clears the previous offer image without local fallback');
+    assert.equal(await page.locator('.cp-logo').count(), 3, 'Static branding remains independent of decision content');
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile layout must not overflow');
     assert.deepEqual(errors, []);
+
+    const tui = await context.newPage();
+    await tui.goto(origin + '/profile-viewer/tui-decisioning-visualiser.html');
+    await tui.evaluate(() => window.TuiDecisioningVisualiser.setEmbedded());
+    assert.equal(await tui.locator('#email-preview img,#mobile-preview img,#web-preview img').count(), 0);
+    await tui.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/forest.webp',
+      title: 'TUI returned headline', description: 'TUI returned description',
+    }));
+    await tui.locator('#scenario-pills button').first().click();
+    assert.deepEqual(await tui.locator('.email-heading,.app-offer-title,.web-hero h3').allTextContents(),
+      Array(3).fill('TUI returned headline'));
+    await tui.evaluate(async () => window.TuiDecisioningVisualiser.setDecision({
+      url: location.origin + '/profile-viewer/cp-decisioning-assets/lodge.webp',
+    }));
+    assert.equal(await tui.locator('.email-heading,.email-copy,.app-offer-title,.app-offer-copy p,.web-hero h3,.web-hero-copy p,.preview-cta').count(), 0);
+    await tui.close();
 
     const write = await fetch(origin + '/api/profile/update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
     assert.equal(write.status, 403);
@@ -71,6 +145,13 @@ async function main() {
     const outboundUpdates = [];
     let fixtureEvents = [];
     let fixtureAudiences = { realized: [], exited: [] };
+    const campaignId = 'd360b9ce-7303-465d-93eb-d31c3f19a6c4#3b882acb-398f-4faa-8331-a1ec279336ac';
+    const campaignName = 'AEP-LAB-Decisioning-Hero-Banner';
+    const campaignLookups = [];
+    const decisionLookups = [];
+    const offerId = 'dps:fixture:guest-care';
+    const strategyId = 'dps:selection-strategy:guest-care';
+    const wrapperId = '438e0d1c-2689-4cc6-89d8-8e5f9a684bd4';
     const schema = { version: '1.12', 'meta:tenantNamespace': '_demoemea', properties: {} };
     for (const field of model.fields) {
       let node = schema;
@@ -85,6 +166,7 @@ async function main() {
     rows.push({ path: 'person.name.firstName', value: 'Alex', valueType: 'string', industry: 'generic', writable: true });
     await shell.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
+      if (url.href === model.brand.logoUrl) { await route.fulfill({ contentType: 'image/svg+xml', body: logoFixture }); return; }
       if (url.origin !== origin) { await route.fulfill({ body: '', contentType: 'text/javascript' }); return; }
       if (!url.pathname.startsWith('/api/')) { await route.continue(); return; }
       let data = { ok: true };
@@ -98,6 +180,25 @@ async function main() {
       else if (url.pathname === '/api/profile/consent') data = { found: true, firstName: 'Alex', email: 'fixture@example.invalid',
         ecid: '12345678901234567890123456789012345678', channels: { email: 'in', sms: 'not_provided', push: 'not_provided' } };
       else if (url.pathname === '/api/profile/events') data = { events: fixtureEvents };
+      else if (url.pathname === '/api/decisioning/catalog/get') {
+        assert.equal(request.method(), 'GET', 'Attribution is read-only');
+        assert.equal(url.searchParams.get('sandbox'), 'kirkham');
+        const id = url.searchParams.get('id'), type = url.searchParams.get('entity_type');
+        decisionLookups.push([type, id]);
+        const name = id === offerId && type === 'offer-items' ? 'CP - Guest care'
+          : id === strategyId && type === 'selection-strategies' ? 'CP - Protect / Recover strategy' : null;
+        if (!name) { await route.fulfill({ status: 404, json: { ok: false } }); return; }
+        data = { ok: true, id, item: { id, name } };
+      }
+      else if (url.pathname === '/api/campaign-name') {
+        assert.equal(url.searchParams.get('sandbox'), 'kirkham');
+        campaignLookups.push(url.searchParams.get('id'));
+        if (url.searchParams.get('id') !== campaignId) {
+          await route.fulfill({ status: 500, json: { error: 'Campaign query unavailable', name: null } });
+          return;
+        }
+        data = { id: campaignId, name: campaignName };
+      }
       else if (url.pathname === '/api/profile/audiences') data = fixtureAudiences;
       else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/tags/reactor') data = { data: [] };
@@ -122,10 +223,18 @@ async function main() {
       document.getElementById('sandboxSelect').value === 'kirkham' && document.getElementById('sandboxSelect').disabled);
     assert.equal(await shell.locator('#sandboxSelect').inputValue(), 'kirkham');
     assert.ok(await shell.locator('#sandboxSelect').isDisabled());
+    const shellLogo = shell.locator('.tui-lab-brand img.cp-logo');
+    assert.equal(await shellLogo.getAttribute('src'), model.brand.logoUrl);
+    assert.equal(await shell.locator('.tui-lab-brand .cp-wordmark').count(), 0);
+    assert.ok(await shellLogo.evaluate(img => img.complete && img.naturalWidth > 0 &&
+      getComputedStyle(img).width === '64px' && getComputedStyle(img).height === '64px'));
+    await shell.waitForFunction(() => document.getElementById('cp-visualiser').getBoundingClientRect().top >=
+      document.querySelector('.tui-live-actions').getBoundingClientRect().bottom - 1);
     const cpNav = shell.locator('[data-subgroup="demoCp"]');
     await cpNav.waitFor();
     assert.equal(await cpNav.getByRole('link', { name: 'Decisioning', exact: true }).getAttribute('href'), 'cp-decisioning-demo.html');
     assert.equal(await cpNav.getByText('in development', { exact: false }).count(), 0);
+    assert.equal(await shell.locator('a[href*="cp-decisioning-catalog-plan"]').count(), 0);
     await shell.locator('#customerEmail').fill('fixture@example.invalid');
     await shell.locator('#queryProfileBtn').click();
     await shell.waitForFunction(() => !!window.TuiDecisioningDrawer.getSignals() &&
@@ -135,17 +244,23 @@ async function main() {
     fixtureEvents = [
       { eventType: 'decisioning.propositionDisplay', timestamp: Date.now(), rows: [
         { path: proposition + 'scope', value: 'web://fixture.invalid/profile-viewer/cp-decisioning-visualiser.html#hero-banner' },
-        { path: proposition + 'scopeDetails.activity.id', value: 'fixture-campaign' },
-        { path: proposition + 'scopeDetails.activity.name', value: 'CP fixture campaign' },
+        { path: proposition + 'scopeDetails.activity.id', value: campaignId },
         { path: proposition + 'scopeDetails.decisionProvider', value: 'CJM' },
-        { path: proposition + 'items.0.name', value: 'CP - Guest care' },
-        { path: proposition + 'items.0.itemSelection.selectionDetail.strategyName', value: 'CP - Protect / Recover strategy' },
+        { path: proposition + 'items.0.id', value: wrapperId },
+        { path: proposition + 'items.1.name', value: 'CP - Guest care' },
+        { path: proposition + 'items.1.id', value: offerId },
+        { path: proposition + 'items.1.itemSelection.selectionDetail.strategyID', value: strategyId },
+        { path: proposition + 'items.1.itemSelection.selectionDetail.strategyName', value: 'CP - Protect / Recover strategy' },
+        { path: '_experience.decisioning.propositions.1.scopeDetails.activity.id', value: campaignId },
+        { path: '_experience.decisioning.propositions.1.scopeDetails.decisionProvider', value: 'CJM' },
+        { path: '_experience.decisioning.propositions.1.scope', value: 'web://fixture.invalid/#second-placement' },
         { path: 'web.webPageDetails.URL', value: origin + '/profile-viewer/cp-decisioning-demo.html?channel=email' },
       ] },
       { eventType: 'message.feedback', eventName: 'message.feedback', timestamp: Date.now() - 1, rows: [
         { path: '_experience.customerJourneyManagement.emailChannelContext.namespace', value: 'Email' },
         { path: '_experience.customerJourneyManagement.messageDeliveryfeedback.feedbackStatus', value: 'sent' },
       ] },
+      { eventType: 'web.webinteraction.linkClicks', eventName: 'CP - Page action, not an offer', timestamp: Date.now() - 2, rows: [] },
     ];
     fixtureAudiences = { realized: [{ segmentId: 'fixture-audience', name: 'CP fixture audience' }], exited: [] };
     await shell.waitForFunction(() => {
@@ -154,13 +269,72 @@ async function main() {
     }, null, { timeout: 15000 });
     const decisionCard = shell.locator('.aep-event-decision').filter({ hasText: 'CP - Guest care' });
     assert.match(await decisionCard.textContent(), /Won via CP - Protect \/ Recover strategy/);
-    assert.match(await decisionCard.textContent(), /Campaign: CP fixture campaign/);
+    await shell.waitForFunction(name => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: ' + name), campaignName);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Delivery: ' }).count(), 1);
+    assert.match(await decisionCard.textContent(), /Campaign: AEP-LAB-Decisioning-Hero-Banner/);
+    assert.deepEqual(campaignLookups, [campaignId], 'Repeated propositions share one campaign lookup');
     assert.match(await decisionCard.textContent(), /Delivery: Code-based experience/);
     assert.match(await decisionCard.textContent(), /Preview: Email/);
     assert.ok(await decisionCard.locator('svg').count() > 0, 'Decision card must use the shared TUI event icon');
+    assert.equal(await shell.locator('.aep-event-decision').count(), 1, 'Ordinary page actions and email feedback are not delivered decisions');
+    assert.deepEqual(decisionLookups, [], 'Event-supplied names need no catalog lookup');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-title').textContent(), 'CP - Guest care',
+      'The real offer name is the headline, not the CBE content-wrapper UUID');
+    assert.ok(!(await decisionCard.textContent()).includes(wrapperId));
+    assert.doesNotMatch(await decisionCard.textContent(), /Offer ID:|Strategy ID:|dps:|Strategy: not returned/);
+    assert.match(await decisionCard.locator('.aep-profile-drawer-event-title').getAttribute('title'), /dps:fixture:guest-care/,
+      'Technical IDs stay available on hover without filling the card');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').count(), 4,
+      'Exactly one strategy, delivery, campaign and preview line');
     assert.equal(await shell.locator('#profileDrawerMessageSentValue').textContent(), '1', 'Email count must refresh from ingested events');
+    await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+    assert.ok(await decisionCard.isVisible(), 'Resolved attribution remains visible in dark theme');
+    fixtureEvents[0].rows.push({
+      path: '_experience.decisioning.propositions.1.scopeDetails.activity.name', value: 'Name supplied by event',
+    });
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: Name supplied by event'),
+      null, { timeout: 15000 });
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.deepEqual(campaignLookups, [campaignId], 'An embedded campaign name takes precedence over lookup');
+    fixtureEvents[0].rows = fixtureEvents[0].rows.filter(row => !row.path.endsWith('scopeDetails.activity.name'));
+    const unavailableId = '00000000-0000-0000-0000-000000000001';
+    for (const row of fixtureEvents[0].rows) {
+      if (row.path.endsWith('scopeDetails.activity.id')) row.value = unavailableId;
+    }
+    await shell.waitForFunction(id => document.querySelector('.aep-event-decision')?.textContent.includes('Campaign: name unavailable (' + id + ')'),
+      unavailableId, { timeout: 15000 });
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Campaign: ' }).count(), 1);
+    assert.deepEqual(campaignLookups, [campaignId, unavailableId], 'Failed lookups remain explicit without duplicate requests');
+    fixtureEvents[0].rows = fixtureEvents[0].rows.filter(row => !/\.(name|strategyName)$/.test(row.path));
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Won via CP - Protect / Recover strategy'),
+      null, { timeout: 15000 });
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision .aep-profile-drawer-event-title')?.textContent === 'CP - Guest care',
+      null, { timeout: 15000 });
+    // Let the next poll prove this is an ID-only event, not the previous named card.
+    await shell.waitForFunction(() => window.DemoProfileDrawer.getLastLookedUpProfile()?.eventsStory?.[0]?.rows
+      ?.every(row => !/\.(name|strategyName)$/.test(row.path)), null, { timeout: 15000 });
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Won via CP - Protect / Recover strategy'),
+      null, { timeout: 15000 });
+    assert.deepEqual(decisionLookups, [['offer-items', offerId], ['selection-strategies', strategyId]],
+      'Resolve only selected catalog IDs, never the CBE wrapper; cache repeat polling');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-title').textContent(), 'CP - Guest care');
+    assert.doesNotMatch(await decisionCard.textContent(), /dps:|Offer ID:|Strategy ID:|438e0d1c/);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Won via ' }).count(), 1);
     const frame = shell.frames().find(frame => frame.url().includes('cp-decisioning-visualiser.html'));
+    await frame.getByRole('tab', { name: 'Web', exact: true }).click();
+    await assertWebPanel(frame);
+    await frame.getByRole('tab', { name: 'Email · Desktop', exact: true }).click();
+    await shell.setViewportSize({ width: 390, height: 844 });
+    await shell.waitForFunction(() => {
+      const brand = document.querySelector('.tui-lab-brand').getBoundingClientRect();
+      return brand.right <= innerWidth && document.getElementById('cp-visualiser').getBoundingClientRect().top >=
+        document.querySelector('.tui-live-actions').getBoundingClientRect().bottom - 1;
+    });
+    await shell.setViewportSize({ width: 1600, height: 1000 });
     await frame.locator('#scenario-pills button').nth(4).click();
+    assert.equal(await frame.locator('img:not(.cp-logo)').count(), 0, 'Embedded scenario must also wait for live decision imagery');
+    assert.ok(await frame.locator('.cp-logo').evaluateAll(nodes => nodes.length === 3 && nodes.every(img => img.complete && img.naturalWidth > 0)));
     assert.ok(await shell.locator('#tuiApplyProfile').isEnabled());
     const dialogs = [];
     shell.on('dialog', async dialog => {
@@ -168,6 +342,22 @@ async function main() {
       await dialog.dismiss();
     });
     assert.deepEqual(writes, [], 'Staging signals must not send profile updates');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-title').textContent(), 'CP - Guest care',
+      'A different simulated scenario must not relabel an actual delivered offer');
+    fixtureEvents[0].rows = [
+      { path: proposition + 'items.0.id', value: 'unknown-offer' },
+      { path: proposition + 'items.0.itemSelection.selectionDetail.strategyID', value: 'unknown-strategy' },
+    ];
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Strategy name unavailable'),
+      null, { timeout: 15000 });
+    assert.equal(await shell.locator('.aep-event-decision .aep-profile-drawer-event-title').textContent(), 'Offer name unavailable');
+    assert.doesNotMatch(await shell.locator('.aep-event-decision').textContent(), /unknown-offer|unknown-strategy/);
+    fixtureEvents[0].rows = [];
+    fixtureEvents[0].eventName = 'CP - Incorrect action label';
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('offer not returned on event'),
+      null, { timeout: 15000 });
+    assert.match(await shell.locator('.aep-event-decision').textContent(), /Strategy: not returned on event/);
+    assert.ok(!(await shell.locator('.aep-event-decision').textContent()).includes('Incorrect action label'));
     await shell.locator('#tuiApplyProfile').click();
     await shell.waitForFunction(() => /Profile changes confirmed|cancelled/.test(document.getElementById('tuiLiveStatus').textContent));
     assert.deepEqual(dialogs, [], 'Apply must not require a separate approval dialog');

@@ -14,7 +14,7 @@
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="decisioning-persona-journey.css?v=20261016">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261108">
+  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261111-shell-logo">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell cp-demo-shell">
@@ -28,16 +28,15 @@
     </section>
   </div>
   <header class="tui-live-actions" aria-label="CP decision controls">
-    <div class="tui-lab-brand"><div><span class="cp-wordmark">Center Parcs</span><span class="eyebrow">LESS EVERYDAY. MORE TOGETHER.</span></div></div>
+    <div class="tui-lab-brand"><img class="cp-logo" src="https://upload.wikimedia.org/wikipedia/en/5/54/CenterparcsUKlogo.svg?utm_source=en.wikipedia.org&amp;utm_campaign=index&amp;utm_content=original" alt="Center Parcs" width="64" height="64"><span class="eyebrow">LESS EVERYDAY. MORE TOGETHER.</span></div>
     <div class="tui-action-controls">
-      <span id="tuiLiveStatus" role="status" aria-live="polite">Simulated preview / no profile changes.</span>
-      <a href="cp-decisioning-catalog-plan.json" target="_blank" rel="noopener">AJO catalog plan</a>
+      <span id="tuiLiveStatus" role="status" aria-live="polite">Awaiting a live decision / no profile changes.</span>
       <button id="tuiApplyProfile" type="button" disabled>Apply changes</button>
       <button id="tuiRunDecision" type="button">Run decision</button>
     </div>
   </header>
   <iframe id="cp-visualiser" class="mod-demo-site-frame" title="Center Parcs decisioning experiences"
-    src="cp-decisioning-visualiser.html?v=20261110-cp-apply" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
+    src="cp-decisioning-visualiser.html?v=20261111-cp-logo" sandbox="allow-same-origin allow-scripts" loading="eager"></iframe>
   <div class="dashboard-shell"><aside class="dashboard-sidebar" aria-label="Lab navigation"></aside><div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div></div>
   <details class="cp-decision-metadata"><summary>Last successful live response / item and strategy metadata</summary><pre id="cpDecisionMetadata">No live response yet. Simulated eligibility is not a live AJO response.</pre></details>
   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
@@ -50,10 +49,10 @@
   <script src="identity-picker.js"></script>
   <script src="email-engagement-metrics.js"></script>
   <script src="shared/profile-viewer-modal.js"></script>
-  <script src="tui-decisioning-attribution.js?v=20261110-cp-live"></script>
-  <script src="tui-decisioning-drawer.js?v=20261109-campaign"></script>
+  <script src="tui-decisioning-attribution.js?v=20261111-selected-offer"></script>
+  <script src="tui-decisioning-drawer.js?v=20261111-compact-names"></script>
   <script src="aep-demo-generator-targets.js"></script>
-  <script src="cp-decisioning-model.js?v=20261110-cp-apply"></script>
+  <script src="cp-decisioning-model.js?v=20261111-cp-logo"></script>
   <script src="tui-decisioning-profile.js?v=20261109-hospitality"></script>
   <script src="tui-profile-hero.js?v=20261108-cp-model"></script>
   <script>

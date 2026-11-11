@@ -6,17 +6,31 @@ require the in-development switch; ordinary owner/sandbox filters and hide setti
 still apply. This reuses the latest TUI
 environment bar, manual-decision runtime, compact profile drawer, journey renderer
 and event icons rather than creating a generic website clone. Brand photography
-is selected from the supplied website ZIP; original site scripts and trackers are
-not executed. All new asset names use **CP**.
+from the supplied website ZIP remains catalog-authoring reference material only;
+it is never used as a fallback in the customer experiences. Original site scripts
+and trackers are not executed. All new asset names use **CP**.
 
 Email Desktop, Mobile App and full-width Web share the same selected content.
+On desktop, Web fills the right-hand customer-experience pane without moving it
+below the signals and strategies. Narrow screens retain the shared stacked layout.
 Scenarios run 7 to 1; strategy precedence is 1 to 7. Only relevant signal groups
 expand for a scenario. Local simulated eligibility is explicitly labelled and
-never substituted for a live AJO result. A successful live result survives staged
+never substituted for a live AJO result. Before the first successful Run, all three
+offer areas show neutral placeholders without local offer images or promotional copy,
+including on the standalone visualiser. Scenario changes update signals and the
+simulated eligibility ladder, not the customer content. Only a live decision's
+image and returned headline/description populate those offer areas; missing copy
+is not filled from the local catalog, and no fabricated CTA is added. The static
+Web inspiration photography strip is omitted. A successful live result survives staged
 edits, consent holds, failed requests and failed image loads. After a new live
 decision succeeds and renders, display-tracking or refresh failures are reported
 explicitly as follow-up failures; they do not mislabel the decision as failed. Changing
 identity or sandbox clears it to avoid presenting another person's decision.
+
+Static Center Parcs branding uses the supplied Wikimedia `CenterparcsUKlogo.svg`
+in the page's top-left control bar, standalone header, email, mobile app and Web navigation. Logos retain their
+square aspect ratio and a light token-based backing in both themes. They are
+independent of live offer imagery and do not change with scenarios.
 
 The site configuration selects `kirkham`; profile reads and writes refuse another
 sandbox. Lookup is read-only. Clicking Apply validates existing write schemas
@@ -33,6 +47,16 @@ and campaign/CBE attribution helper. Display events retain the CP shell URL and
 selected email/app/web preview channel without presenting those preview modes as
 three separate AJO delivery channels. Campaign names come from returned metadata
 or the existing read-only name resolver, never from local offer predictions.
+Only proposition-display events receive decision-card styling. Offer names and
+selection-strategy names come from that event's selected catalog items, not the
+page action or selected scenario. Missing names are resolved by exact returned ID
+through the existing read-only catalog endpoint. CBE content-wrapper UUIDs are not
+offer items and are excluded from the compact card when selected offer metadata
+is present. The card shows the offer name, one line per distinct strategy, and the
+existing campaign/delivery attribution; offer/strategy IDs are available in hover
+details rather than repeated visible rows. Failed name lookups and absent metadata
+remain explicit without putting IDs in the headline. Catalog lookups provide current names, not historical name
+snapshots. The historical catalog-plan links are not displayed in the demo.
 Publishing this page does not create, activate or change Adobe catalog assets,
 campaigns, policies or profiles.
 

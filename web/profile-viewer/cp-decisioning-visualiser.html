@@ -8,11 +8,11 @@
   <title>Center Parcs | Forest decisioning experiences</title>
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261108">
+  <link rel="stylesheet" href="cp-decisioning-demo.css?v=20261111-cp-logo">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="home-dashboard-concierge tui-visualiser cp-visualiser">
-  <header class="tui-lab-header"><strong class="cp-wordmark">Center Parcs</strong><div><span class="eyebrow">LESS EVERYDAY. MORE TOGETHER.</span><h1>Your next forest moment.</h1></div></header>
+  <header class="tui-lab-header"><img class="cp-logo" src="https://upload.wikimedia.org/wikipedia/en/5/54/CenterparcsUKlogo.svg?utm_source=en.wikipedia.org&amp;utm_campaign=index&amp;utm_content=original" alt="Center Parcs" width="96" height="96"><div><span class="eyebrow">LESS EVERYDAY. MORE TOGETHER.</span><h1>Your next forest moment.</h1></div></header>
   <main id="workspace" class="tui-workspace">
     <section class="signals-pane pane" aria-labelledby="signals-title">
       <div class="pane-heading"><div><span class="eyebrow">01 / THE GUEST</span><h2 id="signals-title">Short-break signals</h2></div><button id="reset" type="button">Reset</button></div>
@@ -28,7 +28,6 @@
         <div id="objectives" class="objective-ladder"></div>
       </section>
       <details id="eligible-details" class="ranking-panel"><summary><span>Eligible CP offers</span><small id="eligible-objective"></small></summary><p class="nba-ranking-note">Simulated static item priority / not an AJO or ML score</p><div id="eligible-items"></div></details>
-      <details class="mapping-details"><summary>Historical AJO catalog plan / confirmation boundary</summary><p>The draft plan describes 21 CP offer items, seven CP tags, seven tag-based collections and seven ranked strategies, not the current live inventory. No BA/TUI tags are reused. Simple objective and item rules include Adobe visual attribute models.</p><p id="catalog-stats"></p><p>This page does not create or activate catalog assets. Inspect existing assets and confirm exact catalog payloads and rule attachment scope separately before making changes. Live results come from the configured AJO campaign/policy; simulated eligibility is not proof of live CP eligibility.</p><a href="cp-decisioning-catalog-plan.json" target="_blank" rel="noopener">Inspect the historical verified catalog plan</a></details>
     </section>
     <div class="gutter" role="separator" aria-label="Resize channel preview" aria-orientation="vertical" tabindex="0" data-pane="preview" aria-valuemin="340" aria-valuemax="1200" aria-valuenow="560"></div>
     <section class="preview-pane pane" aria-labelledby="preview-title">
@@ -37,11 +36,11 @@
         <button id="tab-mobile" type="button" role="tab" aria-controls="panel-mobile" aria-selected="false" tabindex="-1" data-channel="mobile">Mobile App</button>
         <button id="tab-web" type="button" role="tab" aria-controls="panel-web" aria-selected="false" tabindex="-1" data-channel="web">Web</button>
       </div></div>
-      <p id="preview-source" class="cp-source" role="status">Simulated CP offer / no live decision yet</p>
+      <p id="preview-source" class="cp-source" role="status">Awaiting a live decision / no local offer images or copy</p>
       <div id="panel-email" role="tabpanel" aria-labelledby="tab-email" class="channel-panel" tabindex="0"><div class="email-metadata"><span class="recipient-label">Fictional preview / Alex Morgan</span><br><span class="subject-line"></span></div><div id="email-preview"></div></div>
       <div id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" class="channel-panel" tabindex="0" hidden>
         <div class="phone-frame tui-app" aria-label="Center Parcs mobile app preview"><div class="phone-status">9:41</div>
-          <header class="app-header"><strong class="cp-wordmark">Center Parcs</strong><span>Your forest plans</span></header>
+          <header class="app-header"><img class="cp-logo" src="https://upload.wikimedia.org/wikipedia/en/5/54/CenterparcsUKlogo.svg?utm_source=en.wikipedia.org&amp;utm_campaign=index&amp;utm_content=original" alt="Center Parcs" width="96" height="96"><span>Your forest plans</span></header>
           <div class="app-scroll"><div class="app-welcome"><span class="eyebrow">TIME TOGETHER</span><h3 id="app-greeting">Hi Alex</h3><p>Your next forest moment starts here.</p></div><div id="mobile-preview"></div>
             <section class="app-shortcuts" aria-label="Village tools"><h3>Make the most of your break</h3><div><button type="button" data-app-action="My break">My break</button><button type="button" data-app-action="Activities">Activities</button><button type="button" data-app-action="Guest services">Guest services</button></div></section>
           </div><nav class="app-nav" aria-label="App preview navigation"><button type="button" data-app-action="Home" aria-current="page">Home</button><button type="button" data-app-action="Discover">Discover</button><button type="button" data-app-action="My break">My break</button><button type="button" data-app-action="Account">Account</button></nav><div class="app-home-indicator" aria-hidden="true"></div>
@@ -50,20 +49,15 @@
       <div id="panel-web" role="tabpanel" aria-labelledby="tab-web" class="channel-panel" tabindex="0" hidden>
         <div class="website-preview"><div class="site-browser-bar"><span class="site-browser-address">centerparcs.co.uk / reconstructed decisioning preview</span></div>
           <div class="site-utility">Short breaks, designed to bring families together <span>Help / My booking</span></div>
-          <div class="site-nav"><strong class="cp-wordmark">Center Parcs</strong><span>Our villages &nbsp; Accommodation &nbsp; Activities &nbsp; Forest Spa</span></div>
+          <div class="site-nav"><img class="cp-logo" src="https://upload.wikimedia.org/wikipedia/en/5/54/CenterparcsUKlogo.svg?utm_source=en.wikipedia.org&amp;utm_campaign=index&amp;utm_content=original" alt="Center Parcs" width="96" height="96"><span>Our villages &nbsp; Accommodation &nbsp; Activities &nbsp; Forest Spa</span></div>
           <div id="web-preview"></div>
-          <div class="site-inspiration"><span class="eyebrow">YOUR HOME IN THE FOREST</span><h3>Less everyday. More together.</h3><div class="destination-grid">
-            <figure><img src="cp-decisioning-assets/lodge.webp" alt="Woodland Lodge nestled in the forest"><figcaption>Woodland Lodges</figcaption></figure>
-            <figure><img src="cp-decisioning-assets/pool.webp" alt="Subtropical Swimming Paradise"><figcaption>Time to splash</figcaption></figure>
-            <figure><img src="cp-decisioning-assets/spa.webp" alt="Aqua Sana Forest Spa"><figcaption>A moment for you</figcaption></figure>
-          </div></div>
         </div>
       </div>
       <p id="preview-feedback" class="preview-feedback" role="status" aria-live="polite"></p>
     </section>
   </main>
   <details class="fictional-drawer"><summary>Local fixture / no live identity or activity</summary><div><p>No real ECID, audience or journey is simulated. Open the parent lab to look up an existing test profile.</p><p id="fixture-summary"></p></div></details>
-  <script src="cp-decisioning-model.js?v=20261110-cp-apply"></script>
-  <script src="tui-decisioning-visualiser.js?v=20261109-hospitality"></script>
+  <script src="cp-decisioning-model.js?v=20261111-cp-logo"></script>
+  <script src="tui-decisioning-visualiser.js?v=20261111-cp-logo"></script>
 </body>
 </html>

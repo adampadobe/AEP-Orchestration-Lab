@@ -16,6 +16,7 @@ const requireCjs = createRequire(import.meta.url);
 /** Canonical streaming path routing + language mirror (keep in sync with Firebase `functions/profileStreamingCore.js`). */
 const profileStreamingCore = requireCjs(join(__dirname, '../../../functions/profileStreamingCore.js'));
 const tagsReactorService = requireCjs(join(__dirname, '../../../functions/tagsReactorService.js'));
+const joLookups = requireCjs(join(__dirname, '../../../functions/joLookups.js'));
 const { deriveEventChannel } = requireCjs(join(__dirname, '../../../functions/profileEventChannel.js'));
 dotenv.config({ path: join(__dirname, '.env') });
 
@@ -2800,41 +2801,13 @@ app.get('/api/profile/events', async (req, res) => {
 });
 
 const DPS_BASE = 'https://platform.adobe.io/data/core/dps';
-const CJM_CAMPAIGN_BASE = process.env.CJM_CAMPAIGN_BASE || 'https://journey.adobe.io/campaign/campaigns';
 const CJM_JOURNEY_BASE = process.env.CJM_JOURNEY_BASE || 'https://journey.adobe.io/journey/journeys';
 
-/** Look up campaign name from Journey Optimizer by campaign ID. */
-const campaignNameCache = new Map();
-async function getCampaignNameById(id) {
+/** Share sandbox-scoped campaign resolution with the hosted API. */
+async function getCampaignNameById(id, sandboxOverride) {
   if (!id || typeof id !== 'string' || !id.trim()) return null;
-  const trimmed = id.trim();
-  if (campaignNameCache.has(trimmed)) return campaignNameCache.get(trimmed);
-  try {
-    const { token, config } = await getAuth();
-    const cfg = getConfig();
-    const url = `${CJM_CAMPAIGN_BASE}/${encodeURIComponent(trimmed)}`;
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        Authorization: `Bearer ${token}`,
-        'x-api-key': cfg.clientId,
-        'x-gw-ims-org-id': config.orgId,
-        'x-sandbox-name': config.sandboxName,
-      },
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      campaignNameCache.set(trimmed, null);
-      return null;
-    }
-    const name = data.name ?? data.label ?? data.title ?? data['@id'] ?? null;
-    campaignNameCache.set(trimmed, name);
-    return name;
-  } catch {
-    campaignNameCache.set(trimmed, null);
-    return null;
-  }
+  const { token, config, cfg } = await getAuthForSandbox(sandboxOverride);
+  return joLookups.getCampaignNameById(id.trim(), config.sandboxName, token, cfg.clientId, config.orgId);
 }
 
 /** Look up journey name from Journey Optimizer API, or from journeys table via Query Service if API returns 404. */
@@ -3014,10 +2987,11 @@ app.get('/api/campaign-name', async (req, res) => {
     return res.status(400).json({ error: 'Missing id. Use ?id=...', name: null });
   }
   try {
-    const name = await getCampaignNameById(id);
+    const name = await getCampaignNameById(id, req.query.sandbox);
     res.json({ id, name });
   } catch (err) {
-    res.status(500).json({ error: err.message, name: null });
+    console.warn('Campaign name lookup failed', { id, message: err.message });
+    res.status(err.status === 400 ? 400 : 500).json({ error: err.message, name: null });
   }
 });
 
