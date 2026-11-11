@@ -59,25 +59,40 @@ test('departure-day edits and scenarios read, write and confirm daysToDeparture'
   }
 });
 
-test('decision item attribution uses only displayed event metadata, including original IDs', () => {
+test('decision item attribution selects catalog offers, not CBE content wrappers', () => {
   const { items } = require(path.join(root, 'tui-decisioning-attribution.js'));
   for (const prefix of ['_experience.decisioning.propositions.0.', 'xdm._experience.decisioning.proposition.0.']) {
     const event = { eventType: 'decisioning.propositionDisplay', eventName: 'Not an offer name', rows: [
-      { path: prefix + 'items.1.id', value: 'second-offer' },
-      { path: prefix + 'items.0.id', value: 'actual-offer-id' },
-      { path: prefix + 'items.0.name', value: 'Actual delivered item' },
-      { path: prefix + 'items.0.itemSelection.selectionDetail.strategyID', value: 'actual-strategy-id' },
-      { path: prefix + 'items.0.itemSelection.selectionDetail.strategyName', value: 'Actual delivered strategy' },
-      { path: prefix + 'items.0.itemSelection.rankingDetail.strategyID', value: 'not-the-selection-strategy' },
+      { path: prefix + 'items.0.id', value: '438e0d1c-2689-4cc6-89d8-8e5f9a684bd4' },
+      { path: prefix + 'items.0.name', value: 'CBE content wrapper, not the offer' },
+      { path: prefix + 'items.1.id', value: 'actual-offer-id' },
+      { path: prefix + 'items.1.name', value: 'Actual delivered item' },
+      { path: prefix + 'items.1.itemSelection.selectionDetail.strategyID', value: 'actual-strategy-id' },
+      { path: prefix + 'items.1.itemSelection.selectionDetail.strategyName', value: 'Actual delivered strategy' },
+      { path: prefix + 'items.1.itemSelection.rankingDetail.strategyID', value: 'not-the-selection-strategy' },
     ] };
     assert.deepEqual(items(event), [
-      { proposition: 0, item: 0, offerId: 'actual-offer-id', offer: 'Actual delivered item',
+      { proposition: 0, item: 1, offerId: 'actual-offer-id', offer: 'Actual delivered item',
         strategyId: 'actual-strategy-id', strategy: 'Actual delivered strategy' },
-      { proposition: 0, item: 1, offerId: 'second-offer' },
     ]);
     assert.deepEqual(items({ ...event, eventType: 'web.webinteraction.linkClicks' }), []);
   }
   assert.deepEqual(items({ eventType: 'decisioning.propositionDisplay', eventName: 'Scenario seven', rows: [] }), []);
+  const event = rows => ({ eventType: 'decisioning.propositionDisplay', rows });
+  const prefix = '_experience.decisioning.propositions.0.items.';
+  assert.deepEqual(items(event([{ path: prefix + '0.id', value: '438e0d1c-2689-4cc6-89d8-8e5f9a684bd4' }])), [],
+    'A wrapper-only event cannot be treated as an offer catalog ID');
+  assert.deepEqual(items(event([
+    { path: prefix + '0.id', value: 'content-wrapper' },
+    { path: prefix + '1.id', value: 'dps:offer-item:actual-offer' },
+    { path: prefix + '1.name', value: 'dps:offer-item:actual-offer' },
+  ])), [{ proposition: 0, item: 1, offerId: 'dps:offer-item:actual-offer' }],
+  'ID-only catalog offers remain resolvable, even if name repeats the ID');
+  assert.deepEqual(items(event([
+    { path: prefix + '0.id', value: 'named-offer' },
+    { path: prefix + '0.name', value: 'Named offer without selection metadata' },
+  ])), [{ proposition: 0, item: 0, offerId: 'named-offer', offer: 'Named offer without selection metadata' }],
+  'Keep the original TUI named-offer contract');
 });
 
 test('TUI disruption reads, writes and confirms the airlineCustomer field', () => {

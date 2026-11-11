@@ -3554,10 +3554,12 @@ function onProfileDrawerEventsStoryKeydown(e) {
 }
 
 function decisioningDisplayCardFields(ev) {
-  return (global.TuiDecisioningAttribution?.items(ev) || []).flatMap(item => [
-      ...(item.offer || item.offerId ? [['Offer', item.offer || item.offerId]] : []),
-      ...(item.strategy || item.strategyId ? [['Strategy', item.strategy || item.strategyId]] : []),
-    ]);
+  const sandbox = getSandboxParam();
+  return (global.TuiDecisioningAttribution?.items(ev) || []).flatMap(item => {
+    const offer = item.offer || tuiDecisionNames.get(sandbox + '|offer-items|' + item.offerId)?.name;
+    const strategy = item.strategy || tuiDecisionNames.get(sandbox + '|selection-strategies|' + item.strategyId)?.name;
+    return [...(offer ? [['Offer', offer]] : []), ...(strategy ? [['Strategy', strategy]] : [])];
+  });
 }
 
 function appendDrawerEventTimelineItem(ev) {
@@ -3641,10 +3643,11 @@ function resolveTuiDecisionName(entityType, id, sandbox) {
       .then(async response => {
         if (!response.ok) throw new Error('Decision name lookup failed (HTTP ' + response.status + ')');
         const data = await response.json();
-        if (!data.ok || data.id !== id || !data.item?.name || data.item.name === '(unnamed)') {
+        if (!data.ok || data.id !== id || !data.item?.name || data.item.name === '(unnamed)' || data.item.name === id) {
           throw new Error('Decision name unavailable for ' + id);
         }
-        return String(data.item.name);
+        entry.name = String(data.item.name);
+        return entry.name;
       })
       .catch(error => {
         labLog('warn', 'TUI decision attribution lookup failed', { message: error.message });
@@ -3664,28 +3667,35 @@ function appendTuiDecisionItems(text, title, ev) {
     text.appendChild(line);
     return line;
   };
-  title.textContent = items.length ? items.map(item => item.offer || item.offerId || 'Offer not returned on event').join(' / ')
-    : 'Decision displayed / offer not returned on event';
-  title.title = title.textContent;
-  if (!items.length) append('Strategy: not returned on event');
+  const updateTitle = () => {
+    title.textContent = items.length ? items.map(item => item.offer || (item.offerId ? 'Resolving offer name' : 'Offer name unavailable')).join(' / ')
+      : 'Decision displayed / offer not returned on event';
+    title.title = items.map(item => [item.offer, item.offerId].filter(Boolean).join('\n')).join('\n');
+  };
+  updateTitle();
+  const strategies = new Map();
+  for (const item of items) {
+    if (item.strategy || item.strategyId) strategies.set(item.strategyId || item.strategy, item);
+  }
+  if (!strategies.size) append('Strategy: not returned on event');
   const sandbox = getSandboxParam();
   for (const item of items) {
-    const strategy = append(item.strategy ? 'Won via ' + item.strategy
-      : item.strategyId ? 'Strategy: resolving name (' + item.strategyId + ')' : 'Strategy: not returned on event');
-    if (item.offerId) append('Offer ID: ' + item.offerId);
-    if (item.strategyId) append('Strategy ID: ' + item.strategyId);
     if (!item.offer && item.offerId) {
       resolveTuiDecisionName('offer-items', item.offerId, sandbox).then(name => {
         if (!title.isConnected || sandbox !== getSandboxParam()) return;
-        item.offer = name || 'Offer name unavailable (' + item.offerId + ')';
-        title.textContent = items.map(value => value.offer || value.offerId || 'Offer not returned on event').join(' / ');
-        title.title = title.textContent;
+        item.offer = name || 'Offer name unavailable';
+        updateTitle();
       });
     }
+  }
+  for (const item of strategies.values()) {
+    const strategy = append(item.strategy ? 'Won via ' + item.strategy : 'Resolving strategy name');
+    strategy.title = [item.strategy, item.strategyId].filter(Boolean).join('\n');
     if (!item.strategy && item.strategyId) {
       resolveTuiDecisionName('selection-strategies', item.strategyId, sandbox).then(name => {
         if (!strategy.isConnected || sandbox !== getSandboxParam()) return;
-        strategy.textContent = name ? 'Won via ' + name : 'Strategy name unavailable (' + item.strategyId + ')';
+        strategy.textContent = name ? 'Won via ' + name : 'Strategy name unavailable';
+        strategy.title = [name, item.strategyId].filter(Boolean).join('\n');
       });
     }
   }

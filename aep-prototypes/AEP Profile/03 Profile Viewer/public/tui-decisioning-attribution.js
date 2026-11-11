@@ -16,7 +16,15 @@
       if (!result.has(key)) result.set(key, { proposition: Number(match[1]), item: Number(match[2]) });
       result.get(key)[fields[match[3]]] = String(row.value).trim();
     }
-    return [...result.values()].sort((a, b) => a.proposition - b.proposition || a.item - b.item);
+    const all = [...result.values()].sort((a, b) => a.proposition - b.proposition || a.item - b.item);
+    for (const item of all) {
+      if (item.offer === item.offerId) delete item.offer;
+      if (item.strategy === item.strategyId) delete item.strategy;
+    }
+    const isSelected = item => Boolean(item.strategy || item.strategyId || /^dps:/.test(item.offerId || ''));
+    const selectedPropositions = new Set(all.filter(isSelected).map(item => item.proposition));
+    // CBE also returns a content-wrapper item. It is not the selected catalog offer.
+    return all.filter(item => selectedPropositions.has(item.proposition) ? isSelected(item) : Boolean(item.offer));
   }
   function details(event) {
     const rows = Array.isArray(event?.rows) ? event.rows : [];
