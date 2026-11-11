@@ -223,6 +223,13 @@ async function main() {
       document.getElementById('sandboxSelect').value === 'kirkham' && document.getElementById('sandboxSelect').disabled);
     assert.equal(await shell.locator('#sandboxSelect').inputValue(), 'kirkham');
     assert.ok(await shell.locator('#sandboxSelect').isDisabled());
+    const shellLogo = shell.locator('.tui-lab-brand img.cp-logo');
+    assert.equal(await shellLogo.getAttribute('src'), model.brand.logoUrl);
+    assert.equal(await shell.locator('.tui-lab-brand .cp-wordmark').count(), 0);
+    assert.ok(await shellLogo.evaluate(img => img.complete && img.naturalWidth > 0 &&
+      getComputedStyle(img).width === '64px' && getComputedStyle(img).height === '64px'));
+    await shell.waitForFunction(() => document.getElementById('cp-visualiser').getBoundingClientRect().top >=
+      document.querySelector('.tui-live-actions').getBoundingClientRect().bottom - 1);
     const cpNav = shell.locator('[data-subgroup="demoCp"]');
     await cpNav.waitFor();
     assert.equal(await cpNav.getByRole('link', { name: 'Decisioning', exact: true }).getAttribute('href'), 'cp-decisioning-demo.html');
@@ -318,6 +325,13 @@ async function main() {
     await frame.getByRole('tab', { name: 'Web', exact: true }).click();
     await assertWebPanel(frame);
     await frame.getByRole('tab', { name: 'Email · Desktop', exact: true }).click();
+    await shell.setViewportSize({ width: 390, height: 844 });
+    await shell.waitForFunction(() => {
+      const brand = document.querySelector('.tui-lab-brand').getBoundingClientRect();
+      return brand.right <= innerWidth && document.getElementById('cp-visualiser').getBoundingClientRect().top >=
+        document.querySelector('.tui-live-actions').getBoundingClientRect().bottom - 1;
+    });
+    await shell.setViewportSize({ width: 1600, height: 1000 });
     await frame.locator('#scenario-pills button').nth(4).click();
     assert.equal(await frame.locator('img:not(.cp-logo)').count(), 0, 'Embedded scenario must also wait for live decision imagery');
     assert.ok(await frame.locator('.cp-logo').evaluateAll(nodes => nodes.length === 3 && nodes.every(img => img.complete && img.naturalWidth > 0)));

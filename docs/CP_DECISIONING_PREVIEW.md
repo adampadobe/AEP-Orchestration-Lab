@@ -28,7 +28,7 @@ explicitly as follow-up failures; they do not mislabel the decision as failed. C
 identity or sandbox clears it to avoid presenting another person's decision.
 
 Static Center Parcs branding uses the supplied Wikimedia `CenterparcsUKlogo.svg`
-in the standalone header, email, mobile app and Web navigation. Logos retain their
+in the page's top-left control bar, standalone header, email, mobile app and Web navigation. Logos retain their
 square aspect ratio and a light token-based backing in both themes. They are
 independent of live offer imagery and do not change with scenarios.
 
