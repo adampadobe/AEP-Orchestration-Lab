@@ -165,8 +165,8 @@ test('catalog plan is schema-verified and contains visual rules and tag collecti
 test('CP customer content is live-only while retaining explicit Apply and profile safeguards', () => {
   const html = fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8');
   assert.match(html, /data-demo-env-strip-prefix="cpDecisioning"/);
-  assert.match(html, /tui-decisioning-attribution\.js\?v=20261110-event-items/);
-  assert.match(html, /tui-decisioning-drawer\.js\?v=20261110-event-items/);
+  assert.match(html, /tui-decisioning-attribution\.js\?v=20261111-selected-offer/);
+  assert.match(html, /tui-decisioning-drawer\.js\?v=20261111-compact-names/);
   assert.match(html, /tui-profile-hero\.js/);
   assert.match(html, /autoRunDecisioning: false/);
   const visualiser = fs.readFileSync(path.join(root, 'cp-decisioning-visualiser.html'), 'utf8');

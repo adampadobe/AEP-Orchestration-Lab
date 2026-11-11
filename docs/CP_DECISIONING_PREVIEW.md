@@ -43,10 +43,14 @@ selected email/app/web preview channel without presenting those preview modes as
 three separate AJO delivery channels. Campaign names come from returned metadata
 or the existing read-only name resolver, never from local offer predictions.
 Only proposition-display events receive decision-card styling. Offer names and
-selection-strategy names/IDs come from that event's proposition items, not the
+selection-strategy names come from that event's selected catalog items, not the
 page action or selected scenario. Missing names are resolved by exact returned ID
-through the existing read-only catalog endpoint; unresolved IDs and absent metadata
-are shown explicitly. Catalog lookups provide current names, not historical name
+through the existing read-only catalog endpoint. CBE content-wrapper UUIDs are not
+offer items and are excluded from the compact card when selected offer metadata
+is present. The card shows the offer name, one line per distinct strategy, and the
+existing campaign/delivery attribution; offer/strategy IDs are available in hover
+details rather than repeated visible rows. Failed name lookups and absent metadata
+remain explicit without putting IDs in the headline. Catalog lookups provide current names, not historical name
 snapshots. The historical catalog-plan links are not displayed in the demo.
 Publishing this page does not create, activate or change Adobe catalog assets,
 campaigns, policies or profiles.

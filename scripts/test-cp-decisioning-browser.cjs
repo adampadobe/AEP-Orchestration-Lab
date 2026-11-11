@@ -137,6 +137,7 @@ async function main() {
     const decisionLookups = [];
     const offerId = 'dps:fixture:guest-care';
     const strategyId = 'dps:selection-strategy:guest-care';
+    const wrapperId = '438e0d1c-2689-4cc6-89d8-8e5f9a684bd4';
     const schema = { version: '1.12', 'meta:tenantNamespace': '_demoemea', properties: {} };
     for (const field of model.fields) {
       let node = schema;
@@ -223,10 +224,11 @@ async function main() {
         { path: proposition + 'scope', value: 'web://fixture.invalid/profile-viewer/cp-decisioning-visualiser.html#hero-banner' },
         { path: proposition + 'scopeDetails.activity.id', value: campaignId },
         { path: proposition + 'scopeDetails.decisionProvider', value: 'CJM' },
-        { path: proposition + 'items.0.name', value: 'CP - Guest care' },
-        { path: proposition + 'items.0.id', value: offerId },
-        { path: proposition + 'items.0.itemSelection.selectionDetail.strategyID', value: strategyId },
-        { path: proposition + 'items.0.itemSelection.selectionDetail.strategyName', value: 'CP - Protect / Recover strategy' },
+        { path: proposition + 'items.0.id', value: wrapperId },
+        { path: proposition + 'items.1.name', value: 'CP - Guest care' },
+        { path: proposition + 'items.1.id', value: offerId },
+        { path: proposition + 'items.1.itemSelection.selectionDetail.strategyID', value: strategyId },
+        { path: proposition + 'items.1.itemSelection.selectionDetail.strategyName', value: 'CP - Protect / Recover strategy' },
         { path: '_experience.decisioning.propositions.1.scopeDetails.activity.id', value: campaignId },
         { path: '_experience.decisioning.propositions.1.scopeDetails.decisionProvider', value: 'CJM' },
         { path: '_experience.decisioning.propositions.1.scope', value: 'web://fixture.invalid/#second-placement' },
@@ -255,8 +257,14 @@ async function main() {
     assert.ok(await decisionCard.locator('svg').count() > 0, 'Decision card must use the shared TUI event icon');
     assert.equal(await shell.locator('.aep-event-decision').count(), 1, 'Ordinary page actions and email feedback are not delivered decisions');
     assert.deepEqual(decisionLookups, [], 'Event-supplied names need no catalog lookup');
-    assert.match(await decisionCard.textContent(), /Offer ID: dps:fixture:guest-care/);
-    assert.match(await decisionCard.textContent(), /Strategy ID: dps:selection-strategy:guest-care/);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-title').textContent(), 'CP - Guest care',
+      'The real offer name is the headline, not the CBE content-wrapper UUID');
+    assert.ok(!(await decisionCard.textContent()).includes(wrapperId));
+    assert.doesNotMatch(await decisionCard.textContent(), /Offer ID:|Strategy ID:|dps:|Strategy: not returned/);
+    assert.match(await decisionCard.locator('.aep-profile-drawer-event-title').getAttribute('title'), /dps:fixture:guest-care/,
+      'Technical IDs stay available on hover without filling the card');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').count(), 4,
+      'Exactly one strategy, delivery, campaign and preview line');
     assert.equal(await shell.locator('#profileDrawerMessageSentValue').textContent(), '1', 'Email count must refresh from ingested events');
     await shell.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     assert.ok(await decisionCard.isVisible(), 'Resolved attribution remains visible in dark theme');
@@ -287,7 +295,10 @@ async function main() {
     await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Won via CP - Protect / Recover strategy'),
       null, { timeout: 15000 });
     assert.deepEqual(decisionLookups, [['offer-items', offerId], ['selection-strategies', strategyId]],
-      'Missing names resolve only the IDs on the ingested event and cache repeat polling');
+      'Resolve only selected catalog IDs, never the CBE wrapper; cache repeat polling');
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-title').textContent(), 'CP - Guest care');
+    assert.doesNotMatch(await decisionCard.textContent(), /dps:|Offer ID:|Strategy ID:|438e0d1c/);
+    assert.equal(await decisionCard.locator('.aep-profile-drawer-event-decision-detail').filter({ hasText: 'Won via ' }).count(), 1);
     const frame = shell.frames().find(frame => frame.url().includes('cp-decisioning-visualiser.html'));
     await frame.getByRole('tab', { name: 'Web', exact: true }).click();
     await assertWebPanel(frame);
@@ -307,9 +318,10 @@ async function main() {
       { path: proposition + 'items.0.id', value: 'unknown-offer' },
       { path: proposition + 'items.0.itemSelection.selectionDetail.strategyID', value: 'unknown-strategy' },
     ];
-    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Strategy name unavailable (unknown-strategy)'),
+    await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('Strategy name unavailable'),
       null, { timeout: 15000 });
-    assert.match(await shell.locator('.aep-event-decision').textContent(), /Offer name unavailable \(unknown-offer\)/);
+    assert.equal(await shell.locator('.aep-event-decision .aep-profile-drawer-event-title').textContent(), 'Offer name unavailable');
+    assert.doesNotMatch(await shell.locator('.aep-event-decision').textContent(), /unknown-offer|unknown-strategy/);
     fixtureEvents[0].rows = [];
     fixtureEvents[0].eventName = 'CP - Incorrect action label';
     await shell.waitForFunction(() => document.querySelector('.aep-event-decision')?.textContent.includes('offer not returned on event'),
