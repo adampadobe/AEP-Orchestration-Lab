@@ -11,6 +11,8 @@ async function main() {
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } });
+    const logoFixture = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><path d="M0 0h192v192H0z"/></svg>';
+    await context.route(model.brand.logoUrl, route => route.fulfill({ contentType: 'image/svg+xml', body: logoFixture }));
     const errors = [];
     context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
     const page = await context.newPage();
@@ -21,13 +23,22 @@ async function main() {
     await page.goto(origin + '/profile-viewer/cp-decisioning-visualiser.html');
     assert.equal(await page.locator('.signal-group[open]').count(), 0);
     assert.equal(await page.locator('#scenario-pills button').count(), 7);
-    assert.equal(await page.locator('img').count(), 0, 'No static photography or simulated hero before a decision');
+    assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'No static photography or simulated hero before a decision');
+    assert.equal(await page.locator('.cp-logo').count(), 3);
+    assert.deepEqual(await page.locator('.cp-logo').evaluateAll(nodes => nodes.map(img => img.src)), Array(3).fill(model.brand.logoUrl));
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+      assert.ok(await page.locator('.cp-logo').evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0 &&
+        getComputedStyle(img).backgroundColor === 'rgb(255, 255, 255)' &&
+        getComputedStyle(img).width === getComputedStyle(img).height)), 'Logos load without distortion in ' + theme + ' mode');
+    }
+    await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
     for (let i = 0; i < model.demoScenarios.length; i++) {
       const scenario = model.demoScenarios[i];
       await page.locator('#scenario-pills button').nth(i).click();
       assert.equal(await page.locator('.objective[data-winner="true"]').getAttribute('data-key'), scenario.expectedObjective);
       assert.equal(await page.locator('.nba-card--winner').getAttribute('data-offer'), scenario.expectedOffer);
-      assert.equal(await page.locator('img').count(), 0, 'Scenario must not display local images');
+      assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'Scenario must not display local offer images');
       assert.equal(await page.locator('.email-heading,.app-offer-title,.web-hero,.preview-cta').count(), 0);
       assert.equal(await page.locator('#email-preview .hold-card,#mobile-preview .hold-card,#web-preview .hold-card').count(), 3);
       const expectedGroups = [...new Set(scenario.signalKeys.map(key => model.fields.find(f => f.key === key).group))].sort();
@@ -66,6 +77,8 @@ async function main() {
       await api.setDecision({ url: location.origin + '/profile-viewer/cp-decisioning-assets/forest.webp',
         title: 'Verified live fixture', description: 'Browser-test fixture, not real AJO content.' });
     });
+    assert.equal(await page.locator('#email-preview .cp-logo').getAttribute('src'), model.brand.logoUrl);
+    assert.ok(await page.locator('#email-preview .cp-logo').evaluate(img => img.complete && img.naturalWidth > 0));
     for (let i = 0; i < model.demoScenarios.length; i++) {
       await page.locator('#scenario-pills button').nth(i).click();
       assert.deepEqual(await page.locator('.email-heading,.app-offer-title,.web-hero h3').allTextContents(),
@@ -94,7 +107,8 @@ async function main() {
     assert.equal(await page.locator('.web-hero h3').count(), 0);
     assert.ok((await page.locator('.web-hero img').getAttribute('src')).endsWith('/lodge.webp'));
     await page.evaluate(() => window.TuiDecisioningVisualiser.setProfile({ contextKey: 'different-person', state: window.DecisioningDemoModel.defaults }));
-    assert.equal(await page.locator('img').count(), 0, 'Identity change clears the previous image without local fallback');
+    assert.equal(await page.locator('img:not(.cp-logo)').count(), 0, 'Identity change clears the previous offer image without local fallback');
+    assert.equal(await page.locator('.cp-logo').count(), 3, 'Static branding remains independent of decision content');
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile layout must not overflow');
     assert.deepEqual(errors, []);
@@ -152,6 +166,7 @@ async function main() {
     rows.push({ path: 'person.name.firstName', value: 'Alex', valueType: 'string', industry: 'generic', writable: true });
     await shell.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
+      if (url.href === model.brand.logoUrl) { await route.fulfill({ contentType: 'image/svg+xml', body: logoFixture }); return; }
       if (url.origin !== origin) { await route.fulfill({ body: '', contentType: 'text/javascript' }); return; }
       if (!url.pathname.startsWith('/api/')) { await route.continue(); return; }
       let data = { ok: true };
@@ -304,7 +319,8 @@ async function main() {
     await assertWebPanel(frame);
     await frame.getByRole('tab', { name: 'Email · Desktop', exact: true }).click();
     await frame.locator('#scenario-pills button').nth(4).click();
-    assert.equal(await frame.locator('img').count(), 0, 'Embedded scenario must also wait for live decision imagery');
+    assert.equal(await frame.locator('img:not(.cp-logo)').count(), 0, 'Embedded scenario must also wait for live decision imagery');
+    assert.ok(await frame.locator('.cp-logo').evaluateAll(nodes => nodes.length === 3 && nodes.every(img => img.complete && img.naturalWidth > 0)));
     assert.ok(await shell.locator('#tuiApplyProfile').isEnabled());
     const dialogs = [];
     shell.on('dialog', async dialog => {

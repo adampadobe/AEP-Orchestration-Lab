@@ -228,7 +228,9 @@
       scenarios: demoScenarios.map(s => ({ ...s, attributes: attributes(s.preset) })) };
   }
   const model = { fields, objectives, defaults, scenarios, demoScenarios, evaluate, attributes, describe, rulePayload, catalogPlan, arrivalDate, arrivalDays,
-    brand: { name: 'Center Parcs', prefix: 'cpDecisioning', frameId: 'cp-visualiser',
+    brand: { name: 'Center Parcs',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/en/5/54/CenterparcsUKlogo.svg?utm_source=en.wikipedia.org&utm_campaign=index&utm_content=original',
+      prefix: 'cpDecisioning', frameId: 'cp-visualiser',
       viewName: 'CP Decisioning', moment: 'forest moment', eyebrow: 'LESS EVERYDAY. MORE TOGETHER.',
       fullWidthWeb: true, showSimulation: false, requiredSandbox: 'kirkham',
       catalogBoundary: 'Live results come from the configured AJO campaign/policy. Catalog activation is managed separately.' } };
