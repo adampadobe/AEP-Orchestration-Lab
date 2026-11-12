@@ -937,6 +937,29 @@ export async function platformCleanupVerify({ sandbox, plan_id }) {
   return platformCleanupBatchRequest({ operation: 'verify', sandbox, plan_id });
 }
 
+export async function platformFlowDisablePlan({ sandbox, flow_ids }) {
+  return platformCleanupBatchRequest({
+    operation: 'flow_disable_plan', sandbox,
+    targets: flow_ids.map((resource_id) => ({ resource_type: 'flow', resource_id })),
+  });
+}
+
+export async function platformFlowDisableApply({
+  sandbox, plan_id, manifest_digest, expected_count, confirmed, usage_cleared, ingestion_pause_acknowledged,
+}) {
+  const result = await platformCleanupBatchRequest({
+    operation: 'flow_disable_apply', sandbox, plan_id, manifest_digest, expected_count,
+    confirmed, usage_cleared, ingestion_pause_acknowledged,
+  });
+  if (result.ok && (result.data?.ok !== true || result.data?.status !== 'succeeded')) {
+    return {
+      ...result, ok: false,
+      error: 'Disable is not verified cleanup-ready. Inspect the execution and use cleanup verify without replaying.',
+    };
+  }
+  return result;
+}
+
 /** Read-only AJO journey or campaign inventory; scoped by user key or IMS enrollment. */
 export async function ajoAssetList({ sandbox, asset_type, name, start, limit }) {
   return labApiRequest('/api/ajo-cleanup', {

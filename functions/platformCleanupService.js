@@ -10,7 +10,7 @@ const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 const MAX_BATCH_TARGETS = 100;
-const BATCH_POLICY_VERSION = '2026-11-12.2';
+const BATCH_POLICY_VERSION = '2026-11-12.3';
 const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
 const BATCH_TYPES = new Set([
   'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
@@ -65,10 +65,28 @@ function validateBatchTarget(target) {
   if (!UUID.test(id)) throw failure(400, `An exact ${type} UUID is required.`);
 }
 
-function protectedMetadata(value) {
+function protectedMetadata(value, type) {
+  const operationalKey = /^(?:created|updated|modified|lastModified|lastUpdated|lastRun|lastExecution|nextRun|runCount|metrics|statistics|stats|runs|etag|eTag|timestamp)(?:At|Time|Timestamp|Date|Id|Status|Count|s)?$/i;
+  if (type === 'flow' && value && typeof value === 'object') {
+    const keys = Object.keys(value).filter((key) => !operationalKey.test(key)
+      && !['version', 'lastRunDetails', 'inheritedAttributes'].includes(key));
+    const stableConnection = (connection) => Object.fromEntries(
+      Object.keys(connection).filter((key) => !operationalKey.test(key) && !['lastRunDetails', 'baseConnection'].includes(key))
+        .map((key) => [key, connection[key]])
+        .concat(connection.baseConnection ? [['baseConnection', stableConnection(connection.baseConnection)]] : []),
+    );
+    return {
+      ...Object.fromEntries(keys.filter((key) => Object.hasOwn(value, key)).map((key) => [key, value[key]])),
+      ...(value.inheritedAttributes ? {
+        inheritedAttributes: Object.fromEntries(Object.keys(value.inheritedAttributes)
+          .filter((key) => !operationalKey.test(key) && key !== 'lastRunDetails')
+          .map((key) => [key, ['sourceConnections', 'targetConnections'].includes(key) && Array.isArray(value.inheritedAttributes[key])
+            ? value.inheritedAttributes[key].map(stableConnection) : value.inheritedAttributes[key]])),
+      } : {}),
+    };
+  }
   if (Array.isArray(value)) return value.map(protectedMetadata);
   if (!value || typeof value !== 'object') return value;
-  const operationalKey = /^(?:created|updated|modified|lastModified|lastUpdated|lastRun|lastExecution|nextRun|runCount|metrics|statistics|stats|runs|etag|eTag|timestamp)(?:At|Time|Timestamp|Date|Id|Status|Count|s)?$/i;
   return Object.fromEntries(Object.entries(value)
     .filter(([key]) => !operationalKey.test(key))
     .map(([key, item]) => [key, protectedMetadata(item)]));
@@ -152,8 +170,12 @@ function summary(type, raw, id = raw.$id) {
     : { id, name: raw.title, version: raw.version, ...status };
 }
 
-function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date.now } = {}) {
+function createPlatformCleanupService({
+  fetchImpl = globalThis.fetch, now = Date.now, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+} = {}) {
   async function request(auth, path, { method = 'GET', accept = 'application/json', etag } = {}) {
+    const timeoutMs = Math.min(20_000, auth.readDeadlineMs === undefined ? 20_000 : auth.readDeadlineMs - now());
+    if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) throw failure(408, 'Read-only verification budget reached; use verify without replaying.');
     const response = await fetchImpl(new URL(path, BASE), {
       method,
       headers: {
@@ -165,7 +187,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
         ...(etag ? { 'If-Match': etag } : {}),
       },
       redirect: 'error',
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(Math.ceil(timeoutMs)),
     });
     const text = await response.text();
     let data = null;
@@ -186,11 +208,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     return { data, status: response.status, etag: response.headers.get('etag') || '', request_id: requestId };
   }
 
-  async function get(auth, type, id) {
+  async function get(auth, type, id, { requireSchemaOwnership = true } = {}) {
     validateTarget(type, id);
     const path = type === 'dataset' ? `${CATALOG}/${id}` : `${REGISTRY}/schemas/${encodeURIComponent(id)}`;
     const result = await request(auth, path, type === 'schema'
-      ? { accept: 'application/vnd.adobe.xed+json;version=1' } : {});
+      ? { accept: 'application/vnd.adobe.xed-id+json' } : {});
     const raw = type === 'dataset' ? result.data?.[id] : result.data;
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)
         || (type === 'schema' && raw.$id !== id)) throw failure(502, 'Platform resource identity could not be verified.');
@@ -200,16 +222,24 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
         hasImsOrg: Object.hasOwn(raw, 'imsOrg'),
         orgMatches: raw.imsOrg === auth.orgId,
       });
-      if (raw['meta:containerId'] !== 'tenant') throw denyOwnership();
-      if (raw.imsOrg !== auth.orgId) {
-        const relational = Array.isArray(raw['meta:extends'])
-          && raw['meta:extends'].includes('https://ns.adobe.com/xdm/data/adhoc-v2');
-        if (Object.hasOwn(raw, 'imsOrg') || !relational) throw denyOwnership();
-        // Relational responses may omit imsOrg; verify the authenticated registry's namespace.
+      const relational = Array.isArray(raw['meta:extends'])
+        && raw['meta:extends'].includes('https://ns.adobe.com/xdm/data/adhoc-v2');
+      let namespaceVerified = false;
+      const verifyNamespace = async () => {
         const { data: stats } = await request(auth, '/data/foundation/schemaregistry/stats');
         if (stats?.imsOrg !== auth.orgId || typeof stats.tenantId !== 'string'
             || !/^[A-Za-z0-9_-]+$/.test(stats.tenantId)
             || !id.startsWith(`https://ns.adobe.com/${stats.tenantId}/schemas/`)) throw denyOwnership();
+        namespaceVerified = true;
+      };
+      if (raw.imsOrg !== auth.orgId) {
+        if (Object.hasOwn(raw, 'imsOrg') || !relational) throw denyOwnership();
+        await verifyNamespace();
+      }
+      if (requireSchemaOwnership && raw['meta:containerId'] !== 'tenant') {
+        if (!relational || typeof raw['meta:containerId'] !== 'string'
+            || !raw['meta:containerId'] || raw['meta:containerId'].toLowerCase() === 'global') throw denyOwnership();
+        if (!namespaceVerified) await verifyNamespace();
       }
     }
     const name = type === 'dataset' ? raw.name : raw.title;
@@ -520,8 +550,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     if (cleanupEnabled(target.raw)) blockers.push('Profile/Identity-enabled resources are not supported by this cleanup tool.');
     const schemaId = type === 'schema' ? id : target.resource.schemaId;
     if (!schemaId) throw failure(409, 'Dataset schema reference is missing; dependency safety cannot be established.');
-    const schema = type === 'schema' ? target : await get(auth, 'schema', schemaId);
+    const schema = type === 'schema' ? target : await get(auth, 'schema', schemaId, { requireSchemaOwnership: false });
     if (type === 'dataset' && cleanupEnabled(schema.raw)) blockers.push('The dataset schema is enabled for Profile/Identity; deletion is blocked.');
+    if (type === 'dataset' && protectedResource('schema', schemaId, schema.raw.title, auth.sandbox)) {
+      blockers.push('The dataset belongs to a protected schema.');
+    }
     const schemaIdentifiers = new Set([schemaId, schema.raw['meta:altId']].filter(Boolean));
     const [datasets, links, sources, targets] = await Promise.all([
       listCatalog(auth),
@@ -696,6 +729,9 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     if (raw.sandboxName && raw.sandboxName !== auth.sandbox) {
       throw failure(403, 'Platform resource sandbox does not match the authenticated scope.');
     }
+    if (raw.imsOrgId && raw.imsOrgId !== auth.orgId) {
+      throw failure(403, 'Platform resource organisation does not match the authenticated scope.');
+    }
     return { raw, resource: batchResource(type, raw, id), etag };
   }
 
@@ -773,21 +809,252 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     if (new Set(identities).size !== identities.length) throw failure(400, 'Duplicate target IDs are not allowed, including across resource types.');
   }
 
+  async function inspectTarget(read, target) {
+    try { return await read(); } catch (error) {
+      if (!Number.isInteger(error.status) || error.status < 400 || error.status > 599) throw error;
+      return {
+        raw: null,
+        resource: { ...target, name: '' },
+        inspection_error: { status: error.status, message: error.message, ...error.detail },
+      };
+    }
+  }
+
+  function protectedBaseline(snapshot, auth) {
+    return snapshot.entries
+      .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName, auth.sandbox)
+        || cleanupEnabled(entry.raw))
+      .map((entry) => ({
+        resource_type: entry.type, resource_id: entry.id,
+        state_fingerprint: fingerprint(protectedMetadata(entry.raw, entry.type)),
+      }))
+      .sort((a, b) => `${a.resource_type}:${a.resource_id}`.localeCompare(`${b.resource_type}:${b.resource_id}`));
+  }
+
+  async function flowRuns(auth, id) {
+    const runs = await listPaged(auth, `${FLOW}/runs`, 'application/json', 'items', { property: `flowId==${id}` });
+    if (runs.some((run) => run.flowId !== id || (run.sandboxName && run.sandboxName !== auth.sandbox))) {
+      throw failure(502, 'Run inventory does not match the exact flow and sandbox.');
+    }
+    return {
+      terminal: runs.every((run) => ['success', 'succeeded', 'failed', 'cancelled', 'canceled'].includes(
+        String(run.metrics?.statusSummary?.status || run.state || '').toLowerCase())),
+      count: runs.length,
+    };
+  }
+
+  async function planFlowDisable(auth, { targets }) {
+    validateBatchTargets(targets);
+    if (targets.some((target) => target.resource_type !== 'flow')) throw failure(400, 'Flow disabling accepts exact flow IDs only.');
+    const snapshot = await collectBatchInventory(auth);
+    const exact = await Promise.all(targets.map((target) => inspectTarget(() => getBatchTarget(auth, target), target)));
+    const protectedDatasetIds = snapshot.entries.filter((entry) => entry.type === 'dataset' && (
+      cleanupEnabled(entry.raw) || protectedResource(entry.type, entry.id, entry.raw.name, auth.sandbox)
+      || snapshot.entries.some((schema) => schema.type === 'schema' && typeof entry.raw.schemaRef?.id === 'string'
+        && [schema.id, schema.raw['meta:altId']].includes(entry.raw.schemaRef.id)
+        && (cleanupEnabled(schema.raw) || protectedResource('schema', schema.id, schema.raw.title, auth.sandbox)))
+    )).map((entry) => entry.id);
+    const protectedDatasets = new Set(protectedDatasetIds.flatMap((id) => [
+      id, `@/dataSets/${id}`, `/dataSets/${id}`, `${BASE}${CATALOG}/${id}`,
+    ]));
+    const manifest = exact.map((current, index) => {
+      const blockers = [];
+      const target = targets[index];
+      if (current.inspection_error) blockers.push(`Flow inspection failed (${current.inspection_error.status}).`);
+      const protection = protectedResource('flow', target.resource_id, current.resource.name, auth.sandbox);
+      if (protection) blockers.push(protection);
+      if (!snapshot.entries.some((entry) => entry.type === 'flow' && entry.id === target.resource_id)) {
+        blockers.push('Flow is missing from the complete inventory.');
+      }
+      if (current.raw && cleanupEnabled(current.raw)) blockers.push('Profile/Identity-enabled flows are protected.');
+      if (current.raw && !['enabled', 'disabled'].includes(current.raw.state)) blockers.push('Flow state is unrecognized.');
+      if (current.raw && (typeof current.raw.name !== 'string' || !current.raw.name.trim())) blockers.push('Flow name is unavailable for review.');
+      if (current.raw?.state === 'enabled' && !current.etag && !current.raw.etag) blockers.push('Current flow etag is unavailable.');
+      const connectionIds = current.raw?.targetConnectionIds;
+      if (current.raw && (!Array.isArray(connectionIds) || !connectionIds.length || connectionIds.some((connectionId) =>
+        !snapshot.entries.some((entry) => entry.type === 'targetConnection' && entry.id === connectionId)))) {
+        blockers.push('Target connections are unresolved; protected destination metadata cannot be verified.');
+      }
+      if (Array.isArray(connectionIds) && connectionIds.some((connectionId) => snapshot.entries.some((entry) => (
+        entry.type === 'targetConnection' && entry.id === connectionId && references(entry.raw, protectedDatasets)
+      )))) blockers.push('This flow feeds a protected dataset or schema.');
+      return {
+        ...current.resource, blockers,
+        state_fingerprint: fingerprint({ raw: current.raw, etag: current.etag || current.raw?.etag || '', error: current.inspection_error || null }),
+        disabled_config_fingerprint: current.raw ? fingerprint(protectedMetadata({ ...current.raw, state: 'disabled' }, 'flow')) : null,
+      };
+    });
+    const blockers = manifest.flatMap((item) => item.blockers.map((reason) => `flow ${item.resource_id}: ${reason}`));
+    if (snapshot.coverage.protectedFlowIdBaseline === 'incomplete') blockers.push('The reviewed REL flow-ID baseline is incomplete.');
+    const baseline = protectedBaseline(snapshot, auth);
+    return {
+      operation: 'disable', status: blockers.length ? 'blocked' : 'ready', policy_version: BATCH_POLICY_VERSION,
+      sandbox: auth.sandbox, targets, expected_count: targets.length, manifest,
+      ordered_resource_ids: targets.map((target) => target.resource_id).sort(),
+      protected_baseline: baseline, coverage: snapshot.coverage, blockers,
+      warnings: [
+        'Disabling pauses ingestion. Independently clear downstream impact and explicitly confirm these exact flows.',
+        'Existing runs may continue. Disable does not cancel, delete, change mappings, or re-enable anything.',
+        'A current If-Match etag is supplied, but atomic state-action protection is not guaranteed.',
+        'Execution and read-only polling are bounded. Draining runs require verify; never replay the mutation.',
+      ],
+      state_fingerprint: fingerprint({ operation: 'disable', orgId: auth.orgId, sandbox: auth.sandbox,
+        policy: BATCH_POLICY_VERSION, manifest, baseline, coverage: snapshot.coverage }),
+    };
+  }
+
+  async function verifyFlowDisable(auth, approvedPlan, execution, deadline) {
+    if (deadline !== undefined) auth = { ...auth, readDeadlineMs: deadline };
+    let snapshot;
+    try { snapshot = await collectBatchInventory(auth); } catch (error) {
+      console.error('[platformCleanup] disable baseline verification failed', { plan_id: approvedPlan.plan_id, status: error.status || 500 });
+      return {
+        plan_id: approvedPlan.plan_id, status: 'uncertain', ready_for_cleanup: false,
+        results: approvedPlan.targets.map((target) => ({ ...target, status: 'unknown', runs_terminal: false })),
+        protected_baseline: { status: 'unknown' }, error: { status: error.status || 502, message: error.message },
+      };
+    }
+    const baselineKnown = ['verified', 'not_applicable'].includes(snapshot.coverage.protectedFlowIdBaseline)
+      && ['verified', 'not_applicable'].includes(approvedPlan.coverage?.protectedFlowIdBaseline);
+    const preserved = baselineKnown && fingerprint(protectedBaseline(snapshot, auth)) === fingerprint(approvedPlan.protected_baseline);
+    const results = await Promise.all(approvedPlan.targets.map(async (target) => {
+      const current = await inspectTarget(() => getBatchTarget(auth, target), target);
+      const reviewed = approvedPlan.manifest.find((item) => item.resource_id === target.resource_id);
+      let runEvidence;
+      let error = current.inspection_error;
+      if (!error) {
+        try { runEvidence = await flowRuns(auth, target.resource_id); } catch (failure) {
+          error = { status: failure.status || 502, message: failure.message };
+        }
+      }
+      const recorded = execution?.items?.[`flow:${target.resource_id}`]?.status;
+      const disabled = !error && current.raw.state === 'disabled'
+        && fingerprint(protectedMetadata(current.raw, 'flow')) === reviewed?.disabled_config_fingerprint;
+      return {
+        ...target, state: current.raw?.state || null,
+        status: error ? 'unknown' : disabled && ['intent_recorded', 'succeeded', 'uncertain'].includes(recorded) ? 'verified_disabled' : 'not_verified',
+        runs_terminal: runEvidence?.terminal === true,
+        ...(error ? { error } : {}),
+      };
+    }));
+    const disabled = preserved && results.every((item) => item.status === 'verified_disabled');
+    const ready = disabled && results.every((item) => item.runs_terminal);
+    return {
+      plan_id: approvedPlan.plan_id, execution_status: execution?.state || approvedPlan.state,
+      status: ready ? 'verified_disabled' : disabled ? 'draining'
+        : results.some((item) => item.status === 'unknown') ? 'uncertain' : 'not_verified',
+      ready_for_cleanup: ready, results,
+      protected_baseline: { status: preserved ? 'preserved' : baselineKnown ? 'changed' : 'incomplete', coverage: 'stable_configuration_metadata' },
+    };
+  }
+
+  async function applyFlowDisable(auth, approvedPlan, store) {
+    let issued = 0;
+    const completed = new Set();
+    const deadline = Math.min(approvedPlan.expiresAtMs, now() + 230_000);
+    const finish = (state, blockers = []) => store.finishExecution(approvedPlan.plan_id, state, {
+      blockers, disable_requests_issued: issued,
+    });
+    const requireTime = () => {
+      if (!Number.isFinite(deadline) || now() + 45_000 >= deadline) throw failure(409, 'Execution budget or plan expiry reached; verify before reviewing a new plan.');
+    };
+    if (approvedPlan.operation !== 'disable' || approvedPlan.policy_version !== BATCH_POLICY_VERSION
+        || approvedPlan.status !== 'ready' || approvedPlan.blockers.length
+        || approvedPlan.targets.some((target) => target.resource_type !== 'flow')
+        || !Array.isArray(approvedPlan.ordered_resource_ids)
+        || approvedPlan.ordered_resource_ids.length !== approvedPlan.targets.length
+        || new Set(approvedPlan.ordered_resource_ids).size !== approvedPlan.targets.length
+        || approvedPlan.ordered_resource_ids.some((id) => !approvedPlan.targets.some((target) => target.resource_id === id))) {
+      return finish('blocked', ['The disable plan is stale or has an invalid exact scope.']);
+    }
+    for (const id of approvedPlan.ordered_resource_ids) {
+      let intent = false;
+      let attempted = false;
+      let acknowledged = false;
+      let recording = false;
+      const identity = `flow:${id}`;
+      try {
+        requireTime();
+        const fresh = await planFlowDisable(auth, { targets: approvedPlan.targets.filter((target) => !completed.has(target.resource_id)) });
+        if (fresh.blockers.length || fingerprint(fresh.protected_baseline) !== fingerprint(approvedPlan.protected_baseline)
+            || fresh.manifest.some((item) => item.state_fingerprint !== approvedPlan.manifest.find((old) => old.resource_id === item.resource_id)?.state_fingerprint)) {
+          return finish(issued ? 'failed' : 'blocked', [...fresh.blockers, 'Flow configuration or protected baseline changed after review.']);
+        }
+        const current = await getBatchTarget(auth, { resource_type: 'flow', resource_id: id });
+        const reviewed = approvedPlan.manifest.find((item) => item.resource_id === id);
+        if (fingerprint({ raw: current.raw, etag: current.etag || current.raw?.etag || '', error: null }) !== reviewed.state_fingerprint) {
+          throw failure(409, 'Flow changed immediately before disable.');
+        }
+        requireTime();
+        await store.recordItemIntent(approvedPlan.plan_id, identity, {
+          resource_type: 'flow', resource_id: id, operation: 'DISABLE_FLOW', state_fingerprint: reviewed.state_fingerprint,
+        });
+        intent = true;
+        requireTime();
+        let httpStatus;
+        if (current.raw.state !== 'disabled') {
+          const etag = current.etag || current.raw.etag;
+          if (!etag) throw failure(409, 'Current flow etag is unavailable.');
+          attempted = true;
+          issued++;
+          const result = await request(auth, `${FLOW}/flows/${encodeURIComponent(id)}/action?op=disable`, { method: 'POST', etag });
+          acknowledged = true;
+          httpStatus = result.status;
+          if (result.status !== 200 || result.data?.id !== id || typeof result.data.etag !== 'string' || !result.data.etag) {
+            throw failure(502, 'The exact flow disable action was not acknowledged; verify without replaying.');
+          }
+        }
+        const readback = await getBatchTarget(auth, { resource_type: 'flow', resource_id: id });
+        if (readback.raw.state !== 'disabled' || fingerprint(protectedMetadata(readback.raw, 'flow')) !== reviewed.disabled_config_fingerprint) {
+          throw failure(409, 'Disabled state and unchanged flow configuration could not be verified.');
+        }
+        recording = true;
+        await store.recordItemResult(approvedPlan.plan_id, identity, { status: 'succeeded', ...(httpStatus ? { http_status: httpStatus } : {}) });
+        completed.add(id);
+      } catch (error) {
+        if (recording) throw failure(500, 'Disable readback succeeded but its ledger result is uncertain. Use verify, never replay.');
+        const uncertain = attempted && (acknowledged || !error.status || error.status >= 500 || error.status === 408);
+        if (intent) await store.recordItemResult(approvedPlan.plan_id, identity, {
+          status: uncertain ? 'uncertain' : 'failed', http_status: error.status,
+          error_code: error.detail?.error_code, request_id: error.detail?.request_id,
+        });
+        console.error('[platformCleanup] disable stopped', { plan_id: approvedPlan.plan_id, identity, status: error.status || null });
+        return finish(uncertain ? 'uncertain' : issued ? 'failed' : 'blocked', [error.message]);
+      }
+    }
+    const { execution } = await store.getExecution(approvedPlan.plan_id, {
+      principalUid: approvedPlan.principalUid, orgId: auth.orgId, sandbox: auth.sandbox,
+    });
+    let readback;
+    for (let poll = 0; poll < 3; poll++) {
+      if (now() + 20_000 >= deadline) return finish('draining', ['Disable states were verified; run-drain verification remains incomplete. Use verify.']);
+      readback = await verifyFlowDisable(auth, approvedPlan, execution, deadline);
+      if (readback.status !== 'draining') break;
+      if (poll < 2 && now() + 45_000 < deadline) await sleep(5000);
+      else break;
+    }
+    return finish(readback.status === 'verified_disabled' ? 'succeeded' : readback.status === 'draining' ? 'draining' : 'uncertain',
+      readback.status === 'verified_disabled' ? [] : ['Run drain or protected configuration is not verified. Use verify without replaying.']);
+  }
+
   async function plan(auth, { targets }) {
     validateBatchTargets(targets);
     const snapshot = await collectBatchInventory(auth);
-    const exact = await Promise.all(targets.map((target) => getBatchTarget(auth, target)));
+    const exact = await Promise.all(targets.map((target) => inspectTarget(() => getBatchTarget(auth, target), target)));
     const schemaIds = [...new Set(exact.flatMap((current, index) => {
       const type = targets[index].resource_type;
       const id = type === 'dataset' ? current.raw?.schemaRef?.id
         : type === 'descriptor' ? current.raw?.['xdm:sourceSchema'] : null;
       return typeof id === 'string' && id ? [id] : [];
     }))];
-    const relatedSchemas = new Map(await Promise.all(schemaIds.map(async (id) => [id, await get(auth, 'schema', id)])));
+    const relatedSchemas = new Map(await Promise.all(schemaIds.map(async (id) => [id,
+      await inspectTarget(() => get(auth, 'schema', id, { requireSchemaOwnership: false }), { resource_type: 'schema', resource_id: id }),
+    ])));
     const blockers = [];
     const manifest = targets.map((target, index) => {
       const current = exact[index];
       const targetBlockers = [];
+      if (current.inspection_error) targetBlockers.push(`Resource inspection failed (${current.inspection_error.status}): ${current.inspection_error.message}`);
       if (current.unsupported) targetBlockers.push('No supported inventory or deletion contract is available for this resource type.');
       else if (!snapshot.entries.some((entry) => entry.id === target.resource_id
           && entry.type === (target.resource_type === 'account' ? 'baseConnection' : target.resource_type))) {
@@ -802,7 +1069,9 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
         else {
           const schema = snapshot.entries.find((entry) => entry.type === 'schema' && entry.id === schemaId);
           if (!schema) targetBlockers.push('Dataset schema is outside the complete schema inventory.');
-          else if (cleanupEnabled(relatedSchemas.get(schemaId).raw)) targetBlockers.push('The dataset schema is enabled for Profile/Identity.');
+          else if (relatedSchemas.get(schemaId)?.inspection_error) {
+            targetBlockers.push(`Dataset schema inspection failed (${relatedSchemas.get(schemaId).inspection_error.status}); Profile/Identity protection is unresolved.`);
+          } else if (cleanupEnabled(relatedSchemas.get(schemaId).raw)) targetBlockers.push('The dataset schema is enabled for Profile/Identity.');
           else if (protectedResource('schema', schemaId, relatedSchemas.get(schemaId).raw.title, auth.sandbox)) {
             targetBlockers.push('The dataset belongs to a protected schema.');
           }
@@ -813,14 +1082,15 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
       }
       if (current.raw && target.resource_type === 'descriptor') {
         const owner = relatedSchemas.get(current.raw['xdm:sourceSchema']);
-        if (!owner) targetBlockers.push('Descriptor source schema ownership is unresolved.');
+        if (!owner || owner.inspection_error) targetBlockers.push('Descriptor source schema ownership is unresolved.');
         else if (cleanupEnabled(owner.raw) || protectedResource('schema', owner.raw.$id, owner.raw.title, auth.sandbox)) {
           targetBlockers.push('The descriptor belongs to a protected schema.');
         }
       }
       return {
         ...current.resource,
-        state_fingerprint: fingerprint(current.raw || { unsupported: current.unsupported }),
+        state_fingerprint: fingerprint(current.raw || { unsupported: !!current.unsupported, inspection_error: current.inspection_error || null }),
+        ...(current.inspection_error ? { inspection_error: current.inspection_error } : {}),
         blockers: targetBlockers,
       };
     });
@@ -853,22 +1123,16 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     for (const item of manifest) {
       for (const reason of item.blockers) blockers.push(`${item.resource_type} ${item.resource_id}: ${reason}`);
     }
-    const protectedBaseline = snapshot.entries
-      .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName, auth.sandbox)
-        || cleanupEnabled(entry.raw))
-      .map((entry) => ({
-        resource_type: entry.type, resource_id: entry.id,
-        state_fingerprint: fingerprint(protectedMetadata(entry.raw)),
-      }))
-      .sort((a, b) => `${a.resource_type}:${a.resource_id}`.localeCompare(`${b.resource_type}:${b.resource_id}`));
+    const baseline = protectedBaseline(snapshot, auth);
     const stateFingerprint = fingerprint({
       orgId: auth.orgId, sandbox: auth.sandbox, policyVersion: BATCH_POLICY_VERSION,
       manifest, edges: [...edges].sort((a, b) => `${a.before}:${a.after}`.localeCompare(`${b.before}:${b.after}`)),
       externalReferences: [...external].sort((a, b) => `${a.source_type}:${a.source_id}:${a.referenced_id}`.localeCompare(`${b.source_type}:${b.source_id}:${b.referenced_id}`)),
-      protectedBaseline, coverage: snapshot.coverage,
+      protectedBaseline: baseline, coverage: snapshot.coverage,
     });
     return {
       status: blockers.length ? 'blocked' : 'ready',
+      operation: 'delete',
       policy_version: BATCH_POLICY_VERSION,
       sandbox: auth.sandbox,
       expected_count: manifest.length,
@@ -885,7 +1149,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
         'Independently clear mapping, AJO, audience, destination and application usage; coverage.complete remains false without that external evidence.',
       ],
       coverage: snapshot.coverage,
-      protected_baseline: protectedBaseline,
+      protected_baseline: baseline,
       state_fingerprint: stateFingerprint,
       mutation_adapters_enabled: MUTATION_ADAPTERS_ENABLED,
     };
@@ -939,7 +1203,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
         throw failure(409, 'Execution time or plan expiry limit reached. Verify readback and review a new plan for remaining targets.');
       }
     };
-    if (approvedPlan.mutation_adapters_enabled !== true || approvedPlan.policy_version !== BATCH_POLICY_VERSION
+    if (approvedPlan.operation !== 'delete' || approvedPlan.mutation_adapters_enabled !== true || approvedPlan.policy_version !== BATCH_POLICY_VERSION
         || !Array.isArray(approvedPlan.ordered_resource_ids)
         || approvedPlan.ordered_resource_ids.length !== approvedPlan.targets.length
         || new Set(approvedPlan.ordered_resource_ids).size !== approvedPlan.targets.length
@@ -1032,6 +1296,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
   }
 
   async function verify(auth, approvedPlan, execution) {
+    if (approvedPlan.operation === 'disable') return verifyFlowDisable(auth, approvedPlan, execution);
     const results = [];
     for (const target of approvedPlan.targets) {
       let exists = null;
@@ -1066,7 +1331,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
       return {
         resource_type: item.resource_type, resource_id: item.resource_id,
         status: !snapshot ? 'unknown' : !current ? 'missing'
-          : fingerprint(protectedMetadata(current.raw)) === item.state_fingerprint ? 'preserved' : 'changed',
+          : fingerprint(protectedMetadata(current.raw, current.type)) === item.state_fingerprint ? 'preserved' : 'changed',
       };
     });
     const baselineCoverageKnown = Array.isArray(baseline)
@@ -1092,7 +1357,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date
     };
   }
 
-  return { list, audit, remove, batchInventory, plan, revalidatePlan, apply, verify };
+  return { list, audit, remove, batchInventory, plan, revalidatePlan, apply, verify, planFlowDisable, applyFlowDisable };
 }
 
 module.exports = {

@@ -67,6 +67,46 @@ test('audit receipt expires after 15 minutes and returns only an opaque ID', asy
   await assert.rejects(store.consumeAudit(ticket.audit_id, scope), { status: 409 });
 });
 
+test('plan and durable intent bind disable/delete operations before consuming scope', async () => {
+  for (const operation of ['delete', 'disable']) {
+    const { store } = fixture();
+    const scoped = { principalUid: 'uid', orgId: 'org', sandbox: 'sandbox' };
+    const ticket = await store.savePlan({
+      ...scoped, operation, status: 'ready', blockers: [], expected_count: 1,
+      state_fingerprint: 'a'.repeat(64), targets: [{ resource_type: 'flow', resource_id: 'flow-id' }],
+    });
+    const confirmation = { manifest_digest: ticket.manifest_digest, expected_count: 1 };
+    await assert.rejects(store.claimPlan(ticket.plan_id, { ...scoped, operation: operation === 'disable' ? 'delete' : 'disable' }, confirmation), { status: 409 });
+    assert.equal((await store.getExecution(ticket.plan_id, scoped)).execution, null);
+    await store.claimPlan(ticket.plan_id, { ...scoped, operation }, confirmation);
+    const intent = { resource_type: 'flow', resource_id: 'flow-id', operation: operation === 'disable' ? 'DISABLE_FLOW' : 'DELETE' };
+    await assert.rejects(store.recordItemIntent(ticket.plan_id, 'flow:flow-id', {
+      ...intent, operation: operation === 'disable' ? 'DELETE' : 'DISABLE_FLOW',
+    }), { status: 409 });
+    await store.recordItemIntent(ticket.plan_id, 'flow:flow-id', intent);
+    await assert.rejects(store.finishExecution(ticket.plan_id, 'draining'), { status: 409 });
+    await store.recordItemResult(ticket.plan_id, 'flow:flow-id', { status: 'succeeded' });
+    const finished = await store.finishExecution(ticket.plan_id, operation === 'disable' ? 'draining' : 'succeeded');
+    assert.equal(finished.items['flow:flow-id'].operation, intent.operation);
+    const replay = await store.claimPlan(ticket.plan_id, { ...scoped, operation }, confirmation);
+    assert.equal(replay.claimed, false);
+    assert.equal(replay.execution.state, finished.state);
+  }
+});
+
+test('disable and delete coordinate through the same cross-principal lease', async () => {
+  const { store } = fixture();
+  const scoped = { principalUid: 'uid', orgId: 'org', sandbox: 'sandbox' };
+  const base = { ...scoped, status: 'ready', blockers: [], expected_count: 1, state_fingerprint: 'a'.repeat(64),
+    targets: [{ resource_type: 'flow', resource_id: 'flow-id' }] };
+  const disabling = await store.savePlan({ ...base, operation: 'disable' });
+  const deleting = await store.savePlan({ ...base, principalUid: 'other', operation: 'delete' });
+  const confirmation = { manifest_digest: disabling.manifest_digest, expected_count: 1 };
+  await store.claimPlan(disabling.plan_id, { ...scoped, operation: 'disable' }, confirmation);
+  await assert.rejects(store.claimPlan(deleting.plan_id, { ...scoped, principalUid: 'other', operation: 'delete' }, confirmation), { status: 409 });
+  await store.finishExecution(disabling.plan_id, 'blocked');
+  assert.equal((await store.claimPlan(deleting.plan_id, { ...scoped, principalUid: 'other', operation: 'delete' }, confirmation)).claimed, true);
+});
 test('every scope field is bound; a mismatched request does not consume a receipt', async () => {
   for (const key of Object.keys(scope)) {
     const { store } = fixture();

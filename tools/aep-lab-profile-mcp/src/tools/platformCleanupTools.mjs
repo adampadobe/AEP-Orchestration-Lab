@@ -3,6 +3,7 @@ import { assertSandboxAllowed } from '../auth.mjs';
 import {
   platformAssetList, platformAssetAudit, platformAssetDelete,
   platformCleanupInventory, platformCleanupPlan, platformCleanupApply, platformCleanupVerify,
+  platformFlowDisablePlan, platformFlowDisableApply,
 } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
@@ -81,10 +82,32 @@ export function registerPlatformCleanupTools(server) {
           .describe('Only after the colleague accepts that an external writer can change state between the final GET and DELETE; conditional DELETE is not documented.'),
       }, platformCleanupApply],
     ['lab_platform_cleanup_verify', 'Verify cleanup plan status and readback',
-      'Read-only recovery/status check for a plan. Reconciles current object presence without replaying deletes; '
+      'Read-only recovery/status check for a deletion or flow-disable plan. Reconciles current object presence or disabled state and terminal runs without replaying mutations; '
       + 'absence is not reported as deletion success unless a durable successful attempt exists. '
       + 'Protected-baseline and external-usage limitations remain explicit.',
       { sandbox: scope.sandbox, plan_id: z.string().uuid() }, platformCleanupVerify],
+    ['lab_platform_flow_disable_plan', 'Review exact flows before pausing ingestion',
+      'Creates a 15-minute principal/org/sandbox/policy/configuration-bound disable plan for exact UUIDs only. '
+      + 'Shows names, current states, scope, protected baseline and ingestion-impact warnings. '
+      + 'Protected REL/Agentic/Profile flows and feeds into protected datasets cannot be disabled. '
+      + 'Review every blocker and independently clear downstream impact before confirmation. Does not disable or delete anything.',
+      {
+        sandbox: scope.sandbox,
+        flow_ids: z.array(z.string().uuid()).min(1).max(100)
+          .refine((ids) => new Set(ids).size === ids.length, 'Duplicate flow IDs are not allowed.'),
+      }, platformFlowDisablePlan],
+    ['lab_platform_flow_disable_apply', 'Disable explicitly confirmed flows',
+      'PAUSES INGESTION. Requires exact plan ID, digest, count, explicit confirmation, independent impact clearance '
+      + 'and ingestion_pause_acknowledged true. Uses the documented Flow Service POST state action, with a current If-Match etag. '
+      + 'Coordinates with deletion plans, records intent/results and verifies disabled configuration. '
+      + 'Polls runs read-only within a bounded window; draining is not cleanup-ready. Use lab_platform_cleanup_verify afterward. '
+      + 'Never requests run cancellation, deletes assets, re-enables flows, changes schedules/mappings, expands scope or automatically retries/resumes. '
+      + 'Deletion needs a separate fresh plan and confirmation.',
+      {
+        sandbox: scope.sandbox, plan_id: z.string().uuid(), manifest_digest: z.string().regex(/^[a-f0-9]{64}$/i),
+        expected_count: z.number().int().min(1).max(100), confirmed: z.literal(true), usage_cleared: z.literal(true),
+        ingestion_pause_acknowledged: z.literal(true),
+      }, platformFlowDisableApply],
   ];
   for (const [name, title, description, inputSchema, invoke] of tools) {
     server.registerTool(name, { title, description, inputSchema }, async (params) => {

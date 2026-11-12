@@ -181,7 +181,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 242);
+  assert.equal(full.names.length, 244);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 
@@ -205,7 +205,7 @@ test('entry loader adds platform cleanup once without broadening other focused e
       const again = await load({ category: 'platform-cleanup' });
       assert.equal(JSON.parse(again.content[0].text).alreadyLoaded, true);
     });
-    assert.equal(tools.size, 12);
+    assert.equal(tools.size, 14);
     assert.ok(tools.has('lab_platform_asset_delete'));
     const focused = registrationRecorder();
     registerFocusedAjoCleanupTools(focused.server);

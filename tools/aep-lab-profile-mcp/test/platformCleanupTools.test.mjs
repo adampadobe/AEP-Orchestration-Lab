@@ -4,9 +4,10 @@ import * as z from 'zod';
 import { registerPlatformCleanupTools } from '../src/tools/platformCleanupTools.mjs';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
 import {
-  platformAssetList, platformAssetAudit, platformAssetDelete, platformCleanupApply,
+  platformAssetList, platformAssetAudit, platformAssetDelete, platformCleanupApply, platformFlowDisableApply, platformFlowDisablePlan,
 } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
+import { fromLabApi } from '../src/tools/helpers.mjs';
 
 test('registers narrow inventory/audit/delete contracts and destructive annotations', () => {
   const tools = new Map();
@@ -15,6 +16,7 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
     'lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete',
     'lab_platform_cleanup_inventory', 'lab_platform_cleanup_plan',
     'lab_platform_cleanup_apply', 'lab_platform_cleanup_verify',
+    'lab_platform_flow_disable_plan', 'lab_platform_flow_disable_apply',
   ]);
   const definition = tools.get('lab_platform_asset_delete');
   assert.match(definition.description, /irreversible/i);
@@ -25,6 +27,14 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
   assert.equal(annotationsForTool('lab_platform_cleanup_verify').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_platform_cleanup_apply').destructiveHint, true);
   assert.equal(annotationsForTool('lab_platform_cleanup_apply').idempotentHint, false);
+  assert.equal(annotationsForTool('lab_platform_flow_disable_apply').destructiveHint, true);
+  assert.equal(annotationsForTool('lab_platform_flow_disable_apply').idempotentHint, false);
+  const disableSchema = z.object(tools.get('lab_platform_flow_disable_plan').inputSchema);
+  const flowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  assert.equal(disableSchema.safeParse({ sandbox: 'apalmer', flow_ids: [flowId] }).success, true);
+  for (const ids of [[], ['*'], [flowId, flowId], Array(101).fill(flowId)]) {
+    assert.equal(disableSchema.safeParse({ sandbox: 'apalmer', flow_ids: ids }).success, false);
+  }
   assert.match(tools.get('lab_platform_cleanup_apply').description, /GET 404 readback/i);
   const planSchema = z.object(tools.get('lab_platform_cleanup_plan').inputSchema);
   const exactPlan = {
@@ -72,6 +82,7 @@ test('batch apply uses one scoped POST attempt and cannot opt into retries', asy
         sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
         manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true, non_atomic_delete_acknowledged: true,
       });
+
       assert.equal(result.ok, false);
       assert.equal(result.status, 409);
     });
@@ -80,6 +91,51 @@ test('batch apply uses one scoped POST attempt and cannot opt into retries', asy
     globalThis.fetch = original;
   }
 });
+test('flow disable clients preserve exact scope and never retry actions', async () => {
+  const original = globalThis.fetch;
+  const requests = [];
+  globalThis.fetch = async (_url, init) => {
+    requests.push(JSON.parse(init.body));
+    return new Response(JSON.stringify({ ok: false, status: 'draining' }), {
+      status: 202, headers: { 'Content-Type': 'application/json' },
+    });
+  };
+  try {
+    await requestContext.run({ mcpApiKey: 'test-key' }, async () => {
+      const flowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+      await platformFlowDisablePlan({ sandbox: 'apalmer', flow_ids: [flowId] });
+      assert.deepEqual(requests[0].targets, [{ resource_type: 'flow', resource_id: flowId }]);
+      const input = {
+        sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
+        manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true, ingestion_pause_acknowledged: true,
+      };
+      const tools = new Map();
+      registerPlatformCleanupTools({ registerTool(name, definition) { tools.set(name, definition); } });
+      const schema = z.object(tools.get('lab_platform_flow_disable_apply').inputSchema);
+      for (const flag of ['confirmed', 'usage_cleared', 'ingestion_pause_acknowledged']) {
+        assert.equal(schema.safeParse({ ...input, [flag]: false }).success, false);
+        assert.equal(schema.safeParse({ ...input, [flag]: undefined }).success, false);
+      }
+      const result = await platformFlowDisableApply(input);
+      assert.equal(result.ok, false);
+      assert.equal(result.status, 202);
+      assert.equal(result.data.status, 'draining');
+      assert.equal(fromLabApi(result).isError, true);
+      assert.deepEqual(requests[1], { ...input, operation: 'flow_disable_apply' });
+    });
+    assert.equal(requests.length, 2);
+    let failedCalls = 0;
+    globalThis.fetch = async () => {
+      failedCalls++;
+      return new Response(JSON.stringify({ error: 'unavailable' }), { status: 503 });
+    };
+    await requestContext.run({ mcpApiKey: 'test-key' }, async () => {
+      assert.equal((await platformFlowDisableApply({ sandbox: 'apalmer', plan_id: 'test-id' })).ok, false);
+    });
+    assert.equal(failedCalls, 1);
+  } finally { globalThis.fetch = original; }
+});
+
 test('delete client sends scoped credentials and never retries mutations', async () => {
   const original = globalThis.fetch;
   let calls = 0;

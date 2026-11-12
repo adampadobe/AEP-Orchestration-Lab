@@ -45,6 +45,7 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
     const expiresAtMs = now() + TTL_MS;
     const stored = {
       ...plan,
+      operation: plan.operation || 'delete',
       plan_id: id,
       state: 'planned',
       createdAtMs: now(),
@@ -81,7 +82,8 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
     return database.runTransaction(async (tx) => {
       const snap = await tx.get(planRef);
       const plan = snap.exists ? snap.data() : null;
-      if (!plan || Object.entries(expected).some(([key, value]) => plan[key] !== value)
+      if (!plan || (plan.operation || 'delete') !== (expected.operation || 'delete')
+          || Object.entries(expected).some(([key, value]) => plan[key] !== value)
           || plan.state_fingerprint !== manifest_digest || plan.expected_count !== expected_count) {
         throw Object.assign(new Error('Plan is missing, expired, stale, or bound to a different scope/count.'), { status: 409 });
       }
@@ -112,6 +114,7 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
         principalUid: plan.principalUid,
         orgId: plan.orgId,
         sandbox: plan.sandbox,
+        operation: plan.operation || 'delete',
         manifest_digest,
         state: blocked ? 'blocked' : 'applying',
         claimedAtMs: now(),
@@ -135,13 +138,14 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
         || !['flow', 'dataset', 'schema', 'descriptor', 'sourceConnection', 'targetConnection', 'baseConnection', 'account'].includes(intent.resource_type)
         || typeof intent.resource_id !== 'string'
         || identity !== `${intent.resource_type}:${intent.resource_id}`
-        || intent.operation !== 'DELETE') {
+        || !['DELETE', 'DISABLE_FLOW'].includes(intent.operation)
+        || (intent.operation === 'DISABLE_FLOW' && intent.resource_type !== 'flow')) {
       throw Object.assign(new Error('Invalid durable cleanup item intent.'), { status: 400 });
     }
     const safeIntent = {
       resource_type: intent.resource_type,
       resource_id: intent.resource_id,
-      operation: 'DELETE',
+      operation: intent.operation,
       ...(typeof intent.state_fingerprint === 'string' ? { state_fingerprint: intent.state_fingerprint } : {}),
     };
     const ref = db().collection('platformCleanupExecutions').doc(id);
@@ -156,9 +160,13 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
       if (!execution || execution.state !== 'applying' || !previous || previous.status !== 'not_attempted') {
         throw Object.assign(new Error('Execution is not claimable for a new item intent.'), { status: 409 });
       }
+      if ((plan?.operation || 'delete') !== (intent.operation === 'DELETE' ? 'delete' : 'disable')
+          || execution.operation !== (plan?.operation || 'delete')) {
+        throw Object.assign(new Error('The item operation does not match the confirmed plan.'), { status: 409 });
+      }
       if (!plan || !Number.isFinite(plan.expiresAtMs) || plan.expiresAtMs <= now()
           || !lease?.active || lease.plan_id !== id || !Number.isFinite(lease.expiresAtMs) || lease.expiresAtMs <= now()) {
-        throw Object.assign(new Error('Plan or execution lease expired before the next DELETE intent.'), { status: 409 });
+        throw Object.assign(new Error('Plan or execution lease expired before the next mutation intent.'), { status: 409 });
       }
       const items = {
         ...execution.items,
@@ -200,7 +208,7 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
   }
 
   async function finishExecution(id, state, detail = {}) {
-    if (!['succeeded', 'failed', 'uncertain', 'blocked', 'expired'].includes(state)) {
+    if (!['succeeded', 'failed', 'uncertain', 'blocked', 'expired', 'draining'].includes(state)) {
       throw Object.assign(new Error('Invalid terminal execution state.'), { status: 400 });
     }
     const database = db();
@@ -216,7 +224,10 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
       if (!execution || !['applying', 'blocked'].includes(execution.state)) {
         throw Object.assign(new Error('Execution cannot transition to a terminal state.'), { status: 409 });
       }
-      if (state === 'succeeded' && (!plan || !Array.isArray(plan.targets)
+      if (state === 'draining' && plan?.operation !== 'disable') {
+        throw Object.assign(new Error('Only a disable execution can wait for draining runs.'), { status: 409 });
+      }
+      if (['succeeded', 'draining'].includes(state) && (!plan || !Array.isArray(plan.targets)
           || plan.targets.some((target) => execution.items?.[`${target.resource_type}:${target.resource_id}`]?.status !== 'succeeded')
           || Object.keys(execution.items || {}).length !== plan.targets.length)) {
         throw Object.assign(new Error('Execution cannot succeed without a durable successful result for every exact target.'), { status: 409 });
@@ -226,6 +237,7 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
           ? { blockers: detail.blockers.filter((item) => typeof item === 'string').slice(0, 100).map((item) => item.slice(0, 500)) } : {}),
         ...(typeof detail.preflight_state_fingerprint === 'string' ? { preflight_state_fingerprint: detail.preflight_state_fingerprint } : {}),
         ...(Number.isInteger(detail.delete_requests_issued) ? { delete_requests_issued: detail.delete_requests_issued } : {}),
+        ...(Number.isInteger(detail.disable_requests_issued) ? { disable_requests_issued: detail.disable_requests_issued } : {}),
         ...(typeof detail.safe_error_code === 'string' && /^[A-Z0-9_-]{1,80}$/i.test(detail.safe_error_code)
           ? { safe_error_code: detail.safe_error_code } : {}),
         ...(typeof detail.safe_request_id === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(detail.safe_request_id)
