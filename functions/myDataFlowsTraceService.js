@@ -24,6 +24,11 @@ function stage(id, value = {}, stamp) {
 function publicRun(run) {
   if (!run) return null;
   const { expected, checkLeaseUntil, ...result } = run;
+  // Older durable receipts predate the structured unsupported-check flag.
+  if (Array.isArray(result.stages)) result.stages = result.stages.map((value) =>
+    !value.verification && ['aepXdm', 'aepRel'].includes(value.id) && value.state === 'unavailable'
+      && value.detail?.startsWith('Automatic dataset row readback is not supported')
+      ? { ...value, verification: 'manual' } : value);
   return result;
 }
 function validateId(id) {
@@ -203,6 +208,7 @@ function createMyDataFlowsTraceService({
           for (const [key, relational] of [['aepXdm', false], ['aepRel', true]]) {
             stages.set(key, stage(key, {
               state: 'unavailable',
+              verification: 'manual',
               detail: 'Automatic dataset row readback is not supported by the current AEP REST integration. Use the exact destination dataset below in Query Service; replace the marked query placeholders. Profile visibility and flow success are not substitutes.',
               evidence: { datasets: [...new Map(flows
                 .filter((flow) => flow.sourceTables.some((table) => table.startsWith('REL.')) === relational)

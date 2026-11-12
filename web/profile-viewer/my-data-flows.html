@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="my-data-flows.css?v=20261112-sidebar">
+  <link rel="stylesheet" href="my-data-flows.css?v=20261112-visual-workspace">
   <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -24,30 +24,53 @@
         <div class="dashboard-topbar-right"><span class="dashboard-env-pill">Owner only</span></div>
       </header>
       <main class="dashboard-main app-page">
-        <section class="dashboard-hero dashboard-hero--page-banner" aria-labelledby="flowsHeading">
-          <div class="dashboard-hero-inner"><header class="dashboard-hero-header">
-            <h2 id="flowsHeading" class="dashboard-hero-title">My data flows</h2>
-            <p class="dashboard-hero-subtitle">A private architecture workspace. Sign in to load your reference and inspect read-only status.</p>
-          </header></div>
-        </section>
+        <header class="flows-intro">
+          <div><h2 id="flowsHeading">See how your data becomes an experience</h2>
+          <p>Understand the architecture, inspect pipeline observations, or follow one test profile through Snowflake and AEP.</p></div>
+        </header>
         <p id="flowsStatus" class="flows-status" role="status" aria-live="polite">Checking owner access…</p>
         <p id="flowsSignIn" hidden><a href="home-new.html">Open the lab sign-in</a></p>
         <div id="flowsControls" class="flows-toolbar" hidden>
           <button type="button" id="flowsReload">Reload reference</button>
-          <button type="button" id="flowsLive">Read live AEP status</button>
-          <span>Reference and status reads are read-only. Simulation never writes data.</span>
+          <span>Owner-only workspace. Reading the architecture does not create data.</span>
         </div>
         <div id="flowsResults" hidden>
-          <section class="flows-panel" aria-labelledby="flowsReferenceTitle">
-            <h2 id="flowsReferenceTitle"></h2>
-            <p id="flowsSummary"></p>
-            <p id="flowsAsOf" class="flows-muted"></p>
-          </section>
-          <div class="flows-toolbar" role="group" aria-label="Explorer mode">
-            <button type="button" id="flowsSimulationMode" aria-pressed="true">Simulation</button>
-            <button type="button" id="flowsTraceMode" aria-pressed="false">Live</button>
+          <div class="flows-context-line"><h2 id="flowsReferenceTitle"></h2><p id="flowsAsOf" class="flows-muted"></p></div>
+          <div class="flows-modes" role="group" aria-label="Workspace task">
+            <button type="button" id="flowsSimulationMode" aria-pressed="true">Understand <span>Follow the story</span></button>
+            <button type="button" id="flowsMonitorMode" aria-pressed="false">Monitor <span>Inspect reviewed flows</span></button>
+            <button type="button" id="flowsTraceMode" aria-pressed="false">Trace a profile <span>Verify one identity</span></button>
           </div>
-          <section id="flowsTracePanel" class="flows-panel" aria-labelledby="flowsTraceHeading" hidden>
+          <div id="flowsDiagramHome">
+          <section id="flowsDiagramPanel" class="flows-panel flows-workspace" aria-labelledby="flowsDiagramHeading">
+            <div class="flows-workspace-heading">
+              <h2 id="flowsDiagramHeading">Your connected architecture</h2>
+              <p id="flowsGraphMode" class="flows-mode-note">Illustrative playback - no data is being written</p>
+            </div>
+            <section id="flowsSimulationPanel" class="flows-story" aria-label="Guided architecture story">
+              <div id="flowsScenarios" class="flows-scenarios" role="group" aria-label="Simulation scenarios"></div>
+              <p id="flowsScenarioDescription" class="flows-muted"></p>
+              <div class="flows-story-controls">
+                <button type="button" id="flowsPrevious" aria-label="Previous simulation step">Previous</button>
+                <button type="button" id="flowsPlay">Play simulation</button>
+                <button type="button" id="flowsNext" aria-label="Next simulation step">Next</button>
+                <button type="button" id="flowsReplay">Replay</button>
+                <label for="flowsSpeed">Pace <select id="flowsSpeed"><option value="0.75">0.75x</option><option value="1" selected>1x</option><option value="1.5">1.5x</option><option value="2">2x</option></select></label>
+                <label><input type="checkbox" id="flowsFollow"> Follow the current step</label>
+                <label><input type="checkbox" id="flowsMotion" checked> Animate data paths</label>
+                <output id="flowsProgress" aria-live="polite"></output>
+              </div>
+            </section>
+            <section id="flowsMonitorControls" class="flows-monitor-controls" aria-label="Monitoring controls" hidden>
+              <div class="flows-toolbar">
+                <button type="button" id="flowsLive">Read live AEP status</button>
+                <label for="flowsMonitorFilter">Show <select id="flowsMonitorFilter"><option value="all">All reviewed flows</option><option value="attention">Needs attention</option><option value="zero">Zero-input runs</option></select></label>
+                <button type="button" id="flowsClearSelection">Clear component filter</button>
+              </div>
+              <p id="flowsMonitorSummary" role="status" aria-live="polite">No live status requested.</p>
+              <p class="flows-muted">A run observation is not proof that a particular record arrived. No automatic refresh or pipeline repair.</p>
+            </section>
+          <section id="flowsTracePanel" class="flows-trace-controls" aria-labelledby="flowsTraceHeading" hidden>
             <h2 id="flowsTraceHeading">Create and trace a profile</h2>
             <p>Create once, then follow verified readbacks through the architecture. Arrival follows natural ingestion; there is no estimated arrival time.</p>
             <div class="flows-toolbar">
@@ -72,64 +95,66 @@
             </div>
             <p class="flows-muted">Watching checks about every 30 seconds for up to 30 minutes. Stop watching stops reads only; it does not cancel creation or ingestion.</p>
             <div id="flowsTraceIdentity" class="flows-card" hidden></div>
-            <ol id="flowsTraceStages" class="flows-trace-stages"></ol>
-            <ul id="flowsTraceLimitations" class="flows-muted"></ul>
           </section>
-          <div id="flowsDiagramHome">
-            <section id="flowsDiagramPanel" class="flows-panel" aria-labelledby="flowsDiagramHeading">
-              <div class="flows-toolbar">
-                <h2 id="flowsDiagramHeading">Flow explorer</h2>
+              <div class="flows-view-controls">
+                <div role="group" aria-label="Diagram view">
+                  <button type="button" id="flowsOverviewView" aria-pressed="true">Overview</button>
+                  <button type="button" id="flowsFocusView" aria-pressed="false">Selected path</button>
+                  <button type="button" id="flowsFullView" aria-pressed="false">All components</button>
+                </div>
+                <span id="flowsSubsystemName" class="flows-muted"></span>
+                <button type="button" id="flowsShowMap" aria-expanded="false">Show interactive map</button>
                 <button type="button" id="flowsExpand" aria-expanded="false" aria-controls="flowsGraph">Expand diagram</button>
                 <button type="button" id="flowsFullscreen">Fullscreen diagram</button>
                 <button type="button" id="flowsCloseFullscreen" hidden>Close fullscreen</button>
               </div>
-              <div class="flows-toolbar" role="group" aria-label="Diagram view">
-                <button type="button" id="flowsFocusView" aria-pressed="true">Flow view</button>
-                <button type="button" id="flowsFullView" aria-pressed="false">Full architecture</button>
-              </div>
-              <div class="flows-toolbar" aria-label="Diagram zoom controls">
+              <div id="flowsZoomControls" class="flows-toolbar flows-zoom-controls" aria-label="Diagram zoom controls" hidden>
                 <button type="button" id="flowsZoomOut" aria-label="Zoom diagram out">−</button>
                 <output id="flowsZoom" aria-live="polite">100%</output>
                 <button type="button" id="flowsZoomIn" aria-label="Zoom diagram in">+</button>
-                <button type="button" id="flowsFit">Fit diagram</button>
+                <button type="button" id="flowsFit">Fit selection</button>
+                <span>Scroll to explore. Labels keep a readable minimum size.</span>
               </div>
-              <p class="flows-muted">The diagram fits the available width. Use + to zoom into the flow and scroll in either direction; Fit diagram restores the full-width view. Tab to a node and press Enter or Space to inspect it.</p>
-              <p id="flowsGraphMode" class="flows-muted">Simulation · illustrative highlights only</p>
-              <p id="flowsRevealStatus" class="flows-muted" role="status" aria-live="polite"></p>
-              <div id="flowsGraph" class="flows-graph" tabindex="0" role="region" aria-label="Data-flow diagram"></div>
-              <div id="flowsInspect" class="flows-inspect" role="status" aria-live="polite"></div>
+              <div class="flows-workspace-body">
+                <div class="flows-canvas">
+                  <div id="flowsOverview" class="flows-overview" aria-label="Architecture overview"></div>
+                  <div id="flowsGraph" class="flows-graph" tabindex="0" role="region" aria-label="Data-flow diagram" hidden></div>
+                  <ol id="flowsMobileStages" class="flows-mobile-stages" aria-label="Architecture stages"></ol>
+                  <div class="flows-legend" aria-label="Route legend">
+                    <span data-route="xdm">XDM person and activity</span><span data-route="rel">Relational records</span><span data-route="direct">Direct streaming / Edge</span><span data-route="inspect">Inspection only</span>
+                  </div>
+                  <p id="flowsRevealStatus" class="flows-muted" role="status" aria-live="polite"></p>
+                </div>
+                <div class="flows-inspector-column">
+                  <section id="flowsNarration" aria-label="Current story chapter">
+                    <div id="flowsStep" class="flows-step" role="status" aria-live="polite"></div>
+                    <ol id="flowsTimeline" class="flows-timeline" aria-label="Story chapters"></ol>
+                    <p id="flowsMotionNote" class="flows-muted"></p>
+                  </section>
+                  <aside id="flowsInspect" class="flows-inspect" aria-label="Selected component details"></aside>
+                </div>
+              </div>
+              <section id="flowsMonitorPanel" aria-label="Observed flow details" hidden>
+                <p id="flowsLiveStatus" role="status" aria-live="polite"></p>
+                <div id="flowsLiveResults"></div>
+              </section>
+              <section id="flowsTraceCheckpoints" aria-label="Profile verification checkpoints" hidden>
+                <h3>Verified checkpoints, not estimated arrival</h3>
+                <ol id="flowsTraceStages" class="flows-trace-stages"></ol>
+                <ul id="flowsTraceLimitations" class="flows-muted"></ul>
+              </section>
               <details><summary>All connections in text</summary><ul id="flowsEdges"></ul></details>
             </section>
           </div>
-          <section id="flowsSimulationPanel" class="flows-panel" aria-labelledby="flowsSimulationHeading">
-            <h2 id="flowsSimulationHeading">Walk a simulated path</h2>
-            <p>Illustration only, not a job runner or an elapsed-time measurement. Select a scenario, then step through it. Playback uses a presentation pace, not the pipeline schedule.</p>
-            <div id="flowsScenarios" class="flows-scenarios" role="group" aria-label="Simulation scenarios"></div>
-            <p id="flowsScenarioDescription"></p>
-            <p id="flowsMotionNote" class="flows-muted"></p>
-            <div class="flows-toolbar" aria-label="Simulation playback">
-              <button type="button" id="flowsPrevious" aria-label="Previous simulation step">Previous</button>
-              <button type="button" id="flowsPlay">Play simulation</button>
-              <button type="button" id="flowsNext" aria-label="Next simulation step">Next</button>
-              <output id="flowsProgress" aria-live="polite"></output>
-            </div>
-            <div id="flowsStep" class="flows-step" role="status" aria-live="polite"></div>
-            <ol id="flowsTimeline" class="flows-timeline"></ol>
-          </section>
-          <section class="flows-panel" aria-labelledby="flowsIndustriesHeading">
-            <h2 id="flowsIndustriesHeading">Sources and datasets</h2>
+          <details class="flows-panel flows-advanced">
+            <summary>Architecture reference, sources and dated evidence</summary>
+            <p id="flowsSummary"></p>
+            <h3 id="flowsIndustriesHeading">Sources and datasets</h3>
             <div id="flowsIndustries" class="flows-cards"></div>
-          </section>
-          <section class="flows-panel" aria-labelledby="flowsLiveHeading">
-            <h2 id="flowsLiveHeading">Read-only status</h2>
-            <p id="flowsLiveStatus" role="status" aria-live="polite"></p>
-            <div id="flowsLiveResults"></div>
-          </section>
-          <section class="flows-panel" aria-labelledby="flowsEvidenceHeading">
-            <h2 id="flowsEvidenceHeading">Evidence and boundaries</h2>
+            <h3 id="flowsEvidenceHeading">Evidence and boundaries</h3>
             <div id="flowsEvidence"></div>
             <ul id="flowsNotes"></ul>
-          </section>
+          </details>
         </div>
       </main>
     </div>
@@ -145,6 +170,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
-  <script defer src="my-data-flows.js?v=20261110-viewport-fit"></script>
+  <script defer src="my-data-flows.js?v=20261112-visual-workspace"></script>
 </body>
 </html>

@@ -44,8 +44,7 @@
 .my-data-flows-page .flows-graph {
   width: 100%;
   box-sizing: border-box;
-  height: auto;
-  aspect-ratio: var(--flows-aspect-ratio, auto);
+  height: 480px;
   overflow: auto;
   border: 1px solid var(--dash-border);
   border-radius: var(--dash-radius-sm);
@@ -88,3 +87,123 @@
   .my-data-flows-page .flows-toolbar { gap: .5rem; }
   .my-data-flows-page .flows-card dl { grid-template-columns: 1fr; }
 }
+.my-data-flows-page .flows-intro { margin: .5rem 0 1rem; }
+.my-data-flows-page .flows-intro h2 { font-size: clamp(1.4rem, 2.2vw, 2rem); letter-spacing: -.025em; margin: 0 0 .4rem; }
+.my-data-flows-page .flows-intro p { color: var(--dash-text-secondary); line-height: 1.6; margin: 0; max-width: 68rem; }
+.my-data-flows-page #flowsStatus { font-size: .8rem; padding: .25rem 0; margin: .5rem 0; }
+.my-data-flows-page #flowsControls { margin-bottom: .65rem; font-size: .8rem; }
+.my-data-flows-page #flowsAsOf { margin: .35rem 0; font-size: .8rem; }
+.my-data-flows-page .flows-context-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1.5rem; }
+.my-data-flows-page .flows-context-line h2 { font-size: .9rem; margin: 0; }
+.my-data-flows-page .flows-modes { display: grid; grid-template-columns: repeat(3, 1fr); margin: .5rem 0 1rem; border-bottom: 1px solid var(--dash-border); }
+.my-data-flows-page .flows-modes button { border: 0; border-radius: 0; border-bottom: 3px solid transparent; background: transparent; padding: .6rem .8rem; text-align: left; font-weight: 600; }
+.my-data-flows-page .flows-modes button[aria-pressed="true"] { border-bottom-color: var(--dash-blue); background: var(--dash-info-bg); }
+.my-data-flows-page .flows-modes span { display: block; font-size: .8rem; font-weight: 400; color: var(--dash-text-secondary); margin-top: .3rem; }
+.my-data-flows-page .flows-workspace { padding: 1.25rem; }
+.my-data-flows-page .flows-workspace-heading { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: baseline; }
+.my-data-flows-page .flows-workspace-heading h2 { margin: 0; }
+.my-data-flows-page .flows-mode-note { font-size: .8rem; margin: 0 0 .75rem; color: var(--dash-text-secondary); }
+.my-data-flows-page .flows-story,
+.my-data-flows-page .flows-monitor-controls,
+.my-data-flows-page .flows-trace-controls { border-block: 1px solid var(--dash-border); padding: 1rem 0; margin-bottom: 1rem; }
+.my-data-flows-page .flows-scenarios button { font-size: .8rem; padding: .45rem .65rem; }
+.my-data-flows-page #flowsScenarioDescription { font-size: .875rem; margin: .5rem 0; }
+.my-data-flows-page .flows-story-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; font-size: .8rem; }
+.my-data-flows-page .flows-story-controls label { display: inline-flex; gap: .35rem; align-items: center; }
+.my-data-flows-page .flows-story-controls select { padding: .4rem; }
+.my-data-flows-page #flowsPlay,
+.my-data-flows-page #flowsLive { background: var(--dash-blue); color: var(--dash-on-accent); border-color: var(--dash-blue); }
+.my-data-flows-page .flows-step { padding: .75rem 1rem; margin: .75rem 0 .5rem; border-radius: 0; }
+.my-data-flows-page .flows-step h3 { margin: 0 0 .3rem; }
+.my-data-flows-page .flows-step p { margin: .25rem 0; font-size: .875rem; }
+.my-data-flows-page .flows-step .flows-timing { padding: 0; border: 0; color: var(--dash-text-secondary); font-size: .8rem; }
+.my-data-flows-page .flows-timeline { display: grid; gap: .4rem; padding: .25rem 0; margin: 0; list-style: none; }
+.my-data-flows-page .flows-timeline button { padding: .4rem .6rem; font-size: .8rem; width: 100%; }
+.my-data-flows-page .flows-timeline [aria-current="step"] button { border-color: var(--dash-blue); color: var(--dash-blue); }
+.my-data-flows-page #flowsMotionNote { font-size: .75rem; margin: .3rem 0 0; }
+.my-data-flows-page .flows-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; font-size: .8rem; }
+.my-data-flows-page .flows-view-controls > div { display: flex; gap: .3rem; margin-right: auto; }
+.my-data-flows-page .flows-zoom-controls { font-size: .8rem; margin-bottom: .5rem; }
+.my-data-flows-page .flows-workspace-body { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 1rem; align-items: start; }
+.my-data-flows-page .flows-inspector-column { min-width: 0; }
+.my-data-flows-page #flowsNarration { margin-bottom: 1rem; }
+.my-data-flows-page #flowsNarration .flows-step { margin-top: 0; }
+.my-data-flows-page .flows-canvas { min-width: 0; }
+.my-data-flows-page .flows-inspect { margin: 0; min-width: 0; max-height: 650px; overflow: auto; border-radius: 0; }
+.my-data-flows-page .flows-inspect > h3 { margin: 0 0 .75rem; }
+.my-data-flows-page .flows-inspect p,
+.my-data-flows-page .flows-inspect dd { font-size: .875rem; overflow-wrap: anywhere; }
+.my-data-flows-page .flows-inspect pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: .75rem; }
+.my-data-flows-page .flows-inspect dl { font-size: .8rem; }
+.my-data-flows-page .flows-inspect dt { margin-top: .6rem; color: var(--dash-text-secondary); }
+.my-data-flows-page .flows-inspect dd { margin: .2rem 0; }
+.my-data-flows-page .flows-overview-systems { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.my-data-flows-page .flows-system { min-width: 0; padding: 1rem; border: 1px solid var(--dash-border); background: var(--dash-surface-alt); }
+.my-data-flows-page .flows-system h3 { display: flex; gap: .5rem; align-items: center; font-size: 1rem; margin: 0 0 .75rem; }
+.my-data-flows-page .flows-system-icon { width: 1.7rem; height: 1.7rem; color: var(--dash-blue); flex-shrink: 0; }
+.my-data-flows-page .flows-system p { font-size: .875rem; margin: .5rem 0; }
+.my-data-flows-page .flows-system ul { font-size: .875rem; line-height: 1.8; padding-left: 1.15rem; }
+.my-data-flows-page .flows-system button { margin-top: .5rem; font-size: .8rem; }
+.my-data-flows-page .flows-system[data-active="true"] { border-color: var(--dash-blue); }
+.my-data-flows-page .flows-system[data-selected="true"] { outline: 2px solid var(--dash-blue); outline-offset: 2px; }
+.my-data-flows-page .flows-route { --flow-route: var(--dash-blue); border-left: 3px solid var(--flow-route); padding: .7rem .85rem; background: var(--dash-surface-alt); margin-top: .6rem; }
+.my-data-flows-page [data-route="rel"] { --flow-route: var(--dash-purple); }
+.my-data-flows-page [data-route="direct"] { --flow-route: var(--dash-text-secondary); }
+.my-data-flows-page [data-route="inspect"] { --flow-route: var(--dash-muted); }
+.my-data-flows-page .flows-route h3 { font-size: .875rem; margin: 0 0 .4rem; }
+.my-data-flows-page .flows-route p { font-size: .875rem; margin: 0; }
+.my-data-flows-page .flows-route-motion { display: flex; align-items: center; gap: .75rem; margin-top: .4rem; color: var(--flow-route); }
+.my-data-flows-page .flows-route-track { position: relative; flex: 1; height: 2px; background: var(--dash-border); }
+.my-data-flows-page .flows-route-track::after { content: ""; position: absolute; right: 0; top: -3px; border-left: 6px solid var(--flow-route); border-block: 4px solid transparent; }
+.my-data-flows-page .flows-route-packet { position: absolute; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--flow-route); opacity: 0; }
+.my-data-flows-page [data-story-playing="true"] .flows-route[data-active="true"] .flows-route-packet { animation: flows-packet var(--flows-pace, 2.2s) linear infinite; }
+@keyframes flows-packet { from { left: 0; opacity: 1; } to { left: calc(100% - 8px); opacity: 1; } }
+.my-data-flows-page .flows-packet { fill: var(--flow-route, var(--dash-blue)); pointer-events: none; }
+.my-data-flows-page .flows-packet-label { fill: var(--dash-text); stroke: var(--dash-surface-alt); stroke-width: 4px; paint-order: stroke; font-size: 14px; pointer-events: none; }
+.my-data-flows-page .flows-legend { --flow-route: var(--dash-blue); display: flex; flex-wrap: wrap; gap: .5rem 1rem; font-size: .75rem; margin-top: .75rem; }
+.my-data-flows-page .flows-legend span { border-left: 12px solid var(--flow-route); padding-left: .4rem; }
+.my-data-flows-page .flows-legend [data-route="inspect"] { border-left-style: double; }
+.my-data-flows-page .flows-system-boundary { fill: var(--dash-surface-alt); stroke: var(--dash-border); stroke-dasharray: 6 4; }
+.my-data-flows-page .flows-system-label { fill: var(--dash-text-secondary); font-size: 16px; font-weight: 600; }
+.my-data-flows-page .flows-edge { stroke: var(--flow-route, var(--dash-blue)); stroke-width: 2; }
+.my-data-flows-page .flows-edge[data-route="inspect"] { stroke-dasharray: 5 5; }
+.my-data-flows-page .flows-arrow { fill: context-stroke; }
+.my-data-flows-page .flows-node text.flows-node-status { font-size: 12px; fill: var(--dash-text-secondary); }
+.my-data-flows-page .flows-node[data-monitor-state="failed"] rect { stroke: var(--dash-error-text); stroke-width: 3; }
+.my-data-flows-page .flows-node[data-monitor-state="unknown"] rect { stroke: var(--dash-muted); stroke-dasharray: 3 4; }
+.my-data-flows-page .flows-observation { display: block; font-size: .8rem; font-weight: 600; margin-top: .5rem; color: var(--dash-text-secondary); }
+.my-data-flows-page .flows-run-table-wrap { overflow-x: auto; margin: 1rem 0; }
+.my-data-flows-page .flows-run-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+.my-data-flows-page .flows-run-table :is(th, td) { padding: .7rem .6rem; border-bottom: 1px solid var(--dash-border); text-align: left; vertical-align: top; }
+.my-data-flows-page .flows-run-table th { color: var(--dash-text-secondary); font-weight: 600; }
+.my-data-flows-page .flows-run-table button { font-size: inherit; text-align: left; }
+.my-data-flows-page .flows-run-table [data-state="failed"] { color: var(--dash-error-text); }
+.my-data-flows-page .flows-empty { padding: 1rem; background: var(--dash-surface-alt); }
+.my-data-flows-page #flowsMonitorPanel,
+.my-data-flows-page #flowsTraceCheckpoints { border-top: 1px solid var(--dash-border); margin-top: 1rem; padding-top: 1rem; }
+.my-data-flows-page .flows-advanced > summary { font-weight: 600; }
+.my-data-flows-page .flows-mobile-stages,
+.my-data-flows-page #flowsShowMap { display: none; }
+@media (max-width: 1150px) {
+  .my-data-flows-page .flows-workspace-body { grid-template-columns: minmax(0, 1fr); }
+  .my-data-flows-page .flows-inspect { max-height: none; }
+}
+@media (max-width: 600px) {
+  .my-data-flows-page .flows-modes button { font-size: .8rem; padding: .65rem .35rem; }
+  .my-data-flows-page .flows-modes span { display: none; }
+  .my-data-flows-page .flows-workspace { padding: .85rem; }
+  .my-data-flows-page .flows-view-controls { align-items: stretch; }
+  .my-data-flows-page .flows-view-controls > div { flex-wrap: wrap; }
+  .my-data-flows-page .flows-overview,
+  .my-data-flows-page .flows-graph { display: none; }
+  .my-data-flows-page .flows-mobile-stages { display: grid; gap: .6rem; padding-left: 1.5rem; }
+  .my-data-flows-page .flows-mobile-stages button { width: 100%; text-align: left; font-size: .875rem; }
+  .my-data-flows-page .flows-mobile-stages span { display: block; color: var(--dash-text-secondary); font-size: .8rem; margin-top: .4rem; }
+  .my-data-flows-page .flows-mobile-stages [data-active="true"] button { border-color: var(--dash-blue); }
+  .my-data-flows-page #flowsShowMap { display: inline-block; }
+  .my-data-flows-page [data-mobile-map="true"] .flows-overview:not([hidden]),
+  .my-data-flows-page [data-mobile-map="true"] .flows-graph:not([hidden]) { display: block; }
+  .my-data-flows-page [data-mobile-map="true"] .flows-mobile-stages { display: none; }
+  .my-data-flows-page .flows-overview-systems { grid-template-columns: minmax(0, 1fr); }
+}
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) [hidden] { display: none !important; }

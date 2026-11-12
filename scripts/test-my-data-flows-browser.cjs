@@ -38,7 +38,7 @@ const fixture = {
 };
 const live = {
   fetchedAt: '2026-11-10T11:00:00Z', complete: false, limitations: ['Fixture partial read'],
-  flows: [{ id: 'flow-fixture', name: 'Protected source flow', state: 'enabled', sourceTables: ['PRIVATE_TABLE'],
+  flows: [{ id: 'flow-fixture', name: 'Protected source flow', state: 'enabled', sourceTables: ['PRIVATE_TABLE'], nodeIds: ['aep'],
     datasets: [{ id: 'dataset-fixture', name: 'Protected dataset', profileEnabled: null, schemaId: 'schema-fixture', ocStatus: null }],
     schedule: { frequency: 'minute', interval: 15, backfill: false }, mappings: [{ id: 'mapping-fixture', version: 2 }],
     lastRun: { id: 'run-fixture', state: 'success', startedAt: '2026-11-10T10:00:00Z', completedAt: null,
@@ -61,9 +61,9 @@ const traceFixture = {
   })),
   limitations: ['Scheduled ingestion is not an ETA. No sends are performed.'],
 };
-live.flows.push({ id: 'failed-flow-fixture', name: 'Unavailable registry row', state: 'unknown',
+live.flows.push({ id: 'failed-flow-fixture', name: 'Unavailable registry row', state: 'unknown', nodeIds: ['rel'],
   sourceTables: [], datasets: [], schedule: null, mappings: [], lastRun: null });
-live.flows.push({ id: 'completed-flow-fixture', name: 'Completed registry row', state: 'enabled',
+live.flows.push({ id: 'completed-flow-fixture', name: 'Completed registry row', state: 'enabled', nodeIds: ['rel'],
   sourceTables: ['REL.ACCOUNT'], datasets: [{ id: 'account-fixture', name: 'Account', profileEnabled: false,
     schemaId: 'account-schema-fixture', ocStatus: 'DDL_APPLIED' }], mappings: [{ id: 'account-mapping-fixture', version: 1 }],
   schedule: { frequency: 'minute', interval: 15, backfill: false },
@@ -148,7 +148,12 @@ async function main() {
         window.requests = [];
         window.fixtureStatus = options.status || 200;
         window.traceRequests = [];
+        window.fixtureLive = structuredClone(live);
         window.fixtureTraceRun = options.run ? structuredClone(traceFixture) : null;
+        if (options.manual && window.fixtureTraceRun) window.fixtureTraceRun.stages.forEach(stage => {
+          if (['aepXdm', 'aepRel'].includes(stage.id)) { stage.state = 'unavailable'; stage.verification = 'manual'; }
+          if (stage.id === 'aepProfile') stage.state = 'unavailable';
+        });
         if (options.unchecked) window.fixtureTraceRun.stages.forEach(stage => {
           stage.state = 'waiting'; stage.checkedAt = null; stage.verifiedAt = null;
         });
@@ -183,7 +188,7 @@ async function main() {
           if (window.delayResponse) await new Promise(resolve => { window.releaseResponse = resolve; });
           if (window.rejectRead) throw new TypeError('Fixture offline');
           const response = structuredClone(fixture);
-          if (String(url).includes('refresh=true')) response.live = live;
+          if (String(url).includes('refresh=true')) response.live = structuredClone(window.fixtureLive);
           if (window.invalidReference) response.reference = null;
           return { ok: window.fixtureStatus === 200, status: window.fixtureStatus, json: async () => response };
         };
@@ -196,6 +201,12 @@ async function main() {
     }
     const { context, page } = await open();
     await page.locator('#flowsResults').waitFor();
+    assert.ok(await page.locator('#flowsOverview').isVisible(), 'The architecture opens on a readable aggregate overview');
+    assert.equal(await page.locator('.flows-system').count(), 5);
+    assert.equal(await page.locator('#flowsPlay').textContent(), 'Play simulation', 'The story never autoplays');
+    assert.ok((await page.locator('.flows-system h3').evaluateAll(elements => elements.map(element => parseFloat(getComputedStyle(element).fontSize)))).every(size => size >= 14));
+    await page.locator('#flowsScenarios button[data-scenario-id="snowflake-first"]').click();
+    await page.locator('#flowsFocusView').click();
     assert.equal(await page.locator('.flows-node').count(), 6);
     assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 1, 'Flow view starts with the first step only');
     assert.equal(await page.locator('.flows-node.flows-concealed').first().evaluate(group => getComputedStyle(group).display), 'none');
@@ -210,7 +221,7 @@ async function main() {
     assert.equal(await page.locator('.flows-node:not(.flows-concealed)').count(), 2);
     assert.equal(await page.locator('.flows-node[data-node-id="snowflake"]').getAttribute('transform'), revealedPosition);
     await page.locator('#flowsPrevious').click();
-    assert.equal(await page.locator('#flowsScenarios button').count(), 5);
+    assert.equal(await page.locator('#flowsScenarios button').count(), 6, 'The original five scenarios remain alongside the architecture introduction');
     assert.equal(await page.locator('#flowsEvidence img').count(), 0, 'API strings must never become HTML');
     let requests = await page.evaluate(() => window.requests);
     assert.deepEqual(requests[0], { url: '/api/architecture/my-data-flows?sandbox=apalmer', method: 'GET',
@@ -258,8 +269,12 @@ async function main() {
     assert.notEqual(await page.locator('#flowsDiagramPanel').evaluate(n => getComputedStyle(n).backgroundColor), light);
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Mobile page must not overflow');
+    assert.ok(await page.locator('#flowsMobileStages').isVisible(), 'Mobile uses readable stages, not a shrunken graph');
+    await page.locator('#flowsMonitorMode').click();
     await page.locator('#flowsLive').click();
     await page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('Partial results'));
+    assert.match(await page.locator('#flowsLiveResults').textContent(), /No observations match/, 'A selected unobserved component is not given invented metadata');
+    await page.locator('#flowsClearSelection').click();
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Fixture partial read/);
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Configured schedule/);
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Observed last run/);
@@ -267,6 +282,8 @@ async function main() {
     assert.equal((await page.evaluate(() => window.requests))[1].url, '/api/architecture/my-data-flows?sandbox=apalmer&refresh=true');
     await page.locator('#flowsReload').click();
     await page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('not been requested'));
+    assert.equal(await page.locator('#flowsMonitorMode').getAttribute('aria-pressed'), 'true', 'The task preference survives a reference reload');
+    await page.locator('#flowsSimulationMode').click();
     await page.locator('#flowsPlay').click();
     assert.equal(await page.locator('#flowsPlay').textContent(), 'Pause simulation');
     await page.locator('#flowsFullscreen').click();
@@ -285,6 +302,7 @@ async function main() {
     await page.evaluate(value => window.setFixtureUser(value), owner);
     await page.locator('#flowsResults').waitFor();
     await page.evaluate(() => { window.delayResponse = true; });
+    await page.locator('#flowsMonitorMode').click();
     await page.locator('#flowsLive').click();
     await page.waitForFunction(() => !!window.releaseResponse);
     await page.evaluate(value => window.setFixtureUser(value), other);
@@ -332,6 +350,24 @@ async function main() {
     assert.equal(await real.page.locator('.flows-edge').count(), 21);
     assert.equal(await real.page.locator('#flowsIndustries article').count(), 6);
     assert.match(await real.page.locator('#flowsIndustries').textContent(), /rel_fsi_account/);
+    if (process.env.MY_DATA_FLOWS_SCREENSHOTS) {
+      await fs.mkdir(process.env.MY_DATA_FLOWS_SCREENSHOTS, { recursive: true });
+      for (const width of [1440, 390]) {
+        await real.page.setViewportSize({ width, height: width === 390 ? 844 : 1100 });
+        for (const theme of ['light', 'dark']) {
+          await real.page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+          await real.page.locator('.flows-intro').evaluate(element => element.scrollIntoView({ block: 'start' }));
+          await real.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, `flows-${width}-${theme}.png`), fullPage: true });
+          if (width === 1440) {
+            await real.page.locator('#flowsDiagramPanel').evaluate(element => element.scrollIntoView({ block: 'start' }));
+            await real.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, `flows-workspace-${theme}.png`) });
+          }
+        }
+      }
+      await real.page.setViewportSize({ width: 1440, height: 1100 });
+      await real.page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    }
+    await real.page.locator('#flowsFocusView').click();
     for (const scenario of realReference.scenarios) {
       await real.page.locator('#flowsScenarios button').filter({ hasText: scenario.label }).click();
       const revealed = new Set(['lab']);
@@ -352,15 +388,16 @@ async function main() {
     geometry.forEach((a, i) => geometry.slice(i + 1).forEach(b =>
       assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y,
         'Real reference nodes must not overlap')));
-    async function assertFullWidth(page) {
-      await page.waitForFunction(() => {
-        const viewport = document.getElementById('flowsGraph');
-        return Math.abs(viewport.querySelector('svg').getBoundingClientRect().width - viewport.clientWidth) <= 3;
-      });
+    async function assertReadableDiagram(page) {
+      const sizes = await page.locator('.flows-node:not(.flows-concealed) > text:not(.flows-node-status)').evaluateAll(elements =>
+        elements.map(element => parseFloat(getComputedStyle(element).fontSize) * element.getScreenCTM().a));
+      assert.ok(sizes.length && sizes.every(size => size >= 14), 'Detail labels must remain at least 14 CSS pixels; observed: ' + JSON.stringify(sizes));
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Detail scrolling must stay inside the canvas');
     }
-    await assertFullWidth(real.page);
+    await real.page.locator('#flowsFullView').click();
+    await assertReadableDiagram(real.page);
     await real.page.setViewportSize({ width: 2000, height: 1000 });
-    await assertFullWidth(real.page);
+    await assertReadableDiagram(real.page);
     await real.page.locator('#flowsZoomIn').click();
     const manualWidth = await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width);
     assert.ok(await real.page.locator('#flowsGraph').evaluate(graph => graph.scrollWidth > graph.clientWidth),
@@ -370,21 +407,23 @@ async function main() {
     assert.equal(await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width), manualWidth,
       'Resizing must not discard manual zoom below 100%');
     await real.page.locator('#flowsFit').click();
-    await assertFullWidth(real.page);
+    await assertReadableDiagram(real.page);
     await real.page.locator('#flowsExpand').click();
-    await assertFullWidth(real.page);
+    await assertReadableDiagram(real.page);
     await real.page.locator('#flowsFullscreen').click();
     await real.page.locator('#flowsZoomIn').click();
     await real.page.locator('#flowsFit').click();
-    await assertFullWidth(real.page);
+    await assertReadableDiagram(real.page);
     assert.equal(await real.page.locator('.flows-node').count(), 15);
     await real.page.keyboard.press('Escape');
     await real.page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await real.page.locator('#flowsMobileStages').isVisible());
+    await real.page.locator('#flowsShowMap').click();
     await real.page.locator('#flowsFit').click();
     assert.ok(await real.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Real model must not overflow mobile page');
-    assert.ok(await real.page.locator('#flowsGraph').evaluate(graph => graph.querySelector('svg').getBoundingClientRect().width <= graph.clientWidth),
-      'Fit must include all 15 nodes on mobile');
+    await assertReadableDiagram(real.page);
     await real.page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+    await real.page.locator('#flowsMonitorMode').click();
     await real.page.locator('#flowsLive').click();
     await real.page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('Partial results'));
     for (const name of ['Protected source flow', 'Completed registry row', 'Unavailable registry row']) {
@@ -402,8 +441,9 @@ async function main() {
     assert.equal(counts.Read, 'Unknown / not recorded');
     assert.equal(counts.Failed, 'Unknown / not recorded');
     assert.equal(counts.Deleted, 'Unknown / not recorded');
+    assert.equal(await real.page.locator('#flowsExpand').getAttribute('aria-expanded'), 'true', 'Refreshing observations preserves the diagram viewport');
     await real.page.locator('#flowsExpand').click();
-    assert.equal(await real.page.locator('#flowsExpand').getAttribute('aria-expanded'), 'true');
+    assert.equal(await real.page.locator('#flowsExpand').getAttribute('aria-expanded'), 'false');
     await real.page.evaluate(() => { window.fixtureStatus = 500; });
     await real.page.locator('#flowsReload').click();
     await real.page.waitForFunction(() => document.getElementById('flowsStatus').dataset.error === 'true');
@@ -411,6 +451,7 @@ async function main() {
     await real.page.evaluate(() => { window.fixtureStatus = 200; });
     await real.page.locator('#flowsReload').click();
     await real.page.locator('#flowsResults').waitFor();
+    await real.page.locator('#flowsFullView').click();
     await real.page.locator('#flowsExpand').click();
     await real.page.locator('#flowsFullscreen').click();
     await real.page.evaluate(() => window.setFixtureUser(null));
@@ -418,6 +459,76 @@ async function main() {
     assert.equal(await real.page.locator('#flowsDialog').evaluate(d => d.open), false);
     assert.doesNotMatch(await real.page.locator('body').textContent(), /AGENTIC_|rel_fsi_|ACCOUNT end-to-end/);
     await real.context.close();
+    const story = await open(owner, { real: true });
+    await story.page.locator('#flowsResults').waitFor();
+    const positions = await story.page.locator('.flows-node').evaluateAll(nodes => nodes.map(node => node.getAttribute('transform')));
+    await story.page.getByRole('button', { name: 'Explore Snowflake', exact: true }).click();
+    await assertReadableDiagram(story.page);
+    if (process.env.MY_DATA_FLOWS_SCREENSHOTS) {
+      await story.page.locator('#flowsDiagramPanel').evaluate(element => element.scrollIntoView({ block: 'start' }));
+      await story.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, 'flows-subsystem.png') });
+    }
+    assert.equal(await story.page.locator('#flowsSubsystemName').textContent(), 'Detail: Snowflake');
+    assert.deepEqual(await story.page.locator('.flows-node').evaluateAll(nodes => nodes.map(node => node.getAttribute('transform'))), positions, 'Subsystem detail preserves system geography');
+    await story.page.locator('#flowsFullView').click();
+    await story.page.locator('#flowsNext').click();
+    await story.page.locator('#flowsPlay').click();
+    assert.ok(await story.page.locator('.flows-packet').count() > 0, 'Directional packets illustrate the active route only during playback');
+    assert.match(await story.page.locator('.flows-packet-label').allTextContents().then(labels => labels.join(' ')), /Relational record|Profile/);
+    await story.page.locator('#flowsMotion').uncheck();
+    assert.equal(await story.page.locator('.flows-packet').count(), 0, 'Motion can be disabled independently of chapters');
+    await story.page.locator('#flowsMotion').check();
+    await story.page.locator('#flowsFollow').check();
+    await story.page.locator('#flowsZoomIn').click();
+    assert.equal(await story.page.locator('#flowsFollow').isChecked(), false, 'Manual navigation disables camera following');
+    await story.page.locator('#flowsSpeed').selectOption('2');
+    await story.page.locator('#flowsMonitorMode').click();
+    assert.equal(await story.page.locator('.flows-packet').count(), 0, 'Operational views never show illustrative packets');
+    assert.equal(await story.page.evaluate(() => window.requests.length), 1, 'Changing task views does not refresh pipelines');
+    await story.context.close();
+
+    const observations = await open(owner, { run: true, manual: true });
+    await observations.page.waitForFunction(() => document.getElementById('flowsTraceIdentity').textContent.includes('CRM0042'));
+    await observations.page.locator('#flowsTraceMode').click();
+    assert.match(await observations.page.locator('#flowsTraceStages').textContent(), /Manual verification required/);
+    assert.match(await observations.page.locator('#flowsTraceStages').textContent(), /Read unavailable/);
+    assert.ok(await observations.page.locator('#flowsTraceCreate').isDisabled(), 'Resume an existing identity rather than creating a replacement');
+    await observations.page.locator('#flowsMonitorMode').click();
+    await observations.page.clock.install();
+    await observations.page.evaluate(() => { window.fixtureLive.fetchedAt = new Date().toISOString(); });
+    await observations.page.locator('#flowsLive').click();
+    await observations.page.waitForFunction(() => document.getElementById('flowsMonitorSummary').textContent.includes('Recent observation'));
+    assert.match(await observations.page.locator('#flowsMonitorSummary').textContent(), /Partial snapshot/);
+    assert.match(await observations.page.locator('#flowsLiveResults').textContent(), /Successful run · zero input/);
+    assert.match(await observations.page.locator('#flowsLiveResults').textContent(), /Read unavailable/);
+    assert.equal(await observations.page.locator('.flows-node[data-active=true]').count(), 0);
+    await observations.page.locator('#flowsMonitorFilter').selectOption('zero');
+    assert.equal(await observations.page.locator('.flows-run-table tbody tr').count(), 1);
+    await observations.page.locator('#flowsMonitorFilter').selectOption('all');
+    await observations.page.locator('#flowsOverview [data-system="ingestion"] .flows-observation').click();
+    assert.equal(await observations.page.locator('.flows-run-table tbody tr').count(), 1, 'Selecting an overview observation filters its reviewed flows');
+    await observations.page.locator('#flowsClearSelection').click();
+    assert.equal(await observations.page.locator('.flows-run-table tbody tr').count(), 3);
+    const countBeforeStale = await observations.page.evaluate(() => window.requests.length);
+    await observations.page.clock.runFor(5 * 60000 + 1001);
+    assert.match(await observations.page.locator('#flowsMonitorSummary').textContent(), /Stale observation/);
+    assert.equal(await observations.page.evaluate(() => window.requests.length), countBeforeStale, 'Freshness expiry never polls');
+    await observations.page.evaluate(() => { window.fixtureStatus = 503; });
+    await observations.page.locator('#flowsLive').click();
+    await observations.page.waitForFunction(() => document.getElementById('flowsStatus').dataset.error === 'true');
+    assert.match(await observations.page.locator('#flowsMonitorSummary').textContent(), /Refresh failed.*previous observation/);
+    assert.equal(await observations.page.locator('.flows-run-table tbody tr').count(), 3, 'A failed refresh retains, but explicitly marks, previous evidence');
+    await observations.page.locator('#flowsTraceMode').click();
+    assert.match(await observations.page.locator('#flowsTraceIdentity').textContent(), new RegExp(traceFixture.id), 'Snapshot refreshes never discard the durable identity');
+    assert.equal(await observations.page.evaluate(() => window.traceRequests.filter(request => request.method === 'POST').length), 0);
+    await observations.page.locator('#flowsMonitorMode').click();
+    await observations.page.evaluate(() => { window.fixtureStatus = 403; });
+    await observations.page.locator('#flowsLive').click();
+    await observations.page.waitForFunction(() => document.getElementById('flowsResults').hidden);
+    assert.equal(await observations.page.locator('#flowsOverview').textContent(), '', 'Denied metadata refresh clears every private representation');
+    assert.equal(await observations.page.locator('#flowsTraceIdentity').textContent(), '');
+    await observations.context.close();
+
     const trace = await open();
     await trace.page.locator('#flowsResults').waitFor();
     await trace.page.waitForFunction(() => window.traceRequests.length === 1);
@@ -453,9 +564,9 @@ async function main() {
     } }));
     await trace.page.locator('#flowsTraceStages button').first().click();
     assert.equal(await trace.page.evaluate(() => window.copiedQuery), traceFixture.stages[0].queries[0].text);
-    const traceLight = await trace.page.locator('#flowsTracePanel').evaluate(n => getComputedStyle(n).backgroundColor);
+    const traceLight = await trace.page.locator('#flowsDiagramPanel').evaluate(n => getComputedStyle(n).backgroundColor);
     await trace.page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
-    assert.notEqual(await trace.page.locator('#flowsTracePanel').evaluate(n => getComputedStyle(n).backgroundColor), traceLight);
+    assert.notEqual(await trace.page.locator('#flowsDiagramPanel').evaluate(n => getComputedStyle(n).backgroundColor), traceLight);
     await trace.page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await trace.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Live queries and controls must fit mobile');
     await trace.page.locator('#flowsTraceWatch').click();

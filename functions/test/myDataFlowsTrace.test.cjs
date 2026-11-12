@@ -2,10 +2,21 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createMyDataFlowsTraceService, relevantBindings } = require('../myDataFlowsTraceService');
+const { createMyDataFlowsTraceService, relevantBindings, publicRun } = require('../myDataFlowsTraceService');
 const { createMyDataFlowsTraceStore } = require('../myDataFlowsTraceStore');
 const { createMyDataFlowsTraceAep } = require('../myDataFlowsTraceAep');
 const { registerMyDataFlowsTraceRoutes } = require('../myDataFlowsTraceRoutes');
+
+test('legacy unsupported destination checks remain manual without mislabelling temporary failures', () => {
+  const stages = publicRun({ stages: [
+    { id: 'aepXdm', state: 'unavailable', detail: 'Automatic dataset row readback is not supported by the current AEP REST integration.' },
+    { id: 'aepProfile', state: 'unavailable', detail: 'Read failed.' },
+    { id: 'aepRel', state: 'unavailable', detail: 'Metadata read failed.' },
+  ] }).stages;
+  assert.equal(stages[0].verification, 'manual');
+  assert.equal(stages[1].verification, undefined);
+  assert.equal(stages[2].verification, undefined);
+});
 
 test('production trace wiring initializes the Admin app before requesting Auth on a cold start', () => {
   const fs = require('node:fs');
@@ -188,6 +199,8 @@ test('flow success cannot verify dataset arrival; persisted readbacks have indep
   assert.equal(stages.ingestion.state, 'waiting');
   assert.equal(stages.aepXdm.state, 'unavailable');
   assert.equal(stages.aepRel.state, 'unavailable');
+  assert.equal(stages.aepXdm.verification, 'manual');
+  assert.equal(stages.aepRel.verification, 'manual');
   assert.match(stages.aepRel.queries[0].text, /NOT been executed/);
   assert.match(stages.aepRel.queries[0].text, /R-demo/);
   assert.equal(run.checkLeaseUntil, undefined);
@@ -200,6 +213,7 @@ test('partial read failures remain unavailable and do not erase successful indep
   await service.create('owner', 'fsi', id);
   const run = await service.read('owner', id, true);
   assert.equal(run.stages.find((s) => s.id === 'aepProfile').state, 'unavailable');
+  assert.notEqual(run.stages.find((s) => s.id === 'aepProfile').verification, 'manual', 'Temporary read failures are not unsupported capabilities');
   assert.equal(run.stages.find((s) => s.id === 'source').state, 'verified');
   assert.ok(!JSON.stringify(run).includes('private upstream'));
 });

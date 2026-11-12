@@ -1,7 +1,7 @@
 'use strict';
 
 // Reviewed apalmer bindings on 2026-11-10; flow names are not trusted as table bindings.
-const rows = [
+const relationalRows = [
   ['f0cdb096-4568-46a6-8d5c-df38d9891716', 'REL.RECIPIENT'],
   ['e0e84239-9802-46fa-a777-e38c98f52429', 'REL.REL_FSI_ACCOUNT'],
   ['19bd1590-5014-4427-baa5-bf568885a48d', 'REL.REL_FSI_CARD'],
@@ -30,6 +30,8 @@ const rows = [
   ['19b8443c-edc7-46c0-8514-85bad4d5e694', 'REL.REL_SPORTS_MERCH_ORDER'],
   ['38f0069e-1cf2-4071-9249-2d3b066cb995', 'REL.REL_SPORTS_MERCH_ORDER_LINE'],
   ['a5f8f11e-781e-4b65-8fc9-f046ae880acb', 'REL.REL_SPORTS_EVENT_CATALOG'],
+];
+const xdmRows = [
   ['065f3b53-df40-43d1-9d91-c42f031996d6', 'AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE'],
   ['6139b0f7-41fe-46d3-87f8-6964900abece', 'AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER'],
   ['850a7656-eaea-46f7-a00f-6cefec84c83c', 'AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_LOYALTY'],
@@ -80,4 +82,9 @@ const rows = [
   ['808f8d35-0530-46ad-8bf5-b78e7b9f7c15', 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_ANCILLARIES'],
 ];
 
-module.exports = { bindings: rows.map(([id, table]) => ({ id, table })) };
+module.exports = {
+  bindings: [
+    ...relationalRows.map(([id, table]) => ({ id, table, nodeIds: ['rel-flow', 'rel-datasets'] })),
+    ...xdmRows.map(([id, table]) => ({ id, table, nodeIds: ['xdm-flow'] })),
+  ],
+};
