@@ -1,10 +1,14 @@
 'use strict';
 
 const admin = require('firebase-admin');
-const { randomUUID } = require('node:crypto');
+const { randomUUID, createHash } = require('node:crypto');
 
 const TTL_MS = 15 * 60 * 1000;
 const MAX_PLAN_BYTES = 700_000;
+const EXECUTION_LEASE_MS = 360_000;
+function lockId(scope) {
+  return createHash('sha256').update(JSON.stringify([scope.orgId, scope.sandbox])).digest('hex');
+}
 function getDb() {
   if (!admin.apps.length) admin.initializeApp();
   return admin.firestore();
@@ -93,6 +97,12 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
         return { claimed: false, replayed: true, plan, execution: null };
       }
       const blocked = plan.status !== 'ready' || (Array.isArray(plan.blockers) && plan.blockers.length > 0);
+      const lockRef = database.collection('platformCleanupLocks').doc(lockId(plan));
+      const lockSnap = await tx.get(lockRef);
+      if (!blocked && lockSnap.exists && lockSnap.data().active
+          && (!Number.isFinite(lockSnap.data().expiresAtMs) || lockSnap.data().expiresAtMs > now())) {
+        throw Object.assign(new Error('Another cleanup execution owns this organisation/sandbox. Verify its result before submitting a fresh plan.'), { status: 409 });
+      }
       const items = Object.fromEntries(plan.targets.map((target) => [
         `${target.resource_type}:${target.resource_id}`,
         { resource_type: target.resource_type, resource_id: target.resource_id, status: 'not_attempted' },
@@ -110,6 +120,11 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
         blockers: blocked ? plan.blockers : [],
       };
       tx.create(executionRef, execution);
+      if (!blocked) {
+        const lease = { plan_id: id, active: true, expiresAtMs: now() + EXECUTION_LEASE_MS };
+        if (lockSnap.exists) tx.update(lockRef, lease);
+        else tx.create(lockRef, lease);
+      }
       tx.update(planRef, { state: execution.state });
       return { claimed: !blocked, blocked, replayed: false, plan, execution };
     });
@@ -134,8 +149,16 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
       const snap = await tx.get(ref);
       const execution = snap.exists ? snap.data() : null;
       const previous = execution?.items?.[identity];
+      const planSnap = await tx.get(db().collection('platformCleanupPlans').doc(id));
+      const plan = planSnap.exists ? planSnap.data() : null;
+      const lockSnap = execution ? await tx.get(db().collection('platformCleanupLocks').doc(lockId(execution))) : null;
+      const lease = lockSnap?.exists ? lockSnap.data() : null;
       if (!execution || execution.state !== 'applying' || !previous || previous.status !== 'not_attempted') {
         throw Object.assign(new Error('Execution is not claimable for a new item intent.'), { status: 409 });
+      }
+      if (!plan || !Number.isFinite(plan.expiresAtMs) || plan.expiresAtMs <= now()
+          || !lease?.active || lease.plan_id !== id || !Number.isFinite(lease.expiresAtMs) || lease.expiresAtMs <= now()) {
+        throw Object.assign(new Error('Plan or execution lease expired before the next DELETE intent.'), { status: 409 });
       }
       const items = {
         ...execution.items,
@@ -188,6 +211,8 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
       const execution = executionSnap.exists ? executionSnap.data() : null;
       const planSnap = await tx.get(planRef);
       const plan = planSnap.exists ? planSnap.data() : null;
+      const lockRef = execution ? database.collection('platformCleanupLocks').doc(lockId(execution)) : null;
+      const lockSnap = lockRef ? await tx.get(lockRef) : null;
       if (!execution || !['applying', 'blocked'].includes(execution.state)) {
         throw Object.assign(new Error('Execution cannot transition to a terminal state.'), { status: 409 });
       }
@@ -209,6 +234,7 @@ function createPlatformCleanupStore({ db = getDb, now = Date.now } = {}) {
       const updated = { ...safeDetail, state, updatedAtMs: now() };
       tx.update(executionRef, updated);
       tx.update(planRef, { state, updatedAtMs: now() });
+      if (lockSnap?.exists && lockSnap.data().plan_id === id) tx.update(lockRef, { active: false });
       return { ...execution, ...updated };
     });
   }

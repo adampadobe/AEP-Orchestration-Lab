@@ -167,3 +167,41 @@ test('durable per-object intent precedes its result and records one terminal out
     resource_type: 'descriptor', resource_id: 'descriptor-id', operation: 'DELETE',
   }), { status: 409 });
 });
+
+test('different ready plans cannot execute concurrently in the same org/sandbox, even for different principals', async () => {
+    const { store } = fixture();
+    const scope = { principalUid: 'uid', orgId: 'org', sandbox: 'sandbox' };
+    const plan = {
+      ...scope, state_fingerprint: 'd'.repeat(64), status: 'ready', expected_count: 1,
+      targets: [{ resource_type: 'flow', resource_id: 'flow-id' }], blockers: [],
+    };
+    const first = await store.savePlan(plan);
+    const second = await store.savePlan({ ...plan, principalUid: 'another-user' });
+    const claim = { manifest_digest: plan.state_fingerprint, expected_count: 1 };
+    assert.equal((await store.claimPlan(first.plan_id, scope, claim)).claimed, true);
+    await assert.rejects(store.claimPlan(second.plan_id, { ...scope, principalUid: 'another-user' }, claim), /Another cleanup execution/);
+    await store.finishExecution(first.plan_id, 'failed');
+    assert.equal((await store.claimPlan(second.plan_id, { ...scope, principalUid: 'another-user' }, claim)).claimed, true);
+    assert.equal((await store.claimPlan(first.plan_id, scope, claim)).replayed, true);
+  });
+
+test('item intents stop after execution lease expiry, and an expired owner cannot release a newer lease', async () => {
+    const { store, advance } = fixture();
+    const scope = { principalUid: 'uid', orgId: 'org', sandbox: 'sandbox' };
+    const plan = {
+      ...scope, state_fingerprint: 'e'.repeat(64), status: 'ready', expected_count: 1,
+      targets: [{ resource_type: 'dataset', resource_id: 'dataset-id' }], blockers: [],
+    };
+    const claim = { manifest_digest: plan.state_fingerprint, expected_count: 1 };
+    const first = await store.savePlan(plan);
+    await store.claimPlan(first.plan_id, scope, claim);
+    advance(360_000);
+    await assert.rejects(store.recordItemIntent(first.plan_id, 'dataset:dataset-id', {
+      resource_type: 'dataset', resource_id: 'dataset-id', operation: 'DELETE',
+    }), /lease expired/);
+    const second = await store.savePlan(plan);
+    assert.equal((await store.claimPlan(second.plan_id, scope, claim)).claimed, true);
+    await store.finishExecution(first.plan_id, 'uncertain');
+    const third = await store.savePlan(plan);
+    await assert.rejects(store.claimPlan(third.plan_id, scope, claim), /Another cleanup execution/);
+});

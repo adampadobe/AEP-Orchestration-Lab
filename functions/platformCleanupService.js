@@ -1,6 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
+const { bindings: reviewedFlowBindings } = require('./myDataFlowsRegistry');
 
 const BASE = 'https://platform.adobe.io';
 const CATALOG = '/data/foundation/catalog/dataSets';
@@ -9,13 +10,15 @@ const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 const MAX_BATCH_TARGETS = 100;
-const BATCH_POLICY_VERSION = '2026-11-12.1';
+const BATCH_POLICY_VERSION = '2026-11-12.2';
 const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
 const BATCH_TYPES = new Set([
   'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
   'targetConnection', 'baseConnection', 'account', 'mappingSet', 'ajoChannel',
 ]);
-const MUTATION_ADAPTERS_ENABLED = false;
+const MUTATION_ADAPTERS_ENABLED = true;
+const REVIEWED_FLOW_IDS = new Set(reviewedFlowBindings.map((binding) => binding.id));
+const REQUIRED_REL_FLOW_IDS = reviewedFlowBindings.filter((binding) => binding.nodeIds.includes('rel-flow')).map((binding) => binding.id);
 const UUID = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const CATALOG_DATASET_ID = /^(?:[a-f0-9]{24}|[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i;
 const WARNINGS = [
@@ -106,8 +109,11 @@ function identityEnabled(value) {
   return enabledTag(value, 'unifiedIdentity');
 }
 
-function protectedResource(type, id, name = '') {
+function protectedResource(type, id, name = '', sandbox) {
   const normalizedName = String(name).trim().toLowerCase();
+  if (type === 'flow' && sandbox === 'apalmer' && REVIEWED_FLOW_IDS.has(id)) {
+    return 'This flow is protected by the reviewed architecture registry, independently of its current name.';
+  }
   if (['account', 'baseConnection'].includes(type) && id.toLowerCase() === PROTECTED_SNOWFLAKE_ACCOUNT_ID) {
     return 'The protected Adobe DEV Snowflake travel account cannot be deleted.';
   }
@@ -146,7 +152,7 @@ function summary(type, raw, id = raw.$id) {
     : { id, name: raw.title, version: raw.version, ...status };
 }
 
-function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
+function createPlatformCleanupService({ fetchImpl = globalThis.fetch, now = Date.now } = {}) {
   async function request(auth, path, { method = 'GET', accept = 'application/json', etag } = {}) {
     const response = await fetchImpl(new URL(path, BASE), {
       method,
@@ -165,14 +171,19 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     let data = null;
     if (text) {
       try { data = JSON.parse(text); } catch {
-        throw failure(502, `Platform returned invalid JSON (${response.status}).`);
+        if (response.ok) throw failure(502, `Platform returned invalid JSON (${response.status}).`);
       }
     }
+    const requestId = response.headers.get('x-request-id') || response.headers.get('x-requestid') || response.headers.get('x-adobe-request-id');
+    const errorCode = data?.error_code || data?.errorCode || data?.code;
     if (!response.ok) {
       // Do not relay raw Platform payloads, which may contain connection metadata.
-      throw failure(response.status, `Platform ${method} ${new URL(path, BASE).pathname} failed (${response.status}).`);
+      throw failure(response.status, `Platform ${method} ${new URL(path, BASE).pathname} failed (${response.status}).`, {
+        ...(typeof errorCode === 'string' && /^[A-Z0-9_-]{1,80}$/i.test(errorCode) ? { error_code: errorCode } : {}),
+        ...(typeof requestId === 'string' && /^[A-Za-z0-9._:-]{1,128}$/.test(requestId) ? { request_id: requestId } : {}),
+      });
     }
-    return { data, status: response.status, etag: response.headers.get('etag') || '' };
+    return { data, status: response.status, etag: response.headers.get('etag') || '', request_id: requestId };
   }
 
   async function get(auth, type, id) {
@@ -428,14 +439,22 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     throw failure(409, 'Catalog inventory limit reached; deletion is blocked.');
   }
 
-  async function listPaged(auth, path, accept, key) {
+  async function listPaged(auth, path, accept, key, filters = {}) {
     const result = [];
     const seenPages = new Set();
     // Descriptor @id sorting can return an empty, non-advancing cursor; use creation time.
     const order = path.startsWith(REGISTRY) ? `&orderby=${key === 'results' && path.endsWith('/schemas') ? 'title' : 'created'}` : '';
-    let next = `${path}?limit=${PAGE_SIZE}${order}`;
+    const filterQuery = new URLSearchParams(filters).toString();
+    const cursorParameter = path === `${FLOW}/runs` ? 'continuationToken' : 'start';
+    let next = `${path}?limit=${PAGE_SIZE}${order}${filterQuery ? `&${filterQuery}` : ''}`;
     for (let page = 0; page < MAX_PAGES; page++) {
       const url = inventoryUrl(next, path, page, seenPages);
+      for (const [name, value] of Object.entries(filters)) {
+        if (url.searchParams.has(name) && (url.searchParams.getAll(name).length !== 1 || url.searchParams.get(name) !== value)) {
+          throw failure(502, 'Inventory continuation changed the required scope filter.');
+        }
+        url.searchParams.set(name, value);
+      }
       const { data } = await request(auth, url.href, { accept });
       let items = data?.[key];
       if (!Array.isArray(items) && path.endsWith('/descriptors')) {
@@ -452,12 +471,12 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       result.push(...items);
       const { link, href, cursor } = continuation(data, {
         path, page, url,
-        cursorPage: (value) => `${path}?limit=${PAGE_SIZE}${order}&start=${encodeURIComponent(value)}`,
+        cursorPage: (value) => `${path}?limit=${PAGE_SIZE}${order}&${cursorParameter}=${encodeURIComponent(value)}`,
       });
       if (href) next = href;
       else if (cursor != null && cursor !== '') {
         next = typeof cursor === 'string' && /^(?:https?:\/\/|\/|\?)/.test(cursor)
-          ? cursor : `${path}?limit=${PAGE_SIZE}${order}&start=${encodeURIComponent(cursor)}`;
+          ? cursor : `${path}?limit=${PAGE_SIZE}${order}&${cursorParameter}=${encodeURIComponent(cursor)}`;
       } else {
         if (items.length >= PAGE_SIZE && data._page?.next !== null && link !== null) {
           throw failure(409, `Pagination completion is ambiguous for ${path}; deletion is blocked.`);
@@ -496,7 +515,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
   async function audit(auth, { resource_type: type, resource_id: id }) {
     const target = await get(auth, type, id);
     const blockers = [];
-    const policyBlock = protectedResource(type, id, target.resource.name);
+    const policyBlock = protectedResource(type, id, target.resource.name, auth.sandbox);
     if (policyBlock) blockers.push(policyBlock);
     if (cleanupEnabled(target.raw)) blockers.push('Profile/Identity-enabled resources are not supported by this cleanup tool.');
     const schemaId = type === 'schema' ? id : target.resource.schemaId;
@@ -641,10 +660,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         ],
         limitations: [
           'External AJO, audience, destination and application usage is not established by these inventories.',
-          'Flow run/schedule quiescence is not established by metadata inventory.',
-          'The protected 28-flow ID baseline has not been independently loaded.',
+          'Flow run checks establish observed terminal status, not an atomic guarantee against another writer.',
+          'Mapping sets, AJO channels and external application usage require independent review.',
         ],
-        protectedFlowIdBaseline: 'unavailable',
+        protectedFlowIdBaseline: auth.sandbox !== 'apalmer' ? 'not_applicable'
+          : REQUIRED_REL_FLOW_IDS.every((id) => flows.some((flow) => flow.id === id)) ? 'verified' : 'incomplete',
       },
     };
   }
@@ -673,17 +693,33 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw) || inventoryId(type, raw) !== id) {
       throw failure(502, 'Platform resource identity could not be verified.');
     }
+    if (raw.sandboxName && raw.sandboxName !== auth.sandbox) {
+      throw failure(403, 'Platform resource sandbox does not match the authenticated scope.');
+    }
     return { raw, resource: batchResource(type, raw, id), etag };
   }
 
   function referencesBetween(entries, selected) {
     const selectedIds = new Set(selected.map((target) => target.resource_id));
+    const aliases = new Map(selected.map((target) => {
+      const schema = target.resource_type === 'schema'
+        ? entries.find((entry) => entry.type === 'schema' && entry.id === target.resource_id) : null;
+      return [target.resource_id, new Set([
+        target.resource_id,
+        ...(typeof schema?.raw?.['meta:altId'] === 'string' ? [schema.raw['meta:altId']] : []),
+        ...(target.resource_type === 'dataset' ? [
+          `@/dataSets/${target.resource_id}`, `/dataSets/${target.resource_id}`,
+          `${CATALOG}/${target.resource_id}`, `${BASE}${CATALOG}/${target.resource_id}`,
+        ] : []),
+      ])];
+    }));
     const edges = [];
     const external = [];
     for (const entry of entries) {
-      const found = [...selectedIds].filter((id) => id !== entry.id && references(entry.raw, new Set([id])));
+      const found = [...selectedIds].filter((id) => id !== entry.id && references(entry.raw, aliases.get(id)));
       if (!found.length) continue;
-      const isSelected = selected.some((target) => target.resource_type === entry.type && target.resource_id === entry.id);
+      const isSelected = selected.some((target) => (target.resource_type === 'account' ? 'baseConnection' : target.resource_type) === entry.type
+        && target.resource_id === entry.id);
       for (const referencedId of found) {
         if (isSelected) edges.push({ before: entry.id, after: referencedId, source_type: entry.type });
         else external.push({ source_type: entry.type, source_id: entry.id, referenced_id: referencedId });
@@ -741,12 +777,23 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     validateBatchTargets(targets);
     const snapshot = await collectBatchInventory(auth);
     const exact = await Promise.all(targets.map((target) => getBatchTarget(auth, target)));
+    const schemaIds = [...new Set(exact.flatMap((current, index) => {
+      const type = targets[index].resource_type;
+      const id = type === 'dataset' ? current.raw?.schemaRef?.id
+        : type === 'descriptor' ? current.raw?.['xdm:sourceSchema'] : null;
+      return typeof id === 'string' && id ? [id] : [];
+    }))];
+    const relatedSchemas = new Map(await Promise.all(schemaIds.map(async (id) => [id, await get(auth, 'schema', id)])));
     const blockers = [];
     const manifest = targets.map((target, index) => {
       const current = exact[index];
       const targetBlockers = [];
       if (current.unsupported) targetBlockers.push('No supported inventory or deletion contract is available for this resource type.');
-      const policyBlock = protectedResource(target.resource_type, target.resource_id, current.resource.name);
+      else if (!snapshot.entries.some((entry) => entry.id === target.resource_id
+          && entry.type === (target.resource_type === 'account' ? 'baseConnection' : target.resource_type))) {
+        targetBlockers.push('The exact resource is missing from the complete metadata inventory.');
+      }
+      const policyBlock = protectedResource(target.resource_type, target.resource_id, current.resource.name, auth.sandbox);
       if (policyBlock) targetBlockers.push(policyBlock);
       if (current.raw && cleanupEnabled(current.raw)) targetBlockers.push('Profile/Identity-enabled resources are protected.');
       if (current.raw && target.resource_type === 'dataset') {
@@ -755,7 +802,20 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         else {
           const schema = snapshot.entries.find((entry) => entry.type === 'schema' && entry.id === schemaId);
           if (!schema) targetBlockers.push('Dataset schema is outside the complete schema inventory.');
-          else if (cleanupEnabled(schema.raw)) targetBlockers.push('The dataset schema is enabled for Profile/Identity.');
+          else if (cleanupEnabled(relatedSchemas.get(schemaId).raw)) targetBlockers.push('The dataset schema is enabled for Profile/Identity.');
+          else if (protectedResource('schema', schemaId, relatedSchemas.get(schemaId).raw.title, auth.sandbox)) {
+            targetBlockers.push('The dataset belongs to a protected schema.');
+          }
+        }
+      }
+      if (current.raw && target.resource_type === 'flow' && current.raw.state !== 'disabled') {
+        targetBlockers.push('Disable this flow separately and wait for terminal runs before planning deletion; cleanup never pauses or cancels ingestion.');
+      }
+      if (current.raw && target.resource_type === 'descriptor') {
+        const owner = relatedSchemas.get(current.raw['xdm:sourceSchema']);
+        if (!owner) targetBlockers.push('Descriptor source schema ownership is unresolved.');
+        else if (cleanupEnabled(owner.raw) || protectedResource('schema', owner.raw.$id, owner.raw.title, auth.sandbox)) {
+          targetBlockers.push('The descriptor belongs to a protected schema.');
         }
       }
       return {
@@ -768,20 +828,34 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     const { ordered, cyclic } = dependencyOrder(targets, edges);
     if (cyclic) blockers.push('Target dependencies contain a cycle; safe ordering cannot be established.');
     if (external.length) blockers.push('Unlisted resources refer to selected targets; silently expanding the requested scope is prohibited.');
-    if (snapshot.coverage.unsupported.length) blockers.push('Required mapping-set and AJO-channel coverage is unsupported; absence cannot be inferred.');
-    blockers.push('External AJO, audience, destination and application usage has not been independently evidenced as cleared.');
-    blockers.push('The reviewed protected-flow ID baseline is unavailable; flow identity protection is incomplete.');
-    if (targets.some((target) => ['flow', 'dataset', 'sourceConnection', 'targetConnection', 'baseConnection', 'account'].includes(target.resource_type))) {
-      blockers.push('Flow schedules and active-run quiescence are not verifiable through the approved metadata contract.');
+    if (targets.some((target) => target.resource_type === 'schema')
+        && snapshot.entries.some((entry) => entry.type === 'dataset'
+          && (typeof entry.raw.schemaRef?.id !== 'string' || !entry.raw.schemaRef.id))) {
+      blockers.push('Dataset schema references are unresolved; schema dependency completeness cannot be established.');
     }
-    if (!MUTATION_ADAPTERS_ENABLED) {
-      blockers.push('Batch DELETE adapters are disabled until conditional-write, concurrency and completion semantics are established.');
+    if (snapshot.coverage.protectedFlowIdBaseline === 'incomplete') {
+      blockers.push('The reviewed REL flow-ID baseline is incomplete in the live inventory.');
+    }
+    for (let index = 0; index < targets.length; index++) {
+      if (targets[index].resource_type !== 'flow' || exact[index].raw?.state !== 'disabled' || manifest[index].blockers.length) continue;
+      const runs = await listPaged(auth, `${FLOW}/runs`, 'application/json', 'items', {
+        property: `flowId==${targets[index].resource_id}`,
+      });
+      if (runs.some((run) => run.flowId !== targets[index].resource_id
+          || (run.sandboxName && run.sandboxName !== auth.sandbox))) {
+        throw failure(502, 'Run inventory does not match the exact flow and sandbox.');
+      }
+      if (runs.some((run) => !['success', 'succeeded', 'failed', 'cancelled', 'canceled'].includes(
+        String(run.metrics?.statusSummary?.status || run.state || '').toLowerCase()))) {
+        blockers.push(`flow ${targets[index].resource_id}: Active or unrecognized run status remains; wait and create a fresh plan.`);
+      }
     }
     for (const item of manifest) {
       for (const reason of item.blockers) blockers.push(`${item.resource_type} ${item.resource_id}: ${reason}`);
     }
     const protectedBaseline = snapshot.entries
-      .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName))
+      .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName, auth.sandbox)
+        || cleanupEnabled(entry.raw))
       .map((entry) => ({
         resource_type: entry.type, resource_id: entry.id,
         state_fingerprint: fingerprint(protectedMetadata(entry.raw)),
@@ -807,6 +881,8 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       warnings: [
         'Batch deletion is irreversible. No rollback, cascade, or automatic retry is available.',
         'Only the exact reviewed IDs may be targeted; every required side-effect target must be explicitly reviewed.',
+        'Adobe does not document conditional DELETE for these endpoints. Fresh reads and MCP coordination cannot prevent an external writer changing an asset between the final read and DELETE.',
+        'Independently clear mapping, AJO, audience, destination and application usage; coverage.complete remains false without that external evidence.',
       ],
       coverage: snapshot.coverage,
       protected_baseline: protectedBaseline,
@@ -815,10 +891,18 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     };
   }
 
-  async function revalidatePlan(auth, approvedPlan) {
-    const current = await plan(auth, { targets: approvedPlan.targets });
+  async function revalidatePlan(auth, approvedPlan, completedIds = new Set()) {
+    const current = await plan(auth, { targets: approvedPlan.targets.filter((target) => !completedIds.has(target.resource_id)) });
     const blockers = [...current.blockers];
-    if (current.state_fingerprint !== approvedPlan.state_fingerprint) {
+    const sameManifest = current.manifest.every((item) => approvedPlan.manifest.some((approved) => (
+      approved.resource_type === item.resource_type && approved.resource_id === item.resource_id
+      && approved.state_fingerprint === item.state_fingerprint
+    )));
+    const expectedEdges = approvedPlan.dependency_edges.filter((edge) => !completedIds.has(edge.before) && !completedIds.has(edge.after));
+    const edgeDigest = (edges) => fingerprint([...edges].sort((a, b) => `${a.before}:${a.after}:${a.source_type}`.localeCompare(`${b.before}:${b.after}:${b.source_type}`)));
+    if (approvedPlan.policy_version !== BATCH_POLICY_VERSION || !sameManifest
+        || fingerprint(current.protected_baseline) !== fingerprint(approvedPlan.protected_baseline)
+        || edgeDigest(current.dependency_edges) !== edgeDigest(expectedEdges)) {
       blockers.push('Resource state, dependency coverage, or protected baseline changed after review.');
     }
     return {
@@ -826,6 +910,125 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       blockers: [...new Set(blockers)],
       current_state_fingerprint: current.state_fingerprint,
     };
+  }
+
+  function deletePath(target) {
+    const id = encodeURIComponent(target.resource_id);
+    switch (target.resource_type) {
+      case 'dataset': return `${CATALOG}/${id}`;
+      case 'schema': return `${REGISTRY}/schemas/${id}`;
+      case 'descriptor': return `${REGISTRY}/descriptors/${id}`;
+      case 'flow': return `${FLOW}/flows/${id}`;
+      case 'sourceConnection': return `${FLOW}/sourceConnections/${id}`;
+      case 'targetConnection': return `${FLOW}/targetConnections/${id}`;
+      case 'baseConnection':
+      case 'account': return `${FLOW}/connections/${id}/`;
+      default: throw failure(409, 'No supported DELETE contract exists for this target.');
+    }
+  }
+
+  async function apply(auth, approvedPlan, store) {
+    const completed = new Set();
+    const deadline = Math.min(approvedPlan.expiresAtMs, now() + 230_000);
+    let issued = 0;
+    const finish = (state, detail = {}) => store.finishExecution(approvedPlan.plan_id, state, {
+      ...detail, delete_requests_issued: issued,
+    });
+    const requireTime = () => {
+      if (!Number.isFinite(deadline) || now() + 45_000 >= deadline) {
+        throw failure(409, 'Execution time or plan expiry limit reached. Verify readback and review a new plan for remaining targets.');
+      }
+    };
+    if (approvedPlan.mutation_adapters_enabled !== true || approvedPlan.policy_version !== BATCH_POLICY_VERSION
+        || !Array.isArray(approvedPlan.ordered_resource_ids)
+        || approvedPlan.ordered_resource_ids.length !== approvedPlan.targets.length
+        || new Set(approvedPlan.ordered_resource_ids).size !== approvedPlan.targets.length
+        || approvedPlan.ordered_resource_ids.some((id) => !approvedPlan.targets.some((target) => target.resource_id === id))) {
+      return finish('blocked', { blockers: ['This plan predates executable cleanup or has an invalid mutation order. Create a fresh plan.'] });
+    }
+    for (const id of approvedPlan.ordered_resource_ids) {
+      const target = approvedPlan.targets.find((item) => item.resource_id === id);
+      if (!target || completed.has(id)) return finish(issued ? 'failed' : 'blocked', { blockers: ['The reviewed mutation order is invalid.'] });
+      const identity = `${target.resource_type}:${id}`;
+      let intentRecorded = false;
+      let attempted = false;
+      let acknowledged = false;
+      let recordingResult = false;
+      try {
+        requireTime();
+        const check = await revalidatePlan(auth, approvedPlan, completed);
+        if (!check.ok) return finish(issued ? 'failed' : 'blocked', { blockers: check.blockers });
+        for (const edge of approvedPlan.dependency_edges.filter((edge) => edge.after === id)) {
+          if (!completed.has(edge.before)) throw failure(409, 'A reviewed prerequisite has not completed.');
+          const dependency = approvedPlan.targets.find((item) => item.resource_id === edge.before);
+          let absent = false;
+          try { await getBatchTarget(auth, dependency); } catch (error) {
+            if (error.status !== 404) throw error;
+            absent = true;
+          }
+          if (!absent) throw failure(409, 'A previously deleted prerequisite is present again; execution stopped.');
+        }
+        const current = await getBatchTarget(auth, target);
+        const reviewed = approvedPlan.manifest.find((item) => item.resource_id === id);
+        if (fingerprint(current.raw) !== reviewed.state_fingerprint) throw failure(409, 'Target changed immediately before deletion.');
+        requireTime();
+        const path = deletePath(target);
+        await store.recordItemIntent(approvedPlan.plan_id, identity, {
+          ...target, operation: 'DELETE', state_fingerprint: reviewed.state_fingerprint,
+        });
+        intentRecorded = true;
+        requireTime();
+        attempted = true;
+        issued++;
+        const result = await request(auth, path, {
+          method: 'DELETE',
+          accept: target.resource_type === 'schema' ? 'application/vnd.adobe.xed+json;version=1'
+            : target.resource_type === 'descriptor' ? 'application/vnd.adobe.xdm-v2+json' : 'application/json',
+        });
+        acknowledged = true;
+        if (target.resource_type === 'dataset'
+          ? result.status !== 200 || !Array.isArray(result.data) || !result.data.includes(`@/dataSets/${id}`)
+          : result.status !== 204) {
+          throw failure(502, 'Adobe did not acknowledge the exact deletion; verify before any new plan.', { error_code: 'DELETE_ACK_MISMATCH' });
+        }
+        let absent = false;
+        try { await getBatchTarget(auth, target); } catch (error) {
+          if (error.status !== 404) throw error;
+          absent = true;
+        }
+        if (!absent) throw failure(409, 'Deletion acknowledged but absence is not yet verified. No retry was attempted.', { error_code: 'DELETE_NOT_VERIFIED' });
+        recordingResult = true;
+        await store.recordItemResult(approvedPlan.plan_id, identity, {
+          status: 'succeeded', http_status: result.status, request_id: result.request_id,
+        });
+        completed.add(id);
+      } catch (error) {
+        if (recordingResult) {
+          throw failure(500, 'Deletion was verified but its durable result could not be acknowledged. Use verify; do not replay.');
+        }
+        const uncertain = attempted && (acknowledged || !error.status || error.status >= 500 || error.status === 408);
+        const state = uncertain ? 'uncertain' : issued ? 'failed' : 'blocked';
+        if (intentRecorded) {
+          await store.recordItemResult(approvedPlan.plan_id, identity, {
+            status: uncertain ? 'uncertain' : 'failed', http_status: error.status,
+            error_code: error.detail?.error_code, request_id: error.detail?.request_id,
+          });
+        }
+        console.error('[platformCleanup] batch stopped', { plan_id: approvedPlan.plan_id, identity, state, status: error.status || null });
+        return finish(state, {
+          blockers: [error.message],
+          safe_error_code: error.detail?.error_code, safe_request_id: error.detail?.request_id,
+        });
+      }
+    }
+    const { execution } = await store.getExecution(approvedPlan.plan_id, {
+      principalUid: approvedPlan.principalUid, orgId: auth.orgId, sandbox: auth.sandbox,
+    });
+    const finalReadback = await verify(auth, approvedPlan, execution);
+    if (finalReadback.status !== 'verified_absent') {
+      return finish('uncertain', { blockers: ['Final target/protected-baseline readback is incomplete or changed. Inspect verify; do not replay.'] });
+    }
+    return finish('succeeded');
   }
 
   async function verify(auth, approvedPlan, execution) {
@@ -867,8 +1070,8 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
       };
     });
     const baselineCoverageKnown = Array.isArray(baseline)
-      && approvedPlan.coverage?.protectedFlowIdBaseline === 'verified'
-      && snapshot?.coverage?.protectedFlowIdBaseline === 'verified';
+      && ['verified', 'not_applicable'].includes(approvedPlan.coverage?.protectedFlowIdBaseline)
+      && ['verified', 'not_applicable'].includes(snapshot?.coverage?.protectedFlowIdBaseline);
     const baselineStatus = baselineResults.some((item) => item.status === 'unknown') ? 'unknown'
       : baselineResults.some((item) => item.status !== 'preserved') ? 'changed'
         : !snapshot ? 'unknown'
@@ -889,7 +1092,7 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     };
   }
 
-  return { list, audit, remove, batchInventory, plan, revalidatePlan, verify };
+  return { list, audit, remove, batchInventory, plan, revalidatePlan, apply, verify };
 }
 
 module.exports = {

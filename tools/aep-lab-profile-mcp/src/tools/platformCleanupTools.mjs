@@ -59,13 +59,17 @@ export function registerPlatformCleanupTools(server) {
       'Creates an immutable, principal/org/sandbox/state/policy-bound plan that expires after 15 minutes. '
       + 'Orders dependencies from observed references, caps scope at 100 objects and reports blockers, unknown coverage, '
       + 'protected resources and the exact manifest. A plan receipt is persisted in Firestore. '
-      + 'Current batch mutation adapters are intentionally disabled; a blocked plan cannot be applied.',
+      + 'Supported DELETE adapters cover flows, datasets, tenant schemas, descriptors and connections/accounts. '
+      + 'Flows must already be disabled with terminal runs. Protected resources and unresolved dependencies remain blocked. '
+      + 'Mapping-set/AJO-channel deletion is unsupported. Review non-atomic DELETE warnings before confirmation.',
       { sandbox: scope.sandbox, targets: batchTargets }, platformCleanupPlan],
     ['lab_platform_cleanup_apply', 'Apply a reviewed cleanup plan',
       'DESTRUCTIVE AND IRREVERSIBLE. Requires explicit confirmation of the exact plan, count, digest, and independent '
-      + 'external-usage clearance. Atomically claims once and never retries or resumes. Current backend gates all batch '
-      + 'DELETE adapters off because conditional-write, active-run and completion guarantees remain unverified; expect '
-      + 'a durable blocked result and no Adobe DELETE request.',
+      + 'external-usage clearance, plus acknowledgment that Adobe DELETE has no documented atomic stale-state protection. '
+      + 'Claims once, coordinates concurrent batch plans in the same org/sandbox, and executes serially with durable '
+      + 'per-item intent/result, fresh state/dependency checks and GET 404 readback. Stops on first failure, uncertainty, '
+      + 'expiry or execution budget; never automatically retries, resumes, pauses flows or expands scope. '
+      + 'After interruption call verify, then obtain fresh review and confirmation for remaining targets.',
       {
         sandbox: scope.sandbox,
         plan_id: z.string().uuid(),
@@ -73,6 +77,8 @@ export function registerPlatformCleanupTools(server) {
         expected_count: z.number().int().min(1).max(100),
         confirmed: z.literal(true),
         usage_cleared: z.literal(true),
+        non_atomic_delete_acknowledged: z.literal(true)
+          .describe('Only after the colleague accepts that an external writer can change state between the final GET and DELETE; conditional DELETE is not documented.'),
       }, platformCleanupApply],
     ['lab_platform_cleanup_verify', 'Verify cleanup plan status and readback',
       'Read-only recovery/status check for a plan. Reconciles current object presence without replaying deletes; '

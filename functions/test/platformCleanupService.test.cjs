@@ -268,9 +268,9 @@ test('batch plans use exact inventory, dependency order and fail closed on unres
   const plan = await service.plan(auth, { targets });
   assert.deepEqual(plan.ordered_resource_ids, [flowId, datasetId, schemaUri]);
   assert.equal(plan.status, 'blocked');
-  assert.equal(plan.mutation_adapters_enabled, false);
-  assert.ok(plan.blockers.some((blocker) => /conditional-write/.test(blocker)));
-  assert.ok(plan.blockers.some((blocker) => /protected-flow ID baseline/.test(blocker)));
+  assert.equal(plan.mutation_adapters_enabled, true);
+  assert.ok(plan.blockers.some((blocker) => /Disable this flow/.test(blocker)));
+  assert.ok(plan.warnings.some((warning) => /conditional DELETE/.test(warning)));
   assert.equal(calls.some((call) => call.method === 'DELETE'), false);
   flow.name = 'Changed after review';
   const stale = await service.revalidatePlan(auth, plan);
@@ -332,8 +332,11 @@ test('protected baseline compares stable list metadata and blocks overall succes
   assert.equal(result.results[0].status, 'succeeded');
   assert.equal(result.protected_baseline.results[0].status, 'preserved');
   assert.equal(result.protected_baseline.coverage, 'metadata_only');
-  assert.equal(result.protected_baseline.status, 'incomplete');
-  assert.notEqual(result.status, 'verified_absent');
+  assert.equal(result.protected_baseline.status, 'preserved');
+  assert.equal(result.status, 'verified_absent');
+  const incomplete = await service.verify(auth, { ...plan, coverage: { protectedFlowIdBaseline: 'incomplete' } }, execution);
+  assert.equal(incomplete.protected_baseline.status, 'incomplete');
+  assert.notEqual(incomplete.status, 'verified_absent');
   protectedFlow = { ...protectedFlow, sourceConnectionIds: ['source-changed'] };
   result = await service.verify(auth, plan, execution);
   assert.equal(result.protected_baseline.results[0].status, 'changed');
@@ -1014,4 +1017,294 @@ test('list filters names without exposing full schema or connection metadata', a
   const { service } = fixture();
   const result = await service.list(auth, { resource_type: 'schema', name: 'EXAMPLE' });
   assert.deepEqual(result, { count: 1, resources: [{ id: schemaId, name: schema.title, version: '1.0' }] });
+});
+
+function executableBatchFixture(options = {}) {
+  const flowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const sourceId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const targetId = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc';
+  const accountId = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd';
+  const rows = {
+    flow: new Map([[flowId, { id: flowId, name: 'Old feed', state: 'disabled', sourceConnectionIds: [sourceId], targetConnectionIds: [targetId] }]]),
+    dataset: new Map([[id, structuredClone(dataset)]]),
+    schema: new Map([[schemaId, structuredClone(schema)]]),
+    descriptor: new Map([['owned-descriptor', { '@id': 'owned-descriptor', 'xdm:sourceSchema': schemaId }]]),
+    sourceConnection: new Map([[sourceId, { id: sourceId, name: 'Old source', baseConnectionId: accountId }]]),
+    targetConnection: new Map([[targetId, { id: targetId, name: 'Old target', params: { dataSetId: id } }]]),
+    baseConnection: new Map([[accountId, { id: accountId, name: 'Old account' }]]),
+  };
+  if (options.singleDataset) {
+    for (const type of ['flow', 'descriptor', 'sourceConnection', 'targetConnection', 'baseConnection']) rows[type].clear();
+  }
+  const calls = [];
+  let time = 1000;
+  let items = {};
+  let state = 'applying';
+  const prefixes = {
+    flow: '/data/foundation/flowservice/flows',
+    sourceConnection: '/data/foundation/flowservice/sourceConnections',
+    targetConnection: '/data/foundation/flowservice/targetConnections',
+    baseConnection: '/data/foundation/flowservice/connections',
+    dataset: '/data/foundation/catalog/dataSets',
+    schema: '/data/foundation/schemaregistry/tenant/schemas',
+    descriptor: '/data/foundation/schemaregistry/tenant/descriptors',
+  };
+  const store = {
+    recordItemIntent: async (_plan, identity, intent) => {
+      assert.equal(items[identity].status, 'not_attempted');
+      items[identity] = { ...intent, status: 'intent_recorded' };
+    },
+    recordItemResult: async (_plan, identity, result) => {
+      assert.equal(items[identity].status, 'intent_recorded');
+      if (options.resultStoreFailure) throw new Error('Ledger write acknowledgment lost');
+      items[identity] = { ...items[identity], ...result };
+    },
+    finishExecution: async (_plan, terminal, detail) => {
+      state = terminal;
+      if (terminal === 'succeeded') assert.ok(Object.values(items).every((item) => item.status === 'succeeded'));
+      return { state, items: structuredClone(items), ...detail };
+    },
+    getExecution: async () => ({ execution: { state, items: structuredClone(items) } }),
+  };
+  const reply = (data, status = 200, headers = {}) => new Response(data == null ? null : JSON.stringify(data), { status, headers });
+  const fetchImpl = async (input, init) => {
+    const url = new URL(input);
+    const path = decodeURIComponent(url.pathname).replace(/\/$/, '');
+    calls.push({ path, url, ...init });
+    if (path.endsWith('/runs')) {
+      assert.equal(url.searchParams.get('property'), `flowId==${flowId}`);
+      return reply(options.runPage ? options.runPage(url) : { items: options.runs || [], _links: { next: null } });
+    }
+    for (const [type, prefix] of Object.entries(prefixes)) {
+      if (path === prefix && init.method === 'GET') {
+        const values = [...rows[type].values()];
+        return reply(type === 'dataset' ? { ...Object.fromEntries(rows.dataset), _page: { next: null } }
+          : ['schema', 'descriptor'].includes(type) ? { results: values, _page: { next: null } }
+            : { items: values, _links: { next: null } });
+      }
+      if (!path.startsWith(`${prefix}/`)) continue;
+      const resourceId = path.slice(prefix.length + 1);
+      if (init.method === 'DELETE') {
+        assert.equal(items[`${type === 'baseConnection' && options.accountAlias ? 'account' : type}:${resourceId}`].status, 'intent_recorded');
+        assert.equal(init.headers['If-Match'], undefined);
+        if (type === 'schema') assert.equal(init.headers.Accept, 'application/vnd.adobe.xed+json;version=1');
+        if (type === 'descriptor') assert.equal(init.headers.Accept, 'application/vnd.adobe.xdm-v2+json');
+        if (options.deleteError === 'network') throw new TypeError('fetch failed');
+        if (options.deleteError) return reply({ code: 'ADOBE_DELETE_DENIED', secret: 'must-not-leak' }, options.deleteError, { 'x-request-id': 'req-delete' });
+        if (!options.pending) rows[type].delete(resourceId);
+        options.afterDelete?.({ type, resourceId, rows, advance: (amount) => { time += amount; } });
+        return type === 'dataset' ? reply(options.emptyAcknowledgment ? [] : [`@/dataSets/${resourceId}`])
+          : reply(null, 204);
+      }
+      const raw = rows[type].get(resourceId);
+      if (!raw) return reply({}, options.readbackError || 404);
+      return reply(type === 'dataset' ? { [resourceId]: raw } : raw);
+    }
+    throw new Error(`Unexpected mock URL ${url}`);
+  };
+  const service = createPlatformCleanupService({ fetchImpl, now: () => time });
+  const batchAuth = { ...auth, sandbox: options.sandbox || auth.sandbox };
+  const targets = Object.entries(rows).flatMap(([type, resources]) => [...resources.keys()].map((resource_id) => ({
+    resource_type: type === 'baseConnection' && options.accountAlias ? 'account' : type, resource_id,
+  })));
+  async function prepare(selected = targets) {
+    const reviewed = await service.plan(batchAuth, { targets: selected });
+    items = Object.fromEntries(selected.map((target) => [`${target.resource_type}:${target.resource_id}`, { ...target, status: 'not_attempted' }]));
+    return { ...reviewed, plan_id: '11111111-2222-4333-8444-555555555555', principalUid: 'uid', expiresAtMs: time + 900_000 };
+  }
+  return { service, auth: batchAuth, rows, calls, store, targets, prepare, flowId, sourceId, targetId, accountId };
+}
+
+test('batch executor deletes each supported exact type in dependency order with durable intents and verified readback', async () => {
+  for (const accountAlias of [false, true]) {
+    const f = executableBatchFixture({ accountAlias });
+    const plan = await f.prepare();
+    assert.equal(plan.status, 'ready');
+    assert.equal(plan.coverage.complete, false);
+    const result = await f.service.apply(f.auth, plan, f.store);
+    assert.equal(result.state, 'succeeded');
+    assert.equal(result.delete_requests_issued, 7);
+    assert.ok(Object.values(result.items).every((item) => item.status === 'succeeded'));
+    const deletes = f.calls.filter((call) => call.method === 'DELETE');
+    assert.equal(deletes.length, 7);
+    deletes.forEach((call, index) => assert.ok(call.path.endsWith(`/${plan.ordered_resource_ids[index]}`)));
+    for (const edge of plan.dependency_edges) {
+      assert.ok(plan.ordered_resource_ids.indexOf(edge.before) < plan.ordered_resource_ids.indexOf(edge.after));
+    }
+    assert.ok(f.calls.every((call) => call.headers['x-sandbox-name'] === f.auth.sandbox));
+    const verified = await f.service.verify(f.auth, plan, result);
+    assert.equal(verified.status, 'verified_absent');
+  }
+});
+
+test('enabled flows, active/unknown runs, unsupported types and unlisted references block only affected plans', async () => {
+  const enabled = executableBatchFixture();
+  enabled.rows.flow.get(enabled.flowId).state = 'enabled';
+  assert.match((await enabled.prepare()).blockers.join(' '), /Disable this flow/);
+  for (const status of ['inProgress', 'unknown']) {
+    const f = executableBatchFixture({
+      runs: [{ id: 'run-1', flowId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', metrics: { statusSummary: { status } } }],
+    });
+    const plan = await f.prepare();
+    assert.equal(plan.status, 'blocked');
+    const result = await f.service.apply(f.auth, plan, f.store);
+    assert.equal(result.state, 'blocked');
+    assert.equal(f.calls.some((call) => call.method === 'DELETE'), false);
+  }
+  const f = executableBatchFixture();
+  const unsupported = await f.prepare([{ resource_type: 'mappingSet', resource_id: 'mapping-1' }]);
+  assert.equal(unsupported.status, 'blocked');
+  const unlisted = await f.prepare([{ resource_type: 'dataset', resource_id: id }]);
+  assert.match(unlisted.blockers.join(' '), /Unlisted resources/);
+});
+
+test('paginated run checks preserve the exact flow filter and reject scope drift', async () => {
+  const f = executableBatchFixture({
+    runPage: (url) => url.searchParams.has('continuationToken')
+      ? { items: [{ id: 'run-2', flowId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', state: 'failed' }], _links: { next: null } }
+      : { items: [], _links: { next: { href: '/runs?continuationToken=second' } } },
+  });
+  assert.equal((await f.prepare()).status, 'ready');
+  assert.equal(f.calls.filter((call) => call.path.endsWith('/runs')).length, 2);
+  const drift = executableBatchFixture({
+    runPage: () => ({ items: [{ id: 'wrong-flow', flowId: 'other-flow', state: 'success' }], _links: { next: null } }),
+  });
+  await assert.rejects(drift.prepare(), { status: 502 });
+});
+
+test('renamed reviewed architecture flows stay protected by ID and the REL baseline is loaded from the shared registry', async () => {
+  const f = executableBatchFixture({ sandbox: 'apalmer' });
+  const bindings = require('../myDataFlowsRegistry').bindings.filter((binding) => binding.nodeIds.includes('rel-flow'));
+  for (const binding of bindings) f.rows.flow.set(binding.id, { id: binding.id, name: 'Renamed protected feed', state: 'disabled' });
+  const plan = await f.prepare();
+  assert.equal(plan.coverage.protectedFlowIdBaseline, 'verified');
+  assert.equal(plan.protected_baseline.filter((entry) => entry.resource_type === 'flow').length, 28);
+  const protectedPlan = await f.prepare([{ resource_type: 'flow', resource_id: bindings[0].id }]);
+  assert.match(protectedPlan.blockers.join(' '), /architecture registry/);
+  f.rows.flow.delete(bindings[0].id);
+  assert.match((await f.prepare()).blockers.join(' '), /baseline is incomplete/);
+});
+
+test('dataset and descriptor plans preserve full schema Profile/Identity protections', async () => {
+  for (const selected of [[{ resource_type: 'dataset', resource_id: id }], [{ resource_type: 'descriptor', resource_id: 'owned-descriptor' }]]) {
+    const f = executableBatchFixture();
+    f.rows.schema.get(schemaId)['meta:immutableTags'] = ['union'];
+    const plan = await f.prepare(selected);
+    assert.equal(plan.status, 'blocked');
+    assert.match(plan.blockers.join(' '), /Profile\/Identity|protected schema/);
+  }
+});
+
+test('fresh resource drift or a new incoming dependency stops execution without silently refreshing approval', async () => {
+  const stale = executableBatchFixture();
+  const plan = await stale.prepare();
+  stale.rows.dataset.get(id).name = 'Renamed after review';
+  assert.equal((await stale.service.apply(stale.auth, plan, stale.store)).state, 'blocked');
+  assert.equal(stale.calls.some((call) => call.method === 'DELETE'), false);
+  const f = executableBatchFixture({
+    afterDelete: ({ type, rows }) => {
+      if (type === 'flow') rows.flow.set('external', { id: 'external', name: 'New external feed', targetConnectionIds: ['cccccccc-cccc-4ccc-8ccc-cccccccccccc'] });
+    },
+  });
+  const approved = await f.prepare();
+  const result = await f.service.apply(f.auth, approved, f.store);
+  assert.equal(result.state, 'failed');
+  assert.equal(result.delete_requests_issued, 1);
+  assert.equal(result.items[`targetConnection:${f.targetId}`].status, 'not_attempted');
+});
+
+test('Adobe rejections and ambiguous failures retain their status, stop at one DELETE and never expose raw bodies', async () => {
+  for (const deleteError of [403, 503, 'network']) {
+    const f = executableBatchFixture({ deleteError });
+    const plan = await f.prepare();
+    const result = await f.service.apply(f.auth, plan, f.store);
+    assert.equal(result.state, deleteError === 403 ? 'failed' : 'uncertain');
+    assert.equal(result.delete_requests_issued, 1);
+    assert.equal(f.calls.filter((call) => call.method === 'DELETE').length, 1);
+    const item = result.items[`flow:${f.flowId}`];
+    if (typeof deleteError === 'number') {
+      assert.equal(item.http_status, deleteError);
+      assert.equal(item.error_code, 'ADOBE_DELETE_DENIED');
+      assert.equal(item.request_id, 'req-delete');
+    }
+    assert.equal(JSON.stringify(result).includes('must-not-leak'), false);
+    assert.ok(Object.values(result.items).slice(1).every((value) => value.status === 'not_attempted'));
+  }
+});
+
+test('missing acknowledgment, pending deletion or forbidden readback never becomes success even when an asset is absent', async () => {
+  for (const options of [{ emptyAcknowledgment: true }, { pending: true }, { readbackError: 403 }]) {
+    const f = executableBatchFixture({ singleDataset: true, ...options });
+    const plan = await f.prepare([{ resource_type: 'dataset', resource_id: id }]);
+    assert.equal(plan.status, 'ready');
+    const result = await f.service.apply(f.auth, plan, f.store);
+    assert.equal(result.state, 'uncertain');
+    assert.equal(f.calls.filter((call) => call.method === 'DELETE').length, 1);
+    assert.equal((await f.service.verify(f.auth, plan, result)).status, 'uncertain');
+  }
+});
+
+test('execution budget stops before the next write, and a lost ledger acknowledgment cannot trigger another delete', async () => {
+  const f = executableBatchFixture({ afterDelete: ({ advance }) => advance(190_000) });
+  const result = await f.service.apply(f.auth, await f.prepare(), f.store);
+  assert.equal(result.state, 'failed');
+  assert.equal(result.delete_requests_issued, 1);
+  assert.match(result.blockers.join(' '), /time or plan expiry/);
+  const lost = executableBatchFixture({ resultStoreFailure: true });
+  await assert.rejects(lost.service.apply(lost.auth, await lost.prepare(), lost.store), /durable result could not be acknowledged/);
+  assert.equal(lost.calls.filter((call) => call.method === 'DELETE').length, 1);
+});
+
+test('final protected-baseline drift prevents successful completion after the last deletion', async () => {
+  const protectedId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const f = executableBatchFixture({
+    singleDataset: true, afterDelete: ({ rows }) => rows.flow.delete(protectedId),
+  });
+  f.rows.flow.set(protectedId, { id: protectedId, name: 'REL_protected', state: 'enabled' });
+  const approved = await f.prepare([{ resource_type: 'dataset', resource_id: id }]);
+  const result = await f.service.apply(f.auth, approved, f.store);
+  assert.equal(result.items[`dataset:${id}`].status, 'succeeded');
+  assert.equal(result.state, 'uncertain');
+  assert.match(result.blockers.join(' '), /protected-baseline/);
+});
+
+test('run cursors use continuationToken and foreign sandbox metadata is rejected', async () => {
+  const f = executableBatchFixture({
+    runPage: (url) => url.searchParams.has('continuationToken')
+      ? { items: [], _page: { next: null } }
+      : { items: [], _page: { next: 'run-page-two' } },
+  });
+  assert.equal((await f.prepare()).status, 'ready');
+  assert.equal(f.calls.filter((call) => call.path.endsWith('/runs'))[1].url.searchParams.get('continuationToken'), 'run-page-two');
+  const foreign = executableBatchFixture();
+  foreign.rows.flow.get(foreign.flowId).sandboxName = 'another-sandbox';
+  await assert.rejects(foreign.prepare(), { status: 403 });
+});
+
+test('unselected descriptors, schema aliases and Catalog URI references remain dependency blockers', async () => {
+  const f = executableBatchFixture();
+  const missingDescriptor = await f.prepare(f.targets.filter((target) => target.resource_type !== 'descriptor'));
+  assert.equal(missingDescriptor.status, 'blocked');
+  assert.match(missingDescriptor.blockers.join(' '), /Unlisted resources/);
+  f.rows.schema.get(schemaId)['meta:altId'] = 'example.schemas.old_feed';
+  f.rows.dataset.get(id).schemaRef.id = 'example.schemas.old_feed';
+  assert.equal((await f.prepare([{ resource_type: 'schema', resource_id: schemaId }])).status, 'blocked');
+  f.rows.dataset.get(id).schemaRef.id = schemaId;
+  f.rows.targetConnection.get(f.targetId).params.dataSetId = `@/dataSets/${id}`;
+  const approved = await f.prepare();
+  assert.equal(approved.status, 'ready');
+  assert.ok(approved.dependency_edges.some((edge) => edge.before === f.targetId && edge.after === id));
+});
+
+test('expired, previous-policy or malformed-order plans cannot issue even the first delete', async () => {
+  for (const change of [
+    { expiresAtMs: 1000 }, { policy_version: 'previous-policy' },
+    { ordered_resource_ids: Array(7).fill('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa') },
+  ]) {
+    const f = executableBatchFixture();
+    const approved = { ...await f.prepare(), ...change };
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, 'blocked');
+    assert.equal(f.calls.some((call) => call.method === 'DELETE'), false);
+  }
 });
