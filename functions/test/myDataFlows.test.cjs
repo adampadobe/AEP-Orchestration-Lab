@@ -136,7 +136,7 @@ function service(overrides = {}) {
   const data = fixtures();
   const calls = [];
   const svc = createMyDataFlowsService({
-    registry: [{ id: fid, table: 'REL.REL_FSI_ACCOUNT' }],
+    registry: [{ id: fid, table: 'REL.REL_FSI_ACCOUNT', nodeIds: ['rel-flow', 'rel-datasets'] }],
     getConnection: async () => null,
     getEventConfig: async () => ({ datastreamId: 'stream', schemaId: 'schema', url: 'never-output' }),
     now: () => new Date('2026-11-10T11:00:00Z'),
@@ -165,6 +165,8 @@ test('snapshot verifies bindings and exposes only projected metadata, exact zero
   assert.equal(flow.datasets[0].ocStatus, 'COMPLETED');
   assert.equal(flow.cdcEnabled, true);
   assert.equal(flow.mappings[0].version, 1);
+  assert.deepEqual(flow.nodeIds, ['rel-flow', 'rel-datasets']);
+  assert.equal(flow.observationKind, 'scheduled');
   assert.equal(calls.length, 5);
   assert.ok(!JSON.stringify(result).includes('never-output'));
   assert.ok(!JSON.stringify(result).includes(auth.accessToken));
@@ -184,6 +186,7 @@ test('failed or mismatched bindings are unknown with explicit limitations, not s
     assert.equal(result.complete, false);
     assert.equal(result.flows[0].state, 'unknown');
     assert.equal(result.flows[0].lastRun, null);
+    assert.deepEqual(result.flows[0].nodeIds, ['rel-flow', 'rel-datasets'], 'Unavailable reads retain their reviewed component association');
     assert.ok(result.limitations.some((s) => s.includes('verification failed')));
   }
   const { svc } = service({ fetchImpl: async () => Response.json({ secret: 'hidden' }, { status: 403 }) });
@@ -206,6 +209,8 @@ test('saved streaming flow target must match saved connection; inlet URLs never 
   const result = await svc.snapshot(auth);
   assert.equal(result.streaming.length, 7);
   assert.ok(result.streaming.every((s) => s.configured));
+  assert.ok(result.flows.filter((flow) => flow.observationKind === 'streaming_configuration')
+    .every((flow) => flow.nodeIds.length === 1 && flow.nodeIds[0] === 'http'));
   assert.ok(!JSON.stringify(result).includes('secret-inlet'));
   const bad = service({ getConnection: async () => ({ streaming: { flowId: fid, datasetId: 'wrong' } }) });
   const rejected = await bad.svc.snapshot(auth);

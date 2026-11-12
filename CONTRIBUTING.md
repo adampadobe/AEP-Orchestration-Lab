@@ -124,6 +124,16 @@ The **Validate** workflow (`.github/workflows/validate.yml`) installs Node from 
 
 Firebase Hosting serves static files from **`web/`**. The lab nav, themes, and assets under **`web/profile-viewer/`** are **canonical**. The Express prototype at **`aep-prototypes/AEP Profile/03 Profile Viewer/public/`** is a **mirror**: after you edit **`web/profile-viewer/`**, run **`npm run sync-profile-viewer-ui`** (see [Sync between prototypes and hosting](#sync-between-prototypes-and-hosting)). Running sync **from prototype → `web/`** in the wrong direction has overwritten Hosting in the past.
 
+### My data flows workspace
+
+`my-data-flows.html` keeps one protected topology across **Understand**, **Monitor**, and **Trace a profile**. The aggregate overview and mobile stage list are the default; component detail scrolls instead of shrinking primary labels below 14px. The selected task is remembered locally, but reopening never starts playback, status refresh, watching, or profile creation.
+
+Presentation packets are illustrative and run only during explicit playback. Monitor reads reviewed bindings on demand; evidence over five minutes old is labelled stale (a UI freshness threshold, not an ingestion SLA). Failed refreshes retain explicitly marked prior observations, while authentication denial clears private data. Unknown counters must remain unknown, and successful zero-input runs are distinct from populated runs.
+
+Flow-to-component associations are declared in `functions/myDataFlowsRegistry.js`, not inferred from returned flow names or schema naming. Streaming configuration does not prove event delivery. Trace receipts retain create-once recovery and identity-specific evidence; destination storage stages marked `verification: 'manual'` require unexecuted Query Service templates, unlike temporary unavailable reads. Query Service is inspection, not a mandatory downstream processing step.
+
+Run `npm run test:my-data-flows` and the route verifier for workspace changes. Set `MY_DATA_FLOWS_SCREENSHOTS` to a local artifact directory when running the browser test to capture the mocked desktop/mobile overview in both themes. These tests never access live AEP or create production profiles.
+
 ### Preserved Decisioning Profile Viewer routes
 
 These hosted paths are part of the lab surface and must stay in **`web/profile-viewer/`** on **`main`** (with nav + Global values wiring intact). Do **not** remove or orphan them without an explicit product decision and a redirect or replacement plan:

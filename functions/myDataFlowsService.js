@@ -157,11 +157,11 @@ function createMyDataFlowsService({
           : 'Metadata unavailable or binding verification failed.';
       limitations.push(`${section}: ${detail}`);
     }
-    const flows = await mapBounded(registry, async ({ id, table }) => {
-      try { return await inspectFlow(id, table); }
+    const flows = await mapBounded(registry, async ({ id, table, nodeIds = [] }) => {
+      try { return { ...await inspectFlow(id, table), nodeIds, observationKind: 'scheduled' }; }
       catch (error) {
         issue(table, error);
-        return { id, name: table, state: 'unknown', sourceTables: [table], datasets: [], schedule: null, mappings: [], lastRun: null };
+        return { id, name: table, state: 'unknown', sourceTables: [table], datasets: [], schedule: null, mappings: [], lastRun: null, nodeIds, observationKind: 'scheduled' };
       }
     });
     const streaming = await mapBounded(INDUSTRIES, async (industry) => {
@@ -173,7 +173,7 @@ function createMyDataFlowsService({
         }
         const flow = await inspectFlow(saved.flowId);
         if (flow.datasets[0].id !== saved.datasetId) throw failure('Saved streaming dataset differs from the flow.');
-        flows.push(flow);
+        flows.push({ ...flow, nodeIds: ['http'], observationKind: 'streaming_configuration' });
         return {
           industry, configured: flow.state === 'enabled',
           datasetId: flow.datasets[0].id, flowId: flow.id, profileEnabled: flow.datasets[0].profileEnabled,

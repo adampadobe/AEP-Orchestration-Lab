@@ -3,6 +3,15 @@
   var auth, snapshot = null, scenario = null, stepIndex = 0, timer = null;
   var generation = 0, controller = null, zoom = 1, graphWidth = 1000, graphHeight = 600;
   var autoFit = true;
+  var overview = true, subsystem = null, monitorMode = false, selectedNode = null, liveFailed = false;
+  var packets = [], freshnessTimer = null;
+  var systems = [
+    { id: 'lab', label: 'Orchestration Lab', icon: 'M4 5h24v18H4z M10 28h12 M16 23v5', nodes: ['lab'], description: 'Create a shared identity, update attributes, or send an activity event.' },
+    { id: 'snowflake', label: 'Snowflake', icon: 'M16 3v26 M5 10l22 12 M5 22l22-12 M11 7l5 4 5-4 M11 25l5-4 5 4', nodes: ['base', 'crm', 'rel', 'snowflake'], description: 'Shared recipient identity branches into industry source data and relational projections.' },
+    { id: 'ingestion', label: 'AEP ingestion', icon: 'M3 8h9l5 8-5 8H3 M17 8h12 M17 24h12 M23 4l6 4-6 4 M23 20l6 4-6 4', nodes: ['http', 'edge', 'xdm-flow', 'rel-flow', 'aep'], description: 'Separate scheduled XDM and REL paths; direct HTTP and Edge bypass the warehouse.' },
+    { id: 'storage', label: 'AEP storage', icon: 'M5 8c0-6 22-6 22 0s-22 6-22 0v16c0 6 22 6 22 0V8 M5 16c0 6 22 6 22 0', nodes: ['xdm-profile', 'xdm-events', 'rel-datasets', 'query', 'event'], description: 'Person, activity and relational datasets remain distinct. Query Service inspects stored data.' },
+    { id: 'consumers', label: 'Consumers', icon: 'M5 5h9v9H5z M19 5h9v9h-9z M5 19h9v9H5z M19 19h9v9h-9z', nodes: ['profile', 'oc', 'activation'], description: 'Merged Profile and relational campaign readiness are separate capabilities, not equivalent proofs.' },
+  ];
   var fullArchitecture = false, graphPositions = new Map(), fullGraphWidth = 1000, fullGraphHeight = 600;
   var revealedLiveNodes = new Set(['lab']), revealedRunId = null;
   var traceRun = null, tracePrefs = null, tracePendingId = null, traceBusy = false, traceDenied = false;
@@ -46,6 +55,8 @@
     if (timer !== null) clearInterval(timer);
     timer = null;
     el('flowsPlay').textContent = 'Play simulation';
+    stopPackets();
+    el('flowsDiagramPanel').dataset.storyPlaying = 'false';
   }
   function closeFullscreen() {
     if (el('flowsDialog').open) el('flowsDialog').close();
@@ -62,6 +73,8 @@
     stepIndex = 0;
     zoom = 1;
     autoFit = true;
+    overview = true; subsystem = null; selectedNode = null; liveFailed = false;
+    clearTimeout(freshnessTimer);
     fullArchitecture = false;
     revealedLiveNodes = new Set(['lab']); revealedRunId = null;
     el('flowsFocusView').setAttribute('aria-pressed', 'true');
@@ -70,7 +83,8 @@
     el('flowsResults').hidden = true;
     ['flowsReferenceTitle', 'flowsSummary', 'flowsAsOf', 'flowsGraph', 'flowsInspect', 'flowsEdges',
       'flowsScenarios', 'flowsScenarioDescription', 'flowsStep', 'flowsTimeline', 'flowsProgress',
-      'flowsIndustries', 'flowsLiveStatus', 'flowsLiveResults', 'flowsEvidence', 'flowsNotes', 'flowsMotionNote'].forEach(function (id) { el(id).replaceChildren(); });
+      'flowsIndustries', 'flowsLiveStatus', 'flowsLiveResults', 'flowsEvidence', 'flowsNotes', 'flowsMotionNote',
+      'flowsOverview', 'flowsMobileStages', 'flowsMonitorSummary', 'flowsSubsystemName'].forEach(function (id) { el(id).replaceChildren(); });
     el('flowsGraph').dataset.expanded = 'false';
     el('flowsExpand').setAttribute('aria-expanded', 'false');
     el('flowsExpand').textContent = 'Expand diagram';
@@ -81,11 +95,20 @@
     return generation === epoch && auth.currentUser === user && allowed(auth.currentUser);
   }
   function inspect(value) {
+    selectedNode = value.id;
     el('flowsInspect').replaceChildren(node('h3', value.label), node('p', value.description), timing(value.timing));
     if (traceMode) {
       var stages = (traceRun?.stages || []).filter(function (stage) { return stage.nodeIds?.includes(value.id); });
       if (!stages.length) el('flowsInspect').appendChild(node('p', 'Not checked by this live trace.'));
       stages.forEach(function (stage) { el('flowsInspect').appendChild(stageDetails(stage)); });
+    }
+    if (monitorMode) {
+      var observations = (snapshot?.live?.flows || []).filter(function (flow) { return flow.nodeIds?.includes(value.id); });
+      el('flowsInspect').appendChild(node('p', observations.length ? 'Reviewed flow observations; these do not verify a person or row.' : 'No reviewed observation is associated with this component.'));
+      observations.forEach(function (flow) {
+        fields(el('flowsInspect'), [['Flow', flow.name], ['Flow ID', flow.id], ['Latest run', flow.lastRun?.id], ['Observation', flowState(flow).label]]);
+      });
+      renderLive(snapshot?.live);
     }
   }
   function applyZoom(value, fitting) {
@@ -93,16 +116,155 @@
     var centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / zoom;
     var centerY = (viewport.scrollTop + viewport.clientHeight / 2) / zoom;
     autoFit = !!fitting;
-    zoom = Math.max(.01, Math.min(Math.max(3, viewport.clientWidth / graphWidth * 3), value));
+    zoom = Math.max(1, Math.min(3, value));
     var graph = el('flowsGraph').querySelector('svg');
-    if (graph) { graph.style.width = graphWidth * zoom + 'px'; graph.style.height = graphHeight * zoom + 'px'; }
+    if (graph) { graph.style.width = Math.ceil(graphWidth * zoom) + 'px'; graph.style.height = Math.ceil(graphHeight * zoom) + 'px'; }
     el('flowsZoom').textContent = Math.round(zoom * 100) + '%';
     viewport.scrollLeft = fitting ? 0 : centerX * zoom - viewport.clientWidth / 2;
     viewport.scrollTop = fitting ? 0 : centerY * zoom - viewport.clientHeight / 2;
   }
   function fit() {
     if (!snapshot) return;
-    applyZoom((el('flowsGraph').clientWidth - 2) / graphWidth, true);
+    var viewport = el('flowsGraph');
+    applyZoom(Math.min(1.25, (viewport.clientWidth - 2) / graphWidth, (viewport.clientHeight - 2) / graphHeight), true);
+  }
+  function groupNodes(system) {
+    return (snapshot?.reference.nodes || []).filter(function (value) { return system.nodes.includes(value.id); });
+  }
+  function icon(system) {
+    var image = svg('svg', { viewBox: '0 0 32 32', class: 'flows-system-icon', 'aria-hidden': 'true', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    image.appendChild(svg('path', { d: system.icon }));
+    return image;
+  }
+  function inspectSystem(system, detail) {
+    selectedNode = null;
+    el('flowsInspect').replaceChildren(node('h3', system.label), node('p', system.description));
+    groupNodes(system).forEach(function (value) {
+      var button = node('button', value.label); button.type = 'button';
+      button.addEventListener('click', function () { inspect(value); });
+      el('flowsInspect').appendChild(button);
+    });
+    var explanation = system.id === 'storage' ? 'Query Service is inspection, not a required processing stage. REL datasets do not automatically feed merged Profile.'
+      : system.id === 'ingestion' ? 'A 15-minute configured schedule is not an availability SLA. HTTP and Edge are separate direct routes.'
+        : 'Select a component for its role, timing and available evidence.';
+    el('flowsInspect').appendChild(node('p', explanation, 'flows-muted'));
+    if (detail) { subsystem = system.id; overview = false; fullArchitecture = true; autoFit = true; updateView(); }
+    else updateOverview();
+    if (monitorMode) renderLive(snapshot?.live);
+  }
+  function renderOverview() {
+    var container = node('div', undefined, 'flows-overview-systems');
+    systems.forEach(function (system) {
+      var values = groupNodes(system);
+      if (!values.length) return;
+      var card = node('article', undefined, 'flows-system'); card.dataset.system = system.id;
+      var title = node('h3'); title.append(icon(system), document.createTextNode(system.label));
+      card.append(title, node('p', system.description));
+      card.appendChild(node('p', values.length + (values.length === 1 ? ' component' : ' components'), 'flows-muted'));
+      var observation = node('button', undefined, 'flows-observation'); observation.type = 'button';
+      observation.addEventListener('click', function () { inspectSystem(system, true); });
+      card.appendChild(observation);
+      var open = node('button', 'Explore ' + system.label); open.type = 'button';
+      open.addEventListener('click', function () { inspectSystem(system, true); });
+      card.appendChild(open); container.appendChild(card);
+      var li = node('li'), button = node('button', system.label); button.type = 'button';
+      button.appendChild(node('span', system.description));
+      button.appendChild(node('span', undefined, 'flows-mobile-observation'));
+      button.addEventListener('click', function () {
+        inspectSystem(system, false); el('flowsInspect').tabIndex = -1; el('flowsInspect').focus();
+      });
+      li.appendChild(button); li.dataset.system = system.id; el('flowsMobileStages').appendChild(li);
+    });
+    el('flowsOverview').appendChild(container);
+    [
+      ['xdm', 'Warehouse XDM', 'Shared identity + industry activity → scheduled XDM sources → person / event datasets → eligible Profile data', 'Profile attributes / activity'],
+      ['rel', 'Warehouse relational', 'Shared identity + industry sources → REL views → separate CDC sources → REL datasets → campaign readiness', 'Relational record'],
+      ['direct', 'Direct, without Snowflake', 'Lab HTTP → person datasets · Lab event tooling → Edge / datastream → activity datasets', 'Direct profile / event'],
+    ].forEach(function (route) {
+      var row = node('article', undefined, 'flows-route'); row.dataset.route = route[0];
+      row.append(node('h3', route[1]), node('p', route[2]));
+      var motion = node('div', undefined, 'flows-route-motion'), track = node('span', undefined, 'flows-route-track');
+      track.setAttribute('aria-hidden', 'true'); track.appendChild(node('span', undefined, 'flows-route-packet'));
+      motion.append(track, node('small', route[3])); row.appendChild(motion); el('flowsOverview').appendChild(row);
+    });
+    el('flowsOverview').appendChild(node('p', 'Parallel routes share identity, not the same destination. Query Service inspects storage; it is not the final step of every route.', 'flows-muted'));
+  }
+  function updateView() {
+    el('flowsOverview').hidden = !overview;
+    el('flowsGraph').hidden = overview;
+    el('flowsZoomControls').hidden = overview;
+    el('flowsExpand').hidden = overview;
+    el('flowsOverviewView').setAttribute('aria-pressed', String(overview));
+    el('flowsFocusView').setAttribute('aria-pressed', String(!overview && !fullArchitecture));
+    el('flowsFullView').setAttribute('aria-pressed', String(!overview && fullArchitecture && !subsystem));
+    el('flowsSubsystemName').textContent = subsystem ? 'Detail: ' + systems.find(function (s) { return s.id === subsystem; }).label : '';
+    paintTraceNodes();
+  }
+  function updateOverview() {
+    var active = scenario?.steps?.[stepIndex]?.nodeIds || [];
+    systems.forEach(function (system) {
+      var ids = groupNodes(system).map(function (value) { return value.id; });
+      var card = el('flowsOverview').querySelector('[data-system="' + system.id + '"]');
+      if (!card) return;
+      card.dataset.active = String(!traceMode && !monitorMode && ids.some(function (id) { return active.includes(id); }));
+      card.dataset.selected = String(ids.includes(selectedNode));
+      var label = '';
+      if (monitorMode) {
+        var observed = (snapshot?.live?.flows || []).filter(function (flow) { return flow.nodeIds?.some(function (id) { return ids.includes(id); }); });
+        label = observed.length ? observed.length + ' reviewed observations · ' + observed.filter(function (flow) { return flowState(flow).state === 'failed'; }).length + ' need attention' : 'No associated run observation';
+      } else if (traceMode) {
+        var stages = (traceRun?.stages || []).filter(function (stage) { return stage.nodeIds?.some(function (id) { return ids.includes(id); }); });
+        label = stages.length ? stages.map(function (stage) { return stage.label + ': ' + stageLabel(stage); }).join(' · ') : 'Not checked';
+      }
+      card.querySelector('.flows-observation').textContent = label;
+      card.querySelector('.flows-observation').hidden = !traceMode && !monitorMode;
+      var mobile = el('flowsMobileStages').querySelector('[data-system="' + system.id + '"]');
+      if (mobile) {
+        mobile.dataset.active = card.dataset.active;
+        mobile.querySelector('.flows-mobile-observation').textContent = label;
+      }
+    });
+    el('flowsOverview').querySelectorAll('.flows-route').forEach(function (route) {
+      var ids = route.dataset.route === 'rel' ? ['rel', 'rel-flow', 'rel-datasets', 'oc']
+        : route.dataset.route === 'direct' ? ['http', 'edge'] : ['base', 'crm', 'xdm-flow', 'xdm-profile', 'xdm-events'];
+      route.dataset.active = String(active.some(function (id) { return ids.includes(id); }));
+    });
+  }
+  function edgeRoute(edge) {
+    if (edge.to === 'query' || edge.from === 'query') return 'inspect';
+    if (['http', 'edge'].includes(edge.from) || ['http', 'edge'].includes(edge.to)) return 'direct';
+    if (['rel', 'rel-flow', 'rel-datasets', 'oc'].includes(edge.to)) return 'rel';
+    return 'xdm';
+  }
+  function stopPackets() {
+    packets.forEach(function (packet) { packet.cancel(); }); packets = [];
+    el('flowsGraph').querySelectorAll('.flows-packet, .flows-packet-label').forEach(function (packet) { packet.remove(); });
+  }
+  function animatePackets() {
+    stopPackets();
+    var moving = timer !== null && !traceMode && !monitorMode && !document.hidden && !reducedMotion.matches && el('flowsMotion').checked;
+    el('flowsDiagramPanel').dataset.storyPlaying = String(moving);
+    if (!moving || overview) return;
+    var active = scenario?.steps?.[stepIndex]?.nodeIds || [];
+    var visited = new Set((scenario?.steps || []).slice(0, stepIndex + 1).flatMap(function (step) { return step.nodeIds || []; }));
+    var root = el('flowsGraph').querySelector('svg');
+    root.querySelectorAll('.flows-edge:not(.flows-concealed)').forEach(function (path) {
+      if (path.dataset.route === 'inspect' || !active.includes(path.dataset.to) || !visited.has(path.dataset.from)) return;
+      var packet = svg('circle', { r: '5', class: 'flows-packet' });
+      packet.dataset.route = path.dataset.route;
+      var label = svg('text', { class: 'flows-packet-label', dy: '-12' });
+      label.textContent = path.dataset.route === 'rel' ? 'Relational record'
+        : path.dataset.from === 'edge' || path.dataset.to.includes('event') ? 'Activity event' : 'Profile attributes';
+      root.append(packet, label);
+      var length = path.getTotalLength(), frames = [];
+      for (var i = 0; i <= 48; i++) {
+        var point = path.getPointAtLength(length * i / 48);
+        frames.push({ transform: 'translate(' + point.x + 'px,' + point.y + 'px)' });
+      }
+      [packet, label].forEach(function (element) {
+        packets.push(element.animate(frames, { duration: 2200 / Number(el('flowsSpeed').value), iterations: Infinity, easing: 'linear' }));
+      });
+    });
   }
   function renderGraph(reference) {
     var nodes = reference.nodes || [], edges = reference.edges || [], positions = new Map();
@@ -132,6 +294,18 @@
         positions.set(value.id, { x: 40 + column * 390, y: 40 + (graphHeight - 80) * (index + .5) / values.length - 55 });
       });
     });
+    if (nodes.some(function (value) { return value.id === 'xdm-flow'; })) {
+      var geography = {
+        lab: [40, 350], base: [380, 140], crm: [380, 350], rel: [380, 620],
+        http: [720, 90], edge: [720, 260], 'xdm-flow': [720, 450], 'rel-flow': [720, 660],
+        'xdm-profile': [1060, 90], 'xdm-events': [1060, 280], 'rel-datasets': [1060, 500], query: [1060, 730],
+        profile: [1400, 90], activation: [1400, 300], oc: [1400, 560],
+      };
+      nodes.forEach(function (value) {
+        if (geography[value.id]) positions.set(value.id, { x: geography[value.id][0], y: geography[value.id][1] });
+      });
+      graphWidth = 1680; graphHeight = 900;
+    }
     graphPositions = positions;
     fullGraphWidth = graphWidth; fullGraphHeight = graphHeight;
     var root = svg('svg', { viewBox: '0 0 ' + graphWidth + ' ' + graphHeight, role: 'group', 'aria-label': 'Protected reference flow diagram' });
@@ -139,6 +313,13 @@
     marker.appendChild(svg('path', { d: 'M 0 0 L 10 5 L 0 10 z', class: 'flows-arrow' }));
     defs.appendChild(marker);
     root.appendChild(defs);
+    if (nodes.some(function (value) { return value.id === 'xdm-flow'; })) {
+      systems.forEach(function (system, index) {
+        root.appendChild(svg('rect', { x: 20 + index * 340, y: 15, width: 280, height: 865, rx: 12, class: 'flows-system-boundary' }));
+        var heading = svg('text', { x: 35 + index * 340, y: 47, class: 'flows-system-label' });
+        heading.textContent = system.label; root.appendChild(heading);
+      });
+    }
     edges.forEach(function (edge) {
       var from = positions.get(edge.from), to = positions.get(edge.to);
       if (!from || !to) return;
@@ -149,6 +330,7 @@
         : 'M' + x1 + ',' + y1 + ' C' + bend + ',' + y1 + ' ' + (x2 - 65) + ',' + y2 + ' ' + x2 + ',' + y2;
       var path = svg('path', { d: route, class: 'flows-edge', 'marker-end': 'url(#flowsArrow)' });
       path.dataset.from = edge.from; path.dataset.to = edge.to;
+      path.dataset.route = edgeRoute(edge);
       var title = svg('title'); title.textContent = text(edge.label); path.appendChild(title);
       root.appendChild(path);
       var edgeLabel = svg('text', { x: (x1 + x2) / 2, y: x2 - x1 > 200 ? 14 : (y1 + y2) / 2 - 8, 'text-anchor': 'middle', class: 'flows-edge-label' });
@@ -176,6 +358,8 @@
       });
       var title = svg('title'); title.textContent = text(value.label);
       group.append(title, label);
+      var stateText = svg('text', { x: '14', y: '99', class: 'flows-node-status' });
+      group.appendChild(stateText);
       group.addEventListener('click', function () { inspect(value); });
       group.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); inspect(value); }
@@ -183,7 +367,9 @@
       root.appendChild(group);
     });
     el('flowsGraph').appendChild(root);
-    el('flowsInspect').textContent = 'Select a node to inspect its explanation and timing evidence.';
+    el('flowsInspect').replaceChildren(node('h3', 'One identity. Different proofs.'),
+      node('p', 'Snowflake source data branches into XDM and relational routes. Direct streaming and Edge can bypass Snowflake.'),
+      node('p', 'Dataset storage, merged Profile and campaign readiness are separate checkpoints. Select a system to explore its components.'));
   }
   function showStep() {
     if (!scenario) return;
@@ -199,6 +385,15 @@
       if (i === stepIndex) li.setAttribute('aria-current', 'step');
       else li.removeAttribute('aria-current');
     });
+    if (el('flowsFollow').checked && !overview && !reducedMotion.matches) {
+      autoFit = true; revealGraph();
+      var id = value?.nodeIds?.find(function (nodeId) { return graphPositions.has(nodeId); });
+      var point = graphPositions.get(id), root = el('flowsGraph').querySelector('svg');
+      if (point && root) {
+        el('flowsGraph').scrollTo({ left: (point.x - root.viewBox.baseVal.x) * zoom - 30, top: (point.y - root.viewBox.baseVal.y) * zoom - 50, behavior: 'instant' });
+      }
+    }
+    animatePackets();
   }
   function selectScenario(value) {
     stop();
@@ -208,7 +403,7 @@
     el('flowsScenarios').querySelectorAll('button').forEach(function (button) { button.setAttribute('aria-pressed', String(button.dataset.scenarioId === value.id)); });
     el('flowsTimeline').replaceChildren();
     (value.steps || []).forEach(function (step, index) {
-      var li = node('li'), button = node('button', step.title);
+      var li = node('li'), button = node('button', (index + 1) + '. ' + step.title);
       button.type = 'button';
       button.setAttribute('aria-label', 'Go to step ' + (index + 1) + ': ' + text(step.title));
       button.addEventListener('click', function () { stop(); stepIndex = index; showStep(); });
@@ -236,34 +431,66 @@
     traceMessage('Checking profile settings…');
   }
   function setTraceMode(liveMode) {
-    traceMode = liveMode;
-    if (liveMode) stop();
-    el('flowsSimulationMode').setAttribute('aria-pressed', String(!liveMode));
-    el('flowsTraceMode').setAttribute('aria-pressed', String(liveMode));
-    el('flowsTracePanel').hidden = !liveMode;
-    el('flowsSimulationPanel').hidden = liveMode;
-    el('flowsGraphMode').textContent = liveMode ? 'Live · only verified readbacks mark a node as verified; unmarked nodes are not checked.' : 'Simulation · illustrative highlights only';
+    setMode(liveMode ? 'trace' : 'understand');
+  }
+  function setMode(mode) {
+    stop();
+    traceMode = mode === 'trace'; monitorMode = mode === 'monitor';
+    if (!traceMode && traceWatching) stopWatching();
+    el('flowsSimulationMode').setAttribute('aria-pressed', String(!traceMode && !monitorMode));
+    el('flowsTraceMode').setAttribute('aria-pressed', String(traceMode));
+    el('flowsMonitorMode').setAttribute('aria-pressed', String(monitorMode));
+    el('flowsTracePanel').hidden = el('flowsTraceCheckpoints').hidden = !traceMode;
+    el('flowsMonitorControls').hidden = el('flowsMonitorPanel').hidden = !monitorMode;
+    el('flowsSimulationPanel').hidden = traceMode || monitorMode;
+    el('flowsNarration').hidden = traceMode || monitorMode;
+    el('flowsGraphMode').textContent = traceMode ? 'Checkpoint evidence only - no inferred person-level transfers'
+      : monitorMode ? 'On-demand observations - no automatic refresh or simulated traffic' : 'Illustrative playback - no data is being written';
+    try { localStorage.setItem('aepDataFlowsTask', mode); } catch { console.warn('Data-flow task preference could not be saved.'); }
+    renderLive(snapshot?.live);
     paintTraceNodes();
+    if (selectedNode) {
+      var selected = snapshot?.reference.nodes.find(function (value) { return value.id === selectedNode; });
+      if (selected) inspect(selected);
+    }
+  }
+  function stageLabel(stage) {
+    if (stage.verification === 'manual') return 'Manual verification required';
+    return ({ verified: 'Verified', not_applicable: 'Not applicable', waiting: 'Waiting', checking: 'Checking', unavailable: 'Read unavailable', failed: 'Needs attention' })[stage.state] || 'Not checked';
   }
   function paintTraceNodes() {
     var priority = { verified: 1, not_applicable: 2, waiting: 3, checking: 4, unavailable: 5, failed: 6 };
     var step = scenario?.steps?.[stepIndex];
     el('flowsGraph').querySelectorAll('[data-node-id]').forEach(function (group) {
-      group.dataset.active = String(!traceMode && !!step?.nodeIds?.includes(group.dataset.nodeId));
+      group.dataset.active = String(!traceMode && !monitorMode && !!step?.nodeIds?.includes(group.dataset.nodeId));
       var stages = traceMode ? (traceRun?.stages || []).filter(function (stage) { return stage.nodeIds?.includes(group.dataset.nodeId); }) : [];
       var state = stages.reduce(function (selected, stage) {
         return (priority[stage.state] || 0) > (priority[selected] || 0) ? stage.state : selected;
       }, '');
       group.dataset.liveState = state;
+      var manual = stages.some(function (stage) { return stage.verification === 'manual'; });
+      var observed = monitorMode ? (snapshot?.live?.flows || []).filter(function (flow) { return flow.nodeIds?.includes(group.dataset.nodeId); }) : [];
+      var observation = observed.reduce(function (selected, flow) {
+        var result = flowState(flow);
+        return result.state === 'failed' || !selected || (selected.state !== 'failed' && result.state === 'unknown') ? result : selected;
+      }, null);
+      group.dataset.monitorState = observation?.state || '';
+      var stateLabel = traceMode ? manual ? 'Manual verification required' : state ? stageLabel({ state }) : 'Not checked'
+        : monitorMode ? observation?.label || 'No associated observation' : '';
+      group.querySelector('.flows-node-status').textContent = stateLabel;
       var label = snapshot?.reference.nodes.find(function (value) { return value.id === group.dataset.nodeId; })?.label;
-      group.setAttribute('aria-label', 'Inspect ' + text(label) + (traceMode ? ' — ' + (state ? state.replaceAll('_', ' ') : 'not checked') : ''));
+      group.setAttribute('aria-label', 'Inspect ' + text(label) + (stateLabel ? ' — ' + stateLabel : ''));
     });
     revealGraph();
+    updateOverview();
   }
   function revealGraph() {
     if (!snapshot) return;
     var visible = new Set(['lab']), relevant = new Set(['lab']);
-    if (traceMode) {
+    if (monitorMode) {
+      visible = new Set(snapshot.reference.nodes.map(function (value) { return value.id; }));
+      relevant = new Set((snapshot.live?.flows || []).flatMap(function (flow) { return flow.nodeIds || []; }));
+    } else if (traceMode) {
       var runId = traceRun?.id || tracePendingId || null;
       if (runId !== revealedRunId) {
         revealedRunId = runId; revealedLiveNodes = new Set(['lab']);
@@ -283,24 +510,31 @@
         });
       });
     }
+    if (subsystem) {
+      visible = new Set(systems.find(function (system) { return system.id === subsystem; }).nodes);
+      relevant = visible;
+    }
     var viewport = el('flowsGraph'), root = viewport.querySelector('svg');
     if (!root) return;
     root.querySelectorAll('[data-node-id]').forEach(function (group) {
-      var id = group.dataset.nodeId, concealed = !fullArchitecture && !visible.has(id);
+      var id = group.dataset.nodeId, concealed = (!!subsystem || !fullArchitecture) && !visible.has(id);
       group.classList.toggle('flows-concealed', concealed);
       group.classList.toggle('flows-context', fullArchitecture && !relevant.has(id));
       group.setAttribute('tabindex', concealed ? '-1' : '0');
       group.setAttribute('aria-hidden', String(concealed));
     });
     root.querySelectorAll('[data-from]').forEach(function (edge) {
-      edge.classList.toggle('flows-concealed', !fullArchitecture && (!visible.has(edge.dataset.from) || !visible.has(edge.dataset.to)));
+      edge.classList.toggle('flows-concealed', (!!subsystem || !fullArchitecture) && (!visible.has(edge.dataset.from) || !visible.has(edge.dataset.to)));
       edge.classList.toggle('flows-context', fullArchitecture && (!relevant.has(edge.dataset.from) || !relevant.has(edge.dataset.to)));
     });
-    el('flowsRevealStatus').textContent = fullArchitecture
+    el('flowsRevealStatus').textContent = overview ? 'Select a system to explore its components. Route colours identify paths, not success.'
+      : subsystem ? 'Subsystem detail. Return to Overview or All components for connected context.'
+      : monitorMode ? 'Reviewed flow metadata only. Unassociated systems have not been checked.'
+      : fullArchitecture
       ? 'Full architecture · unrelated paths are dimmed. Playback position is preserved.'
       : (traceMode ? 'Live flow · systems appear when checks begin; waiting or unavailable is not verified arrival.'
         : 'Flow view · steps reveal the selected path; earlier steps remain visible.');
-    var bounds = fullArchitecture ? { x: 0, y: 0, width: fullGraphWidth, height: fullGraphHeight } : null;
+    var bounds = fullArchitecture && !subsystem ? { x: 0, y: 0, width: fullGraphWidth, height: fullGraphHeight } : null;
     if (!bounds) {
       var boxes = [];
       visible.forEach(function (id) {
@@ -329,7 +563,7 @@
     viewport.style.setProperty('--flows-aspect-ratio', graphWidth + ' / ' + graphHeight);
     if (autoFit) fit();
     else {
-      root.style.width = graphWidth * zoom + 'px'; root.style.height = graphHeight * zoom + 'px';
+      root.style.width = Math.ceil(graphWidth * zoom) + 'px'; root.style.height = Math.ceil(graphHeight * zoom) + 'px';
       viewport.scrollLeft = scrollX + (oldX - bounds.x) * zoom;
       viewport.scrollTop = scrollY + (oldY - bounds.y) * zoom;
     }
@@ -366,9 +600,9 @@
     return details;
   }
   function traceButtons() {
-    el('flowsTraceCreate').disabled = traceBusy || traceDenied || !tracePrefs?.ready || !!tracePendingId || traceWatching || !el('flowsTraceConfirm').checked;
-    el('flowsTraceIndustry').disabled = traceBusy || !!tracePendingId || traceWatching;
-    el('flowsTraceConfirm').disabled = traceBusy || !!tracePendingId || traceDenied;
+    el('flowsTraceCreate').disabled = traceBusy || traceDenied || !tracePrefs?.ready || !!tracePendingId || !!traceRun || traceWatching || !el('flowsTraceConfirm').checked;
+    el('flowsTraceIndustry').disabled = traceBusy || !!tracePendingId || !!traceRun || traceWatching;
+    el('flowsTraceConfirm').disabled = traceBusy || !!tracePendingId || !!traceRun || traceDenied;
     el('flowsTraceCheck').disabled = traceBusy || traceDenied || (!traceRun && !tracePendingId);
     el('flowsTraceWatch').disabled = traceDenied || (!traceWatching && (traceBusy || !traceRun || !!tracePendingId));
     el('flowsTraceWatch').textContent = traceWatching ? 'Stop watching' : 'Resume watching';
@@ -396,13 +630,21 @@
     el('flowsTraceStages').replaceChildren();
     (traceRun?.stages || []).forEach(function (stage) {
       var item = node('li', undefined, 'flows-card'); item.dataset.state = stage.state;
-      item.append(node('h3', text(stage.label) + ' — ' + text(stage.state).replaceAll('_', ' ')), node('p', stage.detail),
+      item.append(node('h3', text(stage.label) + ' — ' + stageLabel(stage)), node('p', stage.detail),
         node('p', 'Last checked: ' + text(stage.checkedAt), 'flows-muted'), stageDetails(stage));
       el('flowsTraceStages').appendChild(item);
     });
+    if (traceRun) {
+      var manual = traceRun.stages?.some(function (stage) { return stage.verification === 'manual'; });
+      el('flowsTraceStages').appendChild(node('li', manual
+        ? 'Next: check the same run for new readbacks. Destination storage requires manual inspection using the unexecuted Query Service templates; a successful ingestion run is not person-level proof.'
+        : 'Next: use Check now or Resume watching to inspect this same identity. No replacement profile is needed.', 'flows-muted'));
+    }
     el('flowsTraceLimitations').replaceChildren();
     (traceRun?.limitations || []).forEach(function (limitation) { el('flowsTraceLimitations').appendChild(node('li', limitation)); });
     updateTraceClock(); paintTraceNodes(); traceButtons();
+    var selected = snapshot?.reference.nodes.find(function (value) { return value.id === selectedNode; });
+    if (selected) inspect(selected);
   }
   function traceComplete() {
     return traceRun?.stages?.length && traceRun.stages.every(function (stage) { return ['verified', 'not_applicable'].includes(stage.state); });
@@ -515,16 +757,64 @@
       startWatching();
     }
   }
+  function flowState(flow) {
+    if (flow.state === 'unknown') return { state: 'unknown', label: 'Read unavailable' };
+    if (flow.observationKind === 'streaming_configuration') return { state: 'configuration', label: 'Configuration only' };
+    var run = flow.lastRun, state = String(run?.state || '').toLowerCase();
+    if (run?.failedCount > 0 || ['failed', 'failure', 'error'].includes(state)) return { state: 'failed', label: 'Needs attention' };
+    if (['success', 'succeeded', 'completed'].includes(state)) {
+      if (run.readCount === 0) return { state: 'zero', label: 'Successful run · zero input' };
+      return { state: 'success', label: 'Successful run · ' + (run.readCount == null ? 'input unknown' : run.readCount + ' input') };
+    }
+    return { state: 'unknown', label: run ? 'Run state: ' + text(run.state) : 'No run observation' };
+  }
   function renderLive(live) {
     var target = el('flowsLiveResults');
     target.replaceChildren();
     if (!live) {
       el('flowsLiveStatus').textContent = 'Live status has not been requested. Use “Read live AEP status” for an on-demand read; no polling is performed.';
+      el('flowsMonitorSummary').textContent = liveFailed ? 'Refresh failed. No observation is available; retry explicitly.' : 'Not refreshed. No pipeline status has been read.';
       return;
     }
+    var observed = Date.parse(live.fetchedAt), stale = !Number.isFinite(observed) || Date.now() - observed > 5 * 60000;
+    clearTimeout(freshnessTimer);
+    if (!stale) freshnessTimer = setTimeout(function () { if (snapshot) renderLive(snapshot.live); }, Math.max(1000, observed + 5 * 60000 - Date.now() + 1));
+    var flows = live.flows || [], attention = flows.filter(function (flow) { return flowState(flow).state === 'failed'; }).length;
+    var unknown = flows.filter(function (flow) { return flowState(flow).state === 'unknown'; }).length;
+    var zero = flows.filter(function (flow) { return flowState(flow).state === 'zero'; }).length;
+    el('flowsMonitorSummary').textContent = (liveFailed ? 'Refresh failed — showing previous observation. ' : '')
+      + (stale ? 'Stale observation (over 5 minutes old or timestamp unavailable). ' : 'Recent observation (within 5 minutes). ')
+      + (live.complete ? 'Requested reads complete. ' : 'Partial snapshot. ')
+      + flows.length + ' reviewed observations · ' + attention + ' need attention · ' + unknown + ' unavailable / unknown · ' + zero + ' zero-input successes. Last observed: ' + text(live.fetchedAt);
     el('flowsLiveStatus').textContent = 'Observed snapshot: ' + text(live.fetchedAt) + '. ' + (live.complete ? 'Requested reads complete; this does not prove end-to-end arrival.' : 'Partial results; some status is unavailable.');
     list(target, live.limitations);
-    (live.flows || []).forEach(function (flow) {
+    var filter = el('flowsMonitorFilter').value;
+    var selectedIds = selectedNode ? [selectedNode] : subsystem ? systems.find(function (system) { return system.id === subsystem; }).nodes : null;
+    var filtered = flows.filter(function (flow) {
+      var state = flowState(flow).state;
+      return (!selectedIds || flow.nodeIds?.some(function (id) { return selectedIds.includes(id); }))
+        && (filter === 'all' || filter === 'attention' && ['failed', 'unknown'].includes(state) || filter === 'zero' && state === 'zero');
+    });
+    el('flowsClearSelection').disabled = !selectedIds;
+    var wrap = node('div', undefined, 'flows-run-table-wrap'), table = node('table', undefined, 'flows-run-table');
+    table.appendChild(node('caption', 'Reviewed latest-run observations. Counts are not person-level delivery proof.'));
+    var head = node('thead'), heading = node('tr');
+    ['Flow / component', 'Observation', 'Input', 'Updated', 'Failed', 'Completed'].forEach(function (label) { var th = node('th', label); th.scope = 'col'; heading.appendChild(th); });
+    head.appendChild(heading); table.appendChild(head);
+    var body = node('tbody');
+    filtered.forEach(function (flow) {
+      var tr = node('tr'), state = flowState(flow), name = node('td'), select = node('button', flow.name); select.type = 'button';
+      tr.dataset.state = state.state;
+      var value = snapshot.reference.nodes.find(function (value) { return flow.nodeIds?.includes(value.id); });
+      select.disabled = !value;
+      select.addEventListener('click', function () { inspect(value); el('flowsInspect').tabIndex = -1; el('flowsInspect').focus({ preventScroll: true }); });
+      name.appendChild(select); tr.append(name, node('td', state.label), node('td', text(flow.lastRun?.readCount)),
+        node('td', text(flow.lastRun?.updatedCount)), node('td', text(flow.lastRun?.failedCount)), node('td', text(flow.lastRun?.completedAt)));
+      body.appendChild(tr);
+    });
+    table.appendChild(body); wrap.appendChild(table); target.appendChild(wrap);
+    if (!filtered.length) target.appendChild(node('p', 'No observations match this selection. Clear the component filter or change the status filter.', 'flows-empty'));
+    filtered.forEach(function (flow) {
       var details = node('details', undefined, 'flows-card');
       details.appendChild(node('summary', text(flow.name) + ' — ' + text(flow.state)));
       fields(details, [
@@ -571,13 +861,25 @@
     el('flowsSummary').textContent = text(reference.summary);
     el('flowsAsOf').textContent = 'Reference as of ' + text(reference.asOf) + ' · Sandbox: ' + text(data.sandbox);
     renderGraph(reference);
-    (reference.scenarios || []).forEach(function (value) {
+    renderOverview();
+    var introductory = {
+      id: 'architecture-overview', label: 'Architecture overview', description: 'One identity connects parallel destinations. Playback is a presentation, never a measurement of arrival.',
+      steps: [
+        { title: 'Start with shared identity', description: 'The Lab creates or updates source data. Recipient identity connects the warehouse branches.', nodeIds: ['lab', 'base', 'crm', 'snowflake'] },
+        { title: 'Two warehouse paths', description: 'XDM source flows and REL CDC flows run independently. They are parallel routes, not successive stages.', nodeIds: ['rel', 'xdm-flow', 'rel-flow', 'aep'] },
+        { title: 'Different destinations, different proofs', description: 'XDM person and activity datasets differ from REL datasets. Merged Profile and campaign readiness require their own checks. Query Service inspects storage.', nodeIds: ['xdm-profile', 'xdm-events', 'rel-datasets', 'profile', 'oc', 'query'] },
+        { title: 'Direct routes bypass the warehouse', description: 'Lab profile streaming uses HTTP; activity uses Edge and a datastream. Their configuration does not prove delivery.', nodeIds: ['lab', 'http', 'edge', 'event'] },
+      ].map(function (step) {
+        return { ...step, nodeIds: step.nodeIds.filter(function (id) { return reference.nodes.some(function (value) { return value.id === id; }); }), timing: { kind: 'simulation', label: 'Illustration only; not elapsed pipeline time.' } };
+      }),
+    };
+    [introductory].concat(reference.scenarios || []).forEach(function (value) {
       var button = node('button', value.label); button.type = 'button'; button.dataset.scenarioId = value.id;
       button.setAttribute('aria-pressed', 'false');
       button.addEventListener('click', function () { selectScenario(value); });
       el('flowsScenarios').appendChild(button);
     });
-    if (reference.scenarios?.length) selectScenario(reference.scenarios[0]);
+    selectScenario(introductory);
     (reference.industries || []).forEach(function (industry) {
       var card = node('article', undefined, 'flows-card');
       card.append(node('h3', industry.label), node('h4', 'Source'), node('p', industry.sourceDescription),
@@ -594,9 +896,49 @@
     renderLive(data.live);
     el('flowsMotionNote').textContent = reducedMotion.matches ? 'Reduced motion: autoplay is disabled. Use Previous, Next or the step list.' : 'Playback is paused until you choose Play.';
     el('flowsResults').hidden = false;
-    fit();
+    var savedMode;
+    try { savedMode = localStorage.getItem('aepDataFlowsTask'); } catch { console.warn('Data-flow task preference could not be read.'); }
+    setMode(['monitor', 'trace'].includes(savedMode) ? savedMode : 'understand');
+    updateView();
+  }
+  async function refreshStatus() {
+    var user = auth.currentUser, epoch = generation;
+    if (!current(user, epoch)) return;
+    var requestController = controller = new AbortController();
+    var timeout = setTimeout(function () { requestController.abort(); }, 30000);
+    el('flowsLive').disabled = el('flowsReload').disabled = true;
+    status('Reading reviewed AEP status without changing the selected profile or story…');
+    try {
+      var token = await user.getIdToken();
+      if (!current(user, epoch)) return;
+      var response = await fetch('/api/architecture/my-data-flows?sandbox=apalmer&refresh=true', {
+        method: 'GET', headers: { Authorization: 'Bearer ' + token }, credentials: 'omit', cache: 'no-store', signal: requestController.signal,
+      });
+      if (!current(user, epoch)) return;
+      if ([401, 403].includes(response.status)) {
+        clear(); el('flowsControls').hidden = true; el('flowsSignIn').hidden = response.status !== 401;
+        status('Access denied or sign-in expired. No private observations are retained.', true); return;
+      }
+      if (!response.ok) throw new Error('Status refresh failed (HTTP ' + response.status + ').');
+      var data = await response.json();
+      if (!current(user, epoch)) return;
+      if (data.ok !== true || data.sandbox !== 'apalmer' || !data.live || !Array.isArray(data.live.flows)) throw new Error('Status refresh returned an invalid observation.');
+      snapshot.live = data.live; liveFailed = false;
+      renderLive(data.live); paintTraceNodes();
+      var selected = snapshot.reference.nodes.find(function (value) { return value.id === selectedNode; });
+      if (selected) inspect(selected);
+      status('Read-only observations updated. Run metadata is not row-level proof.');
+    } catch (error) {
+      if (!current(user, epoch)) return;
+      liveFailed = true; renderLive(snapshot.live); paintTraceNodes();
+      status(error.name === 'AbortError' ? 'Status refresh timed out. Previous evidence is retained and marked; retry explicitly.' : error.message, true);
+    } finally {
+      clearTimeout(timeout);
+      if (current(user, epoch)) { controller = null; el('flowsLive').disabled = el('flowsReload').disabled = false; }
+    }
   }
   async function load(refresh) {
+    if (refresh && snapshot) return refreshStatus();
     var epoch = ++generation;
     if (controller) controller.abort();
     clear();
@@ -652,7 +994,28 @@
   el('flowsReload').addEventListener('click', function () { load(false); });
   el('flowsLive').addEventListener('click', function () { load(true); });
   el('flowsSimulationMode').addEventListener('click', function () { setTraceMode(false); });
+  el('flowsMonitorMode').addEventListener('click', function () { setMode('monitor'); });
   el('flowsTraceMode').addEventListener('click', function () { setTraceMode(true); });
+  el('flowsMonitorFilter').addEventListener('change', function () { renderLive(snapshot?.live); });
+  el('flowsClearSelection').addEventListener('click', function () {
+    selectedNode = null; subsystem = null; updateView(); renderLive(snapshot?.live);
+    el('flowsInspect').replaceChildren(node('h3', 'Reviewed pipeline observations'), node('p', 'Select a flow or component to inspect its evidence. No person-level delivery is inferred.'));
+  });
+  el('flowsReplay').addEventListener('click', function () { stop(); stepIndex = 0; showStep(); });
+  el('flowsSpeed').addEventListener('change', function () {
+    var playing = timer !== null; stop();
+    el('flowsDiagramPanel').style.setProperty('--flows-pace', 2.2 / Number(el('flowsSpeed').value) + 's');
+    if (playing) el('flowsPlay').click();
+  });
+  el('flowsMotion').addEventListener('change', animatePackets);
+  el('flowsFollow').addEventListener('change', function () { if (el('flowsFollow').checked) showStep(); });
+  el('flowsShowMap').addEventListener('click', function () {
+    var visible = el('flowsDiagramPanel').dataset.mobileMap !== 'true';
+    el('flowsDiagramPanel').dataset.mobileMap = String(visible);
+    el('flowsShowMap').setAttribute('aria-expanded', String(visible));
+    el('flowsShowMap').textContent = visible ? 'Show readable stage list' : 'Show interactive map';
+    if (!overview) fit();
+  });
   el('flowsTraceConfirm').addEventListener('change', traceButtons);
   el('flowsTraceCreate').addEventListener('click', createTrace);
   el('flowsTraceCheck').addEventListener('click', function () { readTrace(true); });
@@ -681,26 +1044,25 @@
       if (!snapshot || !scenario || stepIndex >= scenario.steps.length - 1) { stop(); return; }
       stepIndex += 1; showStep();
       if (stepIndex === scenario.steps.length - 1) stop();
-    }, 2200);
+    }, 2200 / Number(el('flowsSpeed').value));
+    animatePackets();
   });
   reducedMotion.addEventListener('change', function () {
     stop();
     if (snapshot) el('flowsMotionNote').textContent = reducedMotion.matches ? 'Reduced motion: use manual stepping; autoplay is disabled.' : 'Playback is paused until you choose Play.';
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
-  el('flowsZoomIn').addEventListener('click', function () { applyZoom(zoom + .2); });
-  el('flowsZoomOut').addEventListener('click', function () { applyZoom(zoom - .2); });
+  el('flowsZoomIn').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom + .2); });
+  el('flowsZoomOut').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom - .2); });
+  el('flowsGraph').addEventListener('wheel', function () { el('flowsFollow').checked = false; }, { passive: true });
   el('flowsFit').addEventListener('click', function () { autoFit = true; revealGraph(); });
   el('flowsFocusView').addEventListener('click', function () {
-    fullArchitecture = false; autoFit = true;
-    el('flowsFocusView').setAttribute('aria-pressed', 'true'); el('flowsFullView').setAttribute('aria-pressed', 'false');
-    revealGraph();
+    overview = false; subsystem = null; fullArchitecture = false; autoFit = true; updateView(); animatePackets();
   });
   el('flowsFullView').addEventListener('click', function () {
-    fullArchitecture = true; autoFit = true;
-    el('flowsFocusView').setAttribute('aria-pressed', 'false'); el('flowsFullView').setAttribute('aria-pressed', 'true');
-    revealGraph();
+    overview = false; subsystem = null; fullArchitecture = true; autoFit = true; updateView(); animatePackets();
   });
+  el('flowsOverviewView').addEventListener('click', function () { overview = true; subsystem = null; updateView(); animatePackets(); });
   el('flowsExpand').addEventListener('click', function () {
     var expanded = el('flowsGraph').dataset.expanded !== 'true';
     el('flowsGraph').dataset.expanded = String(expanded);
