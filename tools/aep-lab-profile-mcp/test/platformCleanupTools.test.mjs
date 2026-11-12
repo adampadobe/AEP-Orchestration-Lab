@@ -3,18 +3,41 @@ import assert from 'node:assert/strict';
 import * as z from 'zod';
 import { registerPlatformCleanupTools } from '../src/tools/platformCleanupTools.mjs';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
-import { platformAssetList, platformAssetAudit, platformAssetDelete } from '../src/labApiClient.mjs';
+import {
+  platformAssetList, platformAssetAudit, platformAssetDelete, platformCleanupApply,
+} from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
 
 test('registers narrow inventory/audit/delete contracts and destructive annotations', () => {
   const tools = new Map();
   registerPlatformCleanupTools({ registerTool(name, definition) { tools.set(name, definition); } });
-  assert.deepEqual([...tools.keys()], ['lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete']);
+  assert.deepEqual([...tools.keys()], [
+    'lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete',
+    'lab_platform_cleanup_inventory', 'lab_platform_cleanup_plan',
+    'lab_platform_cleanup_apply', 'lab_platform_cleanup_verify',
+  ]);
   const definition = tools.get('lab_platform_asset_delete');
   assert.match(definition.description, /irreversible/i);
   assert.equal(annotationsForTool('lab_platform_asset_delete').destructiveHint, true);
   assert.equal(annotationsForTool('lab_platform_asset_delete').idempotentHint, false);
   assert.equal(annotationsForTool('lab_platform_asset_list').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_platform_cleanup_inventory').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_platform_cleanup_verify').readOnlyHint, true);
+  assert.equal(annotationsForTool('lab_platform_cleanup_apply').destructiveHint, true);
+  assert.equal(annotationsForTool('lab_platform_cleanup_apply').idempotentHint, false);
+  assert.match(tools.get('lab_platform_cleanup_apply').description, /batch DELETE adapters off/i);
+  const planSchema = z.object(tools.get('lab_platform_cleanup_plan').inputSchema);
+  const exactPlan = {
+    sandbox: 'apalmer',
+    targets: [{ resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }],
+  };
+  assert.equal(planSchema.safeParse(exactPlan).success, true);
+  assert.equal(planSchema.safeParse({ ...exactPlan, targets: [{ ...exactPlan.targets[0], resource_id: '*' }] }).success, false);
+  assert.equal(planSchema.safeParse({ ...exactPlan, targets: Array(101).fill(exactPlan.targets[0]) }).success, false);
+  assert.equal(z.object(tools.get('lab_platform_cleanup_apply').inputSchema).safeParse({
+    sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
+    manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
+  }).success, true);
   const schema = z.object(definition.inputSchema);
   const input = {
     sandbox: 'apalmer', resource_type: 'dataset', resource_id: '69c38a17866d0ec0db681793',
@@ -24,6 +47,31 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
   assert.equal(schema.safeParse({ ...input, confirmed: false }).success, false);
   assert.equal(schema.safeParse({ ...input, usage_cleared: false }).success, false);
   assert.equal(schema.safeParse({ ...input, resource_type: 'flow' }).success, false);
+});
+
+test('batch apply uses one scoped POST attempt and cannot opt into retries', async () => {
+  const original = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = async (url, init) => {
+    calls++;
+    assert.equal(new URL(url).pathname, '/platformCleanupProxy');
+    assert.equal(init.method, 'POST');
+    assert.equal(JSON.parse(init.body).operation, 'apply');
+    return new Response(JSON.stringify({ error: 'blocked' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
+  };
+  try {
+    await requestContext.run({ mcpApiKey: 'test-key' }, async () => {
+      const result = await platformCleanupApply({
+        sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
+        manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
+      });
+      assert.equal(result.ok, false);
+      assert.equal(result.status, 409);
+    });
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 test('delete client sends scoped credentials and never retries mutations', async () => {
   const original = globalThis.fetch;

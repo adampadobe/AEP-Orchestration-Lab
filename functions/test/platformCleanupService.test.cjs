@@ -2,7 +2,7 @@
 
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { createPlatformCleanupService, validateTarget } = require('../platformCleanupService');
+const { createPlatformCleanupService, validateTarget, validateBatchTarget } = require('../platformCleanupService');
 
 const id = '69c38a17866d0ec0db681793';
 const schemaId = 'https://ns.adobe.com/example/schemas/abcdef1234';
@@ -216,6 +216,135 @@ test('matches schema alternate IDs for datasets and incoming relationships', asy
   const audit = await service.audit(auth, { resource_type: 'schema', resource_id: schemaId });
   assert.equal(audit.dependencies.datasets.length, 1);
   assert.equal(audit.dependencies.incomingRelationships.length, 1);
+});
+
+test('legacy single-asset audit cannot bypass hard REL and Agentic name protections', async () => {
+  for (const name of ['REL_old_feed', 'Agentic_feed', 'REL travel profile dataset', 'AEP Lab - Agentic Travel Dataset']) {
+    const { service, calls } = fixture({ dataset: { ...dataset, name } });
+    const audit = await service.audit(auth, params);
+    assert.equal(audit.deleteReviewReady, false);
+    assert.match(audit.blockers.join(' '), /protected/i);
+    await assert.rejects(service.remove(auth, params, audit), { status: 409 });
+    assert.equal(calls.some((call) => call.method === 'DELETE'), false);
+  }
+});
+
+test('batch plans use exact inventory, dependency order and fail closed on unresolved contracts', async () => {
+  const flowId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const datasetId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  const schemaUri = 'https://ns.adobe.com/example/schemas/abcdef1234';
+  const flow = { id: flowId, name: 'Old feed', targetDataSetId: datasetId, state: 'enabled' };
+  const batchDataset = { id: datasetId, name: 'Old relational dataset', schemaRef: { id: schemaUri }, tags: {} };
+  const batchSchema = { $id: schemaUri, title: 'old_feed', version: '1.0', imsOrg: auth.orgId, 'meta:containerId': 'tenant' };
+  const calls = [];
+  const fetchImpl = async (input, init) => {
+    const url = new URL(input);
+    const path = decodeURIComponent(url.pathname);
+    calls.push({ path, method: init.method });
+    const reply = (data, status = 200) => new Response(data == null ? null : JSON.stringify(data), { status });
+    if (path.endsWith('/dataSets')) return reply({ [datasetId]: batchDataset, _page: { next: null } });
+    if (path.endsWith('/dataSets/' + datasetId)) return reply({ [datasetId]: batchDataset });
+    if (path.endsWith('/flows/' + flowId)) return reply(flow);
+    if (path.endsWith('/flows')) return reply({ items: [flow], _links: { next: null } });
+    if (path.endsWith('/sourceConnections') || path.endsWith('/targetConnections') || path.endsWith('/connections')) {
+      return reply({ items: [], _links: { next: null } });
+    }
+    if (path.endsWith('/descriptors')) return reply({ results: [], _page: { next: null } });
+    if (path.endsWith('/schemas')) return reply({ results: [batchSchema], _page: { next: null } });
+    if (path.includes('/schemas/')) return reply(batchSchema);
+    throw new Error(`Unexpected mock URL ${url}`);
+  };
+  const service = createPlatformCleanupService({ fetchImpl });
+  const targets = [
+    { resource_type: 'flow', resource_id: flowId },
+    { resource_type: 'dataset', resource_id: datasetId },
+    { resource_type: 'schema', resource_id: schemaUri },
+  ];
+  const inventory = await service.batchInventory(auth, { targets });
+  assert.equal(inventory.resources.length, 3);
+  const plan = await service.plan(auth, { targets });
+  assert.deepEqual(plan.ordered_resource_ids, [flowId, datasetId, schemaUri]);
+  assert.equal(plan.status, 'blocked');
+  assert.equal(plan.mutation_adapters_enabled, false);
+  assert.ok(plan.blockers.some((blocker) => /conditional-write/.test(blocker)));
+  assert.ok(plan.blockers.some((blocker) => /protected-flow ID baseline/.test(blocker)));
+  assert.equal(calls.some((call) => call.method === 'DELETE'), false);
+  flow.name = 'Changed after review';
+  const stale = await service.revalidatePlan(auth, plan);
+  assert.equal(stale.ok, false);
+  assert.ok(stale.blockers.some((blocker) => /changed after review/.test(blocker)));
+  const verification = await service.verify(auth, { plan_id: 'plan', targets }, null);
+  assert.equal(verification.status, 'not_verified');
+  assert.ok(verification.results.every((item) => item.exists === true && item.status === 'not_attempted'));
+});
+
+test('batch target parser rejects wildcard names, duplicate-like and unbounded identifiers', () => {
+  assert.throws(() => validateBatchTarget({ resource_type: 'flow', resource_id: '*' }), { status: 400 });
+  assert.throws(() => validateBatchTarget({ resource_type: 'flow', resource_id: '-'.repeat(36) }), { status: 400 });
+  assert.throws(() => validateBatchTarget({
+    resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', secret: 'fake-secret',
+  }), { status: 400 });
+  assert.throws(() => validateBatchTarget({ resource_type: 'dataset', resource_id: 'not-an-id' }), { status: 400 });
+  assert.throws(() => validateBatchTarget({ resource_type: 'unknown', resource_id: 'x' }), { status: 400 });
+});
+
+test('protected baseline compares stable list metadata and blocks overall success on incomplete, changed, missing or unknown coverage', async () => {
+  const targetId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const protectedId = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
+  let protectedFlow = {
+    id: protectedId, name: 'REL_protected', state: 'enabled',
+    sourceConnectionIds: ['source-original'], updatedAt: 1, metrics: { count: 1 },
+  };
+  let targetExists = true;
+  let denyInventory = false;
+  const target = { resource_type: 'flow', resource_id: targetId };
+  const fetchImpl = async (input, init) => {
+    assert.equal(init.method, 'GET');
+    const url = new URL(input);
+    const path = decodeURIComponent(url.pathname);
+    const reply = (data, status = 200) => new Response(data == null ? null : JSON.stringify(data), { status });
+    if (path.endsWith(`/flows/${targetId}`)) {
+      return targetExists ? reply({ id: targetId, name: 'candidate' }) : reply({}, 404);
+    }
+    if (path.endsWith('/flows')) {
+      if (denyInventory) return reply({}, 403);
+      return reply({ items: [targetExists && { id: targetId, name: 'candidate' }, protectedFlow].filter(Boolean), _links: { next: null } });
+    }
+    if (path.endsWith('/dataSets')) return reply({ _page: { next: null } });
+    if (path.endsWith('/schemas')) return reply({ results: [], _page: { next: null } });
+    if (path.endsWith('/descriptors')) return reply({ results: [], _page: { next: null } });
+    if (path.endsWith('/sourceConnections') || path.endsWith('/targetConnections') || path.endsWith('/connections')) {
+      return reply({ items: [], _links: { next: null } });
+    }
+    if (path.endsWith(`/flows/${protectedId}`)) return reply({ ...protectedFlow, extraGetOnly: true });
+    throw new Error(`Unexpected mock URL ${url}`);
+  };
+  const service = createPlatformCleanupService({ fetchImpl });
+  const plan = await service.plan(auth, { targets: [target] });
+  targetExists = false;
+  const execution = { items: { [`flow:${targetId}`]: { status: 'succeeded' } } };
+  protectedFlow = { ...protectedFlow, updatedAt: 2, metrics: { count: 999 }, lastRunId: 'new-run' };
+  let result = await service.verify(auth, plan, execution);
+  assert.equal(result.results[0].exists, false);
+  assert.equal(result.results[0].status, 'succeeded');
+  assert.equal(result.protected_baseline.results[0].status, 'preserved');
+  assert.equal(result.protected_baseline.coverage, 'metadata_only');
+  assert.equal(result.protected_baseline.status, 'incomplete');
+  assert.notEqual(result.status, 'verified_absent');
+  protectedFlow = { ...protectedFlow, sourceConnectionIds: ['source-changed'] };
+  result = await service.verify(auth, plan, execution);
+  assert.equal(result.protected_baseline.results[0].status, 'changed');
+  assert.notEqual(result.status, 'verified_absent');
+  protectedFlow = null;
+  result = await service.verify(auth, plan, execution);
+  assert.equal(result.protected_baseline.results[0].status, 'missing');
+  assert.notEqual(result.status, 'verified_absent');
+  denyInventory = true;
+  result = await service.verify(auth, plan, execution);
+  assert.equal(result.protected_baseline.results[0].status, 'unknown');
+  assert.equal(result.protected_baseline.error.status, 403);
+  assert.match(result.protected_baseline.error.message, /flows failed \(403\)/);
+  assert.equal(result.status, 'uncertain');
 });
 
 test('normalizes only same-resource relative Flow continuation links', async () => {

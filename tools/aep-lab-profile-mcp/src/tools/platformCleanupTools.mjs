@@ -1,6 +1,9 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { platformAssetList, platformAssetAudit, platformAssetDelete } from '../labApiClient.mjs';
+import {
+  platformAssetList, platformAssetAudit, platformAssetDelete,
+  platformCleanupInventory, platformCleanupPlan, platformCleanupApply, platformCleanupVerify,
+} from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
@@ -14,6 +17,15 @@ export function registerPlatformCleanupTools(server) {
     ...scope,
     resource_id: z.string().min(1).describe('Exact dataset ID or full tenant schema $id URI returned by inventory.'),
   };
+  const batchTarget = z.object({
+    resource_type: z.enum([
+      'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
+      'targetConnection', 'baseConnection', 'account', 'mappingSet', 'ajoChannel',
+    ]),
+    resource_id: z.string().min(1).max(512).refine((id) => !/[*?]/.test(id))
+      .describe('Exact ID from the workbook or a fresh metadata inventory; never a name or pattern.'),
+  });
+  const batchTargets = z.array(batchTarget).min(1).max(100);
   const tools = [
     ['lab_platform_asset_list', 'List AEP datasets or tenant schemas',
       'Metadata-only inventory. Never deletes anything or reads customer records. Identify exact IDs before auditing.',
@@ -38,6 +50,35 @@ export function registerPlatformCleanupTools(server) {
         confirmed: z.literal(true).describe('Only after explicit confirmation of this exact resource.'),
         usage_cleared: z.literal(true).describe('Only after the colleague independently clears AJO/campaign/audience and external usage.'),
       }, platformAssetDelete],
+    ['lab_platform_cleanup_inventory', 'Inventory exact AEP cleanup targets',
+      'Metadata-only exact-ID inventory for flows, datasets, schemas, descriptors and connections. '
+      + 'Reports unsupported mapping-set/AJO-channel coverage and limitations; no customer records are read. '
+      + 'IDs are inputs, never discovered as deletion selectors.',
+      { sandbox: scope.sandbox, targets: batchTargets }, platformCleanupInventory],
+    ['lab_platform_cleanup_plan', 'Build a governed exact-ID cleanup plan',
+      'Creates an immutable, principal/org/sandbox/state/policy-bound plan that expires after 15 minutes. '
+      + 'Orders dependencies from observed references, caps scope at 100 objects and reports blockers, unknown coverage, '
+      + 'protected resources and the exact manifest. A plan receipt is persisted in Firestore. '
+      + 'Current batch mutation adapters are intentionally disabled; a blocked plan cannot be applied.',
+      { sandbox: scope.sandbox, targets: batchTargets }, platformCleanupPlan],
+    ['lab_platform_cleanup_apply', 'Apply a reviewed cleanup plan',
+      'DESTRUCTIVE AND IRREVERSIBLE. Requires explicit confirmation of the exact plan, count, digest, and independent '
+      + 'external-usage clearance. Atomically claims once and never retries or resumes. Current backend gates all batch '
+      + 'DELETE adapters off because conditional-write, active-run and completion guarantees remain unverified; expect '
+      + 'a durable blocked result and no Adobe DELETE request.',
+      {
+        sandbox: scope.sandbox,
+        plan_id: z.string().uuid(),
+        manifest_digest: z.string().regex(/^[a-f0-9]{64}$/i),
+        expected_count: z.number().int().min(1).max(100),
+        confirmed: z.literal(true),
+        usage_cleared: z.literal(true),
+      }, platformCleanupApply],
+    ['lab_platform_cleanup_verify', 'Verify cleanup plan status and readback',
+      'Read-only recovery/status check for a plan. Reconciles current object presence without replaying deletes; '
+      + 'absence is not reported as deletion success unless a durable successful attempt exists. '
+      + 'Protected-baseline and external-usage limitations remain explicit.',
+      { sandbox: scope.sandbox, plan_id: z.string().uuid() }, platformCleanupVerify],
   ];
   for (const [name, title, description, inputSchema, invoke] of tools) {
     server.registerTool(name, { title, description, inputSchema }, async (params) => {
