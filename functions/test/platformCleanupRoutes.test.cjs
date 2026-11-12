@@ -22,10 +22,24 @@ function fixture(overrides = {}) {
       list: async () => ({ resources: [] }),
       audit: async () => ({ resource: { id, name: 'Delete me' }, fingerprint: 'state', etag: 'etag', deleteReviewReady: true }),
       remove: async (...args) => { calls.push(args); return { verifiedAbsent: true }; },
+      batchInventory: async (_auth, params) => ({ resources: params.targets, coverage: { complete: true } }),
+      plan: async (_auth, { targets }) => ({
+        status: 'blocked', state_fingerprint: 'a'.repeat(64), targets, expected_count: targets.length,
+        blockers: ['Mutation adapter disabled'], mutation_adapters_enabled: false,
+      }),
+      revalidatePlan: async () => ({ ok: false, blockers: ['Mutation adapter disabled'] }),
+      verify: async (_auth, plan) => ({ plan_id: plan.plan_id, status: 'not_verified', results: [] }),
     },
     platformCleanupStore: {
       saveAudit: async (plan) => { calls.push(plan); return { audit_id: auditId }; },
       consumeAudit: async (_id, expected) => { calls.push(expected); return { fingerprint: 'state' }; },
+      savePlan: async (plan) => {
+        calls.push(plan);
+        return { plan_id: auditId, expiresAt: new Date().toISOString(), manifest_digest: 'a'.repeat(64), status: plan.status };
+      },
+      claimPlan: async (...args) => { calls.push(args); return { claimed: false, blocked: true, replayed: true, plan: { status: 'blocked', blockers: ['No adapter'] }, execution: { state: 'blocked' } }; },
+      getExecution: async () => ({ plan: { plan_id: auditId }, execution: null }),
+      finishExecution: async () => ({ blockers: [] }),
     },
     ...overrides,
   };
@@ -153,4 +167,93 @@ test('surfaces partial failure instead of returning success', async () => {
   assert.equal(result.statusCode, 409);
   assert.equal(result.body.ok, false);
   assert.deepEqual(result.body.detail.deletedDescriptors, ['one']);
+});
+
+test('batch inventory and planning use authenticated exact IDs and persist a blocked plan receipt', async () => {
+  const { request, calls } = fixture();
+  const targets = [{ resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }];
+  const inventory = await request('POST', { operation: 'inventory', sandbox: 'apalmer', targets });
+  assert.equal(inventory.statusCode, 200);
+  assert.deepEqual(inventory.body.resources, targets);
+  const plan = await request('POST', { operation: 'plan', sandbox: 'apalmer', targets });
+  assert.equal(plan.statusCode, 200);
+  assert.equal(plan.body.status, 'blocked');
+  assert.equal(plan.body.confirmation.manifest_digest, 'a'.repeat(64));
+  assert.equal(calls.some((call) => call?.targets?.[0]?.resource_type === 'flow'), true);
+});
+
+test('batch apply requires explicit exact confirmation and reports durable blocked status without DELETE', async () => {
+  const { request, calls } = fixture();
+  const body = {
+    operation: 'apply', sandbox: 'apalmer', plan_id: auditId,
+    manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
+  };
+  assert.equal((await request('POST', { ...body, confirmed: false })).statusCode, 400);
+  const result = await request('POST', body);
+  assert.equal(result.statusCode, 409);
+  assert.equal(result.body.status, 'blocked');
+  assert.equal(result.body.replayed, true);
+  assert.equal(calls.some((call) => Array.isArray(call) && call.some((entry) => entry?.method === 'DELETE')), false);
+});
+
+test('batch verification is a scoped readback and does not require the plan to remain unexpired', async () => {
+  const { request } = fixture();
+  const result = await request('POST', { operation: 'verify', sandbox: 'apalmer', plan_id: auditId });
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.status, 'not_verified');
+});
+
+test('batch plan rejects duplicate, wildcard, oversized, and cross-sandbox targets', async () => {
+  const { request, calls } = fixture();
+  const target = { resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+  assert.equal((await request('POST', { operation: 'plan', targets: [target, target] })).statusCode, 400);
+  assert.equal((await request('POST', { operation: 'plan', targets: [{ ...target, resource_id: '*' }] })).statusCode, 400);
+  assert.equal((await request('POST', { operation: 'plan', targets: Array(101).fill(target) })).statusCode, 400);
+  assert.equal((await request('POST', { operation: 'plan', sandbox: 'other', targets: [target] })).statusCode, 403);
+  assert.equal(calls.length, 0);
+});
+
+test('batch targets reject untrusted fields before a plan can be stored', async () => {
+  const { request, calls } = fixture();
+  const target = {
+    resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    secret: 'fake-secret', override: true,
+  };
+  assert.equal((await request('POST', { operation: 'plan', targets: [target] })).statusCode, 400);
+  assert.equal(calls.length, 0);
+});
+
+test('batch resource and plan IDs require canonical UUID structure', async () => {
+  const { request, calls } = fixture();
+  const body = {
+    operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
+    expected_count: 1, confirmed: true, usage_cleared: true,
+  };
+  for (const invalid of ['-'.repeat(36), 'aaaaaaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa-']) {
+    assert.equal((await request('POST', { operation: 'plan', targets: [{ resource_type: 'flow', resource_id: invalid }] })).statusCode, 400);
+    assert.equal((await request('POST', { ...body, plan_id: invalid })).statusCode, 400);
+    assert.equal((await request('POST', { operation: 'verify', plan_id: invalid })).statusCode, 400);
+  }
+  assert.equal(calls.length, 0);
+});
+
+test('replays retain failure status for blocked, failed, uncertain and expired executions', async () => {
+  for (const state of ['blocked', 'failed', 'uncertain', 'expired']) {
+    const { request } = fixture({
+      platformCleanupStore: {
+        claimPlan: async () => ({
+          claimed: false, replayed: true, plan: { state }, execution: { state, blockers: ['durable result'] },
+        }),
+      },
+    });
+    const result = await request('POST', {
+      operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
+      expected_count: 1, confirmed: true, usage_cleared: true,
+    });
+    assert.equal(result.statusCode, 409);
+    assert.equal(result.body.ok, false);
+    assert.equal(result.body.status, state);
+    assert.equal(result.body.execution.state, state);
+    assert.equal(result.body.replayed, true);
+  }
 });

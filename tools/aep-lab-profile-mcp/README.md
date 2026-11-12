@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and registers the complete 238-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. The two ingestion diagnostics additions below require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after upgrading from v3.53.0 (236 tools):
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 242-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only ingestion diagnostics
 
@@ -358,6 +358,10 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_platform_asset_list` | `GET /api/platform-cleanup` | Metadata-only dataset or tenant schema inventory; optional name filter |
 | `lab_platform_asset_audit` | `GET /api/platform-cleanup?resource_type=…&resource_id=…` | Exact-ID dependency review and expiring single-use confirmation receipt |
 | `lab_platform_asset_delete` | `DELETE /api/platform-cleanup` | One confirmed dataset or tenant schema; re-audit, dependency guards, verified absence |
+| `lab_platform_cleanup_inventory` | `POST /api/platform-cleanup` (`operation: inventory`) | Exact-ID metadata inventory for flow/dataset/schema/descriptor/connection targets; reports unsupported coverage |
+| `lab_platform_cleanup_plan` | `POST /api/platform-cleanup` (`operation: plan`) | Immutable principal/org/sandbox/state/policy-bound plan, max 100 exact IDs, 15-minute expiry |
+| `lab_platform_cleanup_apply` | `POST /api/platform-cleanup` (`operation: apply`) | Atomic one-shot plan claim and durable status; batch DELETE adapters are currently gated off |
+| `lab_platform_cleanup_verify` | `POST /api/platform-cleanup` (`operation: verify`) | Readback and durable status; never replays mutations |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
 | `lab_update_profile` | `POST /api/profile/update?industry=` | **Full-snapshot stitch** |
@@ -487,6 +491,52 @@ The Firebase `platformCleanupProxy` is wired through `/api/platform-cleanup`. MC
 Initial tool availability requires both the Firebase function/Hosting rewrite and the Cloud Run MCP release through the repository's normal validated main-branch workflow. Backend-only parser changes require deploying `platformCleanupProxy`, not a new MCP service or marketplace release. Local implementation does not make changes live, and does not grant Adobe API permissions or delete any live assets.
 
 API contracts: [Catalog deletion](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/delete-object), [Schema Registry schemas](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas), [descriptors](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/descriptors), and [pagination](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/appendix).
+
+### Governed multi-asset cleanup (execution gated)
+
+The batch contract adds `lab_platform_cleanup_inventory`, `lab_platform_cleanup_plan`,
+`lab_platform_cleanup_apply`, and `lab_platform_cleanup_verify` to the same endpoint.
+Inventory and plans accept a list of typed, exact IDs only (1–100); duplicate IDs,
+wildcards, unsupported identifiers and cross-sandbox scope are rejected. The backend
+scans paginated Flow Service, Catalog and Schema Registry metadata, hashes resource
+state and the protected baseline, derives observed dependency order, and stores the
+reviewed plan in `platformCleanupPlans` for 15 minutes. A plan binds the authenticated
+principal, configured IMS org, sandbox, exact target manifest, policy version and
+evidence digest. Execution records live in `platformCleanupExecutions`; a transaction
+claims a plan at most once, item intent must be durable before its result, and status
+remains readable after plan expiry. Timeouts or uncertain outcomes must be reconciled
+through verify/readback, never replayed.
+
+Protected-baseline comparisons use the same list-metadata projection at planning
+and readback, excluding routine timestamps, run details and metrics. This is
+metadata-only evidence, not complete configuration, service health or downstream
+output verification. Overall `verified_absent` also requires a complete, preserved
+protected baseline; the currently unavailable protected-flow ID baseline prevents
+that result even when individual target readbacks show absence.
+
+**No batch DELETE adapter is enabled.** Public contracts reviewed do not establish
+conditional DELETE, flow run/schedule quiescence, cascade behavior or completion
+semantics; mapping-set and AJO-channel inventory/deletion contracts are also not
+available. External AJO/audience/destination/application use is not covered by the
+metadata scans. Every proposed plan therefore remains blocked. `apply` atomically
+records a blocked one-shot result and issues zero Adobe DELETE requests. This is
+intentional fail-closed behavior, not a claim that the first batch is ready.
+
+An audit workbook may supply exact candidate IDs, but its verdicts are not
+deletion authorization or fresh ownership/usage evidence. Keep workbook data and
+batch-specific manifests in session artifacts rather than shared tool guidance
+or source fixtures. Select only the reviewed subset: never automatically include
+later batches, optional rows or wildcard patterns. Independently establish
+Profile/Identity flags, connection dependencies, protected IDs, active runs and
+campaign usage; draft/completed status does not establish that a campaign is
+unaffected. Campaign rebuilding/deletion requires separate review and permission.
+The exact protected Snowflake account
+`a0682068-80a4-4c97-842c-f2ab0eebc841` remains protected.
+
+The legacy single-asset tools remain available for compatibility, but protected
+REL/Agentic, `cjm_`, AJO/CJA/system/global/Lakehouse TTL and Profile/Identity
+resources are denied there too. A blocked batch plan must not be bypassed by
+calling the legacy delete tool object-by-object.
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 

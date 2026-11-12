@@ -97,8 +97,12 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   assert.equal(JSON.parse((await load.json()).result.content[0].text).ok, true);
   assert.match(await notification, /notifications\/tools\/list_changed/);
   const names = (await (await post('/mcp/entry', 'tools/list', {}, session)).json()).result.tools.map((tool) => tool.name);
-  assert.equal(names.length, 8);
-  for (const name of ['lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete']) {
+  assert.equal(names.length, 12);
+  for (const name of [
+    'lab_platform_asset_list', 'lab_platform_asset_audit', 'lab_platform_asset_delete',
+    'lab_platform_cleanup_inventory', 'lab_platform_cleanup_plan',
+    'lab_platform_cleanup_apply', 'lab_platform_cleanup_verify',
+  ]) {
     assert.ok(names.includes(name));
   }
   streamAbort.abort();

@@ -8,6 +8,15 @@ const REGISTRY = '/data/foundation/schemaregistry/tenant';
 const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
+const MAX_BATCH_TARGETS = 100;
+const BATCH_POLICY_VERSION = '2026-11-12.1';
+const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
+const BATCH_TYPES = new Set([
+  'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
+  'targetConnection', 'baseConnection', 'account', 'mappingSet', 'ajoChannel',
+]);
+const MUTATION_ADAPTERS_ENABLED = false;
+const UUID = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const CATALOG_DATASET_ID = /^(?:[a-f0-9]{24}|[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i;
 const WARNINGS = [
   'Deletion is irreversible and permanently removes dataset data or schema metadata.',
@@ -31,6 +40,35 @@ function validateTarget(type, id) {
   if (type === 'schema' && !/^https:\/\/ns\.adobe\.com\/[A-Za-z0-9_-]+\/schemas\/[a-f0-9]+$/i.test(id)) {
     throw failure(400, 'An exact tenant schema $id URI is required.');
   }
+}
+
+function validateBatchTarget(target) {
+  if (!target || typeof target !== 'object' || Array.isArray(target)
+      || Object.keys(target).some((key) => !['resource_type', 'resource_id'].includes(key))
+      || !BATCH_TYPES.has(target.resource_type) || typeof target.resource_id !== 'string'
+      || !target.resource_id || target.resource_id.length > 512) {
+    throw failure(400, 'Each target requires a supported resource_type and exact resource_id.');
+  }
+  const { resource_type: type, resource_id: id } = target;
+  if (type === 'dataset' || type === 'schema') return validateTarget(type, id);
+  if (type === 'mappingSet' || type === 'ajoChannel') {
+    if (/[*?]/.test(id)) throw failure(400, 'Wildcard resource IDs are not supported.');
+    return;
+  }
+  if (type === 'descriptor') {
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) throw failure(400, 'An exact descriptor ID is required.');
+    return;
+  }
+  if (!UUID.test(id)) throw failure(400, `An exact ${type} UUID is required.`);
+}
+
+function protectedMetadata(value) {
+  if (Array.isArray(value)) return value.map(protectedMetadata);
+  if (!value || typeof value !== 'object') return value;
+  const operationalKey = /^(?:created|updated|modified|lastModified|lastUpdated|lastRun|lastExecution|nextRun|runCount|metrics|statistics|stats|runs|etag|eTag|timestamp)(?:At|Time|Timestamp|Date|Id|Status|Count|s)?$/i;
+  return Object.fromEntries(Object.entries(value)
+    .filter(([key]) => !operationalKey.test(key))
+    .map(([key, item]) => [key, protectedMetadata(item)]));
 }
 
 function canonical(value) {
@@ -66,6 +104,35 @@ function profileEnabled(value) {
 
 function identityEnabled(value) {
   return enabledTag(value, 'unifiedIdentity');
+}
+
+function protectedResource(type, id, name = '') {
+  const normalizedName = String(name).trim().toLowerCase();
+  if (['account', 'baseConnection'].includes(type) && id.toLowerCase() === PROTECTED_SNOWFLAKE_ACCOUNT_ID) {
+    return 'The protected Adobe DEV Snowflake travel account cannot be deleted.';
+  }
+  if (/(^|[^a-z0-9])rel_/.test(normalizedName)
+      || /\brel\b/.test(normalizedName)
+      || /(^|[^a-z0-9])agentic(?:_|$|[^a-z0-9])/.test(normalizedName)) {
+    return 'REL and Agentic resources are protected independently of their current display state.';
+  }
+  if (/(^|[^a-z0-9])cjm_/.test(normalizedName)
+      || /\b(ajo|cja|system|global|lakehouse|ttl)\b/.test(normalizedName)) {
+    return 'AJO/CJA, system/global, CJM and Lakehouse TTL resources are protected.';
+  }
+  return null;
+}
+
+function batchResource(type, raw, id) {
+  const name = raw?.name || raw?.title || raw?.flowName || raw?.connectionName || raw?.label || '';
+  return {
+    resource_type: type,
+    resource_id: id,
+    name: typeof name === 'string' ? name : '',
+    state: typeof raw?.state === 'string' ? raw.state : '',
+    profileEnabled: profileEnabled(raw),
+    identityEnabled: identityEnabled(raw),
+  };
 }
 
 function cleanupEnabled(value) {
@@ -401,6 +468,8 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
   async function audit(auth, { resource_type: type, resource_id: id }) {
     const target = await get(auth, type, id);
     const blockers = [];
+    const policyBlock = protectedResource(type, id, target.resource.name);
+    if (policyBlock) blockers.push(policyBlock);
     if (cleanupEnabled(target.raw)) blockers.push('Profile/Identity-enabled resources are not supported by this cleanup tool.');
     const schemaId = type === 'schema' ? id : target.resource.schemaId;
     if (!schemaId) throw failure(409, 'Dataset schema reference is missing; dependency safety cannot be established.');
@@ -499,7 +568,303 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     }
   }
 
-  return { list, audit, remove };
+  function inventoryId(type, raw) {
+    if (type === 'schema') return raw?.$id;
+    if (type === 'descriptor') return raw?.['@id'];
+    return raw?.id || raw?.flowId || raw?.connectionId || raw?.['@id'];
+  }
+
+  async function collectBatchInventory(auth) {
+    const [datasets, schemas, descriptorRows, flows, sources, targets, accounts] = await Promise.all([
+      listCatalog(auth),
+      listPaged(auth, `${REGISTRY}/schemas`, 'application/vnd.adobe.xed-id+json', 'results'),
+      descriptors(auth),
+      listPaged(auth, `${FLOW}/flows`, 'application/json', 'items'),
+      listPaged(auth, `${FLOW}/sourceConnections`, 'application/json', 'items'),
+      listPaged(auth, `${FLOW}/targetConnections`, 'application/json', 'items'),
+      listPaged(auth, `${FLOW}/connections`, 'application/json', 'items'),
+    ]);
+    const entries = [
+      ...flows.map((raw) => ({ type: 'flow', raw })),
+      ...datasets.map((raw) => ({ type: 'dataset', raw })),
+      ...schemas.map((raw) => ({ type: 'schema', raw })),
+      ...descriptorRows.map((raw) => ({ type: 'descriptor', raw })),
+      ...sources.map((raw) => ({ type: 'sourceConnection', raw })),
+      ...targets.map((raw) => ({ type: 'targetConnection', raw })),
+      ...accounts.map((raw) => ({ type: 'baseConnection', raw })),
+    ].map(({ type, raw }) => ({ type, id: inventoryId(type, raw), raw }));
+    const incomplete = entries.find((entry) => typeof entry.id !== 'string' || !entry.id);
+    if (incomplete) throw failure(502, `Incomplete ${incomplete.type} inventory; batch planning stopped.`);
+    const identities = entries.map(({ type, id }) => `${type}:${id}`);
+    if (new Set(identities).size !== identities.length) throw failure(502, 'Duplicate inventory identity; batch planning stopped.');
+    return {
+      entries,
+      coverage: {
+        complete: false,
+        metadata_scans_complete: true,
+        resources: {
+          flows: flows.length, datasets: datasets.length, schemas: schemas.length,
+          descriptors: descriptorRows.length, sourceConnections: sources.length,
+          targetConnections: targets.length, baseConnections: accounts.length,
+        },
+        unsupported: [
+          { resource_type: 'mappingSet', reason: 'No verified inventory contract is enabled.' },
+          { resource_type: 'ajoChannel', reason: 'No verified inventory contract is enabled.' },
+        ],
+        limitations: [
+          'External AJO, audience, destination and application usage is not established by these inventories.',
+          'Flow run/schedule quiescence is not established by metadata inventory.',
+          'The protected 28-flow ID baseline has not been independently loaded.',
+        ],
+        protectedFlowIdBaseline: 'unavailable',
+      },
+    };
+  }
+
+  async function getBatchTarget(auth, target) {
+    validateBatchTarget(target);
+    const { resource_type: type, resource_id: id } = target;
+    if (type === 'mappingSet' || type === 'ajoChannel') {
+      return { raw: null, resource: { resource_type: type, resource_id: id, name: '' }, unsupported: true };
+    }
+    if (type === 'dataset' || type === 'schema') {
+      const current = await get(auth, type, id);
+      return { ...current, resource: batchResource(type, current.raw, id) };
+    }
+    const path = type === 'flow' ? `${FLOW}/flows/${encodeURIComponent(id)}`
+      : type === 'sourceConnection' ? `${FLOW}/sourceConnections/${encodeURIComponent(id)}`
+        : type === 'targetConnection' ? `${FLOW}/targetConnections/${encodeURIComponent(id)}`
+          : type === 'baseConnection' || type === 'account'
+            ? `${FLOW}/connections/${encodeURIComponent(id)}/`
+            : `${REGISTRY}/descriptors/${encodeURIComponent(id)}`;
+    const { data, etag } = await request(auth, path, {
+      accept: type === 'descriptor' ? 'application/vnd.adobe.xdm-v2+json' : 'application/json',
+    });
+    const raw = Array.isArray(data?.items) ? data.items.find((item) => inventoryId(type, item) === id)
+      : data?.[id] || data;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw) || inventoryId(type, raw) !== id) {
+      throw failure(502, 'Platform resource identity could not be verified.');
+    }
+    return { raw, resource: batchResource(type, raw, id), etag };
+  }
+
+  function referencesBetween(entries, selected) {
+    const selectedIds = new Set(selected.map((target) => target.resource_id));
+    const edges = [];
+    const external = [];
+    for (const entry of entries) {
+      const found = [...selectedIds].filter((id) => id !== entry.id && references(entry.raw, new Set([id])));
+      if (!found.length) continue;
+      const isSelected = selected.some((target) => target.resource_type === entry.type && target.resource_id === entry.id);
+      for (const referencedId of found) {
+        if (isSelected) edges.push({ before: entry.id, after: referencedId, source_type: entry.type });
+        else external.push({ source_type: entry.type, source_id: entry.id, referenced_id: referencedId });
+      }
+    }
+    return { edges, external };
+  }
+
+  function dependencyOrder(targets, edges) {
+    const remaining = new Map(targets.map((target) => [target.resource_id, 0]));
+    const outgoing = new Map(targets.map((target) => [target.resource_id, []]));
+    for (const edge of edges) {
+      if (!remaining.has(edge.before) || !remaining.has(edge.after)) continue;
+      outgoing.get(edge.before).push(edge.after);
+      remaining.set(edge.after, remaining.get(edge.after) + 1);
+    }
+    const ready = [...remaining].filter(([, count]) => count === 0).map(([id]) => id).sort();
+    const ordered = [];
+    while (ready.length) {
+      const id = ready.shift();
+      ordered.push(id);
+      for (const dependent of outgoing.get(id)) {
+        remaining.set(dependent, remaining.get(dependent) - 1);
+        if (remaining.get(dependent) === 0) {
+          ready.push(dependent);
+          ready.sort();
+        }
+      }
+    }
+    return { ordered, cyclic: ordered.length !== targets.length };
+  }
+
+  async function batchInventory(auth, { targets }) {
+    validateBatchTargets(targets);
+    const snapshot = await collectBatchInventory(auth);
+    const requested = await Promise.all(targets.map((target) => getBatchTarget(auth, target)));
+    return {
+      sandbox: auth.sandbox,
+      resources: requested.map(({ resource, unsupported }) => ({ ...resource, inventory_supported: !unsupported })),
+      counts: snapshot.coverage.resources,
+      coverage: snapshot.coverage,
+    };
+  }
+
+  function validateBatchTargets(targets) {
+    if (!Array.isArray(targets) || targets.length === 0 || targets.length > MAX_BATCH_TARGETS) {
+      throw failure(400, `targets must contain 1-${MAX_BATCH_TARGETS} exact resources.`);
+    }
+    for (const target of targets) validateBatchTarget(target);
+    const identities = targets.map((target) => target.resource_id);
+    if (new Set(identities).size !== identities.length) throw failure(400, 'Duplicate target IDs are not allowed, including across resource types.');
+  }
+
+  async function plan(auth, { targets }) {
+    validateBatchTargets(targets);
+    const snapshot = await collectBatchInventory(auth);
+    const exact = await Promise.all(targets.map((target) => getBatchTarget(auth, target)));
+    const blockers = [];
+    const manifest = targets.map((target, index) => {
+      const current = exact[index];
+      const targetBlockers = [];
+      if (current.unsupported) targetBlockers.push('No supported inventory or deletion contract is available for this resource type.');
+      const policyBlock = protectedResource(target.resource_type, target.resource_id, current.resource.name);
+      if (policyBlock) targetBlockers.push(policyBlock);
+      if (current.raw && cleanupEnabled(current.raw)) targetBlockers.push('Profile/Identity-enabled resources are protected.');
+      if (current.raw && target.resource_type === 'dataset') {
+        const schemaId = current.raw.schemaRef?.id;
+        if (typeof schemaId !== 'string' || !schemaId) targetBlockers.push('Dataset schema ownership is unresolved.');
+        else {
+          const schema = snapshot.entries.find((entry) => entry.type === 'schema' && entry.id === schemaId);
+          if (!schema) targetBlockers.push('Dataset schema is outside the complete schema inventory.');
+          else if (cleanupEnabled(schema.raw)) targetBlockers.push('The dataset schema is enabled for Profile/Identity.');
+        }
+      }
+      return {
+        ...current.resource,
+        state_fingerprint: fingerprint(current.raw || { unsupported: current.unsupported }),
+        blockers: targetBlockers,
+      };
+    });
+    const { edges, external } = referencesBetween(snapshot.entries, targets);
+    const { ordered, cyclic } = dependencyOrder(targets, edges);
+    if (cyclic) blockers.push('Target dependencies contain a cycle; safe ordering cannot be established.');
+    if (external.length) blockers.push('Unlisted resources refer to selected targets; silently expanding the requested scope is prohibited.');
+    if (snapshot.coverage.unsupported.length) blockers.push('Required mapping-set and AJO-channel coverage is unsupported; absence cannot be inferred.');
+    blockers.push('External AJO, audience, destination and application usage has not been independently evidenced as cleared.');
+    blockers.push('The reviewed protected-flow ID baseline is unavailable; flow identity protection is incomplete.');
+    if (targets.some((target) => ['flow', 'dataset', 'sourceConnection', 'targetConnection', 'baseConnection', 'account'].includes(target.resource_type))) {
+      blockers.push('Flow schedules and active-run quiescence are not verifiable through the approved metadata contract.');
+    }
+    if (!MUTATION_ADAPTERS_ENABLED) {
+      blockers.push('Batch DELETE adapters are disabled until conditional-write, concurrency and completion semantics are established.');
+    }
+    for (const item of manifest) {
+      for (const reason of item.blockers) blockers.push(`${item.resource_type} ${item.resource_id}: ${reason}`);
+    }
+    const protectedBaseline = snapshot.entries
+      .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName))
+      .map((entry) => ({
+        resource_type: entry.type, resource_id: entry.id,
+        state_fingerprint: fingerprint(protectedMetadata(entry.raw)),
+      }))
+      .sort((a, b) => `${a.resource_type}:${a.resource_id}`.localeCompare(`${b.resource_type}:${b.resource_id}`));
+    const stateFingerprint = fingerprint({
+      orgId: auth.orgId, sandbox: auth.sandbox, policyVersion: BATCH_POLICY_VERSION,
+      manifest, edges: [...edges].sort((a, b) => `${a.before}:${a.after}`.localeCompare(`${b.before}:${b.after}`)),
+      externalReferences: [...external].sort((a, b) => `${a.source_type}:${a.source_id}:${a.referenced_id}`.localeCompare(`${b.source_type}:${b.source_id}:${b.referenced_id}`)),
+      protectedBaseline, coverage: snapshot.coverage,
+    });
+    return {
+      status: blockers.length ? 'blocked' : 'ready',
+      policy_version: BATCH_POLICY_VERSION,
+      sandbox: auth.sandbox,
+      expected_count: manifest.length,
+      targets: targets.map(({ resource_type, resource_id }) => ({ resource_type, resource_id })),
+      manifest,
+      dependency_edges: edges,
+      external_references: external,
+      ordered_resource_ids: ordered,
+      blockers: [...new Set(blockers)],
+      warnings: [
+        'Batch deletion is irreversible. No rollback, cascade, or automatic retry is available.',
+        'Only the exact reviewed IDs may be targeted; every required side-effect target must be explicitly reviewed.',
+      ],
+      coverage: snapshot.coverage,
+      protected_baseline: protectedBaseline,
+      state_fingerprint: stateFingerprint,
+      mutation_adapters_enabled: MUTATION_ADAPTERS_ENABLED,
+    };
+  }
+
+  async function revalidatePlan(auth, approvedPlan) {
+    const current = await plan(auth, { targets: approvedPlan.targets });
+    const blockers = [...current.blockers];
+    if (current.state_fingerprint !== approvedPlan.state_fingerprint) {
+      blockers.push('Resource state, dependency coverage, or protected baseline changed after review.');
+    }
+    return {
+      ok: blockers.length === 0,
+      blockers: [...new Set(blockers)],
+      current_state_fingerprint: current.state_fingerprint,
+    };
+  }
+
+  async function verify(auth, approvedPlan, execution) {
+    const results = [];
+    for (const target of approvedPlan.targets) {
+      let exists = null;
+      let readError = null;
+      try {
+        const current = await getBatchTarget(auth, target);
+        if (current.unsupported) readError = 'No verified inventory contract exists for this resource type.';
+        else exists = true;
+      } catch (error) {
+        if (error.status === 404) exists = false;
+        else readError = error.message;
+      }
+      const recordedStatus = execution?.items?.[`${target.resource_type}:${target.resource_id}`]?.status || 'not_attempted';
+      const itemStatus = recordedStatus === 'intent_recorded' ? 'uncertain' : recordedStatus;
+      results.push({
+        resource_type: target.resource_type, resource_id: target.resource_id,
+        exists, status: readError ? 'unknown' : itemStatus,
+        ...(readError ? { error: readError } : {}),
+      });
+    }
+    const baseline = approvedPlan.protected_baseline;
+    let snapshot;
+    let inventoryError;
+    try {
+      snapshot = await collectBatchInventory(auth);
+    } catch (error) {
+      inventoryError = { status: error.status || 502, message: error.message };
+      snapshot = null;
+    }
+    const baselineResults = (baseline || []).map((item) => {
+      const current = snapshot?.entries.find((entry) => entry.type === item.resource_type && entry.id === item.resource_id);
+      return {
+        resource_type: item.resource_type, resource_id: item.resource_id,
+        status: !snapshot ? 'unknown' : !current ? 'missing'
+          : fingerprint(protectedMetadata(current.raw)) === item.state_fingerprint ? 'preserved' : 'changed',
+      };
+    });
+    const baselineCoverageKnown = Array.isArray(baseline)
+      && approvedPlan.coverage?.protectedFlowIdBaseline === 'verified'
+      && snapshot?.coverage?.protectedFlowIdBaseline === 'verified';
+    const baselineStatus = baselineResults.some((item) => item.status === 'unknown') ? 'unknown'
+      : baselineResults.some((item) => item.status !== 'preserved') ? 'changed'
+        : !snapshot ? 'unknown'
+        : baselineCoverageKnown ? 'preserved' : 'incomplete';
+    return {
+      plan_id: approvedPlan.plan_id,
+      execution_status: execution?.state || approvedPlan.state,
+      status: results.length > 0 && baselineStatus === 'preserved'
+        && results.every((item) => item.status === 'succeeded' && item.exists === false)
+        ? 'verified_absent'
+        : baselineStatus === 'unknown' || results.some((item) => item.status === 'uncertain' || item.status === 'unknown') ? 'uncertain' : 'not_verified',
+      results,
+      protected_baseline: {
+        status: baselineStatus, results: baselineResults, coverage: 'metadata_only',
+        ...(inventoryError ? { error: inventoryError } : {}),
+        limitation: 'Comparison uses list metadata only; it does not establish full configuration, operational health or downstream output.',
+      },
+    };
+  }
+
+  return { list, audit, remove, batchInventory, plan, revalidatePlan, verify };
 }
 
-module.exports = { createPlatformCleanupService, validateTarget, fingerprint };
+module.exports = {
+  createPlatformCleanupService, validateTarget, validateBatchTarget, fingerprint,
+  MAX_BATCH_TARGETS, BATCH_POLICY_VERSION, MUTATION_ADAPTERS_ENABLED, UUID,
+};
