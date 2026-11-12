@@ -18,7 +18,7 @@
 .my-data-flows-page .flows-status[data-error="true"] { color: var(--dash-error-text); }
 .my-data-flows-page .flows-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; margin-bottom: 1rem; }
 .my-data-flows-page .flows-toolbar h2 { margin: 0; margin-right: auto; }
-.my-data-flows-page button {
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) button {
   font: inherit;
   color: var(--dash-text);
   background: var(--dash-input-bg);
@@ -27,10 +27,10 @@
   padding: .6rem .9rem;
   cursor: pointer;
 }
-.my-data-flows-page button:hover { background: var(--dash-hover); }
-.my-data-flows-page button:disabled { opacity: .55; cursor: default; }
-.my-data-flows-page button[aria-pressed="true"] { border-color: var(--dash-blue); color: var(--dash-blue); }
-.my-data-flows-page select { font: inherit; max-width: 100%; padding: .6rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: 8px; }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) button:hover { background: var(--dash-hover); }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) button:disabled { opacity: .55; cursor: default; }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) button[aria-pressed="true"] { border-color: var(--dash-blue); color: var(--dash-blue); }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) select { font: inherit; max-width: 100%; padding: .6rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: 8px; }
 .my-data-flows-page .flows-write-disclosure { display: flex; gap: .6rem; align-items: baseline; line-height: 1.6; }
 .my-data-flows-page .flows-trace-stages { display: grid; gap: .75rem; padding-left: 1.5rem; }
 .my-data-flows-page .flows-trace-stages pre { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--dash-text); background: var(--dash-surface-alt); padding: .75rem; border-radius: 8px; }
@@ -40,7 +40,7 @@
 .my-data-flows-page .flows-node[data-live-state="checking"] rect { stroke: var(--dash-blue); stroke-dasharray: 6 4; }
 .my-data-flows-page .flows-node[data-live-state="failed"] rect { stroke: var(--dash-error-text); stroke-width: 3; }
 .my-data-flows-page .flows-node[data-live-state="unavailable"] rect { stroke: var(--dash-muted); stroke-dasharray: 3 4; }
-.my-data-flows-page :focus-visible { outline: 3px solid var(--dash-blue); outline-offset: 3px; }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) :focus-visible { outline: 3px solid var(--dash-blue); outline-offset: 3px; }
 .my-data-flows-page .flows-graph {
   width: 100%;
   box-sizing: border-box;
@@ -76,12 +76,12 @@
 .my-data-flows-page .flows-card dl { display: grid; grid-template-columns: minmax(7rem, 1fr) minmax(0, 2fr); gap: .5rem 1rem; }
 .my-data-flows-page .flows-card dt { color: var(--dash-text-secondary); }
 .my-data-flows-page .flows-card dd { margin: 0; overflow-wrap: anywhere; }
-.my-data-flows-page summary { cursor: pointer; padding: .65rem 0; }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) summary { cursor: pointer; padding: .65rem 0; }
 .my-data-flows-page .flows-dialog { width: calc(100vw - 3rem); max-width: none; height: calc(100dvh - 3rem); max-height: none; margin: auto; padding: 1rem; }
 .my-data-flows-page .flows-dialog::backdrop { background: var(--dash-bg); opacity: .85; }
 .my-data-flows-page .flows-dialog .flows-panel { border: 0; padding: 0; }
 .my-data-flows-page .flows-dialog .flows-graph { height: 55dvh; min-height: 0; aspect-ratio: auto; }
-.my-data-flows-page [hidden] { display: none; }
+.my-data-flows-page :where(.dashboard-main, .flows-dialog) [hidden] { display: none; }
 @media (max-width: 600px) {
   .my-data-flows-page .flows-panel { padding: 1rem; }
   .my-data-flows-page .flows-dialog { width: calc(100vw - 1rem); height: calc(100dvh - 1rem); padding: .75rem; }

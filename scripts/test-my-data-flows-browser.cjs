@@ -86,6 +86,44 @@ async function main() {
   try {
     browser = await chromium.launch({ headless: true });
     const errors = [];
+    for (const theme of ['light', 'dark']) {
+      const navContext = await browser.newContext();
+      await navContext.route('**/*', route => {
+        const url = new URL(route.request().url());
+        if (url.origin !== origin || url.pathname.endsWith('.js')) return route.fulfill({ body: '' });
+        return route.continue();
+      });
+      await navContext.addInitScript(theme => {
+        localStorage.setItem('aepTheme', theme);
+        localStorage.setItem('aepMenuPalette', 'ocean');
+        localStorage.setItem('aepBgPreset', 'default');
+        localStorage.setItem('aepHomeDashboardSidebarTheme', 'light');
+      }, theme);
+      async function sidebarStyles(file) {
+        const page = await navContext.newPage();
+        await page.goto(origin + '/profile-viewer/' + file);
+        const result = await page.evaluate(() => {
+          const sidebar = document.querySelector('.dashboard-sidebar');
+          sidebar.innerHTML = '<button class="dashboard-sidebar-toggle">Toggle</button>' +
+            '<button class="dashboard-nav-group-toggle" aria-pressed="true">Group</button>' +
+            '<button class="aep-theme-toggle-btn">Theme</button>';
+          const properties = ['font', 'color', 'backgroundColor', 'border', 'borderRadius', 'padding', 'cursor'];
+          return {
+            attributes: ['data-aep-theme', 'data-aep-menu-palette', 'data-aep-bg-preset', 'data-ajo-sidebar']
+              .map(name => document.documentElement.getAttribute(name)),
+            buttons: Array.from(sidebar.querySelectorAll('button'), button => {
+              const style = getComputedStyle(button);
+              return properties.map(name => style[name]);
+            }),
+          };
+        });
+        await page.close();
+        return result;
+      }
+      assert.deepEqual(await sidebarStyles('my-data-flows.html'), await sidebarStyles('consent.html'),
+        `Sidebar styles and saved appearance preferences match in ${theme} mode`);
+      await navContext.close();
+    }
     async function open(user = owner, options = {}) {
       const context = await browser.newContext({ viewport: { width: 1440, height: 1100 }, reducedMotion: options.reduced ? 'reduce' : 'no-preference' });
       await context.route('**/*', route => {
