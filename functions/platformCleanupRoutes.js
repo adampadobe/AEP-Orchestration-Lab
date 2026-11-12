@@ -79,11 +79,11 @@ function registerPlatformCleanupRoutes(deps) {
         if (input.operation === 'apply') {
           if (typeof input.plan_id !== 'string' || !UUID.test(input.plan_id)
               || typeof input.manifest_digest !== 'string' || !/^[a-f0-9]{64}$/i.test(input.manifest_digest)
-              || input.confirmed !== true || input.usage_cleared !== true
+              || input.confirmed !== true || input.usage_cleared !== true || input.non_atomic_delete_acknowledged !== true
               || !Number.isInteger(input.expected_count) || input.expected_count < 1 || input.expected_count > MAX_BATCH_TARGETS) {
             return res.status(400).json({
               ok: false,
-              error: 'plan_id, manifest_digest, expected_count, confirmed=true and usage_cleared=true are required.',
+              error: 'plan_id, manifest_digest, expected_count, confirmed=true, usage_cleared=true and non_atomic_delete_acknowledged=true are required.',
             });
           }
           const claimed = await store.claimPlan(input.plan_id, scope, {
@@ -106,20 +106,19 @@ function registerPlatformCleanupRoutes(deps) {
               execution: claimed.execution,
             });
           }
-          const check = await service.revalidatePlan(auth, claimed.plan);
-          const blockers = [...check.blockers];
-          if (claimed.plan.mutation_adapters_enabled !== true) {
-            blockers.push('No batch mutation adapter is enabled; no DELETE request was issued.');
-          }
-          const execution = await store.finishExecution(input.plan_id, 'blocked', {
-            blockers: [...new Set(blockers)],
-            preflight_state_fingerprint: check.current_state_fingerprint,
-            delete_requests_issued: 0,
+          const execution = await service.apply(auth, claimed.plan, store);
+          const succeeded = execution.state === 'succeeded';
+          console.info('[platformCleanup] batch result', {
+            principalUid: principal.principalUid, sandbox, plan_id: input.plan_id,
+            state: execution.state, delete_requests_issued: execution.delete_requests_issued,
           });
-          return res.status(409).json({
-            ok: false, status: 'blocked', delete_requests_issued: 0,
-            blockers: execution.blockers,
-            instruction: 'No batch mutation was attempted. Reconcile blockers and create a fresh plan; do not replay this plan.',
+          return res.status(succeeded ? 200 : 409).json({
+            ok: succeeded, status: execution.state,
+            delete_requests_issued: execution.delete_requests_issued,
+            blockers: execution.blockers || [], execution,
+            instruction: succeeded
+              ? 'Every exact target has a durable successful result and GET 404 readback. Run verify for the protected metadata baseline.'
+              : 'Execution stopped. Inspect per-target results and verify readback. Never replay; review and confirm a fresh plan for remaining targets.',
           });
         }
         if (input.operation === 'verify') {

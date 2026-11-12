@@ -187,6 +187,7 @@ test('batch apply requires explicit exact confirmation and reports durable block
   const body = {
     operation: 'apply', sandbox: 'apalmer', plan_id: auditId,
     manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
+    non_atomic_delete_acknowledged: true,
   };
   assert.equal((await request('POST', { ...body, confirmed: false })).statusCode, 400);
   const result = await request('POST', body);
@@ -228,6 +229,7 @@ test('batch resource and plan IDs require canonical UUID structure', async () =>
   const body = {
     operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
     expected_count: 1, confirmed: true, usage_cleared: true,
+    non_atomic_delete_acknowledged: true,
   };
   for (const invalid of ['-'.repeat(36), 'aaaaaaaaaaaa-aaaa-aaaa-aaaaaaaaaaaa', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa-']) {
     assert.equal((await request('POST', { operation: 'plan', targets: [{ resource_type: 'flow', resource_id: invalid }] })).statusCode, 400);
@@ -235,6 +237,57 @@ test('batch resource and plan IDs require canonical UUID structure', async () =>
     assert.equal((await request('POST', { operation: 'verify', plan_id: invalid })).statusCode, 400);
   }
   assert.equal(calls.length, 0);
+});
+
+test('executable batch apply requires concurrency acknowledgment before claiming and calls the executor only once', async () => {
+  let claims = 0;
+  let executions = 0;
+  const plan = { plan_id: auditId };
+  const store = {
+    claimPlan: async () => { claims++; return { claimed: true, plan }; },
+  };
+  const { request } = fixture({
+    platformCleanupStore: store,
+    platformCleanupService: {
+      apply: async (auth, approved, passedStore) => {
+        executions++;
+        assert.equal(auth.sandbox, 'apalmer');
+        assert.equal(approved, plan);
+        assert.equal(passedStore, store);
+        return { state: 'succeeded', delete_requests_issued: 1, items: {} };
+      },
+    },
+  });
+  const body = {
+    operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
+    expected_count: 1, confirmed: true, usage_cleared: true,
+  };
+  for (const value of [undefined, false]) {
+    assert.equal((await request('POST', { ...body, non_atomic_delete_acknowledged: value })).statusCode, 400);
+  }
+  assert.equal(claims, 0);
+  const result = await request('POST', { ...body, non_atomic_delete_acknowledged: true });
+  assert.equal(result.statusCode, 200);
+  assert.equal(result.body.status, 'succeeded');
+  assert.equal(result.body.delete_requests_issued, 1);
+  assert.equal(claims, 1);
+  assert.equal(executions, 1);
+});
+
+test('partial and uncertain executor outcomes never become successful HTTP responses', async () => {
+  for (const state of ['blocked', 'failed', 'uncertain']) {
+    const { request } = fixture({
+      platformCleanupStore: { claimPlan: async () => ({ claimed: true, plan: {} }) },
+      platformCleanupService: { apply: async () => ({ state, delete_requests_issued: 1, blockers: ['Stopped'] }) },
+    });
+    const result = await request('POST', {
+      operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
+      expected_count: 1, confirmed: true, usage_cleared: true, non_atomic_delete_acknowledged: true,
+    });
+    assert.equal(result.statusCode, 409);
+    assert.equal(result.body.ok, false);
+    assert.equal(result.body.execution.state, state);
+  }
 });
 
 test('replays retain failure status for blocked, failed, uncertain and expired executions', async () => {
@@ -248,7 +301,7 @@ test('replays retain failure status for blocked, failed, uncertain and expired e
     });
     const result = await request('POST', {
       operation: 'apply', plan_id: auditId, manifest_digest: 'a'.repeat(64),
-      expected_count: 1, confirmed: true, usage_cleared: true,
+      expected_count: 1, confirmed: true, usage_cleared: true, non_atomic_delete_acknowledged: true,
     });
     assert.equal(result.statusCode, 409);
     assert.equal(result.body.ok, false);

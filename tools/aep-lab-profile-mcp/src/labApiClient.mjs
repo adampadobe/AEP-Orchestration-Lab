@@ -926,10 +926,10 @@ export async function platformCleanupPlan({ sandbox, targets }) {
 }
 
 export async function platformCleanupApply({
-  sandbox, plan_id, manifest_digest, expected_count, confirmed, usage_cleared,
+  sandbox, plan_id, manifest_digest, expected_count, confirmed, usage_cleared, non_atomic_delete_acknowledged,
 }) {
   return platformCleanupBatchRequest({
-    operation: 'apply', sandbox, plan_id, manifest_digest, expected_count, confirmed, usage_cleared,
+    operation: 'apply', sandbox, plan_id, manifest_digest, expected_count, confirmed, usage_cleared, non_atomic_delete_acknowledged,
   });
 }
 

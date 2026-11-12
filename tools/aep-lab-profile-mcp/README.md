@@ -496,7 +496,7 @@ Initial tool availability requires both the Firebase function/Hosting rewrite an
 
 API contracts: [Catalog deletion](https://experienceleague.adobe.com/en/docs/experience-platform/catalog/api/delete-object), [Schema Registry schemas](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/schemas), [descriptors](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/descriptors), and [pagination](https://experienceleague.adobe.com/en/docs/experience-platform/xdm/api/appendix).
 
-### Governed multi-asset cleanup (execution gated)
+### Governed multi-asset cleanup
 
 The batch contract adds `lab_platform_cleanup_inventory`, `lab_platform_cleanup_plan`,
 `lab_platform_cleanup_apply`, and `lab_platform_cleanup_verify` to the same endpoint.
@@ -515,16 +515,70 @@ Protected-baseline comparisons use the same list-metadata projection at planning
 and readback, excluding routine timestamps, run details and metrics. This is
 metadata-only evidence, not complete configuration, service health or downstream
 output verification. Overall `verified_absent` also requires a complete, preserved
-protected baseline; the currently unavailable protected-flow ID baseline prevents
-that result even when individual target readbacks show absence.
+protected baseline. For `apalmer`, reviewed flow IDs come from the existing
+`functions/myDataFlowsRegistry.js`, not current names: renamed REL/Agentic flows
+remain protected. All 28 reviewed REL flows must appear in the live inventory.
+That sandbox-specific ID baseline is not asserted for other sandboxes; ordinary
+name, Profile/Identity and dependency protection still applies there.
 
-**No batch DELETE adapter is enabled.** Public contracts reviewed do not establish
-conditional DELETE, flow run/schedule quiescence, cascade behavior or completion
-semantics; mapping-set and AJO-channel inventory/deletion contracts are also not
-available. External AJO/audience/destination/application use is not covered by the
-metadata scans. Every proposed plan therefore remains blocked. `apply` atomically
-records a blocked one-shot result and issues zero Adobe DELETE requests. This is
-intentional fail-closed behavior, not a claim that the first batch is ready.
+DELETE adapters support **flow, dataset, tenant schema, descriptor,
+sourceConnection, targetConnection, baseConnection and account** (the latter two
+address the same Flow Service entity). Mapping-set and AJO-channel deletion
+remain unsupported; selecting either blocks that plan, not unrelated supported
+cleanup. Coverage of those services and external usage remains explicitly
+incomplete, never silently reported as cleared.
+
+1. Inventory explicit IDs, then create a fresh plan. Review the exact ordered
+   manifest, blockers, warnings and protected baseline. Connections and descriptors
+   must be selected explicitly when needed; no hidden cascade or scope expansion.
+2. Resolve actual blockers before obtaining a new plan. In particular, flows must
+   already be `disabled` and their fully paginated, flow-scoped run inventory must
+   contain only recognized terminal states. Cleanup never disables, cancels or
+   patches ingestion. These are local safety requirements, not an Adobe claim
+   that DELETE itself requires disabling first.
+3. Independently clear mapping, AJO/campaign, audience, destination and external
+   application usage, including draft/completed campaigns. Show the plan ID,
+   digest, count, irreversible warning and non-atomic concurrency limitation.
+4. Only after explicit colleague confirmation, call `lab_platform_cleanup_apply`
+   with `plan_id`, `manifest_digest`, `expected_count`, `confirmed:true`,
+   `usage_cleared:true` and **`non_atomic_delete_acknowledged:true`**.
+5. Inspect the durable per-item results, then call `lab_platform_cleanup_verify`.
+   A timeout, failure or uncertain result is not permission to replay or resume.
+   Reconcile readback first; remaining targets require a new plan and confirmation.
+
+Adobe does not document conditional `If-Match` DELETE for these endpoints. The
+new adapters do not pretend to have atomic stale-state protection: another Adobe
+client, including Postman or a legacy delete, can change state after the final GET.
+The new acknowledgment explicitly accepts that residual race, not a policy bypass.
+Batch plans in the same org/sandbox coordinate through a server-only
+`platformCleanupLocks` lease, independent of principal, in addition to the one-shot
+plan claim. The six-minute lease exceeds the function's five-minute request limit;
+item intents check both the lease and plan expiry transactionally.
+
+Execution is serial. Before each DELETE, the service rechecks remaining targets,
+dependencies, disabled-flow/run evidence and protected metadata against the
+reviewed plan, accounting only for its own verified removals. Each prerequisite
+must still be absent. Durable intent precedes each attempt, followed by a strict
+acknowledgment (Catalog 200 with the exact deleted reference; other adapters 204)
+and scoped GET 404. HTTP status and allowlisted Adobe error code/request ID are
+retained without raw error bodies or connection secrets. A network/5xx outcome,
+unexpected acknowledgment or failed readback is uncertain, stops further writes,
+and is never automatically retried. Overall success also requires a final
+target/protected-baseline readback.
+
+The existing 300-second function and 330-second client limits remain. Execution
+has a 230-second budget and reserves 45 seconds before starting another mutation.
+The 100-object cap is not a completion-time guarantee: a large/slow plan can stop
+partially completed. Review smaller plans or explicitly replan the remaining IDs;
+there is no background job or automatic continuation. Old policy-version plans
+are not executable. This change requires releasing both `platformCleanupProxy`
+and the MCP service, then refreshing clients to pick up the new required argument.
+
+The API references are Adobe's [delete dataflows](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/delete-dataflows),
+[delete source accounts](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/delete),
+[monitor flows and runs](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/monitor),
+and the Catalog/Schema Registry references above. They document direct deletion;
+the MCP's additional checks do not imply an Adobe API permission restriction.
 
 An audit workbook may supply exact candidate IDs, but its verdicts are not
 deletion authorization or fresh ownership/usage evidence. Keep workbook data and

@@ -25,7 +25,7 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
   assert.equal(annotationsForTool('lab_platform_cleanup_verify').readOnlyHint, true);
   assert.equal(annotationsForTool('lab_platform_cleanup_apply').destructiveHint, true);
   assert.equal(annotationsForTool('lab_platform_cleanup_apply').idempotentHint, false);
-  assert.match(tools.get('lab_platform_cleanup_apply').description, /batch DELETE adapters off/i);
+  assert.match(tools.get('lab_platform_cleanup_apply').description, /GET 404 readback/i);
   const planSchema = z.object(tools.get('lab_platform_cleanup_plan').inputSchema);
   const exactPlan = {
     sandbox: 'apalmer',
@@ -34,10 +34,16 @@ test('registers narrow inventory/audit/delete contracts and destructive annotati
   assert.equal(planSchema.safeParse(exactPlan).success, true);
   assert.equal(planSchema.safeParse({ ...exactPlan, targets: [{ ...exactPlan.targets[0], resource_id: '*' }] }).success, false);
   assert.equal(planSchema.safeParse({ ...exactPlan, targets: Array(101).fill(exactPlan.targets[0]) }).success, false);
-  assert.equal(z.object(tools.get('lab_platform_cleanup_apply').inputSchema).safeParse({
+  const applySchema = z.object(tools.get('lab_platform_cleanup_apply').inputSchema);
+  const applyInput = {
     sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
-    manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
-  }).success, true);
+    manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true, non_atomic_delete_acknowledged: true,
+  };
+  assert.equal(applySchema.safeParse(applyInput).success, true);
+  for (const flag of ['confirmed', 'usage_cleared', 'non_atomic_delete_acknowledged']) {
+    assert.equal(applySchema.safeParse({ ...applyInput, [flag]: undefined }).success, false);
+    assert.equal(applySchema.safeParse({ ...applyInput, [flag]: false }).success, false);
+  }
   const schema = z.object(definition.inputSchema);
   const input = {
     sandbox: 'apalmer', resource_type: 'dataset', resource_id: '69c38a17866d0ec0db681793',
@@ -57,13 +63,14 @@ test('batch apply uses one scoped POST attempt and cannot opt into retries', asy
     assert.equal(new URL(url).pathname, '/platformCleanupProxy');
     assert.equal(init.method, 'POST');
     assert.equal(JSON.parse(init.body).operation, 'apply');
+    assert.equal(JSON.parse(init.body).non_atomic_delete_acknowledged, true);
     return new Response(JSON.stringify({ error: 'blocked' }), { status: 409, headers: { 'Content-Type': 'application/json' } });
   };
   try {
     await requestContext.run({ mcpApiKey: 'test-key' }, async () => {
       const result = await platformCleanupApply({
         sandbox: 'apalmer', plan_id: '11111111-2222-4333-8444-555555555555',
-        manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true,
+        manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true, non_atomic_delete_acknowledged: true,
       });
       assert.equal(result.ok, false);
       assert.equal(result.status, 409);
