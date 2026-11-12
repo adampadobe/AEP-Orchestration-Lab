@@ -99,8 +99,6 @@ test('relational ownership fails closed on conflicting, absent or unverifiable m
     { schema: { ...relational, imsOrg: 'other-org' } },
     { schema: { ...relational, imsOrg: null } },
     { schema: { ...relational, imsOrg: '' } },
-    { schema: { ...relational, 'meta:containerId': 'global' } },
-    { schema: { ...relational, 'meta:containerId': undefined } },
     { schema: { ...relational, 'meta:extends': [] } },
     { schema: relational, stats: { imsOrg: 'other-org', tenantId: 'example' } },
     { schema: relational, stats: { imsOrg: auth.orgId, tenantId: 'other' } },
@@ -112,6 +110,21 @@ test('relational ownership fails closed on conflicting, absent or unverifiable m
     await assert.rejects(service.audit(auth, params), { status: 403 });
     assert.ok(calls.every((call) => call.method === 'GET'));
     assert.ok(calls.filter((call) => call.path.endsWith('/schemaregistry/stats')).length <= 1);
+  }
+});
+
+test('dataset protection inspection is independent of schema deletion eligibility', async () => {
+  for (const container of ['model-container', 'global', undefined]) {
+    const relational = { ...schema, 'meta:containerId': container, 'meta:extends': ['https://ns.adobe.com/xdm/data/adhoc-v2'] };
+    const f = fixture({ schema: relational });
+    assert.equal((await f.service.audit(auth, params)).deleteReviewReady, true);
+    assert.ok(f.calls.filter((call) => call.path.includes('/schemas/')).every((call) => call.headers.Accept === 'application/vnd.adobe.xed-id+json'));
+    const target = { resource_type: 'schema', resource_id: schemaId };
+    if (container === 'model-container') assert.equal((await f.service.audit(auth, target)).deleteReviewReady, true);
+    else await assert.rejects(f.service.audit(auth, target), { status: 403 });
+    for (const protectedSchema of [{ ...relational, 'meta:immutableTags': ['union'] }, { ...relational, title: 'REL_protected' }]) {
+      assert.equal((await fixture({ schema: protectedSchema }).service.audit(auth, params)).deleteReviewReady, false);
+    }
   }
 });
 
@@ -1071,8 +1084,22 @@ function executableBatchFixture(options = {}) {
     const url = new URL(input);
     const path = decodeURIComponent(url.pathname).replace(/\/$/, '');
     calls.push({ path, url, ...init });
+    if (path.endsWith('/schemaregistry/stats')) return reply(options.stats || { imsOrg: auth.orgId, tenantId: 'example' });
+    if (init.method === 'POST' && path.endsWith('/action')) {
+      const resourceId = path.split('/').at(-2);
+      assert.equal(url.searchParams.get('op'), 'disable');
+      assert.equal(init.body, undefined);
+      assert.equal(items[`flow:${resourceId}`].status, 'intent_recorded');
+      assert.equal(init.headers['If-Match'], options.flowHeaderEtag || rows.flow.get(resourceId).etag);
+      if (options.disableError === 'network') throw new TypeError('Disable acknowledgment lost');
+      if (options.disableError) return reply({ code: 'ADOBE_DISABLE_DENIED' }, options.disableError);
+      if (!options.disablePending) Object.assign(rows.flow.get(resourceId), { state: 'disabled', etag: 'version-2', version: 2 });
+      options.afterDisable?.({ rows, resourceId, advance: (amount) => { time += amount; } });
+      if (options.loseDisableAcknowledgment) throw new TypeError('Disable acknowledgment lost after mutation');
+      return reply(options.disableAcknowledgment || { id: resourceId, etag: 'version-2' });
+    }
     if (path.endsWith('/runs')) {
-      assert.equal(url.searchParams.get('property'), `flowId==${flowId}`);
+      assert.ok(rows.flow.has(url.searchParams.get('property')?.slice('flowId=='.length)));
       return reply(options.runPage ? options.runPage(url) : { items: options.runs || [], _links: { next: null } });
     }
     for (const [type, prefix] of Object.entries(prefixes)) {
@@ -1098,17 +1125,22 @@ function executableBatchFixture(options = {}) {
       }
       const raw = rows[type].get(resourceId);
       if (!raw) return reply({}, options.readbackError || 404);
-      return reply(type === 'dataset' ? { [resourceId]: raw } : raw);
+      return reply(type === 'dataset' ? { [resourceId]: raw } : raw, 200,
+        type === 'flow' && options.flowHeaderEtag ? { etag: options.flowHeaderEtag } : {});
     }
     throw new Error(`Unexpected mock URL ${url}`);
   };
-  const service = createPlatformCleanupService({ fetchImpl, now: () => time });
+  const service = createPlatformCleanupService({ fetchImpl, now: () => time, sleep: async (ms) => {
+    time += ms;
+    options.afterPoll?.();
+  } });
   const batchAuth = { ...auth, sandbox: options.sandbox || auth.sandbox };
   const targets = Object.entries(rows).flatMap(([type, resources]) => [...resources.keys()].map((resource_id) => ({
     resource_type: type === 'baseConnection' && options.accountAlias ? 'account' : type, resource_id,
   })));
-  async function prepare(selected = targets) {
-    const reviewed = await service.plan(batchAuth, { targets: selected });
+  async function prepare(selected = targets, operation = 'delete') {
+    const reviewed = operation === 'disable' ? await service.planFlowDisable(batchAuth, { targets: selected })
+      : await service.plan(batchAuth, { targets: selected });
     items = Object.fromEntries(selected.map((target) => [`${target.resource_type}:${target.resource_id}`, { ...target, status: 'not_attempted' }]));
     return { ...reviewed, plan_id: '11111111-2222-4333-8444-555555555555', principalUid: 'uid', expiresAtMs: time + 900_000 };
   }
@@ -1278,7 +1310,203 @@ test('run cursors use continuationToken and foreign sandbox metadata is rejected
   assert.equal(f.calls.filter((call) => call.path.endsWith('/runs'))[1].url.searchParams.get('continuationToken'), 'run-page-two');
   const foreign = executableBatchFixture();
   foreign.rows.flow.get(foreign.flowId).sandboxName = 'another-sandbox';
-  await assert.rejects(foreign.prepare(), { status: 403 });
+  const blocked = await foreign.prepare();
+  assert.equal(blocked.status, 'blocked');
+  assert.ok(blocked.manifest.find((item) => item.resource_type === 'flow').blockers.length > 0);
+  assert.equal((await foreign.service.apply(foreign.auth, blocked, foreign.store)).delete_requests_issued, 0);
+});
+
+test('protected flow run churn does not invalidate cleanup but target churn still does', async () => {
+  const protectedId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  for (const targetChurn of [false, true]) {
+    const f = executableBatchFixture();
+    f.rows.flow.set(protectedId, {
+      id: protectedId, name: 'REL_protected', state: 'enabled', version: 1, etag: 'old',
+      flowSpec: { id: 'spec', version: '1.0' }, scheduleParams: { frequency: 'minute', interval: 15 },
+      lastRunDetails: { id: 'run-1', state: 'success' },
+    });
+    const approved = await f.prepare([{ resource_type: 'flow', resource_id: f.flowId }]);
+    Object.assign(f.rows.flow.get(protectedId), { version: 2, etag: 'new', lastRunDetails: { id: 'run-2', state: 'running' } });
+    if (targetChurn) f.rows.flow.get(f.flowId).version = 2;
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, targetChurn ? 'blocked' : 'succeeded');
+    assert.equal(result.delete_requests_issued, targetChurn ? 0 : 1);
+  }
+});
+
+test('protected flow configuration, nested spec versions and unknown configuration remain bound', async () => {
+  for (const change of [
+    { state: 'disabled' }, { sourceConnectionIds: ['new-source'] }, { targetConnectionIds: ['new-target'] },
+    { flowSpec: { version: '2.0' } }, { scheduleParams: { interval: 30 } },
+    { transformations: [{ mappingId: 'new-mapping' }] }, { customConfiguration: { enabled: true } },
+  ]) {
+    const f = executableBatchFixture();
+    const protectedId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    f.rows.flow.set(protectedId, { id: protectedId, name: 'REL_protected', state: 'enabled', flowSpec: { version: '1.0' } });
+    const approved = await f.prepare([{ resource_type: 'flow', resource_id: f.flowId }]);
+    Object.assign(f.rows.flow.get(protectedId), change);
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, 'blocked');
+    assert.equal(result.delete_requests_issued, 0);
+  }
+});
+
+test('schema inspection failures block only affected manifest items and issue no mutations', async () => {
+  const f = executableBatchFixture({ singleDataset: true });
+  const secondId = '69c38a17866d0ec0db681794';
+  const secondSchema = `${schemaId}99`;
+  f.rows.dataset.set(secondId, { ...dataset, name: 'Other dataset', schemaRef: { id: secondSchema } });
+  f.rows.schema.set(secondSchema, { ...schema, $id: secondSchema, imsOrg: 'foreign-org' });
+  const approved = await f.prepare([
+    { resource_type: 'dataset', resource_id: id }, { resource_type: 'dataset', resource_id: secondId },
+    { resource_type: 'schema', resource_id: secondSchema },
+  ]);
+  assert.equal(approved.status, 'blocked');
+  assert.deepEqual(approved.manifest.find((item) => item.resource_id === id).blockers, []);
+  assert.ok(approved.manifest.find((item) => item.resource_id === secondId).blockers.length);
+  assert.ok(approved.manifest.find((item) => item.resource_id === secondSchema).blockers.length);
+  assert.equal((await f.service.apply(f.auth, approved, f.store)).delete_requests_issued, 0);
+});
+
+async function prepareDisable(f) {
+  Object.assign(f.rows.flow.get(f.flowId), { state: 'enabled', etag: 'version-1', version: 1 });
+  return f.prepare([{ resource_type: 'flow', resource_id: f.flowId }], 'disable');
+}
+
+test('governed disable uses one exact bodyless action and verifies disabled state and terminal runs', async () => {
+  const f = executableBatchFixture();
+  const plan = await prepareDisable(f);
+  assert.equal(plan.status, 'ready');
+  const result = await f.service.applyFlowDisable(f.auth, plan, f.store);
+  assert.equal(result.state, 'succeeded');
+  assert.equal(result.disable_requests_issued, 1);
+  assert.equal(result.items[`flow:${f.flowId}`].operation, 'DISABLE_FLOW');
+  assert.equal(f.calls.filter((call) => call.method === 'POST').length, 1);
+  assert.equal(f.calls.filter((call) => call.method === 'DELETE' || call.method === 'PATCH').length, 0);
+  const verified = await f.service.verify(f.auth, plan, result);
+  assert.equal(verified.status, 'verified_disabled');
+  assert.equal(verified.ready_for_cleanup, true);
+});
+
+test('disable draining is bounded and verify never repeats the mutation', async () => {
+  const runs = [];
+  const f = executableBatchFixture({ runs });
+  const plan = await prepareDisable(f);
+  runs.push({ id: 'run-1', flowId: f.flowId, state: 'inProgress' });
+  const result = await f.service.applyFlowDisable(f.auth, plan, f.store);
+  assert.equal(result.state, 'draining');
+  assert.equal(f.calls.filter((call) => call.path.endsWith('/runs')).length, 3);
+  assert.equal((await f.service.verify(f.auth, plan, result)).ready_for_cleanup, false);
+  runs[0].state = 'success';
+  assert.equal((await f.service.verify(f.auth, plan, result)).ready_for_cleanup, true);
+  assert.equal(f.calls.filter((call) => call.method === 'POST').length, 1);
+});
+
+test('disable stops on scope/configuration changes, uncertainty, rejection and unverified readback', async () => {
+  for (const [options, expected] of [
+    [{ disableError: 'network' }, 'uncertain'], [{ disableError: 409 }, 'failed'],
+    [{ disablePending: true }, 'uncertain'], [{ disableAcknowledgment: { id: 'different', etag: 'v2' } }, 'uncertain'],
+  ]) {
+    const f = executableBatchFixture(options);
+    const plan = await prepareDisable(f);
+    const result = await f.service.applyFlowDisable(f.auth, plan, f.store);
+    assert.equal(result.state, expected);
+    assert.equal(result.disable_requests_issued, 1);
+  }
+  for (const change of [{ version: 2 }, { etag: 'changed' }, { sandboxName: 'foreign' }, { imsOrgId: 'foreign' }]) {
+    const f = executableBatchFixture();
+    const plan = await prepareDisable(f);
+    Object.assign(f.rows.flow.get(f.flowId), change);
+    assert.equal((await f.service.applyFlowDisable(f.auth, plan, f.store)).state, 'blocked');
+    assert.equal(f.calls.filter((call) => call.method === 'POST').length, 0);
+  }
+});
+
+test('already disabled flows need no action; protected feeds and expired plans cannot disable', async () => {
+  const f = executableBatchFixture();
+  const plan = await f.prepare([{ resource_type: 'flow', resource_id: f.flowId }], 'disable');
+  assert.equal((await f.service.applyFlowDisable(f.auth, plan, f.store)).disable_requests_issued, 0);
+  for (const protect of ['flow', 'dataset', 'schema']) {
+    const blocked = executableBatchFixture();
+    if (protect === 'flow') blocked.rows.flow.get(blocked.flowId).name = 'Agentic protected feed';
+    else blocked.rows[protect].get(protect === 'dataset' ? id : schemaId)[protect === 'dataset' ? 'name' : 'title'] = 'REL_protected';
+    const reviewed = await prepareDisable(blocked);
+    assert.equal(reviewed.status, 'blocked');
+    assert.equal((await blocked.service.applyFlowDisable(blocked.auth, reviewed, blocked.store)).disable_requests_issued, 0);
+  }
+  const expired = executableBatchFixture();
+  const approved = await prepareDisable(expired);
+  approved.expiresAtMs = 1000;
+  assert.equal((await expired.service.applyFlowDisable(expired.auth, approved, expired.store)).disable_requests_issued, 0);
+});
+
+test('disable handles exact multi-flow scope serially and stops before changed remaining targets', async () => {
+  const secondId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  for (const drift of [false, true]) {
+    const f = executableBatchFixture({
+      afterDisable: ({ rows, resourceId }) => {
+        if (drift && resourceId !== secondId) rows.flow.get(secondId).version = 3;
+      },
+    });
+    Object.assign(f.rows.flow.get(f.flowId), { state: 'enabled', etag: 'version-1', version: 1 });
+    f.rows.flow.set(secondId, { ...structuredClone(f.rows.flow.get(f.flowId)), id: secondId, name: 'Another old feed' });
+    const plan = await f.prepare([f.flowId, secondId].map((resource_id) => ({ resource_type: 'flow', resource_id })), 'disable');
+    const result = await f.service.applyFlowDisable(f.auth, plan, f.store);
+    assert.equal(result.state, drift ? 'failed' : 'succeeded');
+    assert.equal(result.disable_requests_issued, drift ? 1 : 2);
+    assert.equal(result.items[`flow:${secondId}`].status, drift ? 'not_attempted' : 'succeeded');
+  }
+});
+
+test('disable preserves etag-only drift and reports incomplete/foreign run evidence', async () => {
+  const options = { flowHeaderEtag: 'header-1' };
+  const f = executableBatchFixture(options);
+  const plan = await prepareDisable(f);
+  options.flowHeaderEtag = 'header-2';
+  assert.equal((await f.service.applyFlowDisable(f.auth, plan, f.store)).disable_requests_issued, 0);
+  for (const run of [
+    { flowId: 'foreign', id: 'run-1', state: 'success' },
+    { flowId: f.flowId, state: 'success' },
+    { flowId: f.flowId, id: 'run-1', state: 'unrecognized' },
+  ]) {
+    const other = executableBatchFixture({ runs: [run] });
+    const approved = await prepareDisable(other);
+    const result = await other.service.applyFlowDisable(other.auth, approved, other.store);
+    assert.equal(result.state, run.state === 'unrecognized' ? 'draining' : 'uncertain');
+    assert.equal((await other.service.verify(other.auth, approved, result)).ready_for_cleanup, false);
+    assert.equal(other.calls.filter((call) => call.method === 'POST').length, 1);
+  }
+});
+
+test('disable acknowledgment loss is reconciled read-only without rewriting historical status', async () => {
+  const f = executableBatchFixture({ loseDisableAcknowledgment: true });
+  const plan = await prepareDisable(f);
+  const result = await f.service.applyFlowDisable(f.auth, plan, f.store);
+  assert.equal(result.state, 'uncertain');
+  assert.equal(result.items[`flow:${f.flowId}`].status, 'uncertain');
+  const readback = await f.service.verify(f.auth, plan, result);
+  assert.equal(readback.status, 'verified_disabled');
+  assert.equal(readback.execution_status, 'uncertain');
+  assert.equal(readback.ready_for_cleanup, true);
+  assert.equal(f.calls.filter((call) => call.method === 'POST').length, 1);
+});
+
+test('four disabled targets delete despite protected run churn between every mutation', async () => {
+  const protectedId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  const f = executableBatchFixture({
+    afterDelete: ({ rows }) => Object.assign(rows.flow.get(protectedId), {
+      version: (rows.flow.get(protectedId).version || 0) + 1, lastRunDetails: { id: 'next-run', state: 'running' },
+    }),
+  });
+  f.rows.flow.set(protectedId, { id: protectedId, name: 'REL_protected', state: 'enabled' });
+  const ids = [f.flowId, '11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222', '33333333-3333-4333-8333-333333333333'];
+  for (const flowId of ids.slice(1)) f.rows.flow.set(flowId, { ...structuredClone(f.rows.flow.get(f.flowId)), id: flowId });
+  const plan = await f.prepare(ids.map((resource_id) => ({ resource_type: 'flow', resource_id })));
+  const result = await f.service.apply(f.auth, plan, f.store);
+  assert.equal(result.state, 'succeeded');
+  assert.equal(result.delete_requests_issued, 4);
+  assert.equal((await f.service.verify(f.auth, plan, result)).status, 'verified_absent');
+  assert.ok(f.rows.flow.has(protectedId));
 });
 
 test('unselected descriptors, schema aliases and Catalog URI references remain dependency blockers', async () => {

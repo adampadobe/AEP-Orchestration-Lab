@@ -62,6 +62,36 @@ const confirmed = {
   audit_id: auditId, expected_name: 'Delete me', confirmed: true, usage_cleared: true,
 };
 
+test('disable routes validate exact flow scope, acknowledgments and operation-bound claims', async () => {
+  const calls = [];
+  const f = fixture({
+    platformCleanupService: {
+      planFlowDisable: async (_auth, { targets }) => ({ operation: 'disable', targets, expected_count: targets.length, status: 'ready', state_fingerprint: 'a'.repeat(64) }),
+      applyFlowDisable: async () => { calls.push('apply'); return { state: 'draining', disable_requests_issued: 1, blockers: [] }; },
+    },
+    platformCleanupStore: {
+      savePlan: async (plan) => { calls.push(plan); return { plan_id: auditId, manifest_digest: 'a'.repeat(64) }; },
+      claimPlan: async (_id, scope) => { calls.push(scope); return { claimed: true, plan: {} }; },
+    },
+  });
+  const planInput = { operation: 'flow_disable_plan', sandbox: 'apalmer', targets: [{ resource_type: 'flow', resource_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' }] };
+  assert.equal((await f.request('POST', { ...planInput, targets: [{ resource_type: 'dataset', resource_id: id }] })).statusCode, 400);
+  assert.equal((await f.request('POST', planInput)).statusCode, 200);
+  assert.equal(calls[0].operation, 'disable');
+  const applyInput = { operation: 'flow_disable_apply', sandbox: 'apalmer', plan_id: auditId,
+    manifest_digest: 'a'.repeat(64), expected_count: 1, confirmed: true, usage_cleared: true, ingestion_pause_acknowledged: true };
+  for (const flag of ['confirmed', 'usage_cleared', 'ingestion_pause_acknowledged']) {
+    assert.equal((await f.request('POST', { ...applyInput, [flag]: false })).statusCode, 400);
+  }
+  assert.equal((await f.request('POST', { ...applyInput, sandbox: 'foreign' })).statusCode, 403);
+  const result = await f.request('POST', applyInput);
+  assert.equal(result.statusCode, 202);
+  assert.equal(result.body.ok, false);
+  assert.equal(result.body.status, 'draining');
+  assert.equal(result.body.disable_requests_issued, 1);
+  assert.deepEqual(calls[1], { principalUid: 'uid', orgId: 'org@AdobeOrg', sandbox: 'apalmer', operation: 'disable' });
+  assert.equal(calls.filter((call) => call === 'apply').length, 1);
+});
 test('requires user key or independently verified IMS identity; ops keys cannot delete', async () => {
   const { request, calls } = fixture();
   assert.equal((await request('DELETE', confirmed, {})).statusCode, 401);

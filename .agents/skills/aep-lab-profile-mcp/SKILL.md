@@ -10,7 +10,7 @@ description: >-
 
 # AEP Orchestration Lab MCP — Codex workflows (Phase 3.38)
 
-MCP server: **AEP Orchestration Lab MCP v3.54.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`). General (`lab-all`, `/mcp`) registers 242 tools, including read-only `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`. Diagnose with an exact batch ID or flow/run pair; preserve incomplete evidence and raw Adobe errors. Neither tool repairs source data or changes ingestion settings.
+MCP server: **AEP Orchestration Lab MCP v3.54.0** (`aep-orchestration-lab-mcp`; see `tools/aep-lab-profile-mcp/README.md`). General (`lab-all`, `/mcp`) registers 244 tools, including read-only `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`. Diagnose with an exact batch ID or flow/run pair; preserve incomplete evidence and raw Adobe errors. Neither tool repairs source data or changes ingestion settings.
 
 Focused endpoints support the same API key for Codex/Cursor; the Coworker marketplace plugin instead forwards the signed-in Adobe IMS session. Alongside `/mcp/entry` (5 tools), `/mcp/ajo-oc-datasets` (4), `/mcp/profile` (23), `/mcp/audiences` (4), `/mcp/ajo-cleanup` (7), `/mcp/decisioning` (24), `/mcp/demo-prep` (24), `/mcp/pdf` (14), `/mcp/command-centre` (11), and `/mcp/weather` (4), there are other focused endpoints listed in the MCP README. The Orchestrated Campaign dataset endpoint is read-only: status, eligibility validation, and job status; use General for governed preview and enablement. The entry endpoint is a read-only capability directory and workflow recommender, plus `lab_load_toolset` to pull a domain toolset into the same session; it cannot connect, switch, proxy, or execute another MCP. **Client acceptance:** use directly configured focused or General connections rather than depending on dynamic tool loading. Start a new chat after tool-registration changes; client refresh behavior is not yet verified.
 
@@ -39,6 +39,26 @@ For multi-asset cleanup, use `lab_platform_cleanup_inventory` with explicit type
 **Supported batch DELETE adapters cover flows, datasets, tenant schemas, descriptors and connections/accounts.** Flow deletion requires a separately disabled flow and recognized terminal run statuses. Mapping-set/AJO-channel deletion remains unsupported, and external usage must be independently cleared. Reviewed architecture flow IDs protect renamed REL/Agentic flows in `apalmer`; the complete 28-flow REL baseline must be present. Apply executes serially with durable intent/results, fresh checks, org/sandbox batch coordination and GET 404 readback. Adobe does not document conditional DELETE, so no atomic concurrency guarantee is claimed. Stop on failure, uncertainty, expiry or the bounded execution window; never automatically retry or resume. Large plans may finish partially: verify, review a fresh remaining-ID plan and obtain new confirmation. This implementation requires both Function and MCP releases and refreshed client tool schemas before it is live; old-policy plans cannot be applied. Do not claim that a workbook batch is executable without a fresh unblocked plan.
 
 Keep workbook inventories and batch-specific IDs in session artifacts, not shared MCP guidance or fixtures. A workbook verdict is not live ownership, Profile/Identity, active-run, or external-usage evidence. Review dependent campaigns even when draft or completed; do not infer permission to delete or rebuild them. Never import wildcard rows or later batches into an exact-ID plan. Keep protected Snowflake account `a0682068-80a4-4c97-842c-f2ab0eebc841`.
+
+To pause enabled ingestion, use `lab_platform_flow_disable_plan` with 1–100
+unique exact `flow_ids`, review its protected baseline and downstream impact,
+then explicitly confirm `lab_platform_flow_disable_apply` with its receipt,
+count, `confirmed:true`, `usage_cleared:true` and `ingestion_pause_acknowledged:true`.
+This uses the documented bodyless POST `flows/{id}/action?op=disable`, with the
+current etag, not PATCH state. It verifies disabled configuration, never requests
+run cancellation or deletes/re-enables assets, and never retries/resumes mutations. Disable
+and DELETE plans cannot be interchanged and share org/sandbox coordination.
+`draining` is not cleanup-ready: use `lab_platform_cleanup_verify` for disabled
+state and terminal runs, then obtain a separate fresh deletion plan and confirmation.
+Keep the architecture-bound REL/Agentic flows protected until separately reviewed
+migration/retirement evidence and an explicit protection decision exist.
+
+Protected flow baselines ignore top-level version/etag/run-details churn only;
+state, schedule, connections, mappings, nested spec versions and unknown
+configuration still block drift. Full target fingerprints remain intact.
+Dataset protection inspection does not require its schema to be deletable.
+Schema deletion still requires verified organisation/container/namespace ownership,
+and related inspection failures block affected manifest items explicitly.
 
 ## Governed Orchestrated Campaign dataset enablement
 

@@ -162,6 +162,7 @@ const DESTRUCTIVE_TOOLS = new Set([
   'lab_audience_delete',
   'lab_platform_asset_delete',
   'lab_platform_cleanup_apply',
+  'lab_platform_flow_disable_apply',
   'lab_decisioning_catalog_delete_apply',
   'lab_ajo_campaign_delete',
   'lab_ajo_journey_delete',

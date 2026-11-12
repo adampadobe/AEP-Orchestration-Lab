@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 242-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 244-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only ingestion diagnostics
 
@@ -521,7 +521,18 @@ remain protected. All 28 reviewed REL flows must appear in the live inventory.
 That sandbox-specific ID baseline is not asserted for other sandboxes; ordinary
 name, Profile/Identity and dependency protection still applies there.
 
-DELETE adapters support **flow, dataset, tenant schema, descriptor,
+Protected flow baselines exclude top-level flow `version`, etag and `lastRunDetails`
+churn, but retain state, schedules, connection IDs, transformations, parameters,
+unknown configuration fields and nested `flowSpec.version`. Full target fingerprints
+are unchanged. Configuration drift still blocks execution; routine protected-flow
+runs do not. Dataset schema inspection uses `application/vnd.adobe.xed-id+json`
+without requiring that the associated schema itself be eligible for deletion.
+Explicit foreign ownership remains denied. Owned relational `adhoc-v2` schemas
+with a non-global model container require matching registry org/tenant-namespace
+evidence before schema deletion; absent/invalid ownership fails closed. Inspection
+failures become blockers on affected plan items, not a whole-plan ownership 403.
+
+DELETE adapters support **flow, dataset, owned schema, descriptor,
 sourceConnection, targetConnection, baseConnection and account** (the latter two
 address the same Flow Service entity). Mapping-set and AJO-channel deletion
 remain unsupported; selecting either blocks that plan, not unrelated supported
@@ -533,8 +544,9 @@ incomplete, never silently reported as cleared.
    must be selected explicitly when needed; no hidden cascade or scope expansion.
 2. Resolve actual blockers before obtaining a new plan. In particular, flows must
    already be `disabled` and their fully paginated, flow-scoped run inventory must
-   contain only recognized terminal states. Cleanup never disables, cancels or
-   patches ingestion. These are local safety requirements, not an Adobe claim
+   contain only recognized terminal states. DELETE never disables, cancels or
+   patches ingestion. Use the separately confirmed disable workflow below.
+   These are local safety requirements, not an Adobe claim
    that DELETE itself requires disabling first.
 3. Independently clear mapping, AJO/campaign, audience, destination and external
    application usage, including draft/completed campaigns. Show the plan ID,
@@ -590,6 +602,38 @@ campaign usage; draft/completed status does not establish that a campaign is
 unaffected. Campaign rebuilding/deletion requires separate review and permission.
 The exact protected Snowflake account
 `a0682068-80a4-4c97-842c-f2ab0eebc841` remains protected.
+
+**Governed ingestion pause:** `lab_platform_flow_disable_plan` accepts
+`sandbox` and 1–100 unique, exact `flow_ids`. Review its exact manifest, current
+states, protected configuration baseline and downstream impact. After explicit
+confirmation, call `lab_platform_flow_disable_apply` with its `plan_id`,
+`manifest_digest`, `expected_count`, `confirmed:true`, `usage_cleared:true`
+and **`ingestion_pause_acknowledged:true`**. Disabling uses Adobe's documented
+bodyless `POST /data/foundation/flowservice/flows/{id}/action?op=disable`,
+not an invented PATCH state body. A current `If-Match` etag is supplied without
+claiming an unverified atomic guarantee. The documented response must acknowledge
+the exact flow ID and updated etag; GET must then prove disabled state and
+unchanged configuration. Already-disabled flows issue no action.
+
+Disable and DELETE receipts are operation-bound before claim and share the same
+org/sandbox lease. Each action has a durable intent and result, with fresh
+remaining-target and protected-baseline checks. Protected registry IDs,
+REL/Agentic names, Profile/Identity flows and feeds into protected datasets
+remain blocked. Architecture protection is not removed merely because a workbook
+recommends retirement; migration/retirement decisions need separate review.
+
+After the actions, the backend polls fully paginated, exact-flow run inventories
+read-only at most three times, five seconds apart, within the execution budget.
+`draining` (HTTP 202, `ok:false`) means disabled but not cleanup-ready; missing,
+foreign or unreadable run evidence is uncertain, never successful. Use
+`lab_platform_cleanup_verify` until `ready_for_cleanup:true`. No cancellation,
+re-enable, schedule/mapping edits, mutation retries or automatic continuation occur.
+A slow plan may stop partially; verify and explicitly confirm a new remaining-ID
+plan. Deletion always requires its own fresh cleanup plan and confirmation.
+
+Reference: Adobe's [Enable or disable dataflow](https://experienceleague.adobe.com/en/docs/experience-platform/destinations/api/update-destination-dataflows#enable-or-disable-dataflow)
+documents the state action and readback. Whether disabling cancels an existing
+source run is not established; this workflow never assumes cancellation.
 
 The legacy single-asset tools remain available for compatibility, but protected
 REL/Agentic, `cjm_`, AJO/CJA/system/global/Lakehouse TTL and Profile/Identity

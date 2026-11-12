@@ -28,8 +28,8 @@ function registerPlatformCleanupRoutes(deps) {
       }
       const type = input.resource_type;
       const id = input.resource_id;
-      if (req.method === 'POST' && !['inventory', 'plan', 'apply', 'verify'].includes(input.operation)) {
-        return res.status(400).json({ ok: false, error: 'operation must be inventory, plan, apply, or verify.' });
+      if (req.method === 'POST' && !['inventory', 'plan', 'apply', 'verify', 'flow_disable_plan', 'flow_disable_apply'].includes(input.operation)) {
+        return res.status(400).json({ ok: false, error: 'Unsupported governed cleanup operation.' });
       }
       if (req.method !== 'POST') {
         if (!['dataset', 'schema'].includes(type)) {
@@ -49,11 +49,14 @@ function registerPlatformCleanupRoutes(deps) {
       if (req.method === 'POST') {
         const scope = { principalUid: principal.principalUid, orgId, sandbox };
         const targets = input.targets;
-        if (['inventory', 'plan'].includes(input.operation)) {
+        if (['inventory', 'plan', 'flow_disable_plan'].includes(input.operation)) {
           if (!Array.isArray(targets) || targets.length === 0 || targets.length > MAX_BATCH_TARGETS) {
             return res.status(400).json({ ok: false, error: `targets must contain 1-${MAX_BATCH_TARGETS} exact resources.` });
           }
           for (const target of targets) validateBatchTarget(target);
+          if (input.operation === 'flow_disable_plan' && targets.some((target) => target.resource_type !== 'flow')) {
+            return res.status(400).json({ ok: false, error: 'Disable plans accept exact flow IDs only.' });
+          }
           const identities = targets.map((target) => target.resource_id);
           if (new Set(identities).size !== identities.length) {
             return res.status(400).json({ ok: false, error: 'Duplicate target IDs are not allowed, including across resource types.' });
@@ -63,8 +66,9 @@ function registerPlatformCleanupRoutes(deps) {
           const payload = await service.batchInventory(auth, { targets });
           return res.status(200).json({ ok: true, sandbox, orgId, ...payload });
         }
-        if (input.operation === 'plan') {
-          const reviewed = await service.plan(auth, { targets });
+        if (['plan', 'flow_disable_plan'].includes(input.operation)) {
+          const reviewed = input.operation === 'flow_disable_plan'
+            ? await service.planFlowDisable(auth, { targets }) : await service.plan(auth, { targets });
           const safeTargets = targets.map(({ resource_type, resource_id }) => ({ resource_type, resource_id }));
           const ticket = await store.savePlan({ ...scope, ...reviewed, targets: safeTargets });
           const { state_fingerprint: _fingerprint, ...safePlan } = reviewed;
@@ -76,29 +80,31 @@ function registerPlatformCleanupRoutes(deps) {
             },
           });
         }
-        if (input.operation === 'apply') {
+        if (['apply', 'flow_disable_apply'].includes(input.operation)) {
+          const disabling = input.operation === 'flow_disable_apply';
           if (typeof input.plan_id !== 'string' || !UUID.test(input.plan_id)
               || typeof input.manifest_digest !== 'string' || !/^[a-f0-9]{64}$/i.test(input.manifest_digest)
-              || input.confirmed !== true || input.usage_cleared !== true || input.non_atomic_delete_acknowledged !== true
+              || input.confirmed !== true || input.usage_cleared !== true
+              || (disabling ? input.ingestion_pause_acknowledged !== true : input.non_atomic_delete_acknowledged !== true)
               || !Number.isInteger(input.expected_count) || input.expected_count < 1 || input.expected_count > MAX_BATCH_TARGETS) {
             return res.status(400).json({
               ok: false,
-              error: 'plan_id, manifest_digest, expected_count, confirmed=true, usage_cleared=true and non_atomic_delete_acknowledged=true are required.',
+              error: `plan_id, manifest_digest, expected_count, confirmed=true, usage_cleared=true and ${disabling ? 'ingestion_pause_acknowledged' : 'non_atomic_delete_acknowledged'}=true are required.`,
             });
           }
-          const claimed = await store.claimPlan(input.plan_id, scope, {
+          const claimed = await store.claimPlan(input.plan_id, { ...scope, operation: disabling ? 'disable' : 'delete' }, {
             manifest_digest: input.manifest_digest, expected_count: input.expected_count,
           });
           if (claimed.expired) {
             return res.status(409).json({
               ok: false, status: 'expired', replayed: claimed.replayed,
-              instruction: 'Plan expired before it could be claimed. Create a fresh plan; no DELETE was issued.',
+              instruction: 'Plan expired before it could be claimed. Create a fresh plan; no mutation was issued.',
             });
           }
           if (!claimed.claimed) {
             const state = claimed.execution?.state || claimed.plan.state;
             const succeeded = state === 'succeeded';
-            return res.status(succeeded ? 200 : 409).json({
+            return res.status(succeeded ? 200 : disabling && state === 'draining' ? 202 : 409).json({
               ok: succeeded,
               status: state,
               replayed: claimed.replayed,
@@ -106,17 +112,22 @@ function registerPlatformCleanupRoutes(deps) {
               execution: claimed.execution,
             });
           }
-          const execution = await service.apply(auth, claimed.plan, store);
+          const execution = disabling
+            ? await service.applyFlowDisable(auth, claimed.plan, store) : await service.apply(auth, claimed.plan, store);
           const succeeded = execution.state === 'succeeded';
           console.info('[platformCleanup] batch result', {
             principalUid: principal.principalUid, sandbox, plan_id: input.plan_id,
             state: execution.state, delete_requests_issued: execution.delete_requests_issued,
+            disable_requests_issued: execution.disable_requests_issued,
           });
-          return res.status(succeeded ? 200 : 409).json({
+          return res.status(succeeded ? 200 : disabling && execution.state === 'draining' ? 202 : 409).json({
             ok: succeeded, status: execution.state,
             delete_requests_issued: execution.delete_requests_issued,
+            ...(disabling ? { disable_requests_issued: execution.disable_requests_issued } : {}),
             blockers: execution.blockers || [], execution,
-            instruction: succeeded
+            instruction: disabling
+              ? 'Inspect disable results and use cleanup verify for run-drain readiness. Never replay; deletion requires a separate fresh plan and confirmation.'
+              : succeeded
               ? 'Every exact target has a durable successful result and GET 404 readback. Run verify for the protected metadata baseline.'
               : 'Execution stopped. Inspect per-target results and verify readback. Never replay; review and confirm a fresh plan for remaining targets.',
           });
