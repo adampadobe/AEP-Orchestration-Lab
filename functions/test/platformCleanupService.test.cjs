@@ -39,6 +39,10 @@ function fixture(options = {}) {
     }
     if (path.includes('/descriptors/')) return reply(null, !options.pendingDescriptors && deletedDescriptors.has(path.split('/').pop()) ? 404 : 200);
     if (path.endsWith(`/dataSets/${datasetId}`)) return reply({ [datasetId]: { ...(options.dataset || dataset), ...(changed ? { name: 'Renamed' } : {}) } });
+    if (path.startsWith('/data/foundation/catalog/dataSets/')) {
+      if (options.catalogLookup) return reply(options.catalogLookup(url), options.catalogLookupStatus || 200);
+      return reply({ error: 'not found' }, 404);
+    }
     if (path.includes('/schemas/')) return reply(options.schema || schema);
     if (path.endsWith('/dataSets')) {
       if (options.catalog) return reply(options.catalog(url));
@@ -46,7 +50,6 @@ function fixture(options = {}) {
     }
     if (path.endsWith('/descriptors')) {
       assert.match(init.headers.Accept, /xdm-v2/);
-      assert.equal(url.searchParams.get('orderby'), '@id');
       return reply(options.descriptorPage ? options.descriptorPage(url) : {
         results: (options.descriptors || []).filter((item) => !deletedDescriptors.has(item['@id'])), _page: { next: null },
       });
@@ -597,6 +600,75 @@ test('Catalog supports exact UUID dataset IDs through inventory, audit, and dele
   assert.ok(calls.some((call) => call.method === 'DELETE' && call.path.endsWith(`/dataSets/${uuid}`)));
 });
 
+test('Catalog inventories verified opaque identities without allowing them as cleanup targets', async () => {
+  const opaque = `derived_dataset_${'a'.repeat(55)}_123e4567-e89b-12d3-a456-426614174000`;
+  const { service, calls } = fixture({
+    catalog: (url) => url.searchParams.get('start') === '0' ? { [opaque]: dataset } : {},
+    catalogLookup: () => ({ [opaque]: dataset }),
+  });
+  const inventory = await service.list(auth, { resource_type: 'dataset' });
+  assert.deepEqual(inventory.resources.map((row) => row.id), [opaque]);
+  const audit = await service.audit(auth, { resource_type: 'schema', resource_id: schemaId });
+  assert.equal(audit.deleteReviewReady, false);
+  assert.deepEqual(audit.dependencies.datasets.map((row) => row.id), [opaque]);
+  assert.throws(() => validateTarget('dataset', opaque), { status: 400 });
+  assert.throws(() => validateBatchTarget({ resource_type: 'dataset', resource_id: opaque }), { status: 400 });
+  const lookups = calls.filter((call) => call.path.endsWith(`/dataSets/${opaque}`));
+  assert.equal(lookups.length, 2);
+  assert.ok(calls.every((call) => call.method === 'GET'));
+  assert.ok(calls.every((call) => call.headers['x-sandbox-name'] === auth.sandbox));
+});
+
+test('Catalog refuses unverified or conflicting opaque identities without returning partial inventory', async () => {
+  const opaque = 'derived_dataset_example-opaque-id';
+  for (const lookup of [
+    {},
+    { [id]: dataset },
+    { [opaque]: { ...dataset, name: 'Changed' } },
+    { [opaque]: { ...dataset, schemaRef: { id: `${schemaId}99` } } },
+    { [opaque]: { ...dataset, id } },
+    { [opaque]: dataset, [id]: dataset },
+  ]) {
+    const { service, calls } = fixture({
+      catalog: () => ({ [opaque]: dataset }),
+      catalogLookup: () => lookup,
+    });
+    await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
+      assert.equal(error.status, 502);
+      assert.equal(error.detail.reason, 'invalid_dataset_id');
+      return true;
+    });
+    assert.ok(calls.every((call) => call.method === 'GET'));
+  }
+});
+
+test('Catalog surfaces opaque-identity verification failures instead of skipping the record', async () => {
+  const opaque = 'derived_dataset_example-opaque-id';
+  const { service, calls } = fixture({
+    catalog: () => ({ [opaque]: dataset }),
+    catalogLookup: () => ({ error: 'permission denied' }),
+    catalogLookupStatus: 403,
+  });
+  await assert.rejects(service.list(auth, { resource_type: 'dataset' }), (error) => {
+    assert.equal(error.status, 403);
+    assert.equal(error.detail.reason, 'dataset_identity_verification_failed');
+    assert.equal(error.detail.page, 1);
+    assert.equal(JSON.stringify({ message: error.message, detail: error.detail }).includes(opaque), false);
+    return true;
+  });
+  assert.equal(calls.length, 2);
+  assert.ok(calls.every((call) => call.method === 'GET'));
+});
+
+test('Catalog rejects unsafe opaque identifiers without following them as lookup paths', async () => {
+  for (const opaque of ['..', '../outside', 'a%2fb', 'https://example.com/record', 'a'.repeat(513)]) {
+    const { service, calls } = fixture({ catalog: () => ({ [opaque]: dataset }) });
+    await assert.rejects(service.list(auth, { resource_type: 'dataset' }), { status: 502 });
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].method, 'GET');
+  }
+});
+
 test('Catalog metadata-only records remain visible for dependency completeness checks', async () => {
   const { service } = fixture({
     catalog: (url) => url.searchParams.get('start') === '0' ? ({ [id]: {}, _page: 1 }) : { _page: 2 },
@@ -719,6 +791,52 @@ test('follows descriptor cursors and finds incoming dependencies beyond the firs
   });
   const audit = await service.audit(auth, params);
   assert.equal(audit.deleteReviewReady, false);
+});
+
+test('descriptor inventory uses a working sort cursor through three pages without losing incoming relationships', async () => {
+  const rows = Array.from({ length: 200 }, (_, index) => ({
+    '@id': `descriptor-${index}`, 'xdm:sourceSchema': `${schemaId}99`, created: 1700000000000 + index,
+  }));
+  const paged = (results, next, orderby = 'created') => ({
+    results, _page: { count: results.length, next, orderby },
+    _links: { next: next === null ? null : { href: `/tenant/descriptors/?limit=100&orderby=${orderby}&start=${next}` } },
+  });
+  const { service, calls } = fixture({
+    descriptorPage: (url) => {
+      const orderby = url.searchParams.get('orderby');
+      // The live Registry returns a non-advancing empty cursor when sorted by @id.
+      if (orderby !== 'created') return paged(rows.slice(0, 100), '', orderby);
+      const start = url.searchParams.get('start');
+      if (start === null) return paged(rows.slice(0, 100), String(rows[99].created));
+      if (start === String(rows[99].created)) return paged(rows.slice(100), String(rows[199].created));
+      assert.equal(start, String(rows[199].created));
+      return paged([{
+        '@id': 'incoming', '@type': 'xdm:descriptorRelationship',
+        'xdm:sourceSchema': `${schemaId}99`, 'xdm:destinationSchema': schemaId,
+      }], null);
+    },
+  });
+  const audit = await service.audit(auth, params);
+  assert.equal(audit.deleteReviewReady, false);
+  assert.equal(audit.dependencies.incomingRelationships.length, 1);
+  assert.equal(calls.filter((call) => call.path.endsWith('/descriptors')).length, 3);
+  assert.ok(calls.every((call) => call.method === 'GET'));
+});
+
+test('descriptor inventory still rejects non-advancing empty cursors rather than accepting a partial scan', async () => {
+  const { service, calls } = fixture({
+    descriptorPage: () => ({
+      results: [{ '@id': 'descriptor', 'xdm:sourceSchema': `${schemaId}99` }],
+      _page: { next: '', orderby: 'created' },
+      _links: { next: { href: '/tenant/descriptors/?limit=100&orderby=created&start=' } },
+    }),
+  });
+  await assert.rejects(service.audit(auth, params), (error) => {
+    assert.equal(error.status, 502);
+    assert.equal(error.detail.reason, 'repeated_page');
+    return true;
+  });
+  assert.ok(calls.every((call) => call.method === 'GET'));
 });
 
 test('Schema Registry reconciles equivalent next links and sort cursors', async () => {

@@ -280,9 +280,11 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     return { link: link ?? rootNext, href, cursor: href ? null : cursor };
   }
 
-  function catalogId(value) {
+  function catalogId(value, allowOpaque = false) {
     if (typeof value !== 'string') return null;
-    if (isCatalogDatasetId(value)) return value;
+    const valid = (id) => isCatalogDatasetId(id)
+      || (allowOpaque && /^[A-Za-z0-9][A-Za-z0-9_.-]{0,511}$/.test(id));
+    if (valid(value)) return value;
     const prefixes = [
       '@/dataSets/',
       '/data/foundation/catalog/dataSets/',
@@ -291,7 +293,29 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
     const prefix = prefixes.find((candidate) => value.toLowerCase().startsWith(candidate.toLowerCase()));
     if (!prefix) return null;
     const id = value.slice(prefix.length);
-    return isCatalogDatasetId(id) ? id : null;
+    return valid(id) ? id : null;
+  }
+
+  async function verifyOpaqueCatalogIdentity(auth, id, raw, page) {
+    if (typeof raw?.name !== 'string' || !raw.name) return false;
+    let data;
+    try {
+      ({ data } = await request(auth, `${CATALOG}/${encodeURIComponent(id)}`));
+    } catch (error) {
+      if (error.status === 404) return false;
+      if (Number.isInteger(error.status)) {
+        throw failure(error.status, 'Catalog identity verification failed; cleanup inventory stopped.', {
+          inventory: 'datasets', page: page + 1, reason: 'dataset_identity_verification_failed',
+        });
+      }
+      throw error;
+    }
+    if (!data || typeof data !== 'object' || Array.isArray(data) || !Object.hasOwn(data, id)
+        || Object.keys(data).filter((key) => !key.startsWith('_') && key !== 'next').length !== 1) return false;
+    const verified = data[id];
+    return verified != null && typeof verified === 'object' && !Array.isArray(verified)
+      && verified.name === raw.name && verified.schemaRef?.id === raw.schemaRef?.id
+      && ['id', '@id'].every((key) => !Object.hasOwn(verified, key) || catalogId(verified[key], true) === id);
   }
 
   function catalogIdShape(value) {
@@ -351,10 +375,13 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
         const keyId = catalogId(key);
         const recordIdValues = raw && typeof raw === 'object' && !Array.isArray(raw)
           ? ['id', '@id'].filter((field) => Object.hasOwn(raw, field)).map((field) => raw[field]) : [];
-        const recordIds = recordIdValues.map(catalogId);
+        const recordIds = recordIdValues.map((value) => catalogId(value, true));
         const validIds = [keyId, ...recordIds].filter(Boolean);
-        const id = recordIdValues.some((_value, index) => !recordIds[index])
-          || new Set(validIds).size > 1 ? null : validIds[0];
+        let id = recordIdValues.some((_value, index) => !recordIds[index])
+          || new Set(validIds).size > 1 ? null : validIds[0] || catalogId(key, true);
+        // Opaque identities are inventory-only; deletion target validation stays strict.
+        if (id && !seen.has(id) && !isCatalogDatasetId(id)
+            && !(await verifyOpaqueCatalogIdentity(auth, id, raw, page))) id = null;
         const reason = seen.has(id) ? 'repeated_dataset_id'
           : !id ? 'invalid_dataset_id'
             : !raw || typeof raw !== 'object' || Array.isArray(raw)
@@ -404,7 +431,8 @@ function createPlatformCleanupService({ fetchImpl = globalThis.fetch } = {}) {
   async function listPaged(auth, path, accept, key) {
     const result = [];
     const seenPages = new Set();
-    const order = path.startsWith(REGISTRY) ? `&orderby=${key === 'results' && path.endsWith('/schemas') ? 'title' : '@id'}` : '';
+    // Descriptor @id sorting can return an empty, non-advancing cursor; use creation time.
+    const order = path.startsWith(REGISTRY) ? `&orderby=${key === 'results' && path.endsWith('/schemas') ? 'title' : 'created'}` : '';
     let next = `${path}?limit=${PAGE_SIZE}${order}`;
     for (let page = 0; page < MAX_PAGES; page++) {
       const url = inventoryUrl(next, path, page, seenPages);
