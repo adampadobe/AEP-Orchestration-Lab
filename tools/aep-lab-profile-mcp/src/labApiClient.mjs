@@ -1067,6 +1067,10 @@ export function aepFlowRunStatus(params) {
   return ingestionDiagnosticsRead('flow_run_status', params);
 }
 
+export function profileSeedScheduleDiagnose(params) {
+  return ingestionDiagnosticsRead('profile_seed_schedule_diagnose', params);
+}
+
 export function principalAuthHeaders() {
   const ims = getRequestImsAuthHeaders();
   if (!ims) return generationPrefsAuthHeaders();

@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const {
-  INDUSTRIES, businessTime, validateConfig, buildDayPlan, assertFlowHealth,
+  INDUSTRIES, businessTime, validateConfig, buildDayPlan, diagnoseFlowHealth, assertFlowHealth,
   createProfileSeedScheduleService,
 } = require('../profileSeedScheduleService');
 const { createProfileSeedScheduleStore, COLLECTION } = require('../profileSeedScheduleStore');
@@ -153,6 +153,15 @@ test('missing/disabled configuration is inert; malformed enabled policy fails cl
   ]) assert.throws(() => validateConfig({ ...settings, ...patch }), { code: 'SEED_SCHEDULE_CONFIG_INVALID' });
 });
 
+test('diagnostic store accessors read dispatcher and validated day plans without creating state', async () => {
+  const db = fakeFirestore();
+  const store = createProfileSeedScheduleStore(db);
+  assert.deepEqual(await store.getDispatcher(), {});
+  assert.equal(await store.getDay(day), null);
+  assert.deepEqual([...db.data.keys()], [root]);
+  await assert.rejects(store.getDay('../invalid'), { code: 'SEED_SCHEDULE_DAY_INVALID' });
+});
+
 test('only one plan and writer survive duplicate and concurrent ticks', async () => {
   const f = fixture();
   await Promise.all([f.service.tick(), f.service.tick(), f.service.tick()]);
@@ -231,6 +240,24 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
   const f = fixture();
   const good = f.health();
   assert.doesNotThrow(() => assertFlowHealth(good, f.now()));
+  assert.doesNotThrow(() => assertFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], lastRun: {
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 119 * 60_000).toISOString(),
+    } }],
+  }, f.now()));
+  assert.equal(diagnoseFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], lastRun: {
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 121 * 60_000).toISOString(),
+    } }],
+  }, f.now()).issues[0].code, 'last_run_stale');
+  const missingMetric = diagnoseFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], id: 'flow-a', lastRun: { ...good.flows[0].lastRun, failedCount: null } }],
+  }, f.now());
+  assert.equal(missingMetric.healthy, false);
+  assert.deepEqual(missingMetric.issues, [{ code: 'failed_count_unknown', flowId: 'flow-a' }]);
   for (const patch of [
     { state: 'disabled' }, { schedule: { frequency: 'once' } },
     { lastRun: { ...good.flows[0].lastRun, failedCount: 1 } },
@@ -243,6 +270,28 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
     assert.equal((await blocked.service.tick()).state, 'needs_attention');
     assert.equal(blocked.calls.generate, 0);
   }
+});
+
+test('flow-health failure persists safe per-flow evidence and never reaches Snowflake', async () => {
+  const health = {
+    complete: true,
+    flows: [{
+      id: 'flow-a', sourceTables: ['REL.RECIPIENT'], state: 'enabled',
+      schedule: { frequency: 'minute', interval: 15 },
+      lastRun: { state: 'success', completedAt: '2026-11-10T05:00:00.000Z', failedCount: null },
+    }],
+  };
+  const f = fixture({ health });
+  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal(f.calls.preflight, 0);
+  assert.equal(f.calls.generate, 0);
+  const slot = f.db.data.get(dayKey()).slots[0];
+  assert.equal(slot.errorCode, 'SEED_INGESTION_NOT_HEALTHY');
+  assert.equal(slot.flowHealth.issues[0].code, 'last_run_stale');
+  assert.equal(slot.flowHealth.issues[1].code, 'failed_count_unknown');
+  const failureLog = f.logs.find(([message]) => message.includes('Paused for inspection'));
+  assert.equal(failureLog[1].stage, 'flow_health');
+  assert.equal(failureLog[1].flowHealth.healthy, false);
 });
 
 test('pause or close of business between preparation and write prevents the write', async () => {

@@ -181,7 +181,8 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 244);
+  assert.equal(full.names.length, 245);
+  assert.equal(full.names.includes('lab_profile_seed_schedule_diagnose'), true);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 

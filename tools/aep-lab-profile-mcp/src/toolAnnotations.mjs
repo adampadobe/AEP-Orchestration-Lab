@@ -47,6 +47,7 @@ const READ_ONLY_TOOLS = new Set([
   'lab_ajo_oc_dataset_validate',
   'lab_aep_batch_diagnose',
   'lab_aep_flow_run_status',
+  'lab_profile_seed_schedule_diagnose',
   'lab_batch_job_status',
   'lab_brand_scrape_brief',
   'lab_confirm_generation_plan',

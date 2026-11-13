@@ -9,6 +9,11 @@ function createProfileSeedScheduleStore(db) {
   const control = root.collection('state').doc('dispatcher');
   const dayRef = (day) => root.collection('days').doc(day);
   const getConfig = async () => (await root.get()).data();
+  const getDispatcher = async () => (await control.get()).data() || {};
+  const getDay = async (day) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) throw fail('SEED_SCHEDULE_DAY_INVALID');
+    return (await dayRef(day).get()).data() || null;
+  };
   function check(saved, expected) {
     const current = validateConfig(saved);
     if (!current || current.fingerprint !== expected.fingerprint) throw fail('SEED_CONFIGURATION_CHANGED');
@@ -94,7 +99,7 @@ function createProfileSeedScheduleStore(db) {
         ...(patch.state === 'needs_attention' ? { attention: { day, id } } : {}) });
     });
   }
-  return { getConfig, ensureDay, claim, prepared, finish };
+  return { getConfig, getDispatcher, getDay, ensureDay, claim, prepared, finish };
 }
 
 module.exports = { createProfileSeedScheduleStore, COLLECTION };

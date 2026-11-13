@@ -6,6 +6,7 @@ function registerAepIngestionDiagnosticsRoutes(deps) {
   const {
     onRequest, profileFnOpts, setCors, mcpApiKeyStore, getAdobeAccessToken,
     ADOBE_CLIENT_ID, ADOBE_IMS_ORG, ingestionDiagnosticsService: service,
+    profileSeedScheduleDiagnose,
   } = deps;
   const aepIngestionDiagnosticsProxy = onRequest({ ...profileFnOpts, timeoutSeconds: 300 }, async (req, res) => {
     setCors(res, 'GET, OPTIONS');
@@ -24,12 +25,15 @@ function registerAepIngestionDiagnosticsRoutes(deps) {
       if (req.headers['x-gw-ims-org-id'] && req.headers['x-gw-ims-org-id'] !== orgId) {
         return res.status(403).json({ ok: false, error: 'Adobe organisation does not match the configured organisation.' });
       }
-      if (!['batch_diagnose', 'flow_run_status'].includes(input.action)) {
+      if (!['batch_diagnose', 'flow_run_status', 'profile_seed_schedule_diagnose'].includes(input.action)) {
         return res.status(400).json({ ok: false, error: 'Unsupported diagnostics action.' });
       }
       const auth = { token: await getAdobeAccessToken(), clientId: ADOBE_CLIENT_ID.value(), orgId, sandbox };
       const payload = input.action === 'batch_diagnose'
-        ? await service.batchDiagnose(auth, input) : await service.flowRunStatus(auth, input);
+        ? await service.batchDiagnose(auth, input)
+        : input.action === 'flow_run_status'
+          ? await service.flowRunStatus(auth, input)
+          : await profileSeedScheduleDiagnose({ principal, auth });
       return res.status(200).json(payload);
     } catch (error) {
       const status = Number(error.status) >= 400 && Number(error.status) <= 599 ? Number(error.status) : 500;

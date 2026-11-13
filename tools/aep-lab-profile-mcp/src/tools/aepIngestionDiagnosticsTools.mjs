@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
-import { aepBatchDiagnose, aepFlowRunStatus } from '../labApiClient.mjs';
+import { aepBatchDiagnose, aepFlowRunStatus, profileSeedScheduleDiagnose } from '../labApiClient.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
 const sandbox = z.string().min(1).describe('Must match the authenticated principal sandbox.');
@@ -38,4 +38,11 @@ export function registerAepIngestionDiagnosticsTools(server) {
     },
     annotations: { readOnlyHint: true, destructiveHint: false },
   }, (params) => invoke(params, aepFlowRunStatus));
+
+  server.registerTool('lab_profile_seed_schedule_diagnose', {
+    title: 'Diagnose scheduled profile seeding',
+    description: 'Read-only, owner- and sandbox-scoped diagnostics for the scheduled Snowflake profile seeder. Summarizes the schedule, dispatcher block/attention state and recent day slots, then reads the focused industry flow health now. Does not expose saved profile identities or schedule email/mobile settings. Live flow health is not proof of Snowflake writes or AEP profile arrival and does not reconstruct the original failure snapshot. Never unblocks or replays a slot.',
+    inputSchema: { sandbox },
+    annotations: { readOnlyHint: true, destructiveHint: false },
+  }, (params) => invoke(params, profileSeedScheduleDiagnose));
 }

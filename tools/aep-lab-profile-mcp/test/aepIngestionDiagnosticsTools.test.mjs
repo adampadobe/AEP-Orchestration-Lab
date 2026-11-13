@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as z from 'zod';
 import { registerAepIngestionDiagnosticsTools } from '../src/tools/aepIngestionDiagnosticsTools.mjs';
-import { aepBatchDiagnose, aepFlowRunStatus } from '../src/labApiClient.mjs';
+import { aepBatchDiagnose, aepFlowRunStatus, profileSeedScheduleDiagnose } from '../src/labApiClient.mjs';
 import { requestContext } from '../src/requestContext.mjs';
 import { annotationsForTool } from '../src/toolAnnotations.mjs';
 import { createRequire } from 'node:module';
@@ -11,10 +11,12 @@ const require = createRequire(import.meta.url);
 const { createAepIngestionDiagnosticsService } = require('../../../functions/aepIngestionDiagnosticsService');
 const { registerAepIngestionDiagnosticsRoutes } = require('../../../functions/aepIngestionDiagnosticsRoutes');
 
-test('registers both read-only diagnostics tools with bounded input schemas', () => {
+test('registers read-only diagnostics tools with bounded input schemas', () => {
   const tools = new Map();
   registerAepIngestionDiagnosticsTools({ registerTool(name, definition, handler) { tools.set(name, { definition, handler }); } });
-  assert.deepEqual([...tools.keys()], ['lab_aep_batch_diagnose', 'lab_aep_flow_run_status']);
+  assert.deepEqual([...tools.keys()], [
+    'lab_aep_batch_diagnose', 'lab_aep_flow_run_status', 'lab_profile_seed_schedule_diagnose',
+  ]);
   for (const name of tools.keys()) {
     assert.equal(annotationsForTool(name).readOnlyHint, true);
     assert.equal(annotationsForTool(name).destructiveHint, false);
@@ -25,6 +27,9 @@ test('registers both read-only diagnostics tools with bounded input schemas', ()
   assert.equal(batch.safeParse({ sandbox: 'sandbox-a', sample_limit: 51 }).success, false);
   const flow = z.object(tools.get('lab_aep_flow_run_status').definition.inputSchema);
   assert.equal(flow.safeParse({ sandbox: 'sandbox-a', flow_id: '11111111-2222-4333-8444-555555555555', limit: 0 }).success, false);
+  const schedule = z.object(tools.get('lab_profile_seed_schedule_diagnose').definition.inputSchema);
+  assert.equal(schedule.safeParse({ sandbox: 'sandbox-a' }).success, true);
+  assert.equal(schedule.safeParse({ sandbox: '' }).success, false);
 });
 
 test('clients forward principal auth, use GET and preserve errors without retries', async () => {
@@ -37,15 +42,17 @@ test('clients forward principal auth, use GET and preserve errors without retrie
   };
   try {
     await requestContext.run({ mcpApiKey: 'fixture-key' }, async () => {
-      for (const read of [aepBatchDiagnose, aepFlowRunStatus]) {
+      for (const read of [aepBatchDiagnose, aepFlowRunStatus, profileSeedScheduleDiagnose]) {
         const result = await read({ sandbox: 'sandbox-a', limit: 2 });
         assert.equal(result.ok, false);
         assert.equal(result.status, 503);
       }
     });
 
-    assert.equal(calls.length, 2);
-    assert.deepEqual(calls.map((call) => call.url.searchParams.get('action')), ['batch_diagnose', 'flow_run_status']);
+    assert.equal(calls.length, 3);
+    assert.deepEqual(calls.map((call) => call.url.searchParams.get('action')), [
+      'batch_diagnose', 'flow_run_status', 'profile_seed_schedule_diagnose',
+    ]);
     for (const call of calls) {
       assert.equal(call.url.pathname, '/aepIngestionDiagnosticsProxy');
       assert.equal(call.init.method, 'GET');
@@ -114,6 +121,10 @@ test('end-to-end tool → principal-scoped proxy → Adobe fixture returns stall
     ADOBE_CLIENT_ID: { value: () => 'fixture-client' },
     ADOBE_IMS_ORG: { value: () => 'TEST@AdobeOrg' },
     ingestionDiagnosticsService: service,
+    profileSeedScheduleDiagnose: async ({ principal, auth }) => ({
+      ok: true, configured: true, ownerMatched: principal.principalUid === 'fixture-uid',
+      sandbox: auth.sandbox, dispatcher: { blocked: true },
+    }),
   });
   globalThis.fetch = async (input, init) => {
     const url = new URL(input);
@@ -147,6 +158,10 @@ test('end-to-end tool → principal-scoped proxy → Adobe fixture returns stall
       const statusOutput = JSON.parse(status.content[0].text);
       assert.equal(statusOutput.lab.runs[0].read_count, 22353);
       assert.equal(statusOutput.lab.runs[0].written_count, null);
+      const schedule = await tools.get('lab_profile_seed_schedule_diagnose').handler({ sandbox: 'sandbox-a' });
+      const scheduleOutput = JSON.parse(schedule.content[0].text);
+      assert.equal(scheduleOutput.lab.ownerMatched, true);
+      assert.equal(scheduleOutput.lab.dispatcher.blocked, true);
       const previous = adobeCalls.length;
       const rejected = await tools.get('lab_aep_flow_run_status').handler({ sandbox: 'sandbox-b', flow_id: flowId });
       assert.equal(rejected.isError, true);
