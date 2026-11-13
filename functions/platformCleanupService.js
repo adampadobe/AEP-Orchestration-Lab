@@ -1,7 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { bindings: reviewedFlowBindings } = require('./myDataFlowsRegistry');
+const { bindings: reviewedFlowBindings, retiredBindings } = require('./myDataFlowsRegistry');
 
 const BASE = 'https://platform.adobe.io';
 const CATALOG = '/data/foundation/catalog/dataSets';
@@ -10,7 +10,7 @@ const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 const MAX_BATCH_TARGETS = 100;
-const BATCH_POLICY_VERSION = '2026-11-13.1';
+const BATCH_POLICY_VERSION = '2026-11-13.2';
 const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
 const BATCH_TYPES = new Set([
   'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
@@ -127,8 +127,21 @@ function identityEnabled(value) {
   return enabledTag(value, 'unifiedIdentity');
 }
 
-function protectedResource(type, id, name = '', sandbox) {
+function retiredBinding(auth, id) {
+  return auth.sandbox === 'apalmer' && auth.orgId === 'BF9C27AA6464801C0A495FD0@AdobeOrg'
+    ? retiredBindings.find((binding) => binding.id === id) : null;
+}
+
+function protectedResource(type, id, name = '', sandbox, retirementCleared = false) {
   const normalizedName = String(name).trim().toLowerCase();
+  if (type === 'flow' && sandbox === 'apalmer' && retiredBindings.some((binding) => binding.id === id)) {
+    return retirementCleared ? null : 'Retired flow protection requires fresh verified orphan and replacement bindings.';
+  }
+  const companionKey = { sourceConnection: 'sourceConnectionId', targetConnection: 'targetConnectionId',
+    dataset: 'datasetId', schema: 'schemaId' }[type];
+  if (sandbox === 'apalmer' && companionKey && retiredBindings.some((binding) => binding[companionKey] === id)) {
+    return 'Legacy retirement covers flows only; companion connections, datasets and schemas remain protected.';
+  }
   if (type === 'flow' && sandbox === 'apalmer' && REVIEWED_FLOW_IDS.has(id)) {
     return 'This flow is protected by the reviewed architecture registry, independently of its current name.';
   }
@@ -822,6 +835,8 @@ function createPlatformCleanupService({
 
   function protectedBaseline(snapshot, auth) {
     return snapshot.entries
+      // Retirement targets are bound by their exact manifests, not the preserved baseline.
+      .filter((entry) => entry.type !== 'flow' || !retiredBinding(auth, entry.id))
       .filter((entry) => protectedResource(entry.type, entry.id, entry.raw?.name || entry.raw?.title || entry.raw?.flowName, auth.sandbox)
         || cleanupEnabled(entry.raw))
       .map((entry) => ({
@@ -843,11 +858,80 @@ function createPlatformCleanupService({
     };
   }
 
+  async function reviewFlowRetirement(auth, snapshot, target, current) {
+    if (target.resource_type !== 'flow') return null;
+    const binding = retiredBinding(auth, target.resource_id);
+    if (!binding) return null;
+    const blockers = [];
+    const entry = (type, id) => snapshot.entries.find((item) => item.type === type && item.id === id)?.raw;
+    const source = entry('sourceConnection', binding.sourceConnectionId);
+    const destination = entry('targetConnection', binding.targetConnectionId);
+    const flow = current.raw;
+    const sameIds = (actual, expected) => Array.isArray(actual) && actual.length === 1 && actual[0] === expected;
+    if (!flow || !sameIds(flow.sourceConnectionIds, binding.sourceConnectionId)
+        || !sameIds(flow.targetConnectionIds, binding.targetConnectionId)
+        || source?.params?.tableName !== binding.table
+        || source?.baseConnectionId !== PROTECTED_SNOWFLAKE_ACCOUNT_ID
+        || destination?.params?.dataSetId !== binding.datasetId
+        || destination?.data?.schema?.id !== binding.schemaId
+        || flow.transformations?.length !== 1 || flow.transformations[0].name !== 'Mapping'
+        || flow.transformations[0].params?.mappingId !== binding.mappingId
+        || flow.transformations[0].params?.mappingVersion !== 0) {
+      blockers.push('Legacy source, target or mapping differs from the reviewed retirement contract.');
+    }
+    const orphan = await inspectTarget(() => getBatchTarget(auth, {
+      resource_type: 'dataset', resource_id: binding.datasetId,
+    }), { resource_type: 'dataset', resource_id: binding.datasetId });
+    if (orphan.inspection_error?.status !== 404 || entry('dataset', binding.datasetId)) {
+      blockers.push('Legacy destination absence is not verified by an exact Catalog 404.');
+    }
+    const shared = snapshot.entries.some((item) => item.type === 'flow' && item.id !== binding.id
+      && (item.raw.sourceConnectionIds?.includes(binding.sourceConnectionId)
+        || item.raw.targetConnectionIds?.includes(binding.targetConnectionId)
+        || item.raw.transformations?.some((mapping) => mapping.params?.mappingId === binding.mappingId)));
+    if (shared) blockers.push('Another flow shares the retired source connection, target connection or mapping.');
+    for (const activeBinding of reviewedFlowBindings.filter((item) => item.nodeIds.includes('xdm-flow'))) {
+      const active = entry('flow', activeBinding.id);
+      const activeSource = active?.sourceConnectionIds?.length === 1 && entry('sourceConnection', active.sourceConnectionIds[0]);
+      const activeTarget = active?.targetConnectionIds?.length === 1 && entry('targetConnection', active.targetConnectionIds[0]);
+      if (active?.state !== 'enabled' || activeSource?.params?.tableName !== activeBinding.table
+          || !entry('dataset', activeTarget?.params?.dataSetId)) {
+        blockers.push(`Current XDM flow ${activeBinding.id} is missing or its source/destination binding is not ready.`);
+      }
+    }
+    const replacements = binding.replacementTables.map((table) => {
+      const replacement = reviewedFlowBindings.find((item) => item.table === table);
+      const active = replacement && entry('flow', replacement.id);
+      const activeSource = active?.sourceConnectionIds?.length === 1 && entry('sourceConnection', active.sourceConnectionIds[0]);
+      const activeTarget = active?.targetConnectionIds?.length === 1 && entry('targetConnection', active.targetConnectionIds[0]);
+      const dataset = activeTarget && entry('dataset', activeTarget.params?.dataSetId);
+      const expectedName = table === 'REL.RECIPIENT' ? 'rel_recipient' : table.slice(4).toLowerCase();
+      const extension = dataset?.extensions?.adobe_journeyOptimizer;
+      if (!active || active.state !== 'enabled' || active.scheduleParams?.frequency !== 'minute'
+          || active.scheduleParams?.interval !== 15 || activeSource?.params?.tableName !== table
+          || activeSource?.baseConnectionId !== PROTECTED_SNOWFLAKE_ACCOUNT_ID
+          || activeSource?.params?.cdcEnabled !== true || dataset?.name !== expectedName
+          || typeof dataset?.schemaRef?.id !== 'string' || !dataset.schemaRef.id
+          || activeTarget?.data?.schema?.id !== dataset?.schemaRef?.id
+          || extension?.enabled !== true || extension?.status !== 'COMPLETED') {
+        blockers.push(`Replacement ${table} is missing or its reviewed ingestion/OC configuration is not ready.`);
+      }
+      return { table, flowId: replacement?.id, datasetId: dataset?.id,
+        configuration: { flow: active && protectedMetadata(active, 'flow'), source: activeSource, target: activeTarget, dataset } };
+    });
+    return {
+      blockers, legacy_dataset_id: binding.datasetId,
+      replacement_tables: binding.replacementTables,
+      state_fingerprint: fingerprint({ source, destination, replacements, orphanStatus: orphan.inspection_error?.status }),
+    };
+  }
+
   async function planFlowDisable(auth, { targets }) {
     validateBatchTargets(targets);
     if (targets.some((target) => target.resource_type !== 'flow')) throw failure(400, 'Flow disabling accepts exact flow IDs only.');
     const snapshot = await collectBatchInventory(auth);
     const exact = await Promise.all(targets.map((target) => inspectTarget(() => getBatchTarget(auth, target), target)));
+    const retirements = await Promise.all(targets.map((target, index) => reviewFlowRetirement(auth, snapshot, target, exact[index])));
     const protectedDatasetIds = snapshot.entries.filter((entry) => entry.type === 'dataset' && (
       cleanupEnabled(entry.raw) || protectedResource(entry.type, entry.id, entry.raw.name, auth.sandbox)
       || snapshot.entries.some((schema) => schema.type === 'schema' && typeof entry.raw.schemaRef?.id === 'string'
@@ -861,7 +945,10 @@ function createPlatformCleanupService({
       const blockers = [];
       const target = targets[index];
       if (current.inspection_error) blockers.push(`Flow inspection failed (${current.inspection_error.status}).`);
-      const protection = protectedResource('flow', target.resource_id, current.resource.name, auth.sandbox);
+      const retirement = retirements[index];
+      if (retirement) blockers.push(...retirement.blockers);
+      const protection = protectedResource('flow', target.resource_id, current.resource.name, auth.sandbox,
+        retirement?.blockers.length === 0);
       if (protection) blockers.push(protection);
       if (!snapshot.entries.some((entry) => entry.type === 'flow' && entry.id === target.resource_id)) {
         blockers.push('Flow is missing from the complete inventory.');
@@ -880,6 +967,7 @@ function createPlatformCleanupService({
       )))) blockers.push('This flow feeds a protected dataset or schema.');
       return {
         ...current.resource, blockers,
+        ...(retirement ? { retirement } : {}),
         state_fingerprint: fingerprint({ raw: current.raw, etag: current.etag || current.raw?.etag || '', error: current.inspection_error || null }),
         disabled_config_fingerprint: current.raw ? fingerprint(protectedMetadata({ ...current.raw, state: 'disabled' }, 'flow')) : null,
       };
@@ -977,7 +1065,11 @@ function createPlatformCleanupService({
         requireTime();
         const fresh = await planFlowDisable(auth, { targets: approvedPlan.targets.filter((target) => !completed.has(target.resource_id)) });
         if (fresh.blockers.length || fingerprint(fresh.protected_baseline) !== fingerprint(approvedPlan.protected_baseline)
-            || fresh.manifest.some((item) => item.state_fingerprint !== approvedPlan.manifest.find((old) => old.resource_id === item.resource_id)?.state_fingerprint)) {
+            || fresh.manifest.some((item) => {
+              const reviewed = approvedPlan.manifest.find((old) => old.resource_id === item.resource_id);
+              return item.state_fingerprint !== reviewed?.state_fingerprint
+                || item.retirement?.state_fingerprint !== reviewed?.retirement?.state_fingerprint;
+            })) {
           return finish(issued ? 'failed' : 'blocked', [...fresh.blockers, 'Flow configuration or protected baseline changed after review.']);
         }
         const current = await getBatchTarget(auth, { resource_type: 'flow', resource_id: id });
@@ -1041,6 +1133,7 @@ function createPlatformCleanupService({
     validateBatchTargets(targets);
     const snapshot = await collectBatchInventory(auth);
     const exact = await Promise.all(targets.map((target) => inspectTarget(() => getBatchTarget(auth, target), target)));
+    const retirements = await Promise.all(targets.map((target, index) => reviewFlowRetirement(auth, snapshot, target, exact[index])));
     const schemaIds = [...new Set(exact.flatMap((current, index) => {
       const type = targets[index].resource_type;
       const id = type === 'dataset' ? current.raw?.schemaRef?.id
@@ -1060,7 +1153,10 @@ function createPlatformCleanupService({
           && entry.type === (target.resource_type === 'account' ? 'baseConnection' : target.resource_type))) {
         targetBlockers.push('The exact resource is missing from the complete metadata inventory.');
       }
-      const policyBlock = protectedResource(target.resource_type, target.resource_id, current.resource.name, auth.sandbox);
+      const retirement = retirements[index];
+      if (retirement) targetBlockers.push(...retirement.blockers);
+      const policyBlock = protectedResource(target.resource_type, target.resource_id, current.resource.name, auth.sandbox,
+        retirement?.blockers.length === 0);
       if (policyBlock) targetBlockers.push(policyBlock);
       if (current.raw && cleanupEnabled(current.raw)) targetBlockers.push('Profile/Identity-enabled resources are protected.');
       if (current.raw && target.resource_type === 'dataset') {
@@ -1089,6 +1185,7 @@ function createPlatformCleanupService({
       }
       return {
         ...current.resource,
+        ...(retirement ? { retirement } : {}),
         state_fingerprint: fingerprint(current.raw || { unsupported: !!current.unsupported, inspection_error: current.inspection_error || null }),
         ...(current.inspection_error ? { inspection_error: current.inspection_error } : {}),
         blockers: targetBlockers,
@@ -1161,6 +1258,7 @@ function createPlatformCleanupService({
     const sameManifest = current.manifest.every((item) => approvedPlan.manifest.some((approved) => (
       approved.resource_type === item.resource_type && approved.resource_id === item.resource_id
       && approved.state_fingerprint === item.state_fingerprint
+      && approved.retirement?.state_fingerprint === item.retirement?.state_fingerprint
     )));
     const expectedEdges = approvedPlan.dependency_edges.filter((edge) => !completedIds.has(edge.before) && !completedIds.has(edge.after));
     const edgeDigest = (edges) => fingerprint([...edges].sort((a, b) => `${a.before}:${a.after}:${a.source_type}`.localeCompare(`${b.before}:${b.after}:${b.source_type}`)));

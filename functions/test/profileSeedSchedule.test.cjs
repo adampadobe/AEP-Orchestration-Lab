@@ -9,6 +9,18 @@ const {
   createProfileSeedScheduleService,
 } = require('../profileSeedScheduleService');
 const { createProfileSeedScheduleStore, COLLECTION } = require('../profileSeedScheduleStore');
+const { relevantBindings } = require('../myDataFlowsTraceService');
+const { retiredBindings } = require('../myDataFlowsRegistry');
+
+test('scheduler scopes exclude retired travel destinations without replacing current REL or XDM dependencies', () => {
+  for (const industry of INDUSTRIES) {
+    const scoped = relevantBindings(industry);
+    assert.ok(retiredBindings.every((retired) => !scoped.some((binding) => binding.id === retired.id)));
+    assert.ok(scoped.some((binding) => binding.id === 'f0cdb096-4568-46a6-8d5c-df38d9891716'));
+    assert.ok(scoped.some((binding) => binding.id === '065f3b53-df40-43d1-9d91-c42f031996d6'));
+  }
+  assert.ok(relevantBindings('travel').some((binding) => binding.id === '4faef7e2-8ad3-459c-b8b8-34c8be5e0ac1'));
+});
 
 const settings = {
   enabled: true, ownerUid: 'owner', sandbox: 'apalmer',

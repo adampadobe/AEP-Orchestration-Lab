@@ -1,6 +1,6 @@
 'use strict';
 
-// Reviewed apalmer bindings on 2026-11-10; flow names are not trusted as table bindings.
+// Reviewed apalmer bindings on 2026-11-13; flow names are not trusted as table bindings.
 const relationalRows = [
   ['f0cdb096-4568-46a6-8d5c-df38d9891716', 'REL.RECIPIENT'],
   ['e0e84239-9802-46fa-a777-e38c98f52429', 'REL.REL_FSI_ACCOUNT'],
@@ -76,15 +76,54 @@ const xdmRows = [
   ['60128dba-4763-4b67-9c6f-e293c273d995', 'AEP_SCHEMA.AGENTIC_SPORTS_EVENT_ENGAGEMENT'],
   ['e6d2f95b-85cb-4d0f-9b0a-7284e18576e1', 'AEP_SCHEMA.AGENTIC_SPORTS_EVENT_MERCHANDISE'],
   ['e88da494-f38c-44fb-ac95-6db93bc859c3', 'AEP_SCHEMA.AGENTIC_SPORTS_PROFILE_MEMBERSHIP'],
-  ['91b96f3f-9d81-42b1-a723-da6edb7bd69a', 'AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE'],
-  ['d6a1caf9-314c-4436-a3d5-d37f65b1b3a4', 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING'],
-  ['0c1d0abc-9da0-4c53-b34e-d7c3e21923bf', 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS'],
-  ['808f8d35-0530-46ad-8bf5-b78e7b9f7c15', 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_ANCILLARIES'],
 ];
 
 module.exports = {
   bindings: [
     ...relationalRows.map(([id, table]) => ({ id, table, nodeIds: ['rel-flow', 'rel-datasets'] })),
     ...xdmRows.map(([id, table]) => ({ id, table, nodeIds: ['xdm-flow'] })),
+  ],
+  // Reviewed orphaned destinations on 2026-11-13. This is not deletion approval.
+  retiredBindings: [
+    {
+      id: '91b96f3f-9d81-42b1-a723-da6edb7bd69a',
+      table: 'AEP_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+      sourceConnectionId: '79acd826-7c97-476a-9ebc-0d09739996d0',
+      targetConnectionId: '5cda9400-78d8-46c4-af0b-5daebd4e592e',
+      datasetId: '69f0914de0d5f89e29a82a2e',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/276acb3bd9ae2c342853b00b89ececb2069112518c1feec5',
+      mappingId: 'ea53fe1e15f141cb89d408fcf5e97366',
+      replacementTables: ['REL.RECIPIENT'],
+    },
+    {
+      id: 'd6a1caf9-314c-4436-a3d5-d37f65b1b3a4',
+      table: 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING',
+      sourceConnectionId: 'fc260c41-abae-42e3-a7f8-897570da740d',
+      targetConnectionId: 'd6400178-714c-4ce7-81a6-cc16da424c2f',
+      datasetId: '69f098699c30dc198d44253e',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/debdb2dcfc1e39d66c47c52194ba4f03f799ffe133f1252',
+      mappingId: 'ec8fbf07d48f4dd0ac91b84f2ad84ee5',
+      replacementTables: ['REL.REL_TRAVEL_RESERVATION'],
+    },
+    {
+      id: '0c1d0abc-9da0-4c53-b34e-d7c3e21923bf',
+      table: 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_BOOKING_SEGMENTS',
+      sourceConnectionId: '4b228d44-1792-42b4-99c6-b69a0ec145d9',
+      targetConnectionId: '65f8759d-d818-4c06-874e-3cfedf9e4e8e',
+      datasetId: '69f0a00c973188863e3a6bde',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/fb2356e18e82f17aaf5665b8da853231afee249fe4a28c0b',
+      mappingId: 'daa083bde56f486aa7d57b25ceaeadbe',
+      replacementTables: ['REL.REL_TRAVEL_FLIGHT_SEGMENT', 'REL.REL_TRAVEL_PASSENGER'],
+    },
+    {
+      id: '808f8d35-0530-46ad-8bf5-b78e7b9f7c15',
+      table: 'AEP_SCHEMA.AGENTIC_TRAVEL_EVENT_ANCILLARIES',
+      sourceConnectionId: '8a241666-ad23-4522-b905-022a65cee04f',
+      targetConnectionId: 'b64cdd05-cab6-4afb-bd4a-6e338e3e6974',
+      datasetId: '69f0c88da92a55200542505c',
+      schemaId: 'https://ns.adobe.com/demoemea/schemas/7ec0cb4873d44e8df95a04cb1af1e1a027a4cdaeecb94dda',
+      mappingId: '7185bf9759a74da7aaed571fac044b6b',
+      replacementTables: ['REL.REL_TRAVEL_ANCILLARY_PURCHASE', 'REL.REL_TRAVEL_PRODUCT_CATALOG'],
+    },
   ],
 };

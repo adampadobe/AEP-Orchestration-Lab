@@ -5,7 +5,17 @@ const assert = require('node:assert/strict');
 const { registerMyDataFlowsRoutes } = require('../myDataFlowsRoutes');
 const { createMyDataFlowsService, enabledTag, runSummary } = require('../myDataFlowsService');
 const { reference } = require('../myDataFlowsReference');
-const { bindings } = require('../myDataFlowsRegistry');
+const { bindings, retiredBindings } = require('../myDataFlowsRegistry');
+
+test('active architecture bindings retain REL and XDM ingestion but omit orphaned legacy travel destinations', () => {
+  const active = new Set(bindings.map((binding) => binding.id));
+  assert.ok(retiredBindings.every((binding) => !active.has(binding.id)));
+  assert.ok(active.has('f0cdb096-4568-46a6-8d5c-df38d9891716'));
+  assert.ok(active.has('065f3b53-df40-43d1-9d91-c42f031996d6'));
+  assert.ok(active.has('4faef7e2-8ad3-459c-b8b8-34c8be5e0ac1'));
+  assert.ok(retiredBindings.every((binding) => binding.replacementTables.every((table) =>
+    bindings.some((current) => current.table === table && current.nodeIds.includes('rel-flow')))));
+});
 
 const fid = 'e0e84239-9802-46fa-a777-e38c98f52429';
 const sid = '5b38d9f4-8c1d-4ed2-a4fc-f62a625db251';

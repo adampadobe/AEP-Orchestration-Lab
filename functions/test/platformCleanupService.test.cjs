@@ -1162,6 +1162,144 @@ function executableBatchFixture(options = {}) {
   return { service, auth: batchAuth, rows, calls, store, targets, prepare, flowId, sourceId, targetId, accountId };
 }
 
+function retirementFixture(options = {}) {
+  const { bindings, retiredBindings } = require('../myDataFlowsRegistry');
+  const f = executableBatchFixture({ sandbox: 'apalmer', ...options });
+  f.auth.orgId = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
+  for (const type of ['flow', 'sourceConnection', 'targetConnection', 'dataset', 'baseConnection']) f.rows[type].clear();
+  const accountId = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
+  f.rows.baseConnection.set(accountId, { id: accountId, name: 'Shared Snowflake account' });
+  for (const [index, binding] of bindings.entries()) {
+    const sourceId = `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+    const targetId = `20000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
+    const datasetId = `300000000000${String(index).padStart(12, '0')}`;
+    f.rows.flow.set(binding.id, {
+      id: binding.id, name: 'Renamed protected flow', state: 'enabled',
+      scheduleParams: { frequency: 'minute', interval: 15 },
+      sourceConnectionIds: [sourceId], targetConnectionIds: [targetId],
+    });
+    f.rows.sourceConnection.set(sourceId, {
+      id: sourceId, baseConnectionId: accountId, params: { tableName: binding.table, cdcEnabled: true },
+    });
+    f.rows.targetConnection.set(targetId, {
+      id: targetId, params: { dataSetId: datasetId }, data: { schema: { id: schemaId } },
+    });
+    f.rows.dataset.set(datasetId, {
+      id: datasetId, name: binding.table === 'REL.RECIPIENT' ? 'rel_recipient' : binding.table.slice(4).toLowerCase(),
+      schemaRef: { id: schemaId }, extensions: { adobe_journeyOptimizer: { status: 'COMPLETED', enabled: true } },
+    });
+  }
+  for (const binding of retiredBindings) {
+    f.rows.flow.set(binding.id, {
+      id: binding.id, name: 'Legacy feed from Agentic table', state: options.enabled ? 'enabled' : 'disabled', etag: 'version-1',
+      sourceConnectionIds: [binding.sourceConnectionId], targetConnectionIds: [binding.targetConnectionId],
+      transformations: [{ name: 'Mapping', params: { mappingId: binding.mappingId, mappingVersion: 0 } }],
+    });
+    f.rows.sourceConnection.set(binding.sourceConnectionId, {
+      id: binding.sourceConnectionId, baseConnectionId: accountId, params: { tableName: binding.table },
+    });
+    f.rows.targetConnection.set(binding.targetConnectionId, {
+      id: binding.targetConnectionId, params: { dataSetId: binding.datasetId }, data: { schema: { id: binding.schemaId } },
+    });
+  }
+  return { ...f, bindings, retiredBindings,
+    retirementTargets: retiredBindings.map((binding) => ({ resource_type: 'flow', resource_id: binding.id })) };
+}
+
+test('only exact reviewed orphaned legacy flows can pass guarded disable and deletion review', async () => {
+  for (const enabled of [false, true]) {
+    const f = retirementFixture({ enabled });
+    const plan = await f.prepare(f.retirementTargets, enabled ? 'disable' : 'delete');
+    assert.equal(plan.status, 'ready');
+    assert.equal(plan.manifest.length, 4);
+    assert.ok(plan.manifest.every((item) => item.retirement.blockers.length === 0));
+    assert.equal(plan.coverage.protectedFlowIdBaseline, 'verified');
+    assert.ok(plan.protected_baseline.some((item) => item.resource_id === 'a0682068-80a4-4c97-842c-f2ab0eebc841'));
+    assert.ok(f.calls.every((call) => call.method === 'GET'));
+    const result = enabled ? await f.service.applyFlowDisable(f.auth, plan, f.store)
+      : await f.service.apply(f.auth, plan, f.store);
+    assert.equal(result.state, 'succeeded');
+    const mutations = f.calls.filter((call) => call.method !== 'GET');
+    assert.equal(mutations.length, 4);
+    assert.ok(mutations.every((call) => call.path.includes('/flows/')));
+    assert.ok(f.bindings.every((binding) => f.rows.flow.get(binding.id).state === 'enabled'));
+    assert.ok(f.retiredBindings.every((binding) => f.rows.sourceConnection.has(binding.sourceConnectionId)
+      && f.rows.targetConnection.has(binding.targetConnectionId)));
+    const companionPlan = await f.prepare([{
+      resource_type: 'sourceConnection', resource_id: f.retiredBindings[0].sourceConnectionId,
+    }]);
+    assert.ok(companionPlan.blockers.some((message) => message.includes('companion connections')));
+  }
+});
+
+test('retirement fails closed on scope, source, target, mapping, sharing and replacement drift', async () => {
+  const changes = [
+    (f) => { f.auth.orgId = 'other-org'; },
+    (f) => { f.auth.sandbox = 'other-sandbox'; },
+    (f, b) => { f.rows.sourceConnection.get(b.sourceConnectionId).params.tableName = 'OTHER.TABLE'; },
+    (f, b) => { f.rows.sourceConnection.get(b.sourceConnectionId).baseConnectionId = f.accountId; },
+    (f, b) => { f.rows.targetConnection.get(b.targetConnectionId).params.dataSetId = id; },
+    (f, b) => { f.rows.targetConnection.get(b.targetConnectionId).data.schema.id = schemaId; },
+    (f, b) => { f.rows.flow.get(b.id).transformations[0].params.mappingVersion = 1; },
+    (f, b) => { f.rows.dataset.set(b.datasetId, { ...dataset, id: b.datasetId }); },
+    (f, b) => { f.rows.flow.get(f.bindings[0].id).sourceConnectionIds.push(b.sourceConnectionId); },
+    (f, b) => { f.rows.flow.get(f.bindings[0].id).transformations = [{ params: { mappingId: b.mappingId } }]; },
+    (f) => { f.rows.flow.delete(f.bindings[0].id); },
+    (f) => {
+      const base = f.bindings.find((binding) => binding.id === '065f3b53-df40-43d1-9d91-c42f031996d6');
+      f.rows.flow.delete(base.id);
+    },
+    (f) => {
+      const base = f.rows.flow.get('065f3b53-df40-43d1-9d91-c42f031996d6');
+      f.rows.sourceConnection.get(base.sourceConnectionIds[0]).params.tableName = 'OTHER.TABLE';
+    },
+    (f) => { f.rows.flow.get(f.bindings[0].id).state = 'disabled'; },
+    (f) => { f.rows.flow.get(f.bindings[0].id).scheduleParams.interval = 30; },
+    (f) => {
+      const source = f.rows.flow.get(f.bindings[0].id).sourceConnectionIds[0];
+      f.rows.sourceConnection.get(source).params.cdcEnabled = false;
+    },
+    (f) => {
+      const target = f.rows.flow.get(f.bindings[0].id).targetConnectionIds[0];
+      f.rows.targetConnection.get(target).data.schema.id = `${schemaId}99`;
+    },
+    (f) => { [...f.rows.dataset.values()][0].extensions.adobe_journeyOptimizer.status = 'FAILED'; },
+    (f) => { delete [...f.rows.dataset.values()][0].schemaRef; },
+  ];
+  for (const enabled of [false, true]) {
+    for (const change of changes) {
+      const f = retirementFixture({ enabled });
+      change(f, f.retiredBindings[0]);
+      const plan = await f.prepare([f.retirementTargets[0]], enabled ? 'disable' : 'delete');
+      assert.equal(plan.status, 'blocked');
+      assert.ok(f.calls.every((call) => call.method === 'GET'));
+    }
+  }
+  const f = retirementFixture({ readbackError: 403 });
+  assert.equal((await f.prepare([f.retirementTargets[0]])).status, 'blocked');
+});
+
+test('fresh retirement review stops mutations when a destination reappears or a replacement connection changes', async () => {
+  for (const enabled of [false, true]) {
+    for (const reappears of [false, true]) {
+      const f = retirementFixture({ enabled });
+      const plan = await f.prepare([f.retirementTargets[0]], enabled ? 'disable' : 'delete');
+      assert.equal(plan.status, 'ready');
+      if (reappears) {
+        const b = f.retiredBindings[0];
+        f.rows.dataset.set(b.datasetId, { ...dataset, id: b.datasetId });
+      } else {
+        const source = f.rows.flow.get(f.bindings[0].id).sourceConnectionIds[0];
+        f.rows.sourceConnection.get(source).params.newConfiguration = 'changed';
+      }
+      const result = enabled ? await f.service.applyFlowDisable(f.auth, plan, f.store)
+        : await f.service.apply(f.auth, plan, f.store);
+      assert.equal(result.state, 'blocked');
+      assert.ok(f.calls.every((call) => call.method === 'GET'));
+    }
+  }
+});
+
 test('batch executor deletes each supported exact type in dependency order with durable intents and verified readback', async () => {
   for (const accountAlias of [false, true]) {
     const f = executableBatchFixture({ accountAlias });
