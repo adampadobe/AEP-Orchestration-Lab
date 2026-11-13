@@ -1106,7 +1106,11 @@ function executableBatchFixture(options = {}) {
     for (const [type, prefix] of Object.entries(prefixes)) {
       if (path === prefix && init.method === 'GET') {
         const values = [...rows[type].values()];
-        return reply(type === 'dataset' ? { ...Object.fromEntries(rows.dataset), _page: { next: null } }
+        const catalogRows = type === 'dataset' && options.catalogProjection
+          ? Object.fromEntries([...rows.dataset].map(([id, raw]) => [id, Object.fromEntries(Object.entries(raw)
+            .filter(([key]) => url.searchParams.get('properties')?.split(',').includes(key)))]))
+          : Object.fromEntries(rows.dataset);
+        return reply(type === 'dataset' ? { ...catalogRows, _page: { next: null } }
           : ['schema', 'descriptor'].includes(type) ? { results: values, _page: { next: null } }
             : { items: values, _links: { next: null } });
       }
@@ -1164,7 +1168,7 @@ function executableBatchFixture(options = {}) {
 
 function retirementFixture(options = {}) {
   const { bindings, retiredBindings } = require('../myDataFlowsRegistry');
-  const f = executableBatchFixture({ sandbox: 'apalmer', ...options });
+  const f = executableBatchFixture({ sandbox: 'apalmer', catalogProjection: true, ...options });
   f.auth.orgId = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
   for (const type of ['flow', 'sourceConnection', 'targetConnection', 'dataset', 'baseConnection']) f.rows[type].clear();
   const accountId = 'a0682068-80a4-4c97-842c-f2ab0eebc841';

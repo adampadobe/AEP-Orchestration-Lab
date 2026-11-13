@@ -10,7 +10,7 @@ const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 const MAX_BATCH_TARGETS = 100;
-const BATCH_POLICY_VERSION = '2026-11-13.2';
+const BATCH_POLICY_VERSION = '2026-11-13.3';
 const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
 const BATCH_TYPES = new Set([
   'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
@@ -398,7 +398,7 @@ function createPlatformCleanupService({
       const url = new URL(CATALOG, BASE);
       url.searchParams.set('start', String(start));
       url.searchParams.set('limit', String(PAGE_SIZE));
-      url.searchParams.set('properties', 'name,schemaRef,tags,updated');
+      url.searchParams.set('properties', 'name,schemaRef,tags,updated,extensions');
       if (property) url.searchParams.set('property', property);
       return url.href;
     };
