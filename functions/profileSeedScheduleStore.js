@@ -1,6 +1,6 @@
 'use strict';
 
-const { validateConfig, DAILY_CAP } = require('./profileSeedScheduleService');
+const { validateConfig, DAILY_CAP, businessTime } = require('./profileSeedScheduleService');
 const COLLECTION = 'labProfileSeedSchedules';
 const fail = (code) => Object.assign(new Error(code), { code });
 
@@ -8,6 +8,7 @@ function createProfileSeedScheduleStore(db) {
   const root = db.collection(COLLECTION).doc('apalmer');
   const control = root.collection('state').doc('dispatcher');
   const dayRef = (day) => root.collection('days').doc(day);
+  const recoveryRef = (id) => root.collection('recoveryReceipts').doc(id);
   const getConfig = async () => (await root.get()).data();
   const getDispatcher = async () => (await control.get()).data() || {};
   const getDay = async (day) => {
@@ -16,7 +17,8 @@ function createProfileSeedScheduleStore(db) {
   };
   function check(saved, expected) {
     const current = validateConfig(saved);
-    if (!current || current.fingerprint !== expected.fingerprint) throw fail('SEED_CONFIGURATION_CHANGED');
+    if (!current || current.fingerprint !== expected.fingerprint
+      || current.healthPolicyFingerprint !== expected.healthPolicyFingerprint) throw fail('SEED_CONFIGURATION_CHANGED');
   }
   async function ensureDay(plan, config) {
     await db.runTransaction(async (tx) => {
@@ -31,6 +33,7 @@ function createProfileSeedScheduleStore(db) {
     return db.runTransaction(async (tx) => {
       const [settings, state, saved] = await Promise.all([tx.get(root), tx.get(control), tx.get(dayRef(day))]);
       check(settings.data(), config);
+      if (day !== businessTime(now).day) throw fail('SEED_SCHEDULE_DAY_INVALID');
       const current = state.data() || {};
       if (current.blocked) return null;
       if (current.active) {
@@ -99,7 +102,38 @@ function createProfileSeedScheduleStore(db) {
         ...(patch.state === 'needs_attention' ? { attention: { day, id } } : {}) });
     });
   }
-  return { getConfig, getDispatcher, getDay, ensureDay, claim, prepared, finish };
+  async function createRecoveryReceipt(receipt, verify) {
+    return db.runTransaction(async (tx) => {
+      const [settings, state, day, existing] = await Promise.all([
+        tx.get(root), tx.get(control), tx.get(dayRef(receipt.day)), tx.get(recoveryRef(receipt.planId)),
+      ]);
+      if (existing.exists) throw Object.assign(fail('SEED_RECOVERY_RECEIPT_EXISTS'), { status: 409 });
+      verify({ config: settings.data(), dispatcher: state.data(), day: day.data() });
+      tx.set(recoveryRef(receipt.planId), receipt);
+    });
+  }
+  async function getRecoveryReceipt(id) {
+    return (await recoveryRef(id).get()).data() || null;
+  }
+  async function applyRecovery(id, verify) {
+    return db.runTransaction(async (tx) => {
+      const receiptDoc = await tx.get(recoveryRef(id));
+      const receipt = receiptDoc.data();
+      if (!receipt) throw Object.assign(fail('SEED_RECOVERY_RECEIPT_MISSING'), { status: 409 });
+      const [settings, state, day] = await Promise.all([
+        tx.get(root), tx.get(control), tx.get(dayRef(receipt.day)),
+      ]);
+      const changes = await verify({ receipt, config: settings.data(), dispatcher: state.data(), day: day.data() });
+      changes.assertFresh();
+      tx.set(dayRef(receipt.day), changes.day);
+      tx.set(control, changes.dispatcher);
+      if (changes.config) tx.set(root, changes.config);
+      tx.set(recoveryRef(id), { ...receipt, consumedAt: changes.audit.appliedAt, audit: changes.audit });
+      return changes.result;
+    });
+  }
+  return { getConfig, getDispatcher, getDay, ensureDay, claim, prepared, finish,
+    createRecoveryReceipt, getRecoveryReceipt, applyRecovery };
 }
 
 module.exports = { createProfileSeedScheduleStore, COLLECTION };

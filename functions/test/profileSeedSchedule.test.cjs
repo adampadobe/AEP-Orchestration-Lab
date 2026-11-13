@@ -11,6 +11,7 @@ const {
 const { createProfileSeedScheduleStore, COLLECTION } = require('../profileSeedScheduleStore');
 const { relevantBindings } = require('../myDataFlowsTraceService');
 const { retiredBindings } = require('../myDataFlowsRegistry');
+const { runSummary } = require('../myDataFlowsService');
 
 test('scheduler scopes exclude retired travel destinations without replacing current REL or XDM dependencies', () => {
   for (const industry of INDUSTRIES) {
@@ -368,6 +369,50 @@ test('same-day configuration changes cannot silently replace a saved plan', asyn
   f.db.data.set(root, changed);
   await assert.rejects(f.service.tick(), { code: 'SEED_DAY_CONFIG_CHANGED' });
   assert.equal(f.calls.generate, 0);
+});
+
+test('reviewed idle policy preserves day fingerprints, remains opt-in and catches preparation races', async () => {
+  const review = { policy: 'verified_empty_snowflake_copy_v1', reviewedBy: settings.ownerUid,
+    reviewedAt: '2026-11-11T05:00:00.000Z', planId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' };
+  const reviewed = { ...settings, allowVerifiedIdleRuns: true, verifiedIdleRunReview: review };
+  assert.equal(validateConfig(reviewed).fingerprint, config.fingerprint);
+  assert.throws(() => validateConfig({ ...settings, allowVerifiedIdleRuns: true }), { code: 'SEED_HEALTH_POLICY_INVALID' });
+  assert.throws(() => validateConfig({ ...reviewed, verifiedIdleRunReview: { ...review, reviewedBy: 'other' } }),
+    { code: 'SEED_HEALTH_POLICY_INVALID' });
+  const metrics = { recordSummary: { inputRecordCount: 0 }, sizeSummary: { inputBytes: 0 },
+    durationSummary: { startedAtUTC: Date.parse(`${day}T05:03:00Z`), completedAtUTC: Date.parse(`${day}T05:04:00Z`) },
+    statusSummary: { status: 'success' } };
+  const lastRun = runSummary({ id: 'run-id', metrics, activities: [{
+    ...structuredClone(metrics), id: '4f008a00-3a04-11eb-adc1-0242ac120002', name: 'SnowFlake Copy Activity',
+  }] });
+  const snapshot = { complete: true, flows: [{ id: 'flow-id', state: 'enabled',
+    schedule: { frequency: 'minute', interval: 15 }, lastRun }] };
+  const clock = new Date(`${day}T05:05:00Z`);
+  assert.equal(diagnoseFlowHealth(snapshot, clock).healthy, false);
+  const result = diagnoseFlowHealth(snapshot, clock, reviewed);
+  assert.equal(result.healthy, true);
+  assert.equal(result.flows[0].lastRun.failedCount, null);
+  assert.equal(result.flows[0].readinessBasis, review.policy);
+  for (const changed of [
+    { ...snapshot, complete: false },
+    { ...snapshot, flows: [{ ...snapshot.flows[0], state: 'disabled' }] },
+    { ...snapshot, flows: [{ ...snapshot.flows[0], schedule: { frequency: 'minute', interval: 30 } }] },
+    { ...snapshot, flows: [{ ...snapshot.flows[0], lastRun: { ...lastRun, verifiedIdleEvidence: null } }] },
+    { ...snapshot, flows: [{ ...snapshot.flows[0], lastRun: { ...lastRun, readCount: 1 } }] },
+  ]) assert.equal(diagnoseFlowHealth(changed, clock, reviewed).healthy, false);
+  assert.equal(diagnoseFlowHealth(snapshot, new Date(+clock + 2 * 60 * 60_000), reviewed).healthy, false);
+  const f = fixture({ health: snapshot });
+  f.db.data.set(root, reviewed);
+  assert.equal((await f.service.tick()).state, 'committed');
+  const race = fixture();
+  const generate = race.snowflake.generate;
+  race.snowflake.generate = async (input) => {
+    race.db.data.set(root, reviewed);
+    return generate(input);
+  };
+  assert.equal((await race.service.tick()).state, 'needs_attention');
+  assert.deepEqual(race.db.data.get(dayKey()).slots[0].identities, []);
+  await assert.rejects(race.store.claim('2026-11-10', config, race.now()));
 });
 
 test('scheduled export is private, Riyadh-scoped, bounded and logs only safe dispatcher error metadata', async () => {

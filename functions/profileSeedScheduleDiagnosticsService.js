@@ -61,7 +61,7 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
       if (!INDUSTRIES.includes(targetSlot.industry)) {
         throw fail(500, 'The saved profile schedule slot has an invalid industry.');
       }
-      flowHealth = diagnoseFlowHealth(await flowSnapshot(targetSlot.industry), now());
+      flowHealth = diagnoseFlowHealth(await flowSnapshot(targetSlot.industry), now(), config);
     }
 
     return {

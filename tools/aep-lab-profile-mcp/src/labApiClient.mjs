@@ -1071,6 +1071,25 @@ export function profileSeedScheduleDiagnose(params) {
   return ingestionDiagnosticsRead('profile_seed_schedule_diagnose', params);
 }
 
+function profileSeedScheduleRecovery(action, params) {
+  return labApiRequest('/aepIngestionDiagnosticsProxy', {
+    origin: getLabFunctionsOrigin(),
+    method: 'POST',
+    body: { ...params, action },
+    headers: principalAuthHeaders(),
+    retries: 0,
+    timeoutMs: 330_000,
+  });
+}
+
+export function profileSeedScheduleSkipPreview(params) {
+  return profileSeedScheduleRecovery('profile_seed_schedule_skip_preview', params);
+}
+
+export function profileSeedScheduleSkipApply(params) {
+  return profileSeedScheduleRecovery('profile_seed_schedule_skip_apply', params);
+}
+
 export function principalAuthHeaders() {
   const ims = getRequestImsAuthHeaders();
   if (!ims) return generationPrefsAuthHeaders();

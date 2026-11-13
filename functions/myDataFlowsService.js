@@ -55,8 +55,51 @@ function runSummary(run) {
   return {
     id: safeString(summary.run_id), state: safeString(summary.state),
     startedAt: summary.started_at, completedAt: summary.completed_at,
-    readCount: summary.read_count, updatedCount: run.metrics?.recordSummary?.updatedRecordCount ?? null,
+    readCount: summary.read_count, writtenCount: summary.written_count,
+    updatedCount: run.metrics?.recordSummary?.updatedRecordCount ?? null,
     failedCount: summary.failed_count, deletedCount: run.metrics?.recordSummary?.deletedRecordCount ?? null,
+    verifiedIdleEvidence: verifiedIdleEvidence(run),
+  };
+}
+
+function verifiedIdleEvidence(run) {
+  const activity = Array.isArray(run.activities) && run.activities.length === 1 ? run.activities[0] : null;
+  if (!activity || activity.id !== '4f008a00-3a04-11eb-adc1-0242ac120002'
+    || activity.name !== 'SnowFlake Copy Activity') return null;
+  if ([run, activity].some((item) => Object.hasOwn(item, 'state') && item.state !== 'success')) return null;
+  const metrics = run.metrics;
+  const validTime = (value) => typeof value === 'number' && Number.isFinite(value)
+    && value > 0 && value <= 8_640_000_000_000_000;
+  const duration = metrics?.durationSummary;
+  if (!validTime(duration?.startedAtUTC) || !validTime(duration?.completedAtUTC)
+    || duration.completedAtUTC < duration.startedAtUTC
+    || activity.durationSummary?.startedAtUTC !== duration.startedAtUTC
+    || activity.durationSummary?.completedAtUTC !== duration.completedAtUTC) return null;
+  const noErrors = (item) => [item.errors, item.statusSummary?.errors,
+    item.statusSummary?.extensions?.errors].every((errors) => errors === undefined
+      || (Array.isArray(errors) && errors.length === 0));
+  if (!noErrors(run)) return null;
+  for (const item of [metrics, activity]) {
+    if (item?.statusSummary?.status !== 'success' || !noErrors(item)
+      || item.recordSummary?.inputRecordCount !== 0 || item.sizeSummary?.inputBytes !== 0) return null;
+    // Missing output/failure counters stay unknown; explicit contradictory counters invalidate idle evidence.
+    for (const summary of [item.recordSummary, item.sizeSummary, item.fileSummary]) {
+      if (summary === undefined) continue;
+      if (!summary || typeof summary !== 'object' || Array.isArray(summary)) return null;
+      for (const [key, value] of Object.entries(summary)) {
+        if (/(Count|Bytes)$/.test(key) && value !== 0) return null;
+      }
+    }
+  }
+  return {
+    policy: 'verified_empty_snowflake_copy_v1', runId: safeString(run.id),
+    activityId: activity.id, activityName: activity.name,
+    startedAt: new Date(duration.startedAtUTC).toISOString(),
+    completedAt: new Date(duration.completedAtUTC).toISOString(),
+    inputRecordCount: 0, inputBytes: 0,
+    outputRecordCount: metrics.recordSummary.outputRecordCount ?? null,
+    failedRecordCount: metrics.recordSummary.failedRecordCount ?? null,
+    skippedRecordCount: metrics.recordSummary.skippedRecordCount ?? null,
   };
 }
 
@@ -135,7 +178,9 @@ function createMyDataFlowsService({
         lastRun = runSummary(run);
       }
       return {
-        id, name: safeString(f.name), state: safeString(f.state), sourceTables: table ? [safeString(table)] : [],
+        id, name: safeString(f.name), state: safeString(f.state),
+        sourceConnectionId: source.id, targetConnectionId: target.id,
+        sourceTables: table ? [safeString(table)] : [],
         cdcEnabled: typeof source.params?.cdcEnabled === 'boolean' ? source.params.cdcEnabled : null,
         datasets: [ds],
         schedule: f.scheduleParams ? {

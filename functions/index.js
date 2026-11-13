@@ -1302,6 +1302,28 @@ Object.assign(
   })
 );
 
+function profileSeedDiagnosticsDependencies(auth) {
+  const { getAdminFirestore } = require('./adminFirestore');
+  const { createProfileSeedScheduleStore } = require('./profileSeedScheduleStore');
+  return {
+    store: createProfileSeedScheduleStore(getAdminFirestore()),
+    flowSnapshot: (industry) => createMyDataFlowsService({
+      registry: relevantBindings(industry),
+      getConnection: async () => null,
+      getEventConfig: async () => null,
+    }).snapshot({ accessToken: auth.token, clientId: auth.clientId, orgId: auth.orgId }),
+  };
+}
+
+function profileSeedSkipRecovery(operation, { principal, auth, input }) {
+  const { createProfileSeedScheduleRecoveryService } = require('./profileSeedScheduleRecoveryService');
+  const { OWNER_EMAIL } = require('./labUsageService');
+  return createProfileSeedScheduleRecoveryService({
+    ...profileSeedDiagnosticsDependencies(auth),
+    getOwner: () => require('firebase-admin').auth().getUserByEmail(OWNER_EMAIL),
+  })[operation]({ principalUid: principal.principalUid, sandbox: auth.sandbox, orgId: auth.orgId, input });
+}
+
 Object.assign(
   exports,
   registerAepIngestionDiagnosticsRoutes({
@@ -1313,17 +1335,11 @@ Object.assign(
     ADOBE_IMS_ORG,
     mcpApiKeyStore,
     ingestionDiagnosticsService: createAepIngestionDiagnosticsService(),
+    profileSeedScheduleSkipPreview: (context) => profileSeedSkipRecovery('preview', context),
+    profileSeedScheduleSkipApply: (context) => profileSeedSkipRecovery('apply', context),
     profileSeedScheduleDiagnose: async ({ principal, auth }) => {
-      const { getAdminFirestore } = require('./adminFirestore');
-      const { createProfileSeedScheduleStore } = require('./profileSeedScheduleStore');
       const { createProfileSeedScheduleDiagnosticsService } = require('./profileSeedScheduleDiagnosticsService');
-      const store = createProfileSeedScheduleStore(getAdminFirestore());
-      const flowSnapshot = (industry) => createMyDataFlowsService({
-        registry: relevantBindings(industry),
-        getConnection: async () => null,
-        getEventConfig: async () => null,
-      }).snapshot({ accessToken: auth.token, clientId: auth.clientId, orgId: auth.orgId });
-      return createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot })
+      return createProfileSeedScheduleDiagnosticsService(profileSeedDiagnosticsDependencies(auth))
         .diagnose({ principalUid: principal.principalUid, sandbox: auth.sandbox });
     },
   })
