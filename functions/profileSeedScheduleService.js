@@ -6,7 +6,27 @@ const INDUSTRIES = Object.freeze(['travel', 'fsi', 'retail', 'telecom', 'media',
 const TIME_ZONE = 'Asia/Riyadh';
 const DAILY_CAP = 50;
 const MINUTE = 60_000;
+const IDLE_POLICY = 'verified_empty_snowflake_copy_v1';
 const fail = (code) => Object.assign(new Error(code), { code });
+
+function healthPolicy(config) {
+  if (config?.allowVerifiedIdleRuns === undefined || config.allowVerifiedIdleRuns === false) {
+    return { allowVerifiedIdleRuns: false, healthPolicyFingerprint: 'strict' };
+  }
+  const review = config.verifiedIdleRunReview;
+  if (config.allowVerifiedIdleRuns !== true || typeof config.ownerUid !== 'string'
+    || !/^[^/]{1,128}$/.test(config.ownerUid) || review?.policy !== IDLE_POLICY
+    || review.reviewedBy !== config.ownerUid
+    || typeof review.reviewedAt !== 'string' || !Number.isFinite(Date.parse(review.reviewedAt))
+    || new Date(review.reviewedAt).toISOString() !== review.reviewedAt
+    || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(review.planId || '')) {
+    throw fail('SEED_HEALTH_POLICY_INVALID');
+  }
+  const bounded = { policy: review.policy, reviewedBy: review.reviewedBy,
+    reviewedAt: review.reviewedAt, planId: review.planId };
+  return { allowVerifiedIdleRuns: true, verifiedIdleRunReview: bounded,
+    healthPolicyFingerprint: createHash('sha256').update(JSON.stringify(bounded)).digest('hex') };
+}
 
 function businessTime(now) {
   const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', {
@@ -36,7 +56,8 @@ function validateConfig(config) {
     timeZone: TIME_ZONE, startHour: 8, endHour: 18, days: config.days, dailyCap: DAILY_CAP,
     campaignIsolationReviewed: true,
   };
-  return { ...reviewed, fingerprint: createHash('sha256').update(JSON.stringify(reviewed)).digest('hex') };
+  return { ...reviewed, ...healthPolicy(config),
+    fingerprint: createHash('sha256').update(JSON.stringify(reviewed)).digest('hex') };
 }
 
 function buildDayPlan(day, fingerprint, seed = randomBytes(32).toString('hex')) {
@@ -69,14 +90,16 @@ function buildDayPlan(day, fingerprint, seed = randomBytes(32).toString('hex')) 
   return { day, fingerprint, seed, plannedCount: total, attemptedCount: 0, slots };
 }
 
-function diagnoseFlowHealth(snapshot, now) {
+function diagnoseFlowHealth(snapshot, now, policy = {}) {
+  const reviewedPolicy = healthPolicy(policy);
   const flows = Array.isArray(snapshot?.flows) ? snapshot.flows : [];
   const observedAt = now.toISOString();
   const issues = [];
-  if (!snapshot?.complete) issues.push({ code: 'snapshot_incomplete' });
+  if (snapshot?.complete !== true) issues.push({ code: 'snapshot_incomplete' });
   if (!flows.length) issues.push({ code: 'no_flows_available' });
 
-  const checks = flows.map((flow) => {
+  const checks = flows.map((rawFlow) => {
+    const flow = rawFlow && typeof rawFlow === 'object' ? rawFlow : {};
     const reasons = [];
     if (flow.state !== 'enabled') reasons.push('flow_not_enabled');
     if (flow.schedule?.frequency !== 'minute' || flow.schedule.interval !== 15) {
@@ -89,8 +112,19 @@ function diagnoseFlowHealth(snapshot, now) {
     if (!Number.isFinite(completedAtMs)) reasons.push('last_run_completion_missing');
     else if (completedAtMs > now.getTime()) reasons.push('last_run_in_future');
     else if (now.getTime() - completedAtMs > 2 * 60 * MINUTE) reasons.push('last_run_stale');
-    if (!Number.isFinite(flow.lastRun?.failedCount)) reasons.push('failed_count_unknown');
-    else if (flow.lastRun.failedCount !== 0) reasons.push('failed_records_present');
+    const evidence = flow.lastRun?.verifiedIdleEvidence;
+    const verifiedIdle = reviewedPolicy.allowVerifiedIdleRuns && evidence?.policy === IDLE_POLICY
+      && evidence.runId === flow.lastRun?.id && typeof evidence.runId === 'string' && !!evidence.runId
+      && evidence.activityId === '4f008a00-3a04-11eb-adc1-0242ac120002'
+      && evidence.activityName === 'SnowFlake Copy Activity'
+      && evidence.startedAt === flow.lastRun.startedAt && evidence.completedAt === completedAt
+      && Number.isFinite(Date.parse(evidence.startedAt)) && Date.parse(evidence.startedAt) <= completedAtMs
+      && evidence.inputRecordCount === 0 && evidence.inputBytes === 0
+      && flow.lastRun.readCount === 0
+      && [flow.lastRun.writtenCount, flow.lastRun.failedCount, evidence.outputRecordCount,
+        evidence.failedRecordCount, evidence.skippedRecordCount].every((value) => value === null || value === 0);
+    if (!Number.isFinite(flow.lastRun?.failedCount) && !verifiedIdle) reasons.push('failed_count_unknown');
+    else if (Number.isFinite(flow.lastRun?.failedCount) && flow.lastRun.failedCount !== 0) reasons.push('failed_records_present');
 
     return {
       flowId: typeof flow.id === 'string' ? flow.id : null,
@@ -106,6 +140,8 @@ function diagnoseFlowHealth(snapshot, now) {
         failedCount: Number.isFinite(flow.lastRun.failedCount) ? flow.lastRun.failedCount : null,
       } : null,
       healthy: reasons.length === 0,
+      readinessBasis: reasons.length ? null : verifiedIdle ? IDLE_POLICY : 'explicit_zero_failed_records',
+      verifiedIdleEvidence: verifiedIdle ? evidence : null,
       reasons,
     };
   });
@@ -122,8 +158,8 @@ function diagnoseFlowHealth(snapshot, now) {
   };
 }
 
-function assertFlowHealth(snapshot, now) {
-  const diagnostic = diagnoseFlowHealth(snapshot, now);
+function assertFlowHealth(snapshot, now, policy) {
+  const diagnostic = diagnoseFlowHealth(snapshot, now, policy);
   if (!diagnostic.healthy) {
     throw Object.assign(fail('SEED_INGESTION_NOT_HEALTHY'), { healthDiagnostic: diagnostic });
   }
@@ -149,7 +185,7 @@ function createProfileSeedScheduleService({
     }
     let prepared = false;
     try {
-      assertFlowHealth(await flowSnapshot(slot.industry), now());
+      assertFlowHealth(await flowSnapshot(slot.industry), now(), config);
       const ready = await snowflake.preflight({ uid: owner.uid, industry: slot.industry });
       if (!ready?.ready || ready.baseEmail !== config.expectedBaseEmail
         || ready.mobilePhone !== config.expectedMobilePhone) throw fail('SEED_PREFERENCES_CHANGED');
@@ -206,4 +242,5 @@ function createProfileSeedScheduleService({
 module.exports = {
   INDUSTRIES, TIME_ZONE, DAILY_CAP, businessTime, validateConfig, buildDayPlan,
   diagnoseFlowHealth, assertFlowHealth, createProfileSeedScheduleService,
+  healthPolicy, IDLE_POLICY,
 };

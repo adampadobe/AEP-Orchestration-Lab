@@ -50,6 +50,7 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
         'lab_platform_cleanup_apply', 'lab_platform_cleanup_verify',
         'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_preview',
         'lab_ajo_oc_dataset_apply', 'lab_ajo_oc_dataset_job_status',
+        'lab_profile_seed_schedule_skip_preview', 'lab_profile_seed_schedule_skip_apply',
       ]],
       ['aep-lab-ajo-oc-datasets', registerFocusedAjoOcDatasetTools, [
         'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_job_status',
@@ -181,8 +182,12 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 245);
+  assert.equal(full.names.length, 247);
   assert.equal(full.names.includes('lab_profile_seed_schedule_diagnose'), true);
+  assert.equal(full.names.includes('lab_profile_seed_schedule_skip_preview'), true);
+  assert.equal(full.names.includes('lab_profile_seed_schedule_skip_apply'), true);
+  assert.equal(focused.names.includes('lab_profile_seed_schedule_skip_preview'), false);
+  assert.equal(focused.names.includes('lab_profile_seed_schedule_skip_apply'), false);
   for (const tool of focused.names) assert.equal(full.names.includes(tool), true, `${tool} should remain in the full MCP`);
 });
 

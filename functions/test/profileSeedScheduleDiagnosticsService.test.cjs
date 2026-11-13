@@ -85,3 +85,30 @@ test('missing configuration returns a minimal read-only result', async () => {
     ok: true, sandbox: 'sandbox-a', configured: false,
   });
 });
+
+test('diagnostics honor reviewed idle policy and preserve unknown failure counters', async () => {
+  const { runSummary } = require('../myDataFlowsService');
+  const metrics = { recordSummary: { inputRecordCount: 0 }, sizeSummary: { inputBytes: 0 },
+    statusSummary: { status: 'success' }, durationSummary: {
+      startedAtUTC: Date.parse('2026-11-11T12:58:00Z'), completedAtUTC: Date.parse('2026-11-11T12:59:00Z'),
+    } };
+  const lastRun = runSummary({ id: 'run-a', metrics, activities: [{
+    ...structuredClone(metrics), id: '4f008a00-3a04-11eb-adc1-0242ac120002', name: 'SnowFlake Copy Activity',
+  }] });
+  const service = createProfileSeedScheduleDiagnosticsService({
+    now: () => new Date('2026-11-11T13:00:00Z'),
+    store: {
+      getConfig: async () => ({ ...config, allowVerifiedIdleRuns: true, verifiedIdleRunReview: {
+        policy: 'verified_empty_snowflake_copy_v1', reviewedBy: privateUid,
+        reviewedAt: '2026-11-11T12:00:00.000Z', planId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      } }),
+      getDispatcher: async () => ({ blocked: true, active: null, attention: { day, id: '15' } }),
+      getDay: async () => ({ day, slots: [{ id: '15', industry: 'retail', identities: [] }] }),
+    },
+    flowSnapshot: async () => ({ complete: true, flows: [{ id: 'flow-a', state: 'enabled',
+      schedule: { frequency: 'minute', interval: 15 }, lastRun }] }),
+  });
+  const result = await service.diagnose({ principalUid: privateUid, sandbox: 'apalmer' });
+  assert.equal(result.focus.liveFlowHealth.healthy, true);
+  assert.equal(result.focus.liveFlowHealth.flows[0].lastRun.failedCount, null);
+});

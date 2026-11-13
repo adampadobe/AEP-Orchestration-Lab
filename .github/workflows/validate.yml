@@ -62,7 +62,7 @@ jobs:
         run: node --test functions/test/myDataFlows*.test.cjs
 
       - name: Verify business-hours profile seeding and duplicate-delivery safety (offline)
-        run: node --test functions/test/profileSeedSchedule.test.cjs
+        run: node --test functions/test/profileSeedSchedule*.test.cjs
 
       - name: Verify demo workspace APIs and UI regressions
         run: node --test functions/test/demo*.test.cjs
@@ -89,7 +89,7 @@ jobs:
       - name: Verify governed dataset and schema cleanup (offline)
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/platformCleanup*.test.cjs tools/aep-lab-profile-mcp/test/platformCleanupTools.test.mjs tools/aep-lab-profile-mcp/test/serverDiscovery.test.mjs
 
-      - name: Verify read-only AEP ingestion diagnostics (offline)
+      - name: Verify AEP ingestion diagnostics and governed scheduler recovery (offline)
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/aepIngestionDiagnostics*.test.cjs tools/aep-lab-profile-mcp/test/aepIngestionDiagnosticsTools.test.mjs
 
       - name: Verify Snowflake setup and generation contracts (offline)

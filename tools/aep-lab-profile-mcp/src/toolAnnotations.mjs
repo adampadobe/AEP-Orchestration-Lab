@@ -158,6 +158,7 @@ const READ_ONLY_TOOLS = new Set([
 ]);
 
 const DESTRUCTIVE_TOOLS = new Set([
+  'lab_profile_seed_schedule_skip_apply',
   'commerce_optimizer_ingestion_delete_apply',
   'commerce_admin_delete_apply',
   'lab_audience_delete',

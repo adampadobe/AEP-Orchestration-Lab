@@ -35,6 +35,56 @@ failure counts, replay the failed slot, or establish that source records landed
 in AEP. Fresh health and subsequent scheduled-run provenance must be verified
 separately.
 
+## Reviewed scheduled-seed recovery and verified-idle readiness
+
+Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
+only. The backend rejects other days, slots, industries or generation counts;
+this is not a general recovery interface for arbitrary future incidents. The
+receipt interface is unchanged: `expected_count` counts reviewed recovery
+targets, not the slot's generation count.
+
+The scheduler's default health policy is strict: a missing failed-record count
+is unknown, not zero, and blocks readiness. Successful empty Snowflake runs can
+contain only the successful copy phase with zero input and omit `failedCount`.
+That is not proof of downstream promotion or AEP arrival.
+
+A separate, explicit reviewed opt-in can accept bounded verified-empty Snowflake
+copy evidence in the existing two-hour health window. It does not coerce missing
+counters: diagnostics retain `null`. Unknown, stale, failed, active, mismatched or
+incomplete evidence still blocks. The policy is persisted as
+`allowVerifiedIdleRuns:true` with an owner-bound `verifiedIdleRunReview`; a bare
+flag without valid review metadata is not permission to relax health. Retiring
+an obsolete destination or reconciling the registry never activates this policy.
+
+Use General MCP `lab_profile_seed_schedule_diagnose` first, then
+`lab_profile_seed_schedule_skip_preview` with the exact `{day}` and supported
+`{slot_id}`. Preview writes an expiring audited receipt, not source data.
+`allow_verified_idle_runs:true` requests policy review only. Review the manifest,
+count, current/proposed health, status, expiry and exact `confirmation_phrase`.
+`ready` is not approval; `policy_review_required` needs a separate explicit idle
+policy acknowledgement. `blocked` must not be applied.
+
+After exact-scope approval, `lab_profile_seed_schedule_skip_apply` requires the
+unchanged receipt UUID, SHA-256 `manifest_digest`, bounded `expected_count`,
+`confirmed:true`, `skip_only_acknowledged:true`, and exact backend phrase.
+Include `idle_readiness_acknowledged:true` only after explicitly reviewing that
+policy change. The service revalidates the currently enabled Firebase owner,
+principal/sandbox/organisation, immutable receipt, topology, health, configuration
+and exact prewrite slot. A transaction consumes the receipt, skips only that
+slot, unblocks future dispatch, and optionally activates the reviewed policy.
+Attempt budget and error history are preserved. Concurrent receipt consumption
+or state drift fails closed; this is not a manual Firestore repair.
+
+There is no failed-slot replay, manual generation, direct live Firestore edit,
+AEP flow configuration change, or downstream promotion. An accepted apply
+reports `ingestion:'not_started'`. After timeout/network uncertainty, stop:
+never automatically retry preview or apply. Use read-only schedule diagnostics
+to establish state, and obtain a fresh review if a later action is needed.
+Final acceptance requires the next real scheduled run's provenance and complete
+stored Snowflake source, current XDM and REL readback. Keep the shared Agentic
+parent and its source tables separate from the read-only REL model; source
+success or idle readiness alone cannot establish AEP/AJO storage.
+
 ## Private architecture reference and walkthrough
 
 The Lab owner's **Architecture -> My data flows** page

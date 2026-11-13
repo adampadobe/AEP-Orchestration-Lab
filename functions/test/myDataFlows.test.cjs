@@ -142,6 +142,53 @@ function fixtures() {
   };
 }
 
+test('only exact completed empty Snowflake copy runs expose bounded idle evidence without inventing counters', () => {
+  const metrics = {
+    recordSummary: { inputRecordCount: 0 }, sizeSummary: { inputBytes: 0 },
+    durationSummary: { startedAtUTC: 1794305447098, completedAtUTC: 1794305640662 },
+    statusSummary: { status: 'success' },
+  };
+  const raw = { id: rid, metrics, activities: [{
+    id: '4f008a00-3a04-11eb-adc1-0242ac120002', name: 'SnowFlake Copy Activity',
+    ...structuredClone(metrics), internal: 'never-output',
+  }] };
+  const result = runSummary(raw);
+  assert.equal(result.failedCount, null);
+  assert.equal(result.writtenCount, null);
+  assert.equal(result.verifiedIdleEvidence.inputBytes, 0);
+  assert.equal(result.verifiedIdleEvidence.failedRecordCount, null);
+  assert.equal(JSON.stringify(result).includes('never-output'), false);
+  for (const mutate of [
+    (r) => { r.activities = []; },
+    (r) => { r.activities.push({ name: 'Promotion Activity' }); },
+    (r) => { r.activities[0].id = 'unknown'; },
+    (r) => { r.activities[0].name = 'Copy Activity'; },
+    (r) => { r.state = 'failed'; r.activities[0].state = 'failed'; },
+    (r) => { r.state = 'inProgress'; },
+    (r) => { r.activities[0].state = 'unknown'; },
+    (r) => { r.state = null; },
+    (r) => { r.metrics.recordSummary.inputRecordCount = 1; },
+    (r) => { delete r.activities[0].sizeSummary.inputBytes; },
+    (r) => { r.activities[0].durationSummary.completedAtUTC++; },
+    (r) => { r.metrics.durationSummary.startedAtUTC = '1794305447098'; },
+    (r) => { r.activities[0].statusSummary.status = 'inProgress'; },
+    (r) => { r.metrics.statusSummary.errors = [{ code: 'error' }]; },
+    (r) => { r.errors = ['error']; },
+    (r) => { r.metrics.recordSummary.outputRecordCount = -1; },
+    (r) => { r.activities[0].recordSummary.skippedRecordCount = 1; },
+    (r) => { r.metrics.recordSummary.failedRecordCount = '0'; },
+    (r) => { r.activities[0].sizeSummary.outputBytes = null; },
+  ]) {
+    const changed = structuredClone(raw);
+    mutate(changed);
+    assert.equal(runSummary(changed).verifiedIdleEvidence, null);
+  }
+  const success = structuredClone(raw);
+  success.state = 'success';
+  success.activities[0].state = 'success';
+  assert.ok(runSummary(success).verifiedIdleEvidence);
+});
+
 function service(overrides = {}) {
   const data = fixtures();
   const calls = [];

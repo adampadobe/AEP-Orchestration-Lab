@@ -2,11 +2,11 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.55.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.56.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 245-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 247-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only ingestion diagnostics
 
@@ -48,6 +48,57 @@ filtered page is empty. Copy-activity success alone does not prove batch promoti
 API contracts: [batch errors and diagnostic rows](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/error-diagnostics),
 [failed files](https://experienceleague.adobe.com/en/docs/experience-platform/ingestion/quality/retrieve-failed-batches),
 and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-platform/sources/api-tutorials/monitor).
+
+### Owner-reviewed scheduled seed skip (General only)
+
+Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
+only, not arbitrary future days, industries or generation counts. The backend
+enforces this exact target despite the unchanged receipt interface;
+`expected_count` counts reviewed recovery targets, not generated profiles.
+
+`lab_profile_seed_schedule_skip_preview` and
+`lab_profile_seed_schedule_skip_apply` are available only on General (`lab-all`),
+not Profile or another focused endpoint. They require both the Firebase Function
+and MCP releases, then a refreshed connection/new chat. Preview creates an
+audited receipt and is **not read-only or idempotent**. Apply is a destructive,
+non-idempotent dispatcher/configuration mutation; neither call retries.
+
+1. Diagnose read-only, then preview the exact `{day}` (`YYYY-MM-DD`) and supported
+   `{slot_id}`. Optionally request `allow_verified_idle_runs:true` for a separate
+   reviewed health-policy opt-in. Strict unknown-failure readiness remains the
+   default; missing counters remain `null`, not zero. Verified-empty Snowflake
+   copy evidence is bounded to the existing two-hour health window and never
+   proves downstream promotion or AEP arrival.
+2. Review `plan_id`, `manifest_digest`, `expected_count` (1–3), `expires_at`,
+   `status`, `health_policy_change_required`, `currentFlowHealth`,
+   `proposedFlowHealth`, target and exact `confirmation_phrase`. `ready` is not
+   approval. Do not apply `blocked`; `policy_review_required` requires explicit
+   acceptance of the separate idle policy change.
+3. After exact-scope confirmation, apply the unchanged receipt UUID, SHA-256
+   digest, count and backend phrase with `confirmed:true` and
+   `skip_only_acknowledged:true`. Add `idle_readiness_acknowledged:true` only
+   after explicit review of the policy change. The currently enabled owner and
+   principal/org/sandbox scope are checked server-side; caller UID overrides
+   are forbidden.
+
+Both operations use **POST** `/aepIngestionDiagnosticsProxy`, with the body
+action `profile_seed_schedule_skip_preview` or
+`profile_seed_schedule_skip_apply`. GET remains diagnostics-only; POST cannot
+fall back to query diagnostics. Arrays, unknown fields, invalid bounded inputs,
+query/body action mismatches and unsupported methods are rejected before server
+token access.
+
+Apply revalidates the immutable receipt/topology and exact prewrite slot, then
+transactionally consumes the receipt, skips only that slot, unblocks future
+dispatch and optionally persists the audited idle policy. Races or drift fail
+closed. Attempt budget/error history remain intact. This never replays a failed
+slot, manually generates profiles, edits live Firestore directly, changes AEP
+flows, or promotes data downstream. Success reports `ingestion:'not_started'`.
+After any uncertain timeout/network outcome, **stop and diagnose read-only**;
+never retry automatically. Verify the next real scheduled run and complete
+stored Snowflake/XDM/REL outputs before claiming recovery. The shared Agentic
+source parent and REL projection remain distinct. Registry retirement alone
+does not relax health; see [the relational-layer recovery boundary](../../docs/SNOWFLAKE_RELATIONAL_LAYER.md#reviewed-scheduled-seed-recovery-and-verified-idle-readiness).
 
 ### Endpoint catalog
 

@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 245 tools',
+      product: 'Complete Lab MCP · 247 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -39,11 +39,12 @@
         'Send experience events and verify profile activity',
         'Check sandbox infra and onboard profile pipelines',
         'Diagnose the owner-scoped scheduled profile seeder',
+        'Preview and apply audited skip-only scheduler recovery',
       ],
       configNotes:
         'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all nineteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 245,
+      toolCount: 247,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
