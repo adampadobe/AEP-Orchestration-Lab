@@ -335,6 +335,10 @@ async function main() {
     assert.equal(await motion.page.locator('#flowsProgress').textContent(), 'Step 1 of 4');
     await motion.page.locator('#flowsNext').click();
     assert.equal(await motion.page.locator('#flowsProgress').textContent(), 'Step 2 of 4');
+    await motion.page.locator('#flowsToggleDetails').click();
+    assert.ok(await motion.page.locator('#flowsDetails').evaluate(details => details.inert && details.getAnimations().length === 0),
+      'Reduced motion collapses details without an animated transition');
+    await motion.page.locator('#flowsToggleDetails').click();
     await motion.page.evaluate(() => { window.invalidReference = true; });
     await motion.page.locator('#flowsReload').click();
     await motion.page.waitForFunction(() => document.getElementById('flowsStatus').dataset.error === 'true');
@@ -394,9 +398,51 @@ async function main() {
       assert.ok(sizes.length && sizes.every(size => size >= 14), 'Detail labels must remain at least 14 CSS pixels; observed: ' + JSON.stringify(sizes));
       assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Detail scrolling must stay inside the canvas');
     }
+    async function assertFittedDiagram(page) {
+      await page.waitForFunction(() => {
+        const graph = document.getElementById('flowsGraph');
+        return graph.clientWidth > 0 && graph.clientHeight > 0
+          && graph.scrollWidth <= graph.clientWidth + 1 && graph.scrollHeight <= graph.clientHeight + 1;
+      }, null, { timeout: 5000 });
+      assert.ok(await page.locator('#flowsGraph').evaluate(graph => {
+        const bounds = graph.getBoundingClientRect(), diagram = graph.querySelector('svg').getBoundingClientRect();
+        return diagram.left >= bounds.left && diagram.right <= bounds.right + 1
+          && diagram.top >= bounds.top && diagram.bottom <= bounds.bottom + 1;
+      }), 'The entire SVG must be inside the diagram viewport');
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+        'The fitted architecture must not overflow the page');
+    }
     await real.page.locator('#flowsFullView').click();
+    await assertFittedDiagram(real.page);
+    assert.ok(parseInt(await real.page.locator('#flowsZoom').textContent(), 10) < 100, 'The full architecture must zoom below 100% to fit');
+    const canvasWidth = await real.page.locator('#flowsGraph').evaluate(graph => graph.clientWidth);
+    const chapter = await real.page.locator('#flowsProgress').textContent();
+    const apiReads = await real.page.evaluate(() => window.requests.length);
+    await real.page.locator('#flowsToggleDetails').focus();
+    await real.page.keyboard.press('Enter');
+    await real.page.locator('#flowsDetails').waitFor({ state: 'hidden' });
+    await real.page.waitForFunction(width => document.getElementById('flowsGraph').clientWidth > width + 200, canvasWidth);
+    assert.equal(await real.page.locator('#flowsToggleDetails').getAttribute('aria-expanded'), 'false');
+    assert.ok(await real.page.locator('#flowsDetails').evaluate(details => details.inert), 'Collapsed details cannot receive keyboard focus');
+    await assertFittedDiagram(real.page);
+    assert.equal(await real.page.locator('#flowsProgress').textContent(), chapter, 'Hiding details preserves the current chapter');
+    await real.page.locator('.flows-node[data-node-id="lab"]').click();
+    assert.equal(await real.page.locator('#flowsToggleDetails').getAttribute('aria-expanded'), 'true', 'Inspecting a component reopens its details');
+    await real.page.locator('#flowsTimeline button').first().focus();
+    await real.page.locator('#flowsToggleDetails').evaluate(button => button.click());
+    assert.equal(await real.page.evaluate(() => document.activeElement.id), 'flowsToggleDetails', 'Closing a focused inspector returns focus to its toggle');
+    await real.page.locator('#flowsToggleDetails').click();
+    assert.equal(await real.page.evaluate(() => window.requests.length), apiReads, 'Viewport controls never fetch or write data');
+    await real.page.locator('#flowsActualSize').click();
     await assertReadableDiagram(real.page);
+    await real.page.locator('#flowsZoomOut').click();
+    assert.equal(await real.page.locator('#flowsZoom').textContent(), '90%', 'Manual zoom works below 100%');
+    const zoomedOutWidth = await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width);
     await real.page.setViewportSize({ width: 2000, height: 1000 });
+    await real.page.waitForTimeout(100);
+    assert.equal(await real.page.locator('#flowsZoom').textContent(), '90%', 'Resizing preserves manual zoom below 100%');
+    assert.equal(await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width), zoomedOutWidth);
+    await real.page.locator('#flowsActualSize').click();
     await assertReadableDiagram(real.page);
     await real.page.locator('#flowsZoomIn').click();
     const manualWidth = await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width);
@@ -405,15 +451,36 @@ async function main() {
     await real.page.setViewportSize({ width: 1800, height: 1000 });
     await real.page.waitForTimeout(100);
     assert.equal(await real.page.locator('#flowsGraph svg').evaluate(svg => svg.getBoundingClientRect().width), manualWidth,
-      'Resizing must not discard manual zoom below 100%');
+      'Resizing must not discard manual zoom');
     await real.page.locator('#flowsFit').click();
-    await assertReadableDiagram(real.page);
+    await assertFittedDiagram(real.page);
     await real.page.locator('#flowsExpand').click();
-    await assertReadableDiagram(real.page);
+    await assertFittedDiagram(real.page);
+    await real.page.setViewportSize({ width: 1440, height: 900 });
     await real.page.locator('#flowsFullscreen').click();
     await real.page.locator('#flowsZoomIn').click();
     await real.page.locator('#flowsFit').click();
-    await assertReadableDiagram(real.page);
+    await assertFittedDiagram(real.page);
+    const fullscreenBounds = await real.page.evaluate(() => {
+      const dialog = document.getElementById('flowsDialog'), graph = document.getElementById('flowsGraph');
+      return { bottom: graph.getBoundingClientRect().bottom, height: innerHeight,
+        scrollHeight: dialog.scrollHeight, clientHeight: dialog.clientHeight };
+    });
+    assert.ok(fullscreenBounds.bottom <= fullscreenBounds.height && fullscreenBounds.scrollHeight <= fullscreenBounds.clientHeight + 1,
+      'Fullscreen fits the diagram and controls inside one window: ' + JSON.stringify(fullscreenBounds));
+    if (process.env.MY_DATA_FLOWS_SCREENSHOTS) {
+      await real.page.locator('#flowsScenarios button[data-scenario-id="architecture-overview"]').click();
+      for (const theme of ['light', 'dark']) {
+        await real.page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+        await real.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, `flows-fit-fullscreen-${theme}.png`) });
+        await real.page.locator('#flowsToggleDetails').click();
+        await real.page.locator('#flowsDetails').waitFor({ state: 'hidden' });
+        await assertFittedDiagram(real.page);
+        await real.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, `flows-fit-hidden-${theme}.png`) });
+        await real.page.locator('#flowsToggleDetails').click();
+        await real.page.locator('#flowsDetails').evaluate(details => Promise.all(details.getAnimations().map(animation => animation.finished)));
+      }
+    }
     assert.equal(await real.page.locator('.flows-node').count(), 15);
     await real.page.keyboard.press('Escape');
     await real.page.setViewportSize({ width: 390, height: 844 });
@@ -421,9 +488,20 @@ async function main() {
     await real.page.locator('#flowsShowMap').click();
     await real.page.locator('#flowsFit').click();
     assert.ok(await real.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Real model must not overflow mobile page');
-    await assertReadableDiagram(real.page);
+    await assertFittedDiagram(real.page);
+    await real.page.locator('#flowsToggleDetails').click();
+    await real.page.locator('#flowsDetails').waitFor({ state: 'hidden' });
+    await assertFittedDiagram(real.page);
+    await real.page.locator('#flowsToggleDetails').click();
+    await real.page.locator('#flowsDetails').waitFor({ state: 'visible' });
+    await real.page.locator('#flowsZoomOut').click();
+    assert.equal(await real.page.locator('#flowsZoom').textContent(), '10%');
+    assert.ok(await real.page.locator('#flowsZoomOut').isDisabled(), 'Zoom out stops at the supported minimum');
+    await real.page.locator('#flowsFit').click();
+    await assertFittedDiagram(real.page);
     await real.page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
     await real.page.locator('#flowsMonitorMode').click();
+    await real.page.locator('#flowsClearSelection').click();
     await real.page.locator('#flowsLive').click();
     await real.page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('Partial results'));
     for (const name of ['Protected source flow', 'Completed registry row', 'Unavailable registry row']) {
@@ -463,7 +541,7 @@ async function main() {
     await story.page.locator('#flowsResults').waitFor();
     const positions = await story.page.locator('.flows-node').evaluateAll(nodes => nodes.map(node => node.getAttribute('transform')));
     await story.page.getByRole('button', { name: 'Explore Snowflake', exact: true }).click();
-    await assertReadableDiagram(story.page);
+    await assertFittedDiagram(story.page);
     if (process.env.MY_DATA_FLOWS_SCREENSHOTS) {
       await story.page.locator('#flowsDiagramPanel').evaluate(element => element.scrollIntoView({ block: 'start' }));
       await story.page.screenshot({ path: path.join(process.env.MY_DATA_FLOWS_SCREENSHOTS, 'flows-subsystem.png') });

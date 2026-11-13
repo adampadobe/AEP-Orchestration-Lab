@@ -94,7 +94,17 @@
   function current(user, epoch) {
     return generation === epoch && auth.currentUser === user && allowed(auth.currentUser);
   }
+  function showDetails(visible) {
+    var details = el('flowsDetails'), button = el('flowsToggleDetails');
+    if (!visible && details.contains(document.activeElement)) button.focus();
+    el('flowsDiagramPanel').dataset.detailsOpen = String(visible);
+    details.inert = !visible;
+    details.setAttribute('aria-hidden', String(!visible));
+    button.setAttribute('aria-expanded', String(visible));
+    button.textContent = visible ? 'Hide details' : 'Show details';
+  }
   function inspect(value) {
+    showDetails(true);
     selectedNode = value.id;
     el('flowsInspect').replaceChildren(node('h3', value.label), node('p', value.description), timing(value.timing));
     if (traceMode) {
@@ -113,19 +123,23 @@
   }
   function applyZoom(value, fitting) {
     var viewport = el('flowsGraph');
-    var centerX = (viewport.scrollLeft + viewport.clientWidth / 2) / zoom;
+    var centeredSpace = Math.max(0, (viewport.clientWidth - Math.ceil(graphWidth * zoom)) / 2);
+    var centerX = (viewport.scrollLeft + viewport.clientWidth / 2 - centeredSpace) / zoom;
     var centerY = (viewport.scrollTop + viewport.clientHeight / 2) / zoom;
     autoFit = !!fitting;
-    zoom = Math.max(1, Math.min(3, value));
+    zoom = Math.max(.1, Math.min(3, value));
     var graph = el('flowsGraph').querySelector('svg');
     if (graph) { graph.style.width = Math.ceil(graphWidth * zoom) + 'px'; graph.style.height = Math.ceil(graphHeight * zoom) + 'px'; }
     el('flowsZoom').textContent = Math.round(zoom * 100) + '%';
+    el('flowsZoomOut').disabled = zoom <= .10001;
+    el('flowsZoomIn').disabled = zoom >= 2.99999;
     viewport.scrollLeft = fitting ? 0 : centerX * zoom - viewport.clientWidth / 2;
     viewport.scrollTop = fitting ? 0 : centerY * zoom - viewport.clientHeight / 2;
   }
   function fit() {
     if (!snapshot) return;
     var viewport = el('flowsGraph');
+    if (overview || !viewport.clientWidth || !viewport.clientHeight) return;
     applyZoom(Math.min(1.25, (viewport.clientWidth - 2) / graphWidth, (viewport.clientHeight - 2) / graphHeight), true);
   }
   function groupNodes(system) {
@@ -137,6 +151,7 @@
     return image;
   }
   function inspectSystem(system, detail) {
+    showDetails(true);
     selectedNode = null;
     el('flowsInspect').replaceChildren(node('h3', system.label), node('p', system.description));
     groupNodes(system).forEach(function (value) {
@@ -1052,8 +1067,12 @@
     if (snapshot) el('flowsMotionNote').textContent = reducedMotion.matches ? 'Reduced motion: use manual stepping; autoplay is disabled.' : 'Playback is paused until you choose Play.';
   });
   document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); });
-  el('flowsZoomIn').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom + .2); });
-  el('flowsZoomOut').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom - .2); });
+  el('flowsToggleDetails').addEventListener('click', function () {
+    showDetails(el('flowsDiagramPanel').dataset.detailsOpen !== 'true');
+  });
+  el('flowsZoomIn').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom + .1); });
+  el('flowsZoomOut').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(zoom - .1); });
+  el('flowsActualSize').addEventListener('click', function () { el('flowsFollow').checked = false; applyZoom(1); });
   el('flowsGraph').addEventListener('wheel', function () { el('flowsFollow').checked = false; }, { passive: true });
   el('flowsFit').addEventListener('click', function () { autoFit = true; revealGraph(); });
   el('flowsFocusView').addEventListener('click', function () {

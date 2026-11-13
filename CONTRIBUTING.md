@@ -126,7 +126,7 @@ Firebase Hosting serves static files from **`web/`**. The lab nav, themes, and a
 
 ### My data flows workspace
 
-`my-data-flows.html` keeps one protected topology across **Understand**, **Monitor**, and **Trace a profile**. The aggregate overview and mobile stage list are the default; component detail scrolls instead of shrinking primary labels below 14px. The selected task is remembered locally, but reopening never starts playback, status refresh, watching, or profile creation.
+`my-data-flows.html` keeps one protected topology across **Understand**, **Monitor**, and **Trace a profile**. The aggregate overview and readable mobile stage list are the default. **Fit to view** scales the selected diagram below 100% when needed; **100%** restores readable component labels and internal scrolling. Manual zoom is retained during resizing. **Hide details / Show details** slides the story and inspector away without resetting playback or selection; selecting a component reopens its details. Fullscreen allocates the remaining viewport to the map and scrolls details independently. The selected task is remembered locally, but reopening never starts playback, status refresh, watching, or profile creation.
 
 Presentation packets are illustrative and run only during explicit playback. Monitor reads reviewed bindings on demand; evidence over five minutes old is labelled stale (a UI freshness threshold, not an ingestion SLA). Failed refreshes retain explicitly marked prior observations, while authentication denial clears private data. Unknown counters must remain unknown, and successful zero-input runs are distinct from populated runs.
 
