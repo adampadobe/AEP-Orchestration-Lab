@@ -68,7 +68,8 @@ export function registerPlatformCleanupTools(server) {
       'DESTRUCTIVE AND IRREVERSIBLE. Requires explicit confirmation of the exact plan, count, digest, and independent '
       + 'external-usage clearance, plus acknowledgment that Adobe DELETE has no documented atomic stale-state protection. '
       + 'Claims once, coordinates concurrent batch plans in the same org/sandbox, and executes serially with durable '
-      + 'per-item intent/result, fresh state/dependency checks and GET 404 readback. Stops on first failure, uncertainty, '
+      + 'per-item intent/result, fresh state/dependency checks and GET 404 readback. Asynchronous flow deletion is '
+      + 'polled read-only within the execution/expiry budget; acceptance or delete-finalizing is not completion. Stops on first failure, uncertainty, '
       + 'expiry or execution budget; never automatically retries, resumes, pauses flows or expands scope. '
       + 'After interruption call verify, then obtain fresh review and confirmation for remaining targets.',
       {

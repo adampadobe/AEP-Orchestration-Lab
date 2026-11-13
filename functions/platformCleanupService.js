@@ -10,7 +10,7 @@ const FLOW = '/data/foundation/flowservice';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 200;
 const MAX_BATCH_TARGETS = 100;
-const BATCH_POLICY_VERSION = '2026-11-12.3';
+const BATCH_POLICY_VERSION = '2026-11-13.1';
 const PROTECTED_SNOWFLAKE_ACCOUNT_ID = 'a0682068-80a4-4c97-842c-f2ab0eebc841';
 const BATCH_TYPES = new Set([
   'flow', 'dataset', 'schema', 'descriptor', 'sourceConnection',
@@ -1194,6 +1194,7 @@ function createPlatformCleanupService({
   async function apply(auth, approvedPlan, store) {
     const completed = new Set();
     const deadline = Math.min(approvedPlan.expiresAtMs, now() + 230_000);
+    auth = { ...auth, readDeadlineMs: deadline };
     let issued = 0;
     const finish = (state, detail = {}) => store.finishExecution(approvedPlan.plan_id, state, {
       ...detail, delete_requests_issued: issued,
@@ -1250,17 +1251,38 @@ function createPlatformCleanupService({
             : target.resource_type === 'descriptor' ? 'application/vnd.adobe.xdm-v2+json' : 'application/json',
         });
         acknowledged = true;
-        if (target.resource_type === 'dataset'
-          ? result.status !== 200 || !Array.isArray(result.data) || !result.data.includes(`@/dataSets/${id}`)
-          : result.status !== 204) {
-          throw failure(502, 'Adobe did not acknowledge the exact deletion; verify before any new plan.', { error_code: 'DELETE_ACK_MISMATCH' });
+        let validAcknowledgment = result.status === 204;
+        if (target.resource_type === 'dataset') {
+          validAcknowledgment = result.status === 200 && Array.isArray(result.data)
+            && result.data.includes(`@/dataSets/${id}`);
+        } else if (target.resource_type === 'flow' && [200, 202].includes(result.status)) {
+          validAcknowledgment = result.data === null || (typeof result.data === 'object' && !Array.isArray(result.data)
+            && (result.data.id === undefined || result.data.id === id)
+            && !result.data.error && !result.data.error_code && !result.data.errorCode && result.data.ok !== false);
         }
+        if (!validAcknowledgment) {
+          throw failure(502, `Adobe did not acknowledge the exact deletion (HTTP ${result.status}); verify before any new plan.`, {
+            error_code: 'DELETE_ACK_MISMATCH', request_id: result.request_id,
+          });
+        }
+        const flowReadback = target.resource_type === 'flow';
+        const readbackDeadline = Math.min(deadline - 20_000, now() + 90_000);
+        const readbackAuth = flowReadback ? { ...auth, readDeadlineMs: readbackDeadline } : auth;
         let absent = false;
-        try { await getBatchTarget(auth, target); } catch (error) {
-          if (error.status !== 404) throw error;
-          absent = true;
-        }
-        if (!absent) throw failure(409, 'Deletion acknowledged but absence is not yet verified. No retry was attempted.', { error_code: 'DELETE_NOT_VERIFIED' });
+        do {
+          if (flowReadback && now() >= readbackDeadline) break;
+          try { await getBatchTarget(readbackAuth, target); } catch (error) {
+            if (error.status !== 404) throw error;
+            absent = true;
+          }
+          if (absent || !flowReadback || now() + 5000 >= readbackDeadline) break;
+          await sleep(5000);
+        } while (!absent);
+        if (!absent) throw failure(409, flowReadback
+          ? 'Flow deletion may still be finalizing; exact-ID absence was not verified within the readback budget. Use verify; do not replay DELETE.'
+          : 'Deletion acknowledged but absence is not yet verified. No retry was attempted.', {
+          error_code: 'DELETE_NOT_VERIFIED', request_id: result.request_id,
+        });
         recordingResult = true;
         await store.recordItemResult(approvedPlan.plan_id, identity, {
           status: 'succeeded', http_status: result.status, request_id: result.request_id,

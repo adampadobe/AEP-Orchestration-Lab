@@ -360,7 +360,7 @@ Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources
 | `lab_platform_asset_delete` | `DELETE /api/platform-cleanup` | One confirmed dataset or tenant schema; re-audit, dependency guards, verified absence |
 | `lab_platform_cleanup_inventory` | `POST /api/platform-cleanup` (`operation: inventory`) | Exact-ID metadata inventory for flow/dataset/schema/descriptor/connection targets; reports unsupported coverage |
 | `lab_platform_cleanup_plan` | `POST /api/platform-cleanup` (`operation: plan`) | Immutable principal/org/sandbox/state/policy-bound plan, max 100 exact IDs, 15-minute expiry |
-| `lab_platform_cleanup_apply` | `POST /api/platform-cleanup` (`operation: apply`) | Atomic one-shot plan claim and durable status; batch DELETE adapters are currently gated off |
+| `lab_platform_cleanup_apply` | `POST /api/platform-cleanup` (`operation: apply`) | One-shot plan claim, exact-scope serial DELETE, durable status and bounded asynchronous flow readback |
 | `lab_platform_cleanup_verify` | `POST /api/platform-cleanup` (`operation: verify`) | Readback and durable status; never replays mutations |
 | `lab_lookup_profile` | `GET /api/profile/table` | UPS profile table (raw lab response) |
 | `lab_get_profile` | `GET /api/profile/table` + attribute ownership | Coworker-friendly summary + writability hints |
@@ -571,12 +571,23 @@ Execution is serial. Before each DELETE, the service rechecks remaining targets,
 dependencies, disabled-flow/run evidence and protected metadata against the
 reviewed plan, accounting only for its own verified removals. Each prerequisite
 must still be absent. Durable intent precedes each attempt, followed by a strict
-acknowledgment (Catalog 200 with the exact deleted reference; other adapters 204)
-and scoped GET 404. HTTP status and allowlisted Adobe error code/request ID are
+acknowledgment (Catalog 200 with the exact deleted reference; flow acceptance
+200/202 or documented 204; other adapters 204) and scoped GET 404. A flow response
+with a contradictory ID or error payload is rejected. Flow acceptance is only
+pending: the backend polls the exact scoped GET every five seconds for up to
+90 seconds, shortened by plan expiry and the execution budget with a 20-second
+readback reserve. `delete-finalizing` is not absence. The durable successful item
+result and next mutation wait for GET 404; DELETE is never repeated. Timeout,
+forbidden, malformed, foreign-scope or failed readback remains uncertain and
+stops further writes. HTTP status and allowlisted Adobe error code/request ID are
 retained without raw error bodies or connection secrets. A network/5xx outcome,
 unexpected acknowledgment or failed readback is uncertain, stops further writes,
 and is never automatically retried. Overall success also requires a final
-target/protected-baseline readback.
+target/protected-baseline readback within the same execution deadline.
+
+A plan's 15-minute expiry is unchanged: review and confirm a fresh plan if it
+expires between chat turns. Previously verified deletions must be excluded from
+remaining-target plans even if an older workbook still lists them.
 
 The existing 300-second function and 330-second client limits remain. Execution
 has a 230-second budget and reserves 45 seconds before starting another mutation.

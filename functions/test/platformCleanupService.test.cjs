@@ -1050,6 +1050,7 @@ function executableBatchFixture(options = {}) {
     for (const type of ['flow', 'descriptor', 'sourceConnection', 'targetConnection', 'baseConnection']) rows[type].clear();
   }
   const calls = [];
+  const pendingFlowDeletes = new Map();
   let time = 1000;
   let items = {};
   let state = 'applying';
@@ -1083,7 +1084,7 @@ function executableBatchFixture(options = {}) {
   const fetchImpl = async (input, init) => {
     const url = new URL(input);
     const path = decodeURIComponent(url.pathname).replace(/\/$/, '');
-    calls.push({ path, url, ...init });
+    calls.push({ path, url, atMs: time, ...init });
     if (path.endsWith('/schemaregistry/stats')) return reply(options.stats || { imsOrg: auth.orgId, tenantId: 'example' });
     if (init.method === 'POST' && path.endsWith('/action')) {
       const resourceId = path.split('/').at(-2);
@@ -1118,10 +1119,24 @@ function executableBatchFixture(options = {}) {
         if (type === 'descriptor') assert.equal(init.headers.Accept, 'application/vnd.adobe.xdm-v2+json');
         if (options.deleteError === 'network') throw new TypeError('fetch failed');
         if (options.deleteError) return reply({ code: 'ADOBE_DELETE_DENIED', secret: 'must-not-leak' }, options.deleteError, { 'x-request-id': 'req-delete' });
-        if (!options.pending) rows[type].delete(resourceId);
+        if (type === 'flow' && options.flowDeleteDelayMs !== undefined) {
+          Object.assign(rows.flow.get(resourceId), {
+            state: 'delete-finalizing', lastOperation: { operation: 'delete', status: 'inProgress' },
+          });
+          pendingFlowDeletes.set(resourceId, time + options.flowDeleteDelayMs);
+        } else if (!options.pending) rows[type].delete(resourceId);
         options.afterDelete?.({ type, resourceId, rows, advance: (amount) => { time += amount; } });
+        if (type === 'flow' && options.flowDeleteStatus !== undefined) {
+          return reply(options.flowDeleteStatus === 204 ? null
+            : Object.hasOwn(options, 'flowDeleteAcknowledgment') ? options.flowDeleteAcknowledgment : { id: resourceId },
+          options.flowDeleteStatus);
+        }
         return type === 'dataset' ? reply(options.emptyAcknowledgment ? [] : [`@/dataSets/${resourceId}`])
           : reply(null, 204);
+      }
+      if (type === 'flow' && pendingFlowDeletes.has(resourceId) && time >= pendingFlowDeletes.get(resourceId)) {
+        rows.flow.delete(resourceId);
+        pendingFlowDeletes.delete(resourceId);
       }
       const raw = rows[type].get(resourceId);
       if (!raw) return reply({}, options.readbackError || 404);
@@ -1166,6 +1181,137 @@ test('batch executor deletes each supported exact type in dependency order with 
     assert.ok(f.calls.every((call) => call.headers['x-sandbox-name'] === f.auth.sandbox));
     const verified = await f.service.verify(f.auth, plan, result);
     assert.equal(verified.status, 'verified_absent');
+  }
+});
+
+test('asynchronous flow deletion waits for exact-ID absence before deleting the next flow', async () => {
+  for (const flowDeleteStatus of [200, 202, 204]) {
+    const f = executableBatchFixture({ flowDeleteStatus, flowDeleteDelayMs: 60_000 });
+    const secondId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    f.rows.flow.set(secondId, { ...structuredClone(f.rows.flow.get(f.flowId)), id: secondId, name: 'Another old feed' });
+    const approved = await f.prepare([f.flowId, secondId].map((resource_id) => ({ resource_type: 'flow', resource_id })));
+    assert.equal(approved.status, 'ready');
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, 'succeeded');
+    assert.equal(result.delete_requests_issued, 2);
+    const deletes = f.calls.filter((call) => call.method === 'DELETE');
+    assert.equal(deletes.length, 2);
+    assert.equal(deletes[1].atMs - deletes[0].atMs, 60_000);
+    assert.ok(Object.values(result.items).every((item) => item.status === 'succeeded' && item.http_status === flowDeleteStatus));
+    assert.equal((await f.service.verify(f.auth, approved, result)).status, 'verified_absent');
+  }
+});
+
+test('bodyless asynchronous flow acceptance still requires verified absence', async () => {
+  for (const flowDeleteStatus of [200, 202]) {
+    const f = executableBatchFixture({
+      flowDeleteStatus, flowDeleteAcknowledgment: null, flowDeleteDelayMs: 5000,
+    });
+    const approved = await f.prepare([{ resource_type: 'flow', resource_id: f.flowId }]);
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, 'succeeded');
+    assert.equal(result.delete_requests_issued, 1);
+    assert.equal(result.items[`flow:${f.flowId}`].http_status, flowDeleteStatus);
+    assert.equal(f.rows.flow.has(f.flowId), false);
+  }
+});
+
+test('protected configuration drift during flow deletion polling blocks the next mutation', async () => {
+  const protectedId = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+  const f = executableBatchFixture({
+    flowDeleteStatus: 202, flowDeleteDelayMs: 10_000,
+    afterPoll: () => { f.rows.flow.get(protectedId).state = 'disabled'; },
+  });
+  f.rows.flow.set(protectedId, { id: protectedId, name: 'REL_protected', state: 'enabled' });
+  const secondId = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+  f.rows.flow.set(secondId, { ...structuredClone(f.rows.flow.get(f.flowId)), id: secondId, name: 'Another old feed' });
+  const approved = await f.prepare([f.flowId, secondId].map((resource_id) => ({ resource_type: 'flow', resource_id })));
+  assert.equal(approved.status, 'ready');
+  const result = await f.service.apply(f.auth, approved, f.store);
+  assert.equal(result.state, 'failed');
+  assert.equal(result.delete_requests_issued, 1);
+  assert.equal(result.items[`flow:${f.flowId}`].status, 'succeeded');
+  assert.equal(result.items[`flow:${secondId}`].status, 'not_attempted');
+  assert.match(result.blockers.join(' '), /protected baseline changed/);
+});
+
+test('pending flow deletion stops within the readback and expiry budgets without another mutation', async () => {
+  for (const remainingMs of [900_000, 50_000]) {
+    const f = executableBatchFixture({ flowDeleteStatus: 202, flowDeleteDelayMs: 120_000 });
+    const approved = await f.prepare();
+    approved.expiresAtMs = 1000 + remainingMs;
+    const result = await f.service.apply(f.auth, approved, f.store);
+    assert.equal(result.state, 'uncertain');
+    assert.equal(result.safe_error_code, 'DELETE_NOT_VERIFIED');
+    assert.equal(result.delete_requests_issued, 1);
+    assert.equal(result.items[`flow:${f.flowId}`].status, 'uncertain');
+    assert.equal(result.items[`targetConnection:${f.targetId}`].status, 'not_attempted');
+    const deletion = f.calls.findIndex((call) => call.method === 'DELETE');
+    const readbacks = f.calls.slice(deletion + 1);
+    assert.ok(readbacks.length > 1 && readbacks.length <= 18);
+    assert.ok(readbacks.every((call) => call.method === 'GET'
+      && call.path.endsWith(`/flows/${f.flowId}`)
+      && call.atMs < Math.min(91_000, approved.expiresAtMs - 20_000)));
+    assert.equal((await f.service.verify(f.auth, approved, result)).status, 'uncertain');
+    assert.equal(f.calls.filter((call) => call.method === 'DELETE').length, 1);
+  }
+});
+
+test('unexpected flow acknowledgments never enable polling or subsequent deletes', async () => {
+  for (const acknowledgment of [
+    { flowDeleteStatus: 201 },
+    { flowDeleteStatus: 200, flowDeleteAcknowledgment: { id: 'another-flow' } },
+    { flowDeleteStatus: 202, flowDeleteAcknowledgment: [] },
+    { flowDeleteStatus: 200, flowDeleteAcknowledgment: { error_code: 'DELETE_DENIED' } },
+  ]) {
+    const f = executableBatchFixture({ ...acknowledgment, flowDeleteDelayMs: 60_000 });
+    const result = await f.service.apply(f.auth, await f.prepare(), f.store);
+    assert.equal(result.state, 'uncertain');
+    assert.equal(result.safe_error_code, 'DELETE_ACK_MISMATCH');
+    assert.equal(result.delete_requests_issued, 1);
+    assert.equal(f.calls.at(-1).method, 'DELETE');
+  }
+});
+
+test('serial flow polling shares the execution deadline and leaves later targets untouched', async () => {
+  const f = executableBatchFixture({ flowDeleteStatus: 202, flowDeleteDelayMs: 60_000 });
+  const ids = [
+    f.flowId,
+    '11111111-1111-4111-8111-111111111111',
+    '22222222-2222-4222-8222-222222222222',
+    '33333333-3333-4333-8333-333333333333',
+    '44444444-4444-4444-8444-444444444444',
+  ];
+  for (const [index, id] of ids.entries()) {
+    f.rows.flow.set(id, { ...structuredClone(f.rows.flow.get(f.flowId)), id, name: `Old feed ${index}` });
+  }
+  const approved = await f.prepare(ids.map((resource_id) => ({ resource_type: 'flow', resource_id })));
+  const result = await f.service.apply(f.auth, approved, f.store);
+  assert.equal(result.state, 'uncertain');
+  assert.equal(result.safe_error_code, 'DELETE_NOT_VERIFIED');
+  const deletions = f.calls.filter((call) => call.method === 'DELETE');
+  assert.equal(deletions.length, 4);
+  assert.deepEqual(deletions.map((call) => call.atMs), [1000, 61_000, 121_000, 181_000]);
+  assert.equal(Object.values(result.items).filter((item) => item.status === 'succeeded').length, 3);
+  assert.equal(Object.values(result.items).filter((item) => item.status === 'not_attempted').length, 1);
+  assert.ok(f.calls.at(-1).atMs < deletions[0].atMs + 230_000 - 20_000);
+});
+
+test('flow polling fails closed on forbidden, failed, malformed or foreign readback', async () => {
+  for (const options of [
+    { flowDeleteDelayMs: 0, readbackError: 403 },
+    { flowDeleteDelayMs: 0, readbackError: 503 },
+    { afterDelete: ({ rows, resourceId }) => { rows.flow.get(resourceId).id = 'wrong-id'; } },
+    { afterDelete: ({ rows, resourceId }) => { rows.flow.get(resourceId).sandboxName = 'another-sandbox'; } },
+    { afterDelete: ({ rows, resourceId }) => { rows.flow.get(resourceId).imsOrgId = 'another@AdobeOrg'; } },
+  ]) {
+    const f = executableBatchFixture({ flowDeleteStatus: 202, flowDeleteDelayMs: 60_000, ...options });
+    const result = await f.service.apply(f.auth, await f.prepare(), f.store);
+    assert.equal(result.state, 'uncertain');
+    assert.equal(result.delete_requests_issued, 1);
+    assert.equal(result.items[`targetConnection:${f.targetId}`].status, 'not_attempted');
+    assert.equal(f.calls.filter((call) => call.method === 'DELETE').length, 1);
+    assert.equal(f.calls.filter((call) => call.method === 'DELETE').at(-1).atMs, f.calls.at(-1).atMs);
   }
 });
 
