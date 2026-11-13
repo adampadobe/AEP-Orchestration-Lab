@@ -72,7 +72,7 @@
             </section>
           <section id="flowsTracePanel" class="flows-trace-controls" aria-labelledby="flowsTraceHeading" hidden>
             <h2 id="flowsTraceHeading">Create and trace a profile</h2>
-            <p>Create once, then follow verified readbacks through the architecture. Arrival follows natural ingestion; there is no estimated arrival time.</p>
+            <p>Create a profile, then follow verified readbacks through the architecture. Each confirmed creation starts a separate run; arrival follows natural ingestion, with no estimated arrival time.</p>
             <div class="flows-toolbar">
               <label for="flowsTraceIndustry">Industry</label>
               <select id="flowsTraceIndustry">
@@ -84,8 +84,9 @@
                 <option value="media">Media and entertainment</option>
               </select>
               <button type="button" id="flowsTraceCreate" disabled>Create profile</button>
+              <button type="button" id="flowsTraceNew" hidden>Start another profile</button>
             </div>
-            <label class="flows-write-disclosure"><input type="checkbox" id="flowsTraceConfirm"> I agree to create one test profile and linked sample data in apalmer. Natural ingestion only; no sends.</label>
+            <label class="flows-write-disclosure"><input type="checkbox" id="flowsTraceConfirm"> I agree to create one test profile and linked sample data in apalmer for this run. Natural ingestion only; no sends.</label>
             <p id="flowsTraceStatus" role="status" aria-live="polite">Checking profile settings…</p>
             <p id="flowsTraceSettings" hidden><a href="profile-generation.html" id="flowsTraceSettingsLink">Set up profile generation</a></p>
             <div class="flows-toolbar">
@@ -93,7 +94,7 @@
               <button type="button" id="flowsTraceWatch" disabled>Resume watching</button>
               <output id="flowsTraceElapsed" aria-label="Time since creation"></output>
             </div>
-            <p class="flows-muted">Watching checks about every 30 seconds for up to 30 minutes. Stop watching stops reads only; it does not cancel creation or ingestion.</p>
+            <p class="flows-muted">Watching checks about every 30 seconds for up to 30 minutes. Stop watching stops reads only; it does not cancel creation or ingestion. New profiles are separate runs and must be explicitly confirmed; wait at least one minute between creations.</p>
             <div id="flowsTraceIdentity" class="flows-card" hidden></div>
           </section>
               <div class="flows-view-controls">

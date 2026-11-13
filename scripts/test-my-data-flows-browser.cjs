@@ -48,7 +48,7 @@ const live = {
 };
 const traceFixture = {
   id: '98b10d61-c9aa-46c1-8c2c-b18a38000001', industry: 'fsi', sandbox: 'apalmer',
-  createdAt: new Date(Date.now() - 65000).toISOString(), updatedAt: new Date().toISOString(), state: 'watching',
+  createdAt: new Date(Date.now() - 120000).toISOString(), updatedAt: new Date().toISOString(), state: 'watching',
   identity: { email: 'trace.test.0042@example.invalid', ecid: '1000000042', crmId: 'CRM0042', recipientId: '42' },
   generation: { state: 'committed', detail: 'Source write committed; readback not implied.' },
   stages: ['source', 'rel', 'ingestion', 'aepProfile', 'aepXdm', 'aepRel'].map((id, i) => ({
@@ -154,6 +154,10 @@ async function main() {
           if (['aepXdm', 'aepRel'].includes(stage.id)) { stage.state = 'unavailable'; stage.verification = 'manual'; }
           if (stage.id === 'aepProfile') stage.state = 'unavailable';
         });
+        if (options.uncertain && window.fixtureTraceRun) {
+          window.fixtureTraceRun.state = 'needs_attention';
+          window.fixtureTraceRun.generation = { state: 'unknown', detail: 'Creation outcome is not confirmed.' };
+        }
         if (options.unchecked) window.fixtureTraceRun.stages.forEach(stage => {
           stage.state = 'waiting'; stage.checkedAt = null; stage.verifiedAt = null;
         });
@@ -166,7 +170,7 @@ async function main() {
               authorization: init.headers.Authorization, credentials: init.credentials, cache: init.cache });
             if (init.method === 'POST') {
               const { industry, requestId } = JSON.parse(init.body);
-              window.fixtureTraceRun = { ...structuredClone(traceFixture), id: requestId, industry };
+              window.fixtureTraceRun = { ...structuredClone(traceFixture), id: requestId, industry, createdAt: new Date().toISOString() };
             }
             if (window.delayTraceResponse) await new Promise(resolve => { window.releaseTraceResponse = resolve; });
             if (init.method === 'POST' && window.tracePostFailure) throw new TypeError('Fixture unknown outcome');
@@ -570,7 +574,20 @@ async function main() {
     await observations.page.locator('#flowsTraceMode').click();
     assert.match(await observations.page.locator('#flowsTraceStages').textContent(), /Manual verification required/);
     assert.match(await observations.page.locator('#flowsTraceStages').textContent(), /Read unavailable/);
-    assert.ok(await observations.page.locator('#flowsTraceCreate').isDisabled(), 'Resume an existing identity rather than creating a replacement');
+    assert.ok(await observations.page.locator('#flowsTraceCreate').isDisabled(), 'The current run must remain selected until a separate run is explicitly prepared');
+    assert.ok(await observations.page.locator('#flowsTraceNew').isVisible(), 'A committed run offers a separate new-profile action');
+    assert.ok(await observations.page.locator('#flowsTraceNew').isEnabled(), 'A committed run older than the cooldown can start another run');
+    await observations.page.locator('#flowsTraceWatch').click();
+    await observations.page.waitForFunction(() => document.getElementById('flowsTraceWatch').textContent === 'Stop watching'
+      && !document.getElementById('flowsTraceNew').disabled);
+    await observations.page.locator('#flowsTraceNew').click();
+    assert.equal(await observations.page.locator('#flowsTraceWatch').textContent(), 'Resume watching', 'Preparing a separate run pauses the prior run watcher');
+    assert.ok(await observations.page.locator('#flowsTraceConfirm').isEnabled());
+    assert.ok(await observations.page.locator('#flowsTraceCreate').isDisabled(), 'A second profile still requires explicit consent');
+    assert.match(await observations.page.locator('#flowsTraceStatus').textContent(), /previous profile receipt remains saved/);
+    await observations.page.locator('#flowsTraceNew').click();
+    assert.equal(await observations.page.locator('#flowsTraceConfirm').isDisabled(), true, 'Cancel returns to the saved run without discarding it');
+    assert.match(await observations.page.locator('#flowsTraceIdentity').textContent(), new RegExp(traceFixture.id));
     await observations.page.locator('#flowsMonitorMode').click();
     await observations.page.clock.install();
     await observations.page.evaluate(() => { window.fixtureLive.fetchedAt = new Date().toISOString(); });
@@ -606,6 +623,13 @@ async function main() {
     assert.equal(await observations.page.locator('#flowsOverview').textContent(), '', 'Denied metadata refresh clears every private representation');
     assert.equal(await observations.page.locator('#flowsTraceIdentity').textContent(), '');
     await observations.context.close();
+    const uncertainRun = await open(owner, { run: true, uncertain: true });
+    await uncertainRun.page.waitForFunction(() => document.getElementById('flowsTraceIdentity').textContent.includes('CRM0042'));
+    await uncertainRun.page.locator('#flowsTraceMode').click();
+    assert.ok(await uncertainRun.page.locator('#flowsTraceNew').isHidden(), 'An uncertain creation cannot be replaced with a new profile');
+    assert.ok(await uncertainRun.page.locator('#flowsTraceCreate').isDisabled());
+    assert.equal(await uncertainRun.page.evaluate(() => window.traceRequests.filter(request => request.method === 'POST').length), 0);
+    await uncertainRun.context.close();
 
     const trace = await open();
     await trace.page.locator('#flowsResults').waitFor();
@@ -628,7 +652,7 @@ async function main() {
     assert.equal(traceRequests.filter(request => request.method === 'POST').length, 1);
     assert.match(await trace.page.locator('#flowsTraceIdentity').textContent(), /trace.test.0042@example.invalid/);
     assert.match(await trace.page.locator('#flowsTraceIdentity').textContent(), /Source write committed; readback not implied/);
-    assert.match(await trace.page.locator('#flowsTraceElapsed').textContent(), /Elapsed since creation: 1m/);
+    assert.match(await trace.page.locator('#flowsTraceElapsed').textContent(), /Elapsed since creation: 0m/);
     assert.equal(await trace.page.locator('.flows-node[data-active=true]').count(), 0, 'No simulated highlights in Live');
     assert.equal(await trace.page.locator('.flows-node[data-live-state=verified]').count(), 1);
     assert.equal(await trace.page.locator('.flows-node[data-live-state=waiting]').count(), 4);
@@ -649,6 +673,7 @@ async function main() {
     assert.ok(await trace.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Live queries and controls must fit mobile');
     await trace.page.locator('#flowsTraceWatch').click();
     assert.match(await trace.page.locator('#flowsTraceStatus').textContent(), /Watching stopped/);
+    assert.ok(await trace.page.locator('#flowsTraceNew').isDisabled(), 'A new run is blocked during the creation cooldown');
     const stoppedCount = await trace.page.evaluate(() => window.traceRequests.length);
     await trace.page.clock.install();
     await trace.page.clock.runFor(65000);
@@ -717,6 +742,19 @@ async function main() {
     await resumed.page.clock.runFor(65000);
     assert.equal(await resumed.page.evaluate(() => window.traceRequests.length), boundedCount, 'Thirty-minute limit must stop timers');
     assert.equal(await resumed.page.evaluate(() => window.traceRequests.filter(request => request.method === 'POST').length), 0);
+    assert.ok(await resumed.page.locator('#flowsTraceNew').isEnabled(), 'An older committed run can start a separate profile run');
+    await resumed.page.locator('#flowsTraceNew').click();
+    await resumed.page.locator('#flowsTraceIndustry').selectOption('retail');
+    await resumed.page.locator('#flowsTraceConfirm').check();
+    assert.ok(await resumed.page.locator('#flowsTraceCreate').isEnabled());
+    await resumed.page.locator('#flowsTraceCreate').click();
+    await resumed.page.waitForFunction(() => document.getElementById('flowsTraceWatch').textContent === 'Stop watching');
+    const newRunRequests = await resumed.page.evaluate(() => window.traceRequests.filter(request => request.method === 'POST'));
+    assert.equal(newRunRequests.length, 1, 'Starting another run creates once');
+    assert.equal(newRunRequests[0].body.industry, 'retail');
+    assert.notEqual(newRunRequests[0].body.requestId, traceFixture.id, 'A new profile uses a distinct idempotency key');
+    assert.match(await resumed.page.locator('#flowsTraceIdentity').textContent(), new RegExp(newRunRequests[0].body.requestId));
+    assert.match(await resumed.page.locator('#flowsTraceStatus').textContent(), /Creation receipt recorded/);
     await resumed.context.close();
 
     for (const postFailure of [false, true]) {
