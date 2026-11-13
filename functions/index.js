@@ -925,9 +925,10 @@ exports.profileSeedSchedule = onSchedule({
       }),
     }).tick();
   } catch (error) {
-    const errorCode = typeof error?.code === 'string' && /^SEED_[A-Z_]+$/.test(error.code)
+    const errorCode = typeof error?.code === 'string' && /^SEED_[A-Z_]{1,60}$/.test(error.code)
       ? error.code : 'SEED_DISPATCHER_FAILED';
-    const errorName = typeof error?.name === 'string' ? error.name : 'Error';
+    const errorName = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(error.name)
+      ? error.name : 'Error';
     console.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.', {
       errorCode, errorName,
     });

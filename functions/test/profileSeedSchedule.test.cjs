@@ -358,18 +358,20 @@ test('same-day configuration changes cannot silently replace a saved plan', asyn
   assert.equal(f.calls.generate, 0);
 });
 
-test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin before Auth', () => {
+test('scheduled export is private, Riyadh-scoped, bounded and logs only safe dispatcher error metadata', async () => {
   const source = fs.readFileSync(require.resolve('../index.js'), 'utf8');
   const start = source.indexOf('exports.profileSeedSchedule = onSchedule(');
   const end = source.indexOf('\nconst commerceOptimizerFnOpts', start);
   let handler;
   let options;
   let initialized = false;
+  let dispatchError;
+  const logs = [];
   const db = {};
   vm.runInNewContext(source.slice(start, end), {
     exports: {}, REGION: 'us-central1', PROFILE_FN_SECRETS: ['adobe'],
     SNOWFLAKE_VPC_OPTS: { vpcConnector: 'snowflake-egress', vpcConnectorEgressSettings: 'ALL_TRAFFIC' },
-    consentStoreRuntimeEnv: () => ({}), console,
+    consentStoreRuntimeEnv: () => ({}), console: { error: (...args) => logs.push(args) },
     onSchedule(opts, fn) { options = opts; handler = fn; },
     require(name) {
       if (name === './adminFirestore') return { getAdminFirestore() { initialized = true; return db; } };
@@ -377,7 +379,10 @@ test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin 
       if (name === './profileSeedScheduleRuntime') return {
         createProfileSeedScheduleRuntime(input) {
           assert.equal(input.db, db);
-          return { tick: async () => ({ state: 'disabled' }) };
+          return { tick: async () => {
+            if (dispatchError) throw dispatchError;
+            return { state: 'disabled' };
+          } };
         },
       };
       throw new Error(`Unexpected dependency ${name}`);
@@ -392,5 +397,14 @@ test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin 
   assert.equal(options.vpcConnector, 'snowflake-egress');
   assert.equal(options.vpcConnectorEgressSettings, 'ALL_TRAFFIC');
   assert.equal(options.invoker, undefined);
-  return handler();
+  await handler();
+  dispatchError = Object.assign(new Error('sensitive upstream message'), {
+    code: 'SEED_OWNER_MISMATCH', name: 'sensitive upstream name',
+  });
+  await assert.rejects(handler, /Profile seed dispatcher failed/);
+  assert.deepEqual(JSON.parse(JSON.stringify(logs)), [[
+    '[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.',
+    { errorCode: 'SEED_OWNER_MISMATCH', errorName: 'Error' },
+  ]]);
+  assert.equal(JSON.stringify(logs).includes('sensitive upstream'), false);
 });
