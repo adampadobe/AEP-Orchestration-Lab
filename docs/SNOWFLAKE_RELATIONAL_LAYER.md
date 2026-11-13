@@ -8,6 +8,33 @@ recipient parent for every industry**, despite its historical travel name.
 `REL.RECIPIENT` is only a read-only view of that parent, not another writable
 table or a replacement ingestion source.
 
+## Legacy Travel retirement boundary
+
+On 13 Nov 2026, the four older Travel Recipient, Bookings, Booking Segments and
+Booking Ancillaries destinations returned exact Catalog 404. Their flow IDs are
+retained in `functions/myDataFlowsRegistry.js` as retirement contracts, outside
+the active 28 REL / 44 XDM ingestion bindings. The shared Agentic parent table
+remains writable; `REL.RECIPIENT` remains its read-only projection. Neither
+current Base/Booking XDM ingestion nor the current travel REL model is retired.
+
+The existing owner-scoped cleanup disable/delete previews can clear protection
+for those four **flows only**, in the reviewed organisation and `apalmer`
+sandbox. Each preview must verify the exact legacy connections, mapping version,
+an exact missing-destination 404, unshared connections/mapping, the intact REL
+baseline and enabled current XDM flows, and ready replacement REL ingestion/OC
+configuration. These checks are rerun before application; configuration drift
+invalidates the review. Companion connections, schemas and datasets, and the
+shared Snowflake account remain protected.
+
+This is not external campaign/application usage clearance. Normal independent
+usage review, exact-operation confirmation, disable/drain/delete verification,
+and repository release gates still apply. No live retirement or scheduler
+recovery is implied by changing the registry. Removing obsolete dependencies
+does not relax the scheduler's two-hour health window or its rejection of unknown
+failure counts, replay the failed slot, or establish that source records landed
+in AEP. Fresh health and subsequent scheduled-run provenance must be verified
+separately.
+
 ## Private architecture reference and walkthrough
 
 The Lab owner's **Architecture -> My data flows** page
