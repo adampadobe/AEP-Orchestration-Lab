@@ -924,8 +924,14 @@ exports.profileSeedSchedule = onSchedule({
         clientId: ADOBE_CLIENT_ID.value(), orgId: ADOBE_IMS_ORG.value(),
       }),
     }).tick();
-  } catch {
-    console.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.');
+  } catch (error) {
+    const errorCode = typeof error?.code === 'string' && /^SEED_[A-Z_]{1,60}$/.test(error.code)
+      ? error.code : 'SEED_DISPATCHER_FAILED';
+    const errorName = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(error.name)
+      ? error.name : 'Error';
+    console.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.', {
+      errorCode, errorName,
+    });
     throw new Error('Profile seed dispatcher failed. Inspect its durable state; do not replay generation.');
   }
 });
@@ -1307,6 +1313,19 @@ Object.assign(
     ADOBE_IMS_ORG,
     mcpApiKeyStore,
     ingestionDiagnosticsService: createAepIngestionDiagnosticsService(),
+    profileSeedScheduleDiagnose: async ({ principal, auth }) => {
+      const { getAdminFirestore } = require('./adminFirestore');
+      const { createProfileSeedScheduleStore } = require('./profileSeedScheduleStore');
+      const { createProfileSeedScheduleDiagnosticsService } = require('./profileSeedScheduleDiagnosticsService');
+      const store = createProfileSeedScheduleStore(getAdminFirestore());
+      const flowSnapshot = (industry) => createMyDataFlowsService({
+        registry: relevantBindings(industry),
+        getConnection: async () => null,
+        getEventConfig: async () => null,
+      }).snapshot({ accessToken: auth.token, clientId: auth.clientId, orgId: auth.orgId });
+      return createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot })
+        .diagnose({ principalUid: principal.principalUid, sandbox: auth.sandbox });
+    },
   })
 );
 

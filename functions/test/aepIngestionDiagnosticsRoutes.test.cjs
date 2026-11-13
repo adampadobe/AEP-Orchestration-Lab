@@ -4,7 +4,7 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { registerAepIngestionDiagnosticsRoutes } = require('../aepIngestionDiagnosticsRoutes');
 
-function fixture({ entries, failure, keyResult } = {}) {
+function fixture({ entries, failure, keyResult, scheduleDiagnostic } = {}) {
   const calls = [];
   let tokens = 0;
   const service = {
@@ -30,6 +30,10 @@ function fixture({ entries, failure, keyResult } = {}) {
     ADOBE_CLIENT_ID: { value: () => 'fixture-client' },
     ADOBE_IMS_ORG: { value: () => 'TEST@AdobeOrg' },
     ingestionDiagnosticsService: service,
+    profileSeedScheduleDiagnose: async ({ principal, auth }) => {
+      calls.push({ principal, auth, scheduleDiagnostic: true });
+      return scheduleDiagnostic || { ok: true, configured: false };
+    },
   });
   async function request(query, headers = { 'x-aep-lab-mcp-key': 'fixture-key' }, method = 'GET') {
     const res = {
@@ -64,6 +68,17 @@ test('IMS route independently validates the active Portal enrollment', async () 
   const revoked = fixture({ entries: [{ principalUid: 'fixture-uid', sandbox: 'sandbox-a', revoked: true }] });
   assert.equal((await revoked.request({ action: 'flow_run_status', sandbox: 'sandbox-a' }, headers)).statusCode, 403);
   assert.equal(revoked.tokens, 0);
+});
+
+test('scheduled profile diagnostic is routed through principal-scoped read-only access', async () => {
+  const ctx = fixture({ scheduleDiagnostic: { ok: true, configured: true, dispatcher: { blocked: true } } });
+  const res = await ctx.request({ action: 'profile_seed_schedule_diagnose', sandbox: 'sandbox-a' });
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.body, { ok: true, configured: true, dispatcher: { blocked: true } });
+  assert.equal(ctx.calls[0].scheduleDiagnostic, true);
+  assert.equal(ctx.calls[0].principal.principalUid, 'fixture-uid');
+  assert.equal(ctx.calls[0].auth.sandbox, 'sandbox-a');
+  assert.equal(ctx.tokens, 1);
 });
 
 test('missing auth, unscoped keys, sandbox/org mismatch and unsupported actions stop before server token access', async () => {

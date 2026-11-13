@@ -69,16 +69,63 @@ function buildDayPlan(day, fingerprint, seed = randomBytes(32).toString('hex')) 
   return { day, fingerprint, seed, plannedCount: total, attemptedCount: 0, slots };
 }
 
+function diagnoseFlowHealth(snapshot, now) {
+  const flows = Array.isArray(snapshot?.flows) ? snapshot.flows : [];
+  const observedAt = now.toISOString();
+  const issues = [];
+  if (!snapshot?.complete) issues.push({ code: 'snapshot_incomplete' });
+  if (!flows.length) issues.push({ code: 'no_flows_available' });
+
+  const checks = flows.map((flow) => {
+    const reasons = [];
+    if (flow.state !== 'enabled') reasons.push('flow_not_enabled');
+    if (flow.schedule?.frequency !== 'minute' || flow.schedule.interval !== 15) {
+      reasons.push('schedule_mismatch');
+    }
+
+    const completedAt = flow.lastRun?.completedAt;
+    const completedAtMs = typeof completedAt === 'string' ? Date.parse(completedAt) : NaN;
+    if (flow.lastRun?.state !== 'success') reasons.push('last_run_not_success');
+    if (!Number.isFinite(completedAtMs)) reasons.push('last_run_completion_missing');
+    else if (completedAtMs > now.getTime()) reasons.push('last_run_in_future');
+    else if (now.getTime() - completedAtMs > 2 * 60 * MINUTE) reasons.push('last_run_stale');
+    if (!Number.isFinite(flow.lastRun?.failedCount)) reasons.push('failed_count_unknown');
+    else if (flow.lastRun.failedCount !== 0) reasons.push('failed_records_present');
+
+    return {
+      flowId: typeof flow.id === 'string' ? flow.id : null,
+      sourceTables: Array.isArray(flow.sourceTables) ? flow.sourceTables.slice(0, 5) : [],
+      state: flow.state ?? null,
+      schedule: flow.schedule || null,
+      lastRun: flow.lastRun ? {
+        state: flow.lastRun.state ?? null,
+        completedAt: completedAt ?? null,
+        ageMs: Number.isFinite(completedAtMs) ? now.getTime() - completedAtMs : null,
+        readCount: Number.isFinite(flow.lastRun.readCount) ? flow.lastRun.readCount : null,
+        writtenCount: Number.isFinite(flow.lastRun.writtenCount) ? flow.lastRun.writtenCount : null,
+        failedCount: Number.isFinite(flow.lastRun.failedCount) ? flow.lastRun.failedCount : null,
+      } : null,
+      healthy: reasons.length === 0,
+      reasons,
+    };
+  });
+  for (const check of checks) {
+    for (const reason of check.reasons) issues.push({ code: reason, flowId: check.flowId });
+  }
+  return {
+    healthy: issues.length === 0,
+    complete: snapshot?.complete === true,
+    observedAt,
+    flowCount: flows.length,
+    issues,
+    flows: checks,
+  };
+}
+
 function assertFlowHealth(snapshot, now) {
-  if (!snapshot?.complete || !snapshot.flows?.length
-    || snapshot.flows.some((flow) => flow.state !== 'enabled'
-      || flow.schedule?.frequency !== 'minute' || flow.schedule.interval !== 15
-      || flow.lastRun?.state !== 'success'
-      || !Number.isFinite(Date.parse(flow.lastRun.completedAt))
-      || now.getTime() - Date.parse(flow.lastRun.completedAt) > 2 * 60 * MINUTE
-      || Date.parse(flow.lastRun.completedAt) > now.getTime()
-      || !Number.isFinite(flow.lastRun.failedCount) || flow.lastRun.failedCount !== 0)) {
-    throw fail('SEED_INGESTION_NOT_HEALTHY');
+  const diagnostic = diagnoseFlowHealth(snapshot, now);
+  if (!diagnostic.healthy) {
+    throw Object.assign(fail('SEED_INGESTION_NOT_HEALTHY'), { healthDiagnostic: diagnostic });
   }
 }
 
@@ -137,14 +184,18 @@ function createProfileSeedScheduleService({
       return { state: 'committed', count: slot.count };
     } catch (error) {
       // Even a pre-write failure is not automatically replayed with fresh identities.
+      const errorCode = ['SEED_INGESTION_NOT_HEALTHY', 'SEED_PREFERENCES_CHANGED', 'SEED_WINDOW_CLOSED',
+        'SEED_PREPARED_IDENTITIES_INVALID', 'SEED_COMMITTED_NEEDS_INSPECTION', 'SEED_OUTCOME_UNKNOWN',
+        'SEED_GENERATION_FAILED'].includes(error.code) ? error.code : 'SEED_EXECUTION_INTERRUPTED';
+      const stage = error.healthDiagnostic ? 'flow_health' : prepared ? 'source_write' : 'preparation';
       logger.error('[profile-seed-schedule] Paused for inspection', {
-        day: local.day, slot: slot.id, prepared,
+        day: local.day, slot: slot.id, industry: slot.industry, count: slot.count,
+        stage, errorCode, prepared, flowHealth: error.healthDiagnostic || null,
       });
       await store.finish(local.day, slot.id, {
         state: 'needs_attention', ingestion: 'unverified',
-        errorCode: ['SEED_INGESTION_NOT_HEALTHY', 'SEED_PREFERENCES_CHANGED', 'SEED_WINDOW_CLOSED',
-          'SEED_PREPARED_IDENTITIES_INVALID', 'SEED_COMMITTED_NEEDS_INSPECTION', 'SEED_OUTCOME_UNKNOWN',
-          'SEED_GENERATION_FAILED'].includes(error.code) ? error.code : 'SEED_EXECUTION_INTERRUPTED',
+        errorCode,
+        ...(error.healthDiagnostic ? { flowHealth: error.healthDiagnostic } : {}),
       }, now());
       return { state: 'needs_attention' };
     }
@@ -154,5 +205,5 @@ function createProfileSeedScheduleService({
 
 module.exports = {
   INDUSTRIES, TIME_ZONE, DAILY_CAP, businessTime, validateConfig, buildDayPlan,
-  assertFlowHealth, createProfileSeedScheduleService,
+  diagnoseFlowHealth, assertFlowHealth, createProfileSeedScheduleService,
 };

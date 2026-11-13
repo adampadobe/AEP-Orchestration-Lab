@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const {
-  INDUSTRIES, businessTime, validateConfig, buildDayPlan, assertFlowHealth,
+  INDUSTRIES, businessTime, validateConfig, buildDayPlan, diagnoseFlowHealth, assertFlowHealth,
   createProfileSeedScheduleService,
 } = require('../profileSeedScheduleService');
 const { createProfileSeedScheduleStore, COLLECTION } = require('../profileSeedScheduleStore');
@@ -153,6 +153,15 @@ test('missing/disabled configuration is inert; malformed enabled policy fails cl
   ]) assert.throws(() => validateConfig({ ...settings, ...patch }), { code: 'SEED_SCHEDULE_CONFIG_INVALID' });
 });
 
+test('diagnostic store accessors read dispatcher and validated day plans without creating state', async () => {
+  const db = fakeFirestore();
+  const store = createProfileSeedScheduleStore(db);
+  assert.deepEqual(await store.getDispatcher(), {});
+  assert.equal(await store.getDay(day), null);
+  assert.deepEqual([...db.data.keys()], [root]);
+  await assert.rejects(store.getDay('../invalid'), { code: 'SEED_SCHEDULE_DAY_INVALID' });
+});
+
 test('only one plan and writer survive duplicate and concurrent ticks', async () => {
   const f = fixture();
   await Promise.all([f.service.tick(), f.service.tick(), f.service.tick()]);
@@ -231,6 +240,24 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
   const f = fixture();
   const good = f.health();
   assert.doesNotThrow(() => assertFlowHealth(good, f.now()));
+  assert.doesNotThrow(() => assertFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], lastRun: {
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 119 * 60_000).toISOString(),
+    } }],
+  }, f.now()));
+  assert.equal(diagnoseFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], lastRun: {
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 121 * 60_000).toISOString(),
+    } }],
+  }, f.now()).issues[0].code, 'last_run_stale');
+  const missingMetric = diagnoseFlowHealth({
+    ...good,
+    flows: [{ ...good.flows[0], id: 'flow-a', lastRun: { ...good.flows[0].lastRun, failedCount: null } }],
+  }, f.now());
+  assert.equal(missingMetric.healthy, false);
+  assert.deepEqual(missingMetric.issues, [{ code: 'failed_count_unknown', flowId: 'flow-a' }]);
   for (const patch of [
     { state: 'disabled' }, { schedule: { frequency: 'once' } },
     { lastRun: { ...good.flows[0].lastRun, failedCount: 1 } },
@@ -243,6 +270,28 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
     assert.equal((await blocked.service.tick()).state, 'needs_attention');
     assert.equal(blocked.calls.generate, 0);
   }
+});
+
+test('flow-health failure persists safe per-flow evidence and never reaches Snowflake', async () => {
+  const health = {
+    complete: true,
+    flows: [{
+      id: 'flow-a', sourceTables: ['REL.RECIPIENT'], state: 'enabled',
+      schedule: { frequency: 'minute', interval: 15 },
+      lastRun: { state: 'success', completedAt: '2026-11-10T05:00:00.000Z', failedCount: null },
+    }],
+  };
+  const f = fixture({ health });
+  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal(f.calls.preflight, 0);
+  assert.equal(f.calls.generate, 0);
+  const slot = f.db.data.get(dayKey()).slots[0];
+  assert.equal(slot.errorCode, 'SEED_INGESTION_NOT_HEALTHY');
+  assert.equal(slot.flowHealth.issues[0].code, 'last_run_stale');
+  assert.equal(slot.flowHealth.issues[1].code, 'failed_count_unknown');
+  const failureLog = f.logs.find(([message]) => message.includes('Paused for inspection'));
+  assert.equal(failureLog[1].stage, 'flow_health');
+  assert.equal(failureLog[1].flowHealth.healthy, false);
 });
 
 test('pause or close of business between preparation and write prevents the write', async () => {
@@ -309,18 +358,20 @@ test('same-day configuration changes cannot silently replace a saved plan', asyn
   assert.equal(f.calls.generate, 0);
 });
 
-test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin before Auth', () => {
+test('scheduled export is private, Riyadh-scoped, bounded and logs only safe dispatcher error metadata', async () => {
   const source = fs.readFileSync(require.resolve('../index.js'), 'utf8');
   const start = source.indexOf('exports.profileSeedSchedule = onSchedule(');
   const end = source.indexOf('\nconst commerceOptimizerFnOpts', start);
   let handler;
   let options;
   let initialized = false;
+  let dispatchError;
+  const logs = [];
   const db = {};
   vm.runInNewContext(source.slice(start, end), {
     exports: {}, REGION: 'us-central1', PROFILE_FN_SECRETS: ['adobe'],
     SNOWFLAKE_VPC_OPTS: { vpcConnector: 'snowflake-egress', vpcConnectorEgressSettings: 'ALL_TRAFFIC' },
-    consentStoreRuntimeEnv: () => ({}), console,
+    consentStoreRuntimeEnv: () => ({}), console: { error: (...args) => logs.push(args) },
     onSchedule(opts, fn) { options = opts; handler = fn; },
     require(name) {
       if (name === './adminFirestore') return { getAdminFirestore() { initialized = true; return db; } };
@@ -328,7 +379,10 @@ test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin 
       if (name === './profileSeedScheduleRuntime') return {
         createProfileSeedScheduleRuntime(input) {
           assert.equal(input.db, db);
-          return { tick: async () => ({ state: 'disabled' }) };
+          return { tick: async () => {
+            if (dispatchError) throw dispatchError;
+            return { state: 'disabled' };
+          } };
         },
       };
       throw new Error(`Unexpected dependency ${name}`);
@@ -343,5 +397,14 @@ test('scheduled export is private, Riyadh-scoped, bounded and initializes Admin 
   assert.equal(options.vpcConnector, 'snowflake-egress');
   assert.equal(options.vpcConnectorEgressSettings, 'ALL_TRAFFIC');
   assert.equal(options.invoker, undefined);
-  return handler();
+  await handler();
+  dispatchError = Object.assign(new Error('sensitive upstream message'), {
+    code: 'SEED_OWNER_MISMATCH', name: 'sensitive upstream name',
+  });
+  await assert.rejects(handler, /Profile seed dispatcher failed/);
+  assert.deepEqual(JSON.parse(JSON.stringify(logs)), [[
+    '[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.',
+    { errorCode: 'SEED_OWNER_MISMATCH', errorName: 'Error' },
+  ]]);
+  assert.equal(JSON.stringify(logs).includes('sensitive upstream'), false);
 });

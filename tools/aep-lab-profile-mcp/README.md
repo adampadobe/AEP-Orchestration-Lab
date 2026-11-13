@@ -2,17 +2,24 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.54.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.55.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 244-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 245-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only ingestion diagnostics
 
 General (`lab-all`) includes `lab_aep_batch_diagnose` and `lab_aep_flow_run_status`.
 They require a user-generated MCP key or independently validated IMS Portal enrollment
 for the exact sandbox. No Profile, batch, dataflow or Snowflake settings are changed.
+
+`lab_profile_seed_schedule_diagnose` is restricted to the configured schedule owner
+and sandbox. It reports the dispatcher block and attention slot, bounded day-plan
+summaries, and a fresh flow-health read for the focused industry. Saved profile
+identities and email/mobile preferences are omitted. The fresh flow read cannot prove
+Snowflake writes or AEP profile arrival and does not reconstruct the original
+failure snapshot; the tool never clears the block or replays a slot.
 
 `lab_aep_batch_diagnose` accepts `sandbox` and either `batch_id` or the pair
 `flow_id`/`run_id`. Supplying all three verifies their linkage. Run lookup first
