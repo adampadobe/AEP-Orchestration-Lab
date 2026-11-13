@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="my-data-flows.css?v=20261112-visual-workspace">
+  <link rel="stylesheet" href="my-data-flows.css?v=20261113-viewport">
   <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -42,7 +42,7 @@
             <button type="button" id="flowsTraceMode" aria-pressed="false">Trace a profile <span>Verify one identity</span></button>
           </div>
           <div id="flowsDiagramHome">
-          <section id="flowsDiagramPanel" class="flows-panel flows-workspace" aria-labelledby="flowsDiagramHeading">
+          <section id="flowsDiagramPanel" class="flows-panel flows-workspace" aria-labelledby="flowsDiagramHeading" data-details-open="true">
             <div class="flows-workspace-heading">
               <h2 id="flowsDiagramHeading">Your connected architecture</h2>
               <p id="flowsGraphMode" class="flows-mode-note">Illustrative playback - no data is being written</p>
@@ -104,6 +104,7 @@
                 </div>
                 <span id="flowsSubsystemName" class="flows-muted"></span>
                 <button type="button" id="flowsShowMap" aria-expanded="false">Show interactive map</button>
+                <button type="button" id="flowsToggleDetails" aria-expanded="true" aria-controls="flowsDetails">Hide details</button>
                 <button type="button" id="flowsExpand" aria-expanded="false" aria-controls="flowsGraph">Expand diagram</button>
                 <button type="button" id="flowsFullscreen">Fullscreen diagram</button>
                 <button type="button" id="flowsCloseFullscreen" hidden>Close fullscreen</button>
@@ -112,8 +113,9 @@
                 <button type="button" id="flowsZoomOut" aria-label="Zoom diagram out">−</button>
                 <output id="flowsZoom" aria-live="polite">100%</output>
                 <button type="button" id="flowsZoomIn" aria-label="Zoom diagram in">+</button>
-                <button type="button" id="flowsFit">Fit selection</button>
-                <span>Scroll to explore. Labels keep a readable minimum size.</span>
+                <button type="button" id="flowsFit">Fit to view</button>
+                <button type="button" id="flowsActualSize" aria-label="Reset diagram zoom to 100%">100%</button>
+                <span>Fit shows the whole map. Use 100% or zoom in to read labels.</span>
               </div>
               <div class="flows-workspace-body">
                 <div class="flows-canvas">
@@ -125,13 +127,15 @@
                   </div>
                   <p id="flowsRevealStatus" class="flows-muted" role="status" aria-live="polite"></p>
                 </div>
-                <div class="flows-inspector-column">
-                  <section id="flowsNarration" aria-label="Current story chapter">
-                    <div id="flowsStep" class="flows-step" role="status" aria-live="polite"></div>
-                    <ol id="flowsTimeline" class="flows-timeline" aria-label="Story chapters"></ol>
-                    <p id="flowsMotionNote" class="flows-muted"></p>
-                  </section>
-                  <aside id="flowsInspect" class="flows-inspect" aria-label="Selected component details"></aside>
+                <div id="flowsDetails" class="flows-inspector-column" role="region" aria-label="Story and component details">
+                  <div class="flows-inspector-content">
+                    <section id="flowsNarration" aria-label="Current story chapter">
+                      <div id="flowsStep" class="flows-step" role="status" aria-live="polite"></div>
+                      <ol id="flowsTimeline" class="flows-timeline" aria-label="Story chapters"></ol>
+                      <p id="flowsMotionNote" class="flows-muted"></p>
+                    </section>
+                    <aside id="flowsInspect" class="flows-inspect" aria-label="Selected component details"></aside>
+                  </div>
                 </div>
               </div>
               <section id="flowsMonitorPanel" aria-label="Observed flow details" hidden>
@@ -170,6 +174,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
-  <script defer src="my-data-flows.js?v=20261112-visual-workspace"></script>
+  <script defer src="my-data-flows.js?v=20261113-viewport"></script>
 </body>
 </html>

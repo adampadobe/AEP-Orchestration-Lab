@@ -304,7 +304,7 @@ export const MCP_WORKFLOWS = Object.freeze({
       'Keep workbook inventories and exact batch manifests in session artifacts. Select only the explicitly reviewed subset; never import later batches, optional rows or wildcard patterns.',
       'Reconcile dependent campaigns even if draft or completed. Their usage is a blocker, not permission to delete or rebuild them.',
       'For a fresh unblocked plan, confirm its exact plan ID, digest, count and independently cleared usage. Explicitly acknowledge the final-read-to-DELETE race with non_atomic_delete_acknowledged true; Adobe does not document conditional DELETE.',
-      'Apply claims once, coordinates other batch plans in the same org/sandbox, records intent/results and verifies absence serially. Stop on failure, uncertainty, expiry or execution budget. Verify readback; remaining targets require a newly confirmed plan, never automatic retry or resume.',
+      'Apply claims once, coordinates other batch plans in the same org/sandbox, records intent/results and verifies absence serially. Flow DELETE acceptance or delete-finalizing is not completion: bounded read-only GET polling must reach 404 before the next mutation. Stop on failure, uncertainty, expiry or execution budget. Verify readback; remaining targets require a newly confirmed plan, never automatic retry or resume.',
       'Legacy single-asset list/audit/delete APIs remain available, but hard protection policies apply to them too. Do not use them to bypass a blocked batch plan.',
     ],
   },

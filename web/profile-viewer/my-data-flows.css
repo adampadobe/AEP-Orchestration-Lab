@@ -51,7 +51,7 @@
   background: var(--dash-surface-alt);
 }
 .my-data-flows-page .flows-graph[data-expanded="true"] { min-height: 75dvh; }
-.my-data-flows-page .flows-graph svg { display: block; max-width: none; }
+.my-data-flows-page .flows-graph svg { display: block; max-width: none; margin-inline: auto; }
 .my-data-flows-page .flows-edge { fill: none; stroke: var(--dash-muted); stroke-width: 1.5; }
 .my-data-flows-page .flows-arrow { fill: var(--dash-muted); }
 .my-data-flows-page .flows-edge-label { fill: var(--dash-text-secondary); stroke: var(--dash-surface-alt); stroke-width: 4; paint-order: stroke; font-size: 11px; }
@@ -124,12 +124,15 @@
 .my-data-flows-page .flows-view-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-bottom: .75rem; font-size: .8rem; }
 .my-data-flows-page .flows-view-controls > div { display: flex; gap: .3rem; margin-right: auto; }
 .my-data-flows-page .flows-zoom-controls { font-size: .8rem; margin-bottom: .5rem; }
-.my-data-flows-page .flows-workspace-body { display: grid; grid-template-columns: minmax(0, 1fr) 17rem; gap: 1rem; align-items: start; }
-.my-data-flows-page .flows-inspector-column { min-width: 0; }
+.my-data-flows-page .flows-workspace-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 17rem); gap: 1rem; align-items: start; transition: grid-template-columns .22s ease-out, gap .22s ease-out; }
+.my-data-flows-page .flows-inspector-column { display: grid; grid-template-rows: 1fr; min-width: 0; min-height: 0; max-height: 650px; overflow: hidden; transition: transform .22s ease-out, opacity .22s ease-out, visibility 0s, grid-template-rows .22s ease-out; }
+.my-data-flows-page .flows-inspector-content { width: 17rem; min-height: 0; overflow: auto; }
+.my-data-flows-page [data-details-open="false"] .flows-workspace-body { grid-template-columns: minmax(0, 1fr) minmax(0, 0px); gap: 0; }
+.my-data-flows-page [data-details-open="false"] .flows-inspector-column { transform: translateX(100%); opacity: 0; visibility: hidden; transition-delay: 0s, 0s, .22s, 0s; }
 .my-data-flows-page #flowsNarration { margin-bottom: 1rem; }
 .my-data-flows-page #flowsNarration .flows-step { margin-top: 0; }
 .my-data-flows-page .flows-canvas { min-width: 0; }
-.my-data-flows-page .flows-inspect { margin: 0; min-width: 0; max-height: 650px; overflow: auto; border-radius: 0; }
+.my-data-flows-page .flows-inspect { margin: 0; min-width: 0; border-radius: 0; }
 .my-data-flows-page .flows-inspect > h3 { margin: 0 0 .75rem; }
 .my-data-flows-page .flows-inspect p,
 .my-data-flows-page .flows-inspect dd { font-size: .875rem; overflow-wrap: anywhere; }
@@ -184,9 +187,25 @@
 .my-data-flows-page .flows-advanced > summary { font-weight: 600; }
 .my-data-flows-page .flows-mobile-stages,
 .my-data-flows-page #flowsShowMap { display: none; }
+.my-data-flows-page .flows-dialog { box-sizing: border-box; overflow: hidden; }
+.my-data-flows-page .flows-dialog .flows-workspace { display: flex; flex-direction: column; height: 100%; margin: 0; overflow: auto; }
+.my-data-flows-page .flows-dialog .flows-workspace > * { flex-shrink: 0; }
+.my-data-flows-page .flows-dialog .flows-workspace-body { flex: 1; min-height: 0; align-items: stretch; }
+.my-data-flows-page .flows-dialog .flows-canvas { display: flex; flex-direction: column; min-height: 0; }
+.my-data-flows-page .flows-dialog .flows-graph { flex: 1; height: auto; min-height: 0; }
+.my-data-flows-page .flows-dialog .flows-overview { flex: 1; min-height: 0; overflow: auto; }
+.my-data-flows-page .flows-dialog .flows-inspector-column { max-height: none; }
+.my-data-flows-page .flows-dialog :is(#flowsMonitorPanel, #flowsTraceCheckpoints) { max-height: 25dvh; overflow: auto; }
 @media (max-width: 1150px) {
-  .my-data-flows-page .flows-workspace-body { grid-template-columns: minmax(0, 1fr); }
-  .my-data-flows-page .flows-inspect { max-height: none; }
+  .my-data-flows-page .flows-workspace .flows-workspace-body { grid-template-columns: minmax(0, 1fr); }
+  .my-data-flows-page .flows-inspector-column { max-height: none; }
+  .my-data-flows-page .flows-inspector-content { width: auto; }
+  .my-data-flows-page [data-details-open="false"] .flows-inspector-column { grid-template-rows: 0fr; transform: translateY(.5rem); }
+  .my-data-flows-page .flows-dialog .flows-workspace-body { grid-template-rows: minmax(0, 1fr) auto; }
+  .my-data-flows-page .flows-dialog .flows-inspector-column { max-height: 25dvh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .my-data-flows-page :is(.flows-workspace-body, .flows-inspector-column) { transition: none; }
 }
 @media (max-width: 600px) {
   .my-data-flows-page .flows-modes button { font-size: .8rem; padding: .65rem .35rem; }
