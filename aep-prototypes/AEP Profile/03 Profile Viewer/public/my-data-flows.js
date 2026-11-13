@@ -15,8 +15,9 @@
   var fullArchitecture = false, graphPositions = new Map(), fullGraphWidth = 1000, fullGraphHeight = 600;
   var revealedLiveNodes = new Set(['lab']), revealedRunId = null;
   var traceRun = null, tracePrefs = null, tracePendingId = null, traceBusy = false, traceDenied = false;
-  var traceController = null, traceSequence = 0, tracePoll = null, traceClock = null;
+  var traceController = null, traceSequence = 0, tracePoll = null, traceClock = null, traceCooldownTimer = null;
   var traceWatching = false, traceWatchStarted = 0, traceMode = false;
+  var traceNewRun = false;
   var traceEndpoint = '/api/architecture/my-data-flows/trace';
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var svgNS = 'http://www.w3.org/2000/svg';
@@ -438,6 +439,8 @@
     if (traceController) traceController.abort();
     traceController = null; traceBusy = false; traceDenied = false;
     traceRun = null; tracePrefs = null; tracePendingId = null;
+    traceNewRun = false;
+    clearTimeout(traceCooldownTimer); traceCooldownTimer = null;
     stopWatching();
     ['flowsTraceIdentity', 'flowsTraceStages', 'flowsTraceLimitations', 'flowsTraceElapsed'].forEach(function (id) { el(id).replaceChildren(); });
     el('flowsTraceIdentity').hidden = true;
@@ -615,11 +618,22 @@
     return details;
   }
   function traceButtons() {
-    el('flowsTraceCreate').disabled = traceBusy || traceDenied || !tracePrefs?.ready || !!tracePendingId || !!traceRun || traceWatching || !el('flowsTraceConfirm').checked;
-    el('flowsTraceIndustry').disabled = traceBusy || !!tracePendingId || !!traceRun || traceWatching;
-    el('flowsTraceConfirm').disabled = traceBusy || !!tracePendingId || !!traceRun || traceDenied;
+    var committedRun = traceRun?.state === 'watching' && (!traceRun.generation || traceRun.generation.state === 'committed');
+    var createdAt = Date.parse(traceRun?.createdAt);
+    var cooldown = Number.isFinite(createdAt) ? Math.max(0, 65000 - (Date.now() - createdAt)) : 0;
+    el('flowsTraceNew').hidden = !committedRun;
+    el('flowsTraceNew').disabled = traceBusy || traceDenied || !!tracePendingId || (!traceNewRun && cooldown > 0);
+    el('flowsTraceNew').textContent = traceNewRun ? 'Cancel new profile' : 'Start another profile';
+    el('flowsTraceNew').title = !traceNewRun && cooldown > 0 ? 'Wait at least one minute after the last profile creation.' : '';
+    clearTimeout(traceCooldownTimer); traceCooldownTimer = null;
+    if (committedRun && !traceNewRun && cooldown > 0) {
+      traceCooldownTimer = setTimeout(function () { traceCooldownTimer = null; traceButtons(); }, cooldown + 1);
+    }
+    el('flowsTraceCreate').disabled = traceBusy || traceDenied || !tracePrefs?.ready || !!tracePendingId || (!!traceRun && !traceNewRun) || traceWatching || !el('flowsTraceConfirm').checked;
+    el('flowsTraceIndustry').disabled = traceBusy || !!tracePendingId || (!!traceRun && !traceNewRun) || traceWatching;
+    el('flowsTraceConfirm').disabled = traceBusy || !!tracePendingId || (!!traceRun && !traceNewRun) || traceDenied;
     el('flowsTraceCheck').disabled = traceBusy || traceDenied || (!traceRun && !tracePendingId);
-    el('flowsTraceWatch').disabled = traceDenied || (!traceWatching && (traceBusy || !traceRun || !!tracePendingId));
+    el('flowsTraceWatch').disabled = traceDenied || traceNewRun || (!traceWatching && (traceBusy || !traceRun || !!tracePendingId));
     el('flowsTraceWatch').textContent = traceWatching ? 'Stop watching' : 'Resume watching';
   }
   function updateTraceClock() {
@@ -653,7 +667,7 @@
       var manual = traceRun.stages?.some(function (stage) { return stage.verification === 'manual'; });
       el('flowsTraceStages').appendChild(node('li', manual
         ? 'Next: check the same run for new readbacks. Destination storage requires manual inspection using the unexecuted Query Service templates; a successful ingestion run is not person-level proof.'
-        : 'Next: use Check now or Resume watching to inspect this same identity. No replacement profile is needed.', 'flows-muted'));
+        : 'Next: use Check now or Resume watching to inspect this identity. Start another profile only for a separate, explicitly confirmed run; it will not retry this one.', 'flows-muted'));
     }
     el('flowsTraceLimitations').replaceChildren();
     (traceRun?.limitations || []).forEach(function (limitation) { el('flowsTraceLimitations').appendChild(node('li', limitation)); });
@@ -704,7 +718,7 @@
       if (!current(user, epoch) || sequence !== traceSequence) return null;
       if (response.status === 401 || response.status === 403) {
         traceDenied = true; stopWatching();
-        traceRun = null; tracePendingId = null; tracePrefs = null; renderTrace();
+        traceRun = null; tracePendingId = null; tracePrefs = null; traceNewRun = false; renderTrace();
         el('flowsInspect').replaceChildren();
         if (response.status === 401) el('flowsSignIn').hidden = false;
         throw new Error(response.status === 401 ? 'Sign in again to check this run.' : 'Access denied. Live tracing is restricted to the owner.');
@@ -722,7 +736,7 @@
       }
       if (data.run) {
         if (traceRun?.id === data.run.id && !data.run.identity && traceRun.identity) data.run.identity = traceRun.identity;
-        traceRun = data.run; tracePendingId = null;
+        traceRun = data.run; tracePendingId = null; traceNewRun = false;
       }
       renderTrace();
       return data;
@@ -756,11 +770,13 @@
   }
   async function createTrace() {
     if (el('flowsTraceCreate').disabled || !allowed(auth.currentUser)) return;
+    var creatingAnother = traceNewRun;
     stopWatching();
+    traceNewRun = false;
     var epoch = generation, user = auth.currentUser;
     tracePendingId = crypto.randomUUID();
     traceRun = null; el('flowsTraceConfirm').checked = false; renderTrace();
-    traceMessage('Creating one test profile…');
+    traceMessage(creatingAnother ? 'Creating another test profile…' : 'Creating one test profile…');
     var data = await traceRequest('POST', tracePendingId, false);
     if (!current(user, epoch) || traceDenied) return;
     if (!data || !traceRun) {
@@ -1032,6 +1048,17 @@
     if (!overview) fit();
   });
   el('flowsTraceConfirm').addEventListener('change', traceButtons);
+  el('flowsTraceNew').addEventListener('click', function () {
+    if (el('flowsTraceNew').disabled) return;
+    var wasWatching = traceWatching;
+    if (wasWatching) stopWatching();
+    traceNewRun = !traceNewRun;
+    el('flowsTraceConfirm').checked = false;
+    traceButtons();
+    traceMessage(traceNewRun
+      ? 'The previous profile receipt remains saved. ' + (wasWatching ? 'Watching is paused. ' : '') + 'Choose an industry and confirm to create a separate run.'
+      : 'New profile cancelled. The previous run remains selected.');
+  });
   el('flowsTraceCreate').addEventListener('click', createTrace);
   el('flowsTraceCheck').addEventListener('click', function () { readTrace(true); });
   el('flowsTraceWatch').addEventListener('click', function () {

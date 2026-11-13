@@ -144,6 +144,16 @@ test('one durable creation per request, including concurrency and industry-confl
   await assert.rejects(service.create('owner', 'fsi', '../../bad'), { status: 400 });
 });
 
+test('a confirmed run allows a separate profile after the creation cooldown', async () => {
+  const { service, counts, advance } = fixture();
+  await service.create('owner', 'fsi', id);
+  advance(60_001);
+  const second = await service.create('owner', 'retail', otherId);
+  assert.equal(second.id, otherId);
+  assert.equal(second.industry, 'retail');
+  assert.equal(counts.generate, 2);
+});
+
 test('uncertain creation persists same identity; resume checks never replay the write', async () => {
   const { service, counts } = fixture({
     snowflake: { generate: async ({ onPrepared }) => {
@@ -156,6 +166,7 @@ test('uncertain creation persists same identity; resume checks never replay the 
   assert.equal(run.state, 'needs_attention');
   assert.equal(run.generation.state, 'unknown');
   await service.create('owner', 'fsi', id);
+  await assert.rejects(service.create('owner', 'fsi', otherId), { status: 409 });
   const checked = await service.read('owner', id, true);
   assert.equal(counts.generate, 1);
   assert.deepEqual(checked.identity, identity);

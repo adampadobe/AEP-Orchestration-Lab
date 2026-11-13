@@ -24,8 +24,9 @@ function createMyDataFlowsTraceStore(db, now = () => new Date()) {
       }
       const latestId = owner.data()?.latestId;
       const latest = latestId ? (await tx.get(receipt(uid, latestId))).data() : null;
-      if (latest?.state === 'creating') {
-        throw fail(409, 'A creation is already in progress or its outcome needs inspection. Resume that trace; do not generate again.');
+      if (latest && (['creating', 'needs_attention'].includes(latest.state)
+        || ['prepared', 'unknown', 'committed_needs_inspection'].includes(latest.generation?.state))) {
+        throw fail(409, 'The latest profile creation needs inspection. Resume that trace; do not generate another profile.');
       }
       if (latest && now().getTime() - Date.parse(latest.createdAt) < 60_000) {
         throw fail(429, 'Wait at least one minute before creating another test profile.');
