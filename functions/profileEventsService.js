@@ -327,11 +327,14 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
     const children = data.children || data.results || [];
     allChildren = allChildren.concat(children);
 
-    if (children.length < PAGE_SIZE) break;
-
     const links = data._links || data.links || {};
     const nextLink = links.next || links.nextPage;
     if (nextLink && nextLink.href) {
+      if (page === MAX_PAGES - 1) {
+        const error = new Error(`Profile API (events) exceeded the ${MAX_PAGES}-page limit; results are incomplete`);
+        error.code = 'PROFILE_EVENTS_PAGE_FAILED';
+        throw error;
+      }
       const href = nextLink.href;
       if (href.startsWith('http')) {
         nextUrl = href;

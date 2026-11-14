@@ -86,3 +86,42 @@ test('reports a later page failure instead of returning incomplete events', asyn
     await assert.rejects(loadEvents(), /page 2 failed: Page unavailable/);
   });
 });
+
+test('follows a next link even when the current page is short', async () => {
+  await withFetch(profileOrEvents((params) =>
+    params.has('cursor')
+      ? response({ children: [{ id: 'event-2' }] })
+      : response({ children: [{ id: 'event-1' }], _links: { next: { href: '/access/entities?cursor=next' } } })), async () => {
+    const result = await loadEvents();
+    assert.deepEqual(result.events.map((event) => event.entityId), ['event-1', 'event-2']);
+  });
+});
+
+test('reports incomplete results when a next link remains at the page limit', async () => {
+  let requests = 0;
+  await withFetch(profileOrEvents(() => {
+    requests += 1;
+    return response({
+      children: [{ id: `event-${requests}` }],
+      _links: { next: { href: '/access/entities?cursor=next' } },
+    });
+  }), async () => {
+    await assert.rejects(loadEvents(), /exceeded the 10-page limit; results are incomplete/);
+    assert.equal(requests, 10);
+  });
+});
+
+test('returns the last allowed page when no next link remains', async () => {
+  let requests = 0;
+  await withFetch(profileOrEvents(() => {
+    requests += 1;
+    return response({
+      children: [{ id: `event-${requests}` }],
+      ...(requests < 10 ? { _links: { next: { href: '/access/entities?cursor=next' } } } : {}),
+    });
+  }), async () => {
+    const result = await loadEvents();
+    assert.equal(result.events.length, 10);
+    assert.equal(requests, 10);
+  });
+});
