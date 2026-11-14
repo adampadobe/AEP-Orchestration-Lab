@@ -321,6 +321,44 @@ On the General integration, call **`lab_get_execution_framework`** before advanc
 
 Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources in `web/profile-viewer/profile-generation-*.js`, `functions/industryAttributeMap.js`).
 
+### Recent synthetic activity and Profile expiry
+
+For a fresh synthetic delivery test, use `event_time_mode:"recent"` on
+`lab_generate_profile` / `lab_generate_profiles_batch` with `target:"snowflake"`,
+an explicitly selected industry, or on `lab_snowflake_enrich_profiles` for
+approved existing identities. `lab_snowflake_generate_base_profiles` also
+accepts it with an explicit industry. The API accepts `eventTimeMode` or
+`event_time_mode` (conflicting aliases fail). Historical mode remains the
+default, including scheduled runs; no existing events, retention or flows are
+changed.
+
+Recent mode generates new activity in the past six UTC hours, not six months of
+salary or billing merely stamped as today. It preserves transaction/application
+ordering, order-relative returns and sports scan times; travel booking dates
+match the REL reservation. Operational dates such as account opening and future
+travel remain separate. Non-travel recent generations have separate,
+deterministic IDs and skip completed tables rather than append another copy.
+This does not authorize automatic retries; travel enrichment can be partial
+and must be inspected after any uncertain outcome.
+
+Travel enrichment requires the reviewed runner's signed capability preflight;
+an old runner blocks recent mode before an enrichment request is sent. Deploy
+the affected Functions, travel runner and MCP through the normal release gates,
+then refresh client tool schemas. MCP checks the deployed industry catalog for
+recent support before requesting any recent Snowflake generation/enrichment.
+On `target:"aep"`, this option requires non-travel
+`dual_load_snowflake:true` plus `snowflake_enrichment:true`; it does not change
+the AEP profile persona itself.
+
+Event-send tools already default omitted `timestamp` to current UTC. The
+six-hour window is **not** a discovered or guaranteed Profile TTL. Confirm
+actual source-specific XDM and Profile arrival by exact event ID, UTC time,
+Email/ECID/CRMID and mapped values; verify required REL projections separately.
+Readiness, empty source runs, accepted sends and existing unrelated rows are
+not proof. On `timestampExpired`, inspect the exact Profile batch and effective
+dataset-level expiration policy; never rewrite/replay old records or change
+retention to hide rejection.
+
 ## Tools
 
 | Tool | Lab API | Notes |

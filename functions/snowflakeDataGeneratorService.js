@@ -51,6 +51,7 @@ const prefsStore = require('./labProfileGenerationPrefsStore');
 const { createRecipient, recipientRow } = require('./snowflakeRecipientFactory');
 const { ensureRecipientTable, mergeRecipientRows, qualifiedRecipientTable } = require('./snowflakeRecipientStore');
 const { prepareSeedTables, buildSeedRecord, writeSeedRecords, getNextSeedCrmIndex, withTransaction } = require('./snowflakeSeedStore');
+const { resolveEventTimeMode } = require('./snowflakeEventTimeMode');
 
 const DEFAULT_TABLE = 'BASE_PROFILES';
 const DUAL_LOAD_DEFAULT_TABLE = TRAVEL_MANIFEST.dualLoad.defaultTargetTable;
@@ -519,6 +520,7 @@ async function handleGenerateBaseProfiles(input) {
  * @param {{ labUser: string, sandbox: string, industry?: string, count?: number, batchSize?: number, prepareTables?: boolean, onPrepared?: function }} input
  */
 async function handleGenerateIndustryProfiles(input) {
+  const eventTimeMode = resolveEventTimeMode(input);
   const labUser = String(input.labUser || '').trim();
   const sandbox = String(input.sandbox || '').trim();
   const industry = String(input.industry || 'travel').trim().toLowerCase();
@@ -657,6 +659,7 @@ async function handleGenerateIndustryProfiles(input) {
       if (generationPrefs.mobilePhone) generated.rowObject.PHONENUMBER = generationPrefs.mobilePhone;
       const record = buildSeedRecord(industry, generated.rowObject, {
         index: i, asOfDate: runStamp.slice(0, 10), runStamp, samplingMode: input.samplingMode,
+        eventTimeMode,
       });
       records.push(record);
       profiles.push({
@@ -705,6 +708,7 @@ WHERE ECID IN (${selected.map(() => '?').join(', ')})`, selected.map(({ ecid }) 
       industry,
       table: fqTable,
       tableName: config.table,
+      eventTimeMode,
       rowcount: records.length,
       recipientRowcount: records.length,
       recipientTable: qualifiedRecipientTable(cfg.database, cfg.schema),

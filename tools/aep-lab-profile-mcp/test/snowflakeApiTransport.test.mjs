@@ -56,6 +56,36 @@ test('every Snowflake MCP call targets the matching direct function with unchang
   assert.equal(calls.length, routes.length);
 });
 
+test('recent generation/enrichment preflight deployment support and forward the mode without replay', async t => {
+  const calls = [];
+  let supported = false;
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    const path = new URL(url).pathname;
+    calls.push({ path, body: JSON.parse(init.body) });
+    if (path === '/snowflakeIndustryCatalog') {
+      return Response.json({ ok: true, result: { eventTimeModes: supported ? ['historical', 'recent'] : ['historical'] } });
+    }
+    return Response.json({ ok: true, result: { eventTimeMode: 'recent' } });
+  });
+  for (const name of ['snowflakeGenerateBaseProfiles', 'snowflakeEnrichProfiles']) {
+    calls.length = 0;
+    const params = { industry: 'fsi', count: 1, profiles: [], event_time_mode: 'recent' };
+    const blocked = await invoke(name, params);
+    assert.equal(blocked.ok, false);
+    assert.match(blocked.error, /No generation\/enrichment request was sent/);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].body.checkTables, false);
+    supported = true;
+    const result = await invoke(name, params);
+    assert.equal(result.ok, true);
+    assert.equal(calls.length, 3, 'blocked read, fresh supported read, single mutation');
+    assert.equal(calls.at(-1).body.eventTimeMode, 'recent');
+    supported = false;
+  }
+  await assert.rejects(invoke('snowflakeGenerateBaseProfiles', { event_time_mode: 'recent' }), /explicit industry/);
+  await assert.rejects(invoke('snowflakeEnrichProfiles', { event_time_mode: 'unknown' }), /historical or recent/);
+});
+
 test('a 115-second seed response survives the 60-second Hosting boundary', async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const calls = [];

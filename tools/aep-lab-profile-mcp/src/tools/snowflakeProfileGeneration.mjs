@@ -14,6 +14,11 @@ export const generationTargetSchema = z.enum(['snowflake', 'aep']).optional().de
   'Set aep explicitly for the existing AEP persona/dual-load workflow.',
 );
 
+export const eventTimeModeSchema = z.enum(['historical', 'recent']).optional().describe(
+  'Snowflake activity timing: historical (default) preserves demo history; recent creates new synthetic events in the past six UTC hours. ' +
+  'Does not rewrite stored timestamps, change retention, or guarantee downstream delivery. Verify exact event IDs in Profile.',
+);
+
 function validateSeedRequest(params, preflight) {
   const allowed = assertSandboxAllowed(params.sandbox);
   if (!allowed.ok) return { error: toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes }) };
@@ -23,7 +28,7 @@ function validateSeedRequest(params, preflight) {
   if (!snowflakeProfileTableForIndustry(industry)) {
     return { error: toolError('Choose an industry for Snowflake seeding: travel, fsi, retail, telecom, media, or sports. Use target:"aep" for generic AEP profiles.') };
   }
-  const supported = new Set(['sandbox', 'industry', 'target', 'count', 'randomize', 'fill_sample_data', 'use_stored_prefs', 'test_profile']);
+  const supported = new Set(['sandbox', 'industry', 'target', 'count', 'randomize', 'fill_sample_data', 'use_stored_prefs', 'test_profile', 'event_time_mode']);
   const unsupported = Object.keys(params).filter(key => params[key] !== undefined && !supported.has(key));
   if (unsupported.length) {
     return { error: toolError(`Snowflake seeding does not support these AEP/custom options: ${unsupported.join(', ')}. Omit them or explicitly select target:"aep"; options are never silently ignored.`) };
@@ -47,7 +52,7 @@ export async function generateSnowflakeProfiles(params, tool) {
   if (!rate.ok) return toolError(rate.message, { retryAfterSec: rate.retryAfterSec });
   const started = Date.now();
   const apiResult = await snowflakeGenerateBaseProfiles({
-    sandbox, industry, count, use_generation_prefs: true,
+    sandbox, industry, count, use_generation_prefs: true, event_time_mode: params.event_time_mode,
   });
   const result = apiResult.data?.result;
   const ok = apiResult.ok && apiResult.data?.ok === true && result?.ok === true
@@ -64,6 +69,7 @@ export async function generateSnowflakeProfiles(params, tool) {
   }
   return fromLabApi(apiResult, {
     target: 'snowflake', aep_streamed: false, sandbox, industry,
+    event_time_mode: result.eventTimeMode,
     table: result.table,
     rowcount: result.rowcount,
     recipientTable: result.recipientTable,
@@ -92,6 +98,7 @@ export async function preflightSnowflakeProfiles(params) {
   if (!generationPrefs?.baseEmail) missingFields.push('baseEmail');
   return fromLabApi(config, {
     target: 'snowflake', sandbox, industry, aep_streamed: false,
+    event_time_mode: params.event_time_mode || 'historical',
     ready: missingFields.length === 0,
     missingFields,
     recipientTable: record?.database && record?.schema

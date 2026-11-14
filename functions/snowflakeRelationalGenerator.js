@@ -1,6 +1,7 @@
 'use strict';
 
 const { createHash } = require('crypto');
+const { RECENT_EVENT_WINDOW_MS, resolveEventTimeMode } = require('./snowflakeEventTimeMode');
 
 const TRAVEL_PRODUCT_CATALOG = Object.freeze([
   { product_code: 'SEAT_STD', product_name: 'Standard seat selection', category: 'seat', cabin_eligibility: 'all', price_from: 12 },
@@ -87,6 +88,7 @@ function generateTravelRelationalRecords({
   runStamp = new Date().toISOString().replace('T', ' ').replace('Z', ''),
   hero = false,
   samplingMode,
+  eventTimeMode,
 } = {}) {
   if (!recipient || !recipient.recipientId) throw new Error('recipient is required');
   if (!profile || !profile.CRMID || !profile.ECID) throw new Error('profile CRMID and ECID are required');
@@ -95,6 +97,9 @@ function generateTravelRelationalRecords({
   }
 
   const recipientId = recipient.recipientId;
+  const recent = resolveEventTimeMode({ eventTimeMode }) === 'recent';
+  const now = new Date(runStamp.includes('T') ? runStamp : runStamp.replace(' ', 'T') + 'Z');
+  if (!Number.isFinite(now.getTime())) throw new Error('runStamp must be a valid timestamp');
   const ongoing = samplingMode === 'ongoing' && !hero;
   const scenario = hero ? 'seat_not_selected'
     : chooseScenario(ongoing ? hashNumber(`${recipientId}:scenario`) : Number(index) || 0);
@@ -107,7 +112,9 @@ function generateTravelRelationalRecords({
   const arrivalUtc = new Date(
     new Date(departureUtc).getTime() + (2 + (hashNumber(`${recipientId}:duration`) % 9)) * 3600000,
   ).toISOString();
-  const bookingDate = dateAt(asOfDate, -(ongoing ? 1 : 0) - (hashNumber(`${recipientId}:booking`) % 31));
+  const bookingDate = recent
+    ? new Date(now.getTime() - 60_000 - hashNumber(`${recipientId}:booking`) % (RECENT_EVENT_WINDOW_MS - 60_000))
+    : dateAt(asOfDate, -(ongoing ? 1 : 0) - (hashNumber(`${recipientId}:booking`) % 31));
   const reservationId = `${recipientId}-RES-001`;
   const pnrLocator = hashNumber(`${recipientId}:pnr`).toString(36).toUpperCase().padStart(6, '0').slice(-6);
   const returnTrip = hashNumber(`${recipientId}:trip-type`) % 4 !== 0;
@@ -190,7 +197,9 @@ function generateTravelRelationalRecords({
   const ancillaries = [];
   if (scenario === 'seat_bought_in_journey') {
     const elapsedBookingDays = Math.floor((new Date(`${asOfDate}T00:00:00.000Z`) - bookingDate) / 86400000);
-    const purchasedAt = new Date(bookingDate.getTime() + Math.min(30, elapsedBookingDays) * 86400000);
+    const purchasedAt = recent
+      ? new Date(bookingDate.getTime() + 30_000)
+      : new Date(bookingDate.getTime() + Math.min(30, elapsedBookingDays) * 86400000);
     ancillaries.push(withMetadata({
       ancillary_id: `${outbound.segment_id}-ANC-001`,
       segment_id: outbound.segment_id,
@@ -214,7 +223,7 @@ function generateTravelRelationalRecords({
       amount: 650,
       currency: 'GBP',
       purchase_channel: 'web',
-      purchased_at: ymd(bookingDate),
+      purchased_at: recent ? new Date(bookingDate.getTime() + 30_000).toISOString() : ymd(bookingDate),
     }, 'travel', runStamp, testProfile));
   }
 
@@ -233,7 +242,7 @@ function generateTravelRelationalRecords({
   const bookingEvent = {
     ...identity,
     _ID: `${reservationId}-EVENT`,
-    TIMESTAMP: timeAt(bookingDate, 12),
+    TIMESTAMP: recent ? bookingDate.toISOString() : timeAt(bookingDate, 12),
     EVENTTYPE: 'purchase.completed',
     PNR: pnrLocator,
     BOOKINGSTATUS: 'confirmed',

@@ -15,7 +15,7 @@ import { LAB_INDUSTRY_KEYS, normalizeIndustry } from '../industries.mjs';
 import { jsonResult, toolError } from './helpers.mjs';
 import { buildEmailFormatRules } from '../framework/emailFormatGuardrails.mjs';
 import { getGenerationPrefs } from '../labApiClient.mjs';
-import { generationTargetSchema, preflightSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
+import { generationTargetSchema, eventTimeModeSchema, preflightSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 
 /**
  * @param {import('@modelcontextprotocol/sdk/server/mcp.js').McpServer} mcpServer
@@ -33,6 +33,7 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
         'Includes email/mobile FORMAT RULES and Firestore generation prefs preview when available.',
       inputSchema: {
         target: generationTargetSchema,
+        event_time_mode: eventTimeModeSchema,
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
@@ -52,6 +53,9 @@ export function registerPreflightProfileGenerateTool(mcpServer) {
     },
     async (params) => {
       if (params.target !== 'aep') return preflightSnowflakeProfiles(params);
+      if (params.event_time_mode !== undefined) {
+        return toolError('event_time_mode is a Snowflake activity option, not an AEP persona preflight option.');
+      }
       const {
         sandbox,
         industry,

@@ -370,6 +370,8 @@ function registerSnowflakeRoutes(deps) {
             sandbox,
             profiles: body.profiles,
             eventTypes: body.eventTypes || body.event_types,
+            eventTimeMode: body.eventTimeMode,
+            event_time_mode: body.event_time_mode,
           })
         : await snowflakeIndustryEventService.handleIndustryEnrich({
             labUser: uid,
@@ -377,6 +379,8 @@ function registerSnowflakeRoutes(deps) {
             industry,
             profiles: body.profiles,
             eventTypes: body.eventTypes || body.event_types,
+            eventTimeMode: body.eventTimeMode,
+            event_time_mode: body.event_time_mode,
           });
       const httpStatus = result.ok
         ? 200
@@ -657,6 +661,8 @@ function registerSnowflakeRoutes(deps) {
           count: Number(body.count),
           batchSize: Number(body.batchSize) || undefined,
           expectedBaseEmail: body.expectedBaseEmail,
+          eventTimeMode: body.eventTimeMode,
+          event_time_mode: body.event_time_mode,
         });
         res.status(result.ok ? 200 : 400).json({ ok: result.ok, sandbox, result });
       } catch (e) {

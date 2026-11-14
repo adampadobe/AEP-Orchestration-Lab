@@ -10,6 +10,31 @@ from unittest.mock import AsyncMock, Mock, patch
 
 
 class RunnerResponse(unittest.TestCase):
+    def test_recent_capability_is_signed_and_invalid_mode_cannot_configure_snowflake(self):
+        source = ast.parse((Path(__file__).resolve().parents[1] / "server.py").read_text())
+        functions = [node for node in source.body if isinstance(node, ast.AsyncFunctionDef)
+                     and node.name in ("internal_enrich", "internal_capabilities")]
+        for node in functions:
+            node.decorator_list = []
+        settings = Mock()
+        verify = Mock()
+        env = {
+            "Request": object, "Response": lambda **kwargs: SimpleNamespace(**kwargs),
+            "json": json, "_verify_signature": verify, "HTTPException": lambda status, detail: ValueError(detail),
+            "_snowflake_kwargs_from_json": Mock(return_value={}), "snowflake_settings": settings,
+        }
+        exec(compile(ast.Module(body=functions, type_ignores=[]), "server.py", "exec"), env)
+        request = SimpleNamespace(body=AsyncMock(return_value=b"{}"), headers={"X-Runner-Signature": "offline"})
+        response = asyncio.run(env["internal_capabilities"](request))
+        self.assertEqual(json.loads(response.content)["event_time_modes"], ["historical", "recent"])
+        verify.assert_called_once_with(b"{}", "offline")
+        for mode in (None, "future"):
+            request.body = AsyncMock(return_value=json.dumps({"event_time_mode": mode}).encode())
+            with self.assertRaisesRegex(ValueError, "historical or recent"):
+                asyncio.run(env["internal_enrich"](request))
+        env["_snowflake_kwargs_from_json"].assert_not_called()
+        settings.set_connection_kwargs.assert_not_called()
+
     def test_generate_and_enrich_propagate_success_failure_and_missing_result(self):
         source = ast.parse((Path(__file__).resolve().parents[1] / "server.py").read_text())
         functions = [node for node in source.body if isinstance(node, ast.AsyncFunctionDef)

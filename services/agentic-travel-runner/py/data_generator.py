@@ -258,8 +258,7 @@ ORDER BY email;
         """Generate UTC timestamp in AEP-compatible format"""
         return datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
     
-    @staticmethod
-    def generate_realistic_timestamp(days_ago=0, hour_range=(0, 23)):
+    def generate_realistic_timestamp(self, days_ago=0, hour_range=(0, 23)):
         """
         Generate a realistic timestamp spread throughout the day
         
@@ -273,6 +272,9 @@ ORDER BY email;
         Returns:
             datetime object with randomized hour, minute, second
         """
+        clock = getattr(self, "event_clock", None)
+        if clock is not None and clock.mode == "recent":
+            return clock.timestamp()
         now = datetime.utcnow()
         # Go back the specified number of days
         base_date = now - timedelta(days=days_ago)
@@ -2319,6 +2321,12 @@ ORDER BY email;
                 # Channel field (for standardized event tracking)
                 channel  # Maps to CHANNEL column
             )
+            clock = getattr(self, "event_clock", None)
+            if clock is not None and clock.mode == "recent":
+                values = list(booking)
+                values[10] = clock.identifier(values[10])
+                values[13] = clock.identifier(f"pnr:{values[13]}")
+                booking = tuple(values)
             bookings.append(booking)
         
         return bookings

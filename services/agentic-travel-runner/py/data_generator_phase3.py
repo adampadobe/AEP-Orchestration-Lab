@@ -25,8 +25,7 @@ class Phase3DataGenerator:
         """Set journey flags for batch of customers"""
         self.journey_flags = journey_flags_dict
     
-    @staticmethod
-    def generate_realistic_timestamp(days_ago=0, hour_range=(0, 23)):
+    def generate_realistic_timestamp(self, days_ago=0, hour_range=(0, 23)):
         """
         Generate a realistic timestamp spread throughout the day
         
@@ -38,6 +37,9 @@ class Phase3DataGenerator:
             datetime object with randomized hour, minute, second
         """
         import random
+        clock = getattr(self, "event_clock", None)
+        if clock is not None and clock.mode == "recent":
+            return clock.timestamp()
         now = datetime.utcnow()
         base_date = now - timedelta(days=days_ago)
         random_hour = random.randint(hour_range[0], hour_range[1])
@@ -169,7 +171,8 @@ class Phase3DataGenerator:
             
             event_counter += 1
         
-        return disruption_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(disruption_events) if clock is not None and clock.mode == "recent" else disruption_events
     
     # ========================================
     # IN-FLIGHT EVENT GENERATION
@@ -271,7 +274,8 @@ class Phase3DataGenerator:
                 
                 event_counter += 1
         
-        return inflight_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(inflight_events) if clock is not None and clock.mode == "recent" else inflight_events
     
     # ========================================
     # HOTEL EVENT GENERATION
@@ -330,6 +334,11 @@ class Phase3DataGenerator:
             # Generate realistic timestamp for hotel event (within last 1-30 days, any hour)
             hotel_days_ago = random.randint(1, 30)
             hotel_ts = self.generate_realistic_timestamp(days_ago=hotel_days_ago, hour_range=(0, 23))
+            clock = getattr(self, "event_clock", None)
+            recent = clock is not None and clock.mode == "recent"
+            if recent:
+                checkin_date = hotel_ts - timedelta(hours=1)
+                checkout_date = checkin_date + timedelta(days=nights)
             
             hotel_events.append((
                 f'HOTEL{event_counter}',  # _ID
@@ -360,13 +369,13 @@ class Phase3DataGenerator:
                 random.choice([True, False]),  # UPGRADED_ROOM
                 room_type in ['suite', 'executive'],  # WELCOME_AMENITIES
                 interaction_type,  # ROOM_SERVICE_INTERACTION_TYPE (use the one we set for eventType)
-                (checkin_date + timedelta(hours=random.randint(1, 12))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # ORDER_TIME
-                (checkin_date + timedelta(hours=random.randint(1, 13))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # DELIVERY_TIME
+                (hotel_ts - timedelta(minutes=5) if recent else checkin_date + timedelta(hours=random.randint(1, 12))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # ORDER_TIME
+                (hotel_ts if recent else checkin_date + timedelta(hours=random.randint(1, 13))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # DELIVERY_TIME
                 None,  # ITEMS_ORDERED (ARRAY)
                 random.choice([25, 45, 75, 120]),  # ORDER_TOTAL
                 random.randint(3, 5),  # SERVICE_RATING
                 random.choice(amenity_types),  # AMENITY_TYPE
-                (checkin_date + timedelta(hours=random.randint(6, 20))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # USAGE_TIME
+                (hotel_ts if recent else checkin_date + timedelta(hours=random.randint(6, 20))).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # USAGE_TIME
                 random.randint(30, 120),  # DURATION
                 random.choice([0, 25, 50, 100]),  # ADDITIONAL_CHARGE
                 random.randint(3, 5),  # SATISFACTION_RATING
@@ -376,7 +385,7 @@ class Phase3DataGenerator:
                 random.choice([True, False]),  # EXTRA_AMENITIES
                 random.randint(4, 5),  # CLEANLINESS_RATING
                 random.choice(checkin_methods),  # CHECK_OUT_METHOD
-                checkout_date.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # CHECK_OUT_TIME
+                None if recent else checkout_date.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # CHECK_OUT_TIME
                 random.choice([True, False]),  # LATE_CHECK_OUT
                 nights * random.choice([150, 200, 350, 500, 750]) + random.randint(0, 200),  # FINAL_BILL_AMOUNT
                 random.randint(0, 200),  # INCIDENTAL_CHARGES
@@ -387,7 +396,8 @@ class Phase3DataGenerator:
             
             event_counter += 1
         
-        return hotel_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(hotel_events) if clock is not None and clock.mode == "recent" else hotel_events
     
     # ========================================
     # LOYALTY TRANSACTION GENERATION
@@ -584,7 +594,8 @@ class Phase3DataGenerator:
                 
                 event_counter += 1
         
-        return loyalty_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(loyalty_events) if clock is not None and clock.mode == "recent" else loyalty_events
     
     # ========================================
     # POS EVENT GENERATION
@@ -682,7 +693,8 @@ class Phase3DataGenerator:
             
             event_counter += 1
         
-        return pos_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(pos_events) if clock is not None and clock.mode == "recent" else pos_events
     
     # ========================================
     # INSERT METHODS

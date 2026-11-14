@@ -23,7 +23,7 @@ function allocationResponse(sql) {
   return [];
 }
 
-function record(industry, index = 0) {
+function record(industry, index = 0, eventTimeMode) {
   const input = {
     idx: 1000 + index, crmId: `CRM${1000 + index}`, ecid: `ecid-${index}`,
     email: `demo${index}@example.com`, runStamp: STAMP,
@@ -31,7 +31,7 @@ function record(industry, index = 0) {
   const generated = industry === 'travel'
     ? generateTravelProfileRow(input) : generateIndustryProfileRow(industry, input);
   return buildSeedRecord(industry, generated.rowObject, {
-    index, asOfDate: '2026-10-15', runStamp: STAMP,
+    index, asOfDate: '2026-10-15', runStamp: STAMP, eventTimeMode,
   });
 }
 
@@ -49,6 +49,22 @@ describe('Snowflake-first shared base seeding', () => {
   });
 
   for (const industry of listSnowflakeProfileIndustries()) {
+    it(`seeds ${industry} recent source activity with coherent identities and timestamps`, () => {
+      const generated = record(industry, 0, 'recent');
+      const events = industry === 'travel'
+        ? [generated.trip.bookingEvent, ...generated.trip.disruptionEvents]
+        : listIndustryEventTables(industry).filter(({ kind }) => kind === 'event')
+          .flatMap(({ key }) => generated.events.rowsByType[key]);
+      assert.ok(events.length);
+      for (const event of events) {
+        assert.equal(event.EMAIL, generated.profile.EMAIL);
+        assert.equal(event.ECID, generated.profile.ECID);
+        assert.equal(event.CRMID, generated.profile.CRMID);
+        const age = Date.parse(STAMP) - Date.parse(event.TIMESTAMP);
+        assert.ok(age >= 0 && age <= 6 * 3600_000);
+      }
+    });
+
     it(`prepares only the shared parent and selected ${industry} schema in the configured database`, async () => {
       const calls = [];
       await prepareSeedTables(async (sql) => { calls.push(sql); return []; }, CFG, industry);

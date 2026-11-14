@@ -27,6 +27,7 @@ function serviceWithConnection(rowsForSql = () => [], {
   reservedMobilePhone = mobilePhone, failureStatementId = null,
 } = {}) {
   const calls = [];
+  const records = [];
   let destroyed = false;
   let emailCounter = 0;
   let crmSequence = 1000;
@@ -58,6 +59,14 @@ function serviceWithConnection(rowsForSql = () => [], {
   vm.runInNewContext(fs.readFileSync(servicePath, 'utf8'), {
     module, process, Buffer, console,
     require(id) {
+      if (id === './snowflakeSeedStore') {
+        const seedStore = originalRequire(id);
+        return { ...seedStore, buildSeedRecord(...args) {
+          const record = seedStore.buildSeedRecord(...args);
+          records.push(record);
+          return record;
+        } };
+      }
       if (id === 'snowflake-sdk') return { createConnection: () => connection };
       if (id === './snowflakeConnectionStore') return {
         resolveConnection: async () => ({
@@ -84,10 +93,40 @@ function serviceWithConnection(rowsForSql = () => [], {
       return originalRequire(id);
     },
   }, { filename: servicePath });
-  return { service: module.exports, calls, isDestroyed: () => destroyed, reservedEmailCount: () => emailCounter };
+  return { service: module.exports, calls, records, isDestroyed: () => destroyed, reservedEmailCount: () => emailCounter };
 }
 
 describe('Snowflake seed API offline integration', () => {
+  it('passes recent timing through every industry service and rejects invalid modes before reserving identities', async () => {
+    for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+      const fixture = serviceWithConnection();
+      const result = await fixture.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry, count: 1, prepareTables: false,
+        event_time_mode: 'recent',
+      });
+      assert.equal(result.ok, true, JSON.stringify(result.error));
+      assert.equal(result.eventTimeMode, 'recent');
+      const record = fixture.records[0];
+      const events = industry === 'travel' ? [record.trip.bookingEvent]
+        : Object.values(record.events.rowsByType).flat().filter((row) => row.TIMESTAMP);
+      assert.ok(events.length, industry);
+      for (const event of events) {
+        const age = Date.parse(result.runStamp) - Date.parse(event.TIMESTAMP);
+        assert.ok(age >= 0 && age <= 6 * 3600_000, `${industry}: ${event.TIMESTAMP}`);
+        assert.equal(event.ECID, result.profiles[0].ecid);
+      }
+    }
+    const invalid = serviceWithConnection();
+    for (const mode of [{ eventTimeMode: null }, { eventTimeMode: 'future' },
+      { eventTimeMode: 'recent', event_time_mode: 'historical' }]) {
+      await assert.rejects(invalid.service.handleGenerateIndustryProfiles({
+        labUser: 'offline', sandbox: 'apalmer', industry: 'fsi', ...mode,
+      }), /eventTimeMode/);
+    }
+    assert.equal(invalid.reservedEmailCount(), 0);
+    assert.equal(invalid.calls.length, 0);
+  });
+
   it('ongoing mode uses the existing no-DDL writer, shared counter, static mobile and test identities', async () => {
     const f = serviceWithConnection();
     const result = await f.service.handleGenerateIndustryProfiles({

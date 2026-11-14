@@ -439,19 +439,22 @@ def enrichment_status_api():
     """API endpoint to check enrichment status"""
     return jsonify(enrichment_status)
 
-def enrich_profiles_background(profiles, event_types):
+def enrich_profiles_background(profiles, event_types, event_time_mode="historical"):
     """Background task to enrich existing profiles with new events"""
     global enrichment_status
     
     generator = None
     
     try:
+        from event_time_mode import EventClock
+        event_clock = EventClock(event_time_mode)
         enrichment_status['running'] = True
         enrichment_status['progress'] = 5
         enrichment_status['message'] = f'Enriching {len(profiles)} profiles...'
         
         # Connect to Snowflake - use same connection method as data generator
         generator = TravelDataGenerator()
+        generator.event_clock = event_clock
         generator.connect()
         
         if not generator.conn:
@@ -464,6 +467,7 @@ def enrich_profiles_background(profiles, event_types):
         result = {
             'success': True,
             'profiles_enriched': len(profiles),
+            'event_time_mode': event_time_mode,
             'website_events': 0,
             'mobile_events': 0,
             'booking_events': 0,
@@ -495,6 +499,7 @@ def enrich_profiles_background(profiles, event_types):
                 mobile_users = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * 0.5)))
                 
                 phase2_gen = Phase2DataGenerator(generator.conn, generator.cursor)
+                phase2_gen.event_clock = event_clock
                 
                 # Set journey flags to indicate these users have mobile app
                 temp_flags = {p['crmId']: {'uses_mobile': True} for p in mobile_users}
@@ -547,6 +552,7 @@ def enrich_profiles_background(profiles, event_types):
                         events_per_profile = random.randint(4, 6)
                     
                     session_id = str(uuid.uuid4())
+                    recent_session_start = event_clock.timestamp() if event_time_mode == "recent" else None
                     
                     for event_num in range(events_per_profile):
                         # Vary event types
@@ -567,7 +573,7 @@ def enrich_profiles_background(profiles, event_types):
                             action = random.choice(["view", "click", "scroll"])
                         
                         # Generate realistic timestamp in past 1-14 days
-                        event_ts = generator.generate_realistic_timestamp(
+                        event_ts = recent_session_start + timedelta(seconds=event_num * 60) if recent_session_start else generator.generate_realistic_timestamp(
                             days_ago=random.randint(1, 14),
                             hour_range=(7, 23)
                         )
@@ -745,6 +751,7 @@ def enrich_profiles_background(profiles, event_types):
                 
                 # Create a phase2 generator WITHOUT journey flags so selected profiles get events
                 phase2_gen = Phase2DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase2_gen.event_clock = event_clock
                 
                 # Set selected profiles to have checkin flag
                 temp_flags = {p['crmId']: {'does_checkin': True} for p in checkin_profiles}
@@ -770,6 +777,7 @@ def enrich_profiles_background(profiles, event_types):
                 call_profiles = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * random.uniform(0.3, 0.4))))
                 
                 phase2_gen = Phase2DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase2_gen.event_clock = event_clock
                 
                 # Set selected profiles to have call flag
                 temp_flags = {p['crmId']: {'calls_centre': True} for p in call_profiles}
@@ -795,6 +803,7 @@ def enrich_profiles_background(profiles, event_types):
                 disruption_profiles = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * random.uniform(0.1, 0.2))))
                 
                 phase3_gen = Phase3DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase3_gen.event_clock = event_clock
                 
                 # Set selected profiles to have disruption flag
                 temp_flags = {p['crmId']: {'has_disruption': True} for p in disruption_profiles}
@@ -825,6 +834,7 @@ def enrich_profiles_background(profiles, event_types):
                 inflight_profiles = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * random.uniform(0.3, 0.4))))
                 
                 phase3_gen = Phase3DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase3_gen.event_clock = event_clock
                 
                 # Set selected profiles to have inflight flag
                 temp_flags = {p['crmId']: {'uses_inflight': True} for p in inflight_profiles}
@@ -856,6 +866,7 @@ def enrich_profiles_background(profiles, event_types):
                 hotel_profiles = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * random.uniform(0.3, 0.4))))
                 
                 phase3_gen = Phase3DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase3_gen.event_clock = event_clock
                 
                 # Set selected profiles to have hotel flag
                 temp_flags = {p['crmId']: {'uses_hotel': True} for p in hotel_profiles}
@@ -888,6 +899,7 @@ def enrich_profiles_background(profiles, event_types):
                 
                 if loyalty_profiles:
                     phase3_gen = Phase3DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                    phase3_gen.event_clock = event_clock
                     
                     # Set selected profiles to have loyalty flag
                     temp_flags = {p['crmId']: {'has_loyalty': True} for p in loyalty_profiles}
@@ -922,6 +934,7 @@ def enrich_profiles_background(profiles, event_types):
                 pos_profiles = random.sample(base_profiles, min(len(base_profiles), int(len(base_profiles) * random.uniform(0.2, 0.3))))
                 
                 phase3_gen = Phase3DataGenerator(generator.conn, generator.cursor, journey_flags={})
+                phase3_gen.event_clock = event_clock
                 
                 # Set selected profiles to have POS flag
                 temp_flags = {p['crmId']: {'uses_pos': True} for p in pos_profiles}
