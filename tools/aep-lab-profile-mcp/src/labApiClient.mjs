@@ -63,34 +63,40 @@ async function attemptOnce(url, init, timeoutMs) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-  let response;
   try {
-    response = await fetch(url.toString(), { ...init, signal: controller.signal });
-  } catch (err) {
-    clearTimeout(timer);
-    const msg = err && err.name === 'AbortError' ? `Lab API timeout after ${timeoutMs}ms` : String(err.message || err);
-    return { ok: false, status: 0, url: url.toString(), error: msg, data: null };
-  }
-  clearTimeout(timer);
-
-  const contentType = response.headers.get('Content-Type') || '';
-  let data;
-  if (contentType.toLowerCase().includes('json')) {
-    try {
-      data = await response.json();
-    } catch {
-      data = { raw: await response.text() };
+    const response = await fetch(url.toString(), { ...init, signal: controller.signal });
+    const contentType = response.headers.get('Content-Type') || '';
+    let data;
+    if (contentType.toLowerCase().includes('json')) {
+      try {
+        data = await response.json();
+      } catch (err) {
+        if (!(err instanceof SyntaxError)) throw err;
+        return {
+          ok: false,
+          status: response.status,
+          url: url.toString(),
+          error: `Invalid JSON response (HTTP ${response.status}).`,
+          data: null,
+          responseBodyInvalid: true,
+        };
+      }
+    } else {
+      data = { raw: (await response.text()).slice(0, 50_000) };
     }
-  } else {
-    data = { raw: (await response.text()).slice(0, 50_000) };
-  }
 
-  if (!response.ok) {
-    const detail = extractApiError(data, response.statusText || `HTTP ${response.status}`);
-    return { ok: false, status: response.status, url: url.toString(), error: detail, data };
-  }
+    if (!response.ok) {
+      const detail = extractApiError(data, response.statusText || `HTTP ${response.status}`);
+      return { ok: false, status: response.status, url: url.toString(), error: detail, data };
+    }
 
-  return { ok: true, status: response.status, url: url.toString(), data };
+    return { ok: true, status: response.status, url: url.toString(), data };
+  } catch (err) {
+    const msg = controller.signal.aborted ? `Lab API timeout after ${timeoutMs}ms` : String(err.message || err);
+    return { ok: false, status: 0, url: url.toString(), error: msg, data: null };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -152,6 +158,11 @@ export async function labApiRequest(path, opts = {}) {
         + `(attempt ${attempt + 1}/${maxAttempts}, waiting ${backoff[attempt]}ms): ${result.error}`,
     );
     await new Promise((resolve) => setTimeout(resolve, backoff[attempt]));
+  }
+  if (!result.ok && (result.status === 0 || result.status >= 500 || result.responseBodyInvalid)
+    && !SAFE_METHODS.has(method) && opts.idempotent !== true) {
+    result.writeOutcomeUnknown = true;
+    result.error += ' The write outcome may be unknown; inspect the existing operation before retrying.';
   }
   return result;
 }

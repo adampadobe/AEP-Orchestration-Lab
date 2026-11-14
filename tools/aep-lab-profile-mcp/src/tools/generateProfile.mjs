@@ -442,13 +442,15 @@ export function registerGenerateProfileTool(mcpServer) {
           (apiResult.ok && failedFollowUps.length > 0)
           || apiResult.partialSuccess === true,
         no_retry_guidance:
-          (apiResult.ok && failedFollowUps.length > 0)
+          apiResult.outcomeUnknown
+            ? 'The profile write outcome is unknown. Inspect the existing identity and request before retrying generation.'
+            : (apiResult.ok && failedFollowUps.length > 0)
             ? `AEP profile generation succeeded but ${failedFollowUps.join(' and ')} failed. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
             : (apiResult.partialSuccess === true
               ? 'The generic base was accepted but the industry overlay was not completed. Inspect the Snowflake and recent-profile results separately. Do not regenerate this identity; completion requires approval.'
               : undefined),
         target: 'aep',
-        generation_status: apiResult.ok ? 'accepted' : apiResult.partialSuccess ? 'overlay_pending' : 'failed',
+        generation_status: apiResult.ok ? 'accepted' : apiResult.outcomeUnknown ? 'unknown' : apiResult.partialSuccess ? 'overlay_pending' : 'failed',
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,

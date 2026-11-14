@@ -236,6 +236,7 @@ export async function processBatchJob(jobId, { keyId }) {
               snowflake: snowflakeDualLoad,
               partial_success: true,
               retry_safe: false,
+              ...(apiResult.outcomeUnknown ? { generation_status: 'unknown' } : {}),
               error_code: apiResult.errorCode,
               generate_step_results: apiResult.stepResults,
               recent_profiles_sync: recentSync,
@@ -256,6 +257,7 @@ export async function processBatchJob(jobId, { keyId }) {
           ecid,
           partial_success: !apiResult.ok || !recentSync.ok,
           retry_safe: false,
+          ...(apiResult.outcomeUnknown ? { generation_status: 'unknown' } : {}),
           error: apiResult.ok ? recentSync.error : apiResult.error,
           error_code: apiResult.errorCode,
           generate_step_results: apiResult.stepResults,
@@ -271,7 +273,10 @@ export async function processBatchJob(jobId, { keyId }) {
         failed += 1;
         const errMsg = apiResult.error || 'Lab API request failed';
         errors.push({ index: i, email, error: errMsg });
-        results.push({ index: i, email, ok: false, error: errMsg });
+        results.push({
+          index: i, email, ok: false, error: errMsg,
+          ...(apiResult.outcomeUnknown ? { generation_status: 'unknown', retry_safe: false } : {}),
+        });
       }
       }
     } catch (err) {

@@ -96,6 +96,10 @@ export async function processPlaybookJob(jobId, { keyId }) {
         plan: generatePlan,
         test_profile: testProfileResolved.test_profile,
       });
+      if (genResult.outcomeUnknown) {
+        row.generation_status = 'unknown';
+        row.retry_safe = false;
+      }
       if (!genResult.ok && !genResult.partialSuccess) throw new Error(genResult.error || 'Profile generate failed');
 
       const ecid =

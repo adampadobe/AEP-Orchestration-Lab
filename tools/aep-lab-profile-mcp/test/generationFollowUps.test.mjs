@@ -62,6 +62,28 @@ async function invoke(worker, result, options = {}) {
 }
 
 for (const [name, worker] of [['batch', processBatchJob], ['playbook', processPlaybookJob]]) {
+  test(`${name}: unknown base write is not reported as safe to retry`, async () => {
+    const result = await invoke(worker, {
+      ok: false, outcomeUnknown: true, partialSuccess: false,
+      error: 'The write outcome may be unknown; inspect the existing operation before retrying.',
+    });
+    assert.equal(result.status, 'failed');
+    assert.equal(result.results[0].generation_status, 'unknown');
+    assert.equal(result.results[0].retry_safe, false);
+    assert.deepEqual(calls.map(call => call.stage), ['generate']);
+  });
+
+  test(`${name}: unknown overlay remains unknown when the base was accepted`, async () => {
+    const result = await invoke(worker, {
+      ok: false, outcomeUnknown: true, partialSuccess: true, ecid: ECID,
+      error: 'The write outcome may be unknown; inspect the existing operation before retrying.',
+    });
+    assert.equal(result.status, 'failed');
+    assert.equal(result.results[0].generation_status, 'unknown');
+    assert.equal(result.results[0].retry_safe, false);
+    assert.deepEqual(calls.map(call => call.stage), ['generate', 'recent', 'snowflake']);
+  });
+
   test(`${name}: timeout preserves identity, attempts follow-ups once and remains failed/partial`, async () => {
     const result = await invoke(worker, {
       ok: false, partialSuccess: true, ecid: ECID,

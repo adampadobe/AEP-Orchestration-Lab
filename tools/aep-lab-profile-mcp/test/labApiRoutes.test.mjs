@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
-import { lookupProfile } from '../src/labApiClient.mjs';
+import { labApiRequest, lookupProfile } from '../src/labApiClient.mjs';
 
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url));
 
@@ -73,4 +74,91 @@ test('profile reads bypass Hosting cached negatives and honor the direct Functio
   assert.deepEqual(Object.fromEntries(observed.url.searchParams), {
     sandbox: 'offline', namespace: 'ecid', identifier: 'offline-identity',
   });
+});
+
+test('a stalled response body times out without retrying a mutation', async t => {
+  let requests = 0;
+  const server = createServer((_req, res) => {
+    requests++;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.write('{"pending":');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise(resolve => server.close(resolve));
+  });
+  const result = await labApiRequest('/test', {
+    origin: `http://127.0.0.1:${server.address().port}`, method: 'POST',
+    body: {}, timeoutMs: 100, retryBackoffMs: [0],
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 0);
+  assert.equal(result.writeOutcomeUnknown, true);
+  assert.equal(result.error, 'Lab API timeout after 100ms The write outcome may be unknown; inspect the existing operation before retrying.');
+  assert.equal(requests, 1);
+});
+
+test('a gateway failure after a mutation is reported as an unknown outcome', async t => {
+  let requests = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requests++;
+    return Response.json({ error: 'Gateway timeout' }, { status: 504 });
+  });
+  const result = await labApiRequest('/test', {
+    origin: 'https://example.test', method: 'POST', body: {}, retryBackoffMs: [0],
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 504);
+  assert.equal(result.writeOutcomeUnknown, true);
+  assert.match(result.error, /Gateway timeout.*write outcome may be unknown/);
+  assert.equal(requests, 1);
+});
+
+test('a safe read can retry after a response body timeout', async t => {
+  let requests = 0;
+  const server = createServer((_req, res) => {
+    requests++;
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    if (requests === 1) res.write('{"pending":');
+    else res.end('{"ready":true}');
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => {
+    server.closeAllConnections();
+    return new Promise(resolve => server.close(resolve));
+  });
+  const result = await labApiRequest('/test', {
+    origin: `http://127.0.0.1:${server.address().port}`, timeoutMs: 100, retryBackoffMs: [0],
+  });
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.data, { ready: true });
+  assert.equal(requests, 2);
+});
+
+test('malformed JSON responses retain their HTTP status and report an explicit failure', async t => {
+  t.mock.method(globalThis, 'fetch', async () => new Response('not json', {
+    status: 502, headers: { 'Content-Type': 'application/json' },
+  }));
+  const result = await labApiRequest('/test', { origin: 'https://example.test', retries: 0 });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error, /Invalid JSON response \(HTTP 502\)/);
+});
+
+test('malformed JSON after a mutation warns that its outcome is unknown', async t => {
+  let requests = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    requests++;
+    return new Response('not json', {
+      status: 200, headers: { 'Content-Type': 'application/json' },
+    });
+  });
+  const result = await labApiRequest('/test', {
+    origin: 'https://example.test', method: 'POST', body: {}, retryBackoffMs: [0],
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 200);
+  assert.match(result.error, /write outcome may be unknown/);
+  assert.equal(requests, 1);
 });

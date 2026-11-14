@@ -82,6 +82,9 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
     } else {
       response = respond(request);
     }
+    if (response?.invalidJson) {
+      return new Response('invalid json', { headers: { 'Content-Type': 'application/json' } });
+    }
     return {
       ok: response?.httpOk ?? true,
       status: response?.httpStatus ?? 200,
@@ -255,6 +258,17 @@ test('explicit AEP target retains streaming and never invokes the Snowflake seed
   assert.equal(body.ok, true);
   assert.ok(calls.some(({ path }) => path === '/api/profile/generate'));
   assert.ok(calls.every(({ path }) => path !== '/snowflakeGenerateIndustryProfiles'));
+});
+
+test('AEP generation reports a malformed write response as unknown rather than failed', async () => {
+  const { result, body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer', industry: 'generic', target: 'aep',
+    email: profile.email, use_stored_prefs: false, randomize: false,
+  }, () => ({ invalidJson: true }));
+  assert.equal(result.isError, true);
+  assert.equal(body.detail.generation_status, 'unknown');
+  assert.match(body.detail.no_retry_guidance, /unknown.*before retrying/);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
 });
 
 test('dual-stream AEP generation passes the signed continuation token to the industry overlay', async () => {

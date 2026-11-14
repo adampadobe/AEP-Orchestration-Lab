@@ -63,6 +63,45 @@ function mockLabApi(t, {
   return calls;
 }
 
+test('an uncertain profile write is reported as unknown and is not retried', async (t) => {
+  const calls = mockLabApi(t, {
+    onGenerate: () => { throw new Error('connection lost'); },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL,
+    sandbox: 'offline',
+    plan: planDualStreamGenerate({ industry: 'generic', email: EMAIL }),
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.outcomeUnknown, true);
+  assert.match(result.error, /write outcome may be unknown/);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
+});
+
+test('an uncertain overlay preserves the accepted base and does not retry the overlay', async (t) => {
+  const calls = mockLabApi(t, {
+    onGenerate: body => {
+      if (body.industry === 'generic') return Response.json({ ok: true, ecid: ECID, appendToken: 'offline-continuation' });
+      throw new Error('connection lost');
+    },
+  });
+  const result = await executeGeneratePlan({
+    email: EMAIL,
+    sandbox: 'offline',
+    plan: planDualStreamGenerate({
+      industry: 'media', email: EMAIL,
+      attributes: { 'profilePlaceContext.city': 'London', 'industryMedia.primaryGenre': 'Drama' },
+    }),
+    persistenceTimeoutMs: 100,
+    persistencePollIntervalMs: 1,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.partialSuccess, true);
+  assert.equal(result.outcomeUnknown, true);
+  assert.equal(result.ecid, ECID);
+  assert.deepEqual(calls.filter(call => call.path === '/api/profile/generate').map(call => call.body.industry), ['generic', 'media']);
+});
+
 test('dual-stream waits for matching Generic persistence before sending the overlay', async (t) => {
   const calls = mockLabApi(t, {
     onProfileRead: (attempt) => attempt === 1
