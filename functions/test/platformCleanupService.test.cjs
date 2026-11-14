@@ -1505,6 +1505,19 @@ test('renamed reviewed architecture flows stay protected by ID and the REL basel
   assert.match((await f.prepare()).blockers.join(' '), /baseline is incomplete/);
 });
 
+test('replacement and superseded FSI transaction flows stay protected by ID', async () => {
+  const f = executableBatchFixture({ sandbox: 'apalmer' });
+  const bindings = require('../myDataFlowsRegistry').bindings.filter((binding) => binding.nodeIds.includes('rel-flow'));
+  for (const binding of bindings) f.rows.flow.set(binding.id, { id: binding.id, name: 'Renamed protected feed', state: 'disabled' });
+  const oldFlowId = '242cec3a-3e77-4e3f-9680-cb9b634d4f20';
+  f.rows.flow.set(oldFlowId, { id: oldFlowId, name: 'Renamed old feed', state: 'disabled' });
+  for (const id of [oldFlowId, 'e8862542-cfb2-4574-b9d6-d2844f037922']) {
+    const plan = await f.prepare([{ resource_type: 'flow', resource_id: id }]);
+    assert.equal(plan.status, 'blocked');
+    assert.match(plan.blockers.join(' '), /architecture registry/);
+  }
+});
+
 test('dataset and descriptor plans preserve full schema Profile/Identity protections', async () => {
   for (const selected of [[{ resource_type: 'dataset', resource_id: id }], [{ resource_type: 'descriptor', resource_id: 'owned-descriptor' }]]) {
     const f = executableBatchFixture();

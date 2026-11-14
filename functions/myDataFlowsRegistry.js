@@ -5,7 +5,7 @@ const relationalRows = [
   ['f0cdb096-4568-46a6-8d5c-df38d9891716', 'REL.RECIPIENT'],
   ['e0e84239-9802-46fa-a777-e38c98f52429', 'REL.REL_FSI_ACCOUNT'],
   ['19bd1590-5014-4427-baa5-bf568885a48d', 'REL.REL_FSI_CARD'],
-  ['242cec3a-3e77-4e3f-9680-cb9b634d4f20', 'REL.REL_FSI_TRANSACTION'],
+  ['e8862542-cfb2-4574-b9d6-d2844f037922', 'REL.REL_FSI_TRANSACTION'],
   ['3c3cad0d-52ef-4fd4-9342-a31193c807f5', 'REL.REL_FSI_LOAN'],
   ['0e70195f-0aa5-4f43-8c51-9f5f55633bd8', 'REL.REL_FSI_MORTGAGE'],
   ['02f671e8-1be5-41e7-a6d5-6d8cc5c192c2', 'REL.REL_FSI_PRODUCT_CATALOG'],
@@ -83,6 +83,8 @@ module.exports = {
     ...relationalRows.map(([id, table]) => ({ id, table, nodeIds: ['rel-flow', 'rel-datasets'] })),
     ...xdmRows.map(([id, table]) => ({ id, table, nodeIds: ['xdm-flow'] })),
   ],
+  // Superseded, but protected until independent usage clearance.
+  protectedLegacyFlowIds: ['242cec3a-3e77-4e3f-9680-cb9b634d4f20'],
   // Reviewed orphaned destinations on 2026-11-13. This is not deletion approval.
   retiredBindings: [
     {

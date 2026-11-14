@@ -302,24 +302,39 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
       url = nextUrl;
     }
 
-    const res = await fetch(url, { method: 'GET', headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if (page === 0) {
-        const msg = data.message || data.error_description || data.title || res.statusText;
-        throw new Error(msg || `Profile API (events) ${res.status}`);
+    let data;
+    try {
+      const res = await fetch(url, { method: 'GET', headers });
+      try {
+        data = await res.json();
+      } catch (err) {
+        if (res.ok) throw err;
+        data = {};
       }
-      break;
+      if (!res.ok) {
+        const msg = data.message || data.error_description || data.title || res.statusText;
+        const error = new Error(msg || `Profile API (events) ${res.status}`);
+        error.status = res.status;
+        throw error;
+      }
+    } catch (err) {
+      if (page === 0) throw err;
+      const pageError = new Error(`Profile API (events) page ${page + 1} failed: ${err.message}`, { cause: err });
+      pageError.code = 'PROFILE_EVENTS_PAGE_FAILED';
+      throw pageError;
     }
 
     const children = data.children || data.results || [];
     allChildren = allChildren.concat(children);
 
-    if (children.length < PAGE_SIZE) break;
-
     const links = data._links || data.links || {};
     const nextLink = links.next || links.nextPage;
     if (nextLink && nextLink.href) {
+      if (page === MAX_PAGES - 1) {
+        const error = new Error(`Profile API (events) exceeded the ${MAX_PAGES}-page limit; results are incomplete`);
+        error.code = 'PROFILE_EVENTS_PAGE_FAILED';
+        throw error;
+      }
       const href = nextLink.href;
       if (href.startsWith('http')) {
         nextUrl = href;
@@ -357,16 +372,23 @@ async function getProfileExperienceEventsWithNamespaceFallback(
   const nsTries = useEcidNs ? ['ECID', 'ecid'] : [rawNs || 'ECID'];
 
   let last = { children: [] };
+  let lastError;
+  let uncertainError;
+  let succeeded = false;
   for (const tryNs of nsTries) {
     try {
       const raw = await getProfileExperienceEvents(ridForRequest, tryNs, sandboxName, token, clientId, orgId);
       last = raw;
+      succeeded = true;
       const n = (raw.children || raw.results || []).length;
       if (n > 0) return raw;
-    } catch {
-      /* try next namespace */
+    } catch (err) {
+      if (err.code === 'PROFILE_EVENTS_PAGE_FAILED') throw err;
+      lastError = err;
+      if (err.status !== 400 && err.status !== 404) uncertainError = err;
     }
   }
+  if (uncertainError || (!succeeded && lastError)) throw uncertainError || lastError;
   return last;
 }
 

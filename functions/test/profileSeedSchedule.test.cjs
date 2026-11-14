@@ -23,6 +23,11 @@ test('scheduler scopes exclude retired travel destinations without replacing cur
   assert.ok(relevantBindings('travel').some((binding) => binding.id === '4faef7e2-8ad3-459c-b8b8-34c8be5e0ac1'));
 });
 
+test('FSI scheduler scope uses the replacement transaction flow, not the disabled predecessor', () => {
+  const transactionBindings = relevantBindings('fsi').filter((binding) => binding.table === 'REL.REL_FSI_TRANSACTION');
+  assert.deepEqual(transactionBindings.map((binding) => binding.id), ['e8862542-cfb2-4574-b9d6-d2844f037922']);
+});
+
 const settings = {
   enabled: true, ownerUid: 'owner', sandbox: 'apalmer',
   expectedBaseEmail: 'demo@example.test', expectedMobilePhone: '+447700900111',
