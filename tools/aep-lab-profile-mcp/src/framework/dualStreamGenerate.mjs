@@ -466,6 +466,7 @@ export async function executeGeneratePlan({
     if (!apiResult.ok) {
       return {
         ok: false,
+        outcomeUnknown: apiResult.writeOutcomeUnknown === true,
         dualStream: plan.dualStream,
         stepResults,
         failedStep: step.step,
