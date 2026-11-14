@@ -302,14 +302,24 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
       url = nextUrl;
     }
 
-    const res = await fetch(url, { method: 'GET', headers });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      if (page === 0) {
+    let data;
+    try {
+      const res = await fetch(url, { method: 'GET', headers });
+      try {
+        data = await res.json();
+      } catch (err) {
+        if (res.ok) throw err;
+        data = {};
+      }
+      if (!res.ok) {
         const msg = data.message || data.error_description || data.title || res.statusText;
         throw new Error(msg || `Profile API (events) ${res.status}`);
       }
-      break;
+    } catch (err) {
+      if (page === 0) throw err;
+      const pageError = new Error(`Profile API (events) page ${page + 1} failed: ${err.message}`, { cause: err });
+      pageError.code = 'PROFILE_EVENTS_PAGE_FAILED';
+      throw pageError;
     }
 
     const children = data.children || data.results || [];
@@ -357,16 +367,21 @@ async function getProfileExperienceEventsWithNamespaceFallback(
   const nsTries = useEcidNs ? ['ECID', 'ecid'] : [rawNs || 'ECID'];
 
   let last = { children: [] };
+  let lastError;
+  let succeeded = false;
   for (const tryNs of nsTries) {
     try {
       const raw = await getProfileExperienceEvents(ridForRequest, tryNs, sandboxName, token, clientId, orgId);
       last = raw;
+      succeeded = true;
       const n = (raw.children || raw.results || []).length;
       if (n > 0) return raw;
-    } catch {
-      /* try next namespace */
+    } catch (err) {
+      if (err.code === 'PROFILE_EVENTS_PAGE_FAILED') throw err;
+      lastError = err;
     }
   }
+  if (!succeeded && lastError) throw lastError;
   return last;
 }
 
