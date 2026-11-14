@@ -206,6 +206,7 @@ export async function processBatchJob(jobId, { keyId }) {
                   crmId: sfResult.data?.result?.crmId || undefined,
                 }],
                 event_types: params.snowflake_event_types,
+                event_time_mode: params.event_time_mode,
               });
               snowflakeDualLoad.enrichment = {
                 ok: enrichmentResult.ok,

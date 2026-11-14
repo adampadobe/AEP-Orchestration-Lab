@@ -616,6 +616,8 @@ WHERE SEQUENCE_SCHEMA = ? AND SEQUENCE_NAME = ?`,
 }
 
 async function handleAgenticEnrich(input) {
+  const { resolveEventTimeMode } = require('./snowflakeEventTimeMode');
+  const eventTimeMode = resolveEventTimeMode(input);
   const labUser = String(input.labUser || '').trim();
   const sandbox = String(input.sandbox || '').trim();
   if (!sandbox) throw new Error('sandbox is required');
@@ -649,9 +651,23 @@ async function handleAgenticEnrich(input) {
     phoneNumber: p.phoneNumber,
     loyaltyId: p.loyaltyId,
   }));
+  if (eventTimeMode === 'recent') {
+    const capability = await postSignedRunner('/internal/capabilities', {}, {});
+    if (!capability.ok || !capability.data?.event_time_modes?.includes('recent')) {
+      return {
+        ok: false,
+        error: {
+          code: 'RECENT_EVENT_MODE_UNAVAILABLE',
+          message: 'The travel runner did not confirm recent-event support. No enrichment request was sent.',
+          hints: [capability.error?.message || 'Deploy the reviewed recent-event runner before using this mode.'],
+        },
+      };
+    }
+  }
   return postSignedRunner('/internal/enrich', sfPayload, {
     profiles: normalized,
     event_types: eventTypes,
+    event_time_mode: eventTimeMode,
   });
 }
 

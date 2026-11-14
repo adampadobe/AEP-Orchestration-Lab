@@ -1840,10 +1840,18 @@ export async function snowflakeConnectionTest({ sandbox }) {
  * POST /api/snowflake/generate-industry-profiles when industry is supplied; otherwise legacy generate-base-profiles.
  * @param {object} params
  */
-export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, table, batch_size, start_index, use_generation_prefs }) {
+export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, table, batch_size, start_index, use_generation_prefs, event_time_mode }) {
   if (industry && (table || start_index != null || use_generation_prefs === false)) {
     throw new Error('Industry CRM generation uses its governed table and shared generation preferences; legacy overrides cannot be combined with industry.');
   }
+  if (event_time_mode !== undefined && !industry) {
+    throw new Error('event_time_mode requires an explicit industry, not the legacy base generator');
+  }
+  if (event_time_mode !== undefined && !['historical', 'recent'].includes(event_time_mode)) {
+    throw new Error('event_time_mode must be historical or recent');
+  }
+  const blocked = event_time_mode === 'recent' ? await checkRecentEventMode({ sandbox, industry, event_time_mode }) : null;
+  if (blocked) return blocked;
   // Hosting rewrites stop waiting after 60s, even when the seed later commits.
   return labApiRequest(industry ? '/snowflakeGenerateIndustryProfiles' : '/snowflakeGenerateBaseProfiles', {
     origin: getLabFunctionsOrigin(),
@@ -1851,6 +1859,7 @@ export async function snowflakeGenerateBaseProfiles({ sandbox, industry, count, 
     body: {
       sandbox,
       ...(industry ? { industry } : {}),
+      ...(event_time_mode !== undefined ? { eventTimeMode: event_time_mode } : {}),
       ...(count != null ? { count } : {}),
       ...(table ? { table } : {}),
       ...(batch_size != null ? { batchSize: batch_size } : {}),
@@ -1998,7 +2007,28 @@ export async function snowflakeGenerateFull({ sandbox, count }) {
  * POST /api/snowflake/agentic/enrich-profiles
  * @param {object} params
  */
-export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, event_types }) {
+export async function checkRecentEventMode({ sandbox, industry, event_time_mode }) {
+  if (event_time_mode !== undefined && !['historical', 'recent'].includes(event_time_mode)) {
+    throw new Error('event_time_mode must be historical or recent');
+  }
+  if (event_time_mode !== 'recent') return null;
+  const catalog = await snowflakeIndustryCatalog({ sandbox, industry: industry || 'travel', check_tables: false });
+  if (!catalog.ok || !catalog.data?.result?.eventTimeModes?.includes('recent')) {
+    return {
+      ...catalog,
+      ok: false,
+      error: catalog.error || 'The deployed generator does not advertise recent-event support. No generation/enrichment request was sent.',
+    };
+  }
+  return null;
+}
+
+export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, event_types, event_time_mode }) {
+  if (event_time_mode !== undefined && !['historical', 'recent'].includes(event_time_mode)) {
+    throw new Error('event_time_mode must be historical or recent');
+  }
+  const blocked = event_time_mode === 'recent' ? await checkRecentEventMode({ sandbox, industry, event_time_mode }) : null;
+  if (blocked) return blocked;
   return labApiRequest('/snowflakeAgenticEnrichProfiles', {
     origin: getLabFunctionsOrigin(),
     method: 'POST',
@@ -2007,6 +2037,7 @@ export async function snowflakeEnrichProfiles({ sandbox, industry, profiles, eve
       ...(industry ? { industry } : {}),
       profiles,
       eventTypes: event_types,
+      ...(event_time_mode !== undefined ? { eventTimeMode: event_time_mode } : {}),
     },
     headers: snowflakeAuthHeaders(),
     timeoutMs: 540_000,

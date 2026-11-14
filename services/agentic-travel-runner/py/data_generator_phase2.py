@@ -44,8 +44,7 @@ class Phase2DataGenerator:
         # This matches how Phase 1 generator creates timestamps
         return datetime.now()
     
-    @staticmethod
-    def generate_realistic_timestamp(days_ago=0, hour_range=(0, 23)):
+    def generate_realistic_timestamp(self, days_ago=0, hour_range=(0, 23)):
         """
         Generate a realistic timestamp spread throughout the day
         
@@ -56,6 +55,9 @@ class Phase2DataGenerator:
         Returns:
             datetime object with randomized hour, minute, second
         """
+        clock = getattr(self, "event_clock", None)
+        if clock is not None and clock.mode == "recent":
+            return clock.timestamp()
         now = datetime.utcnow()
         base_date = now - timedelta(days=days_ago)
         random_hour = random.randint(hour_range[0], hour_range[1])
@@ -532,7 +534,8 @@ LIMIT 5;
                 ))
                 event_counter += 1
         
-        return mobile_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(mobile_events) if clock is not None and clock.mode == "recent" else mobile_events
     
     def insert_mobile_events(self, mobile_events):
         """Insert mobile events with explicit _RECORDCREATEDTIMESTAMP"""
@@ -635,7 +638,8 @@ LIMIT 5;
                 ))
                 event_counter += 1  # Increment counter for next event
         
-        return call_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(call_events) if clock is not None and clock.mode == "recent" else call_events
     
     def insert_call_centre_events(self, call_events):
         """Insert call centre events with explicit _RECORDCREATEDTIMESTAMP"""
@@ -726,7 +730,8 @@ LIMIT 5;
                 ))
                 event_counter += 1
         
-        return checkin_events
+        clock = getattr(self, "event_clock", None)
+        return clock.identify(checkin_events) if clock is not None and clock.mode == "recent" else checkin_events
     
     def insert_checkin_events(self, checkin_events):
         """Insert check-in events with explicit _RECORDCREATEDTIMESTAMP"""

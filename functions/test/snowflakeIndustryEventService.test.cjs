@@ -90,6 +90,37 @@ describe('Snowflake industry event inserts', () => {
     return { tables, calls, service: enrichService({ connection }) };
   }
 
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    it(`${industry} recent enrichment preserves historical rows and remains idempotent on serial repetition`, async () => {
+      const db = snowflakeMemoryFixture();
+      const profile = generateIndustryProfileRow(industry, {
+        idx: 1000, ecid: `recent-service-${industry}`, email: 'offline@example.test', runStamp: STAMP,
+      }).rowObject;
+      const record = buildSeedRecord(industry, profile, { asOfDate: '2026-10-15', runStamp: STAMP });
+      await writeSeedRecords(db.execute, CFG, industry, [record]);
+      const historical = new Map(listIndustryEventTables(industry).map((table) => [
+        table.table, structuredClone(db.rows(`DB.AEP_SCHEMA.${table.table}`)),
+      ]));
+      const service = enrichService(db);
+      const input = { labUser: 'offline', sandbox: 'test', industry, eventTimeMode: 'recent',
+        profiles: [{ ecid: profile.ECID }] };
+      const first = await service.handleIndustryEnrich(input);
+      assert.equal(first.eventTimeMode, 'recent');
+      assert.ok(first.insertedRowCount > 0);
+      const snapshots = new Map();
+      for (const table of listIndustryEventTables(industry)) {
+        const stored = db.rows(`DB.AEP_SCHEMA.${table.table}`);
+        assert.deepEqual(stored.slice(0, historical.get(table.table).length), historical.get(table.table));
+        snapshots.set(table.table, structuredClone(stored));
+      }
+      const repeated = await service.handleIndustryEnrich(input);
+      assert.equal(repeated.insertedRowCount, 0);
+      for (const table of listIndustryEventTables(industry)) {
+        assert.deepEqual(db.rows(`DB.AEP_SCHEMA.${table.table}`), snapshots.get(table.table));
+      }
+    });
+  }
+
   describe('Snowflake non-travel profile bundle pagination', () => {
     const base = { labUser: 'offline', sandbox: 'test', industry: 'telecom', ecid: 'offline-ecid' };
 

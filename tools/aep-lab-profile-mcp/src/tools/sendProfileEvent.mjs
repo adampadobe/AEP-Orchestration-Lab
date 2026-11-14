@@ -33,6 +33,7 @@ export function registerSendProfileEventTool(mcpServer) {
         'Default is minimal: sandbox, email, ecid, event_type, channel, timestamp. For richer industry context, pass industry plus optional flat industry_fields; the MCP validates and wraps them under public.{industry} and selects full XDM. ' +
         'NEVER pass view_name, view_url, custom xdm, schema refs, mixin blobs, or tenant field groups. ' +
         'event_type accepts ANY string (datalist suggestions are optional). Requires email and/or ecid (10+ digits). After lab_generate_profile, pass BOTH for reliable stitching. ' +
+        'Fresh synthetic delivery test: omit timestamp for current UTC. Supplied historical timestamps can be rejected downstream as timestampExpired; never retimestamp/replay stored events to hide this. Verify exact stored activity, not just Edge acceptance. ' +
         'Server builds XDM via buildGeneratorEdgeInteractXdm → buildMinimalEdgeXdm (identityMap, eventType, _id, timestamp, interactionDetails when channel set). ' +
         'Do not hand-build public/message/xdm_style; use industry + industry_fields. Default target_id lab-event-tool-edge. ' +
         'Place context: pass place_area (a featured area such as riyadh/tokyo, or any catalog city; reuse the profile\'s place_context.city) or place_mode global, ' +
@@ -53,7 +54,7 @@ export function registerSendProfileEventTool(mcpServer) {
         channel: z.string().optional().describe('Interaction channel (web, mobile, Mobile App, email, …)'),
         orchestration_event_id: z.string().optional().describe('AJO orchestration event ID (sent as eventID)'),
         event_id: z.string().optional().describe('Alias for orchestration_event_id (portal eventID field)'),
-        timestamp: z.string().optional().describe('ISO-8601 event timestamp (also sets _id like Event tool)'),
+        timestamp: z.string().optional().describe('ISO-8601 event time. Omit for current UTC in fresh synthetic tests; historical values may expire in Profile.'),
         public: z
           .record(z.unknown())
           .optional()

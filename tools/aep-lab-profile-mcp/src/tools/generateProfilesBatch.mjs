@@ -20,6 +20,7 @@ import { checkGenerationPrefsConfigured } from './generationPrefs.mjs';
 import { resolveBatchEmail } from '../personaBuilder.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 import { generationTargetSchema, generateSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
+import { checkRecentEventMode } from '../labApiClient.mjs';
 
 const BATCH_MAX = 100;
 const MAX_DELAY_MS = 5000;
@@ -44,6 +45,8 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         'Travel loyalty_member (all industries, default false): LYL-* when true. Travel active_flight (true/false, omitted → random per profile). Retail last_order_details (default true). Optional delay_ms between items (default env AEP_LAB_MCP_BATCH_DELAY_MS, max 5000).',
       inputSchema: {
         target: generationTargetSchema,
+        event_time_mode: z.enum(['historical', 'recent']).optional()
+          .describe('Snowflake seed/activity timing: historical default or recent (past six UTC hours). On target aep, requires non-travel dual_load_snowflake + snowflake_enrichment.'),
         sandbox: z.string().describe('AEP sandbox name (MCP allowlist)'),
         industry: z
           .string()
@@ -140,6 +143,11 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
     },
     async (params) => {
       if (params.target !== 'aep') return generateSnowflakeProfiles(params, 'lab_generate_profiles_batch');
+      if (params.event_time_mode !== undefined
+        && (params.dual_load_snowflake !== true || params.snowflake_enrichment !== true
+          || !['fsi', 'retail', 'telecom', 'media', 'sports'].includes(normalizeIndustry(params.industry).industry))) {
+        return toolError('event_time_mode on target aep requires non-travel dual_load_snowflake:true and snowflake_enrichment:true. Use Snowflake seeding or lab_snowflake_enrich_profiles for travel.');
+      }
       const {
         sandbox,
         industry,
@@ -175,6 +183,10 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
+      if (params.event_time_mode === 'recent') {
+        const blocked = await checkRecentEventMode({ ...params, sandbox: allowed.sandbox });
+        if (blocked) return toolError(blocked.error, { profiles_created: false, job_created: false });
+      }
       const norm = normalizeIndustry(industry);
       if (!LAB_INDUSTRY_KEYS.includes(norm.industry)) {
         return toolError(`Unknown industry "${industry}". Supported: ${LAB_INDUSTRY_KEYS.join(', ')}.`);
@@ -291,6 +303,7 @@ export function registerGenerateProfilesBatchTool(mcpServer) {
             dual_load_snowflake_mode: dual_load_snowflake_mode || 'crm_generate',
             snowflake_enrichment: snowflake_enrichment === true,
             snowflake_event_types,
+            event_time_mode: params.event_time_mode,
             snowflake_table,
             place_mode: placeCheck.place_mode || null,
             place_area: placeCheck.place_area || null,

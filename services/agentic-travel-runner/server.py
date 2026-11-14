@@ -141,6 +141,9 @@ async def internal_enrich(request: Request) -> Response:
     _verify_signature(body, request.headers.get("X-Runner-Signature"))
 
     data = json.loads(body.decode("utf-8"))
+    event_time_mode = data.get("event_time_mode", "historical")
+    if event_time_mode not in ("historical", "recent"):
+        raise HTTPException(400, "event_time_mode must be historical or recent")
     profiles = data.get("profiles") or []
     event_types = data.get("event_types") or []
     if not profiles:
@@ -159,7 +162,7 @@ async def internal_enrich(request: Request) -> Response:
     wa.enrichment_status["message"] = "Starting enrichment..."
     wa.enrichment_status["last_result"] = None
 
-    wa.enrich_profiles_background(profiles, event_types)
+    wa.enrich_profiles_background(profiles, event_types, event_time_mode)
 
     lr = wa.enrichment_status.get("last_result")
     ok = isinstance(lr, dict) and lr.get("success") is True
@@ -171,4 +174,15 @@ async def internal_enrich(request: Request) -> Response:
         content=json.dumps(result),
         media_type="application/json",
         status_code=200 if ok else 500,
+    )
+
+
+@app.post("/internal/capabilities")
+async def internal_capabilities(request: Request) -> Response:
+    body = await request.body()
+    _verify_signature(body, request.headers.get("X-Runner-Signature"))
+    return Response(
+        content=json.dumps({"event_time_modes": ["historical", "recent"]}),
+        media_type="application/json",
+        status_code=200,
     )
