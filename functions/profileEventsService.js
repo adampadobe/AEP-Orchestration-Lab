@@ -313,7 +313,9 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
       }
       if (!res.ok) {
         const msg = data.message || data.error_description || data.title || res.statusText;
-        throw new Error(msg || `Profile API (events) ${res.status}`);
+        const error = new Error(msg || `Profile API (events) ${res.status}`);
+        error.status = res.status;
+        throw error;
       }
     } catch (err) {
       if (page === 0) throw err;
@@ -368,6 +370,7 @@ async function getProfileExperienceEventsWithNamespaceFallback(
 
   let last = { children: [] };
   let lastError;
+  let uncertainError;
   let succeeded = false;
   for (const tryNs of nsTries) {
     try {
@@ -379,9 +382,10 @@ async function getProfileExperienceEventsWithNamespaceFallback(
     } catch (err) {
       if (err.code === 'PROFILE_EVENTS_PAGE_FAILED') throw err;
       lastError = err;
+      if (err.status !== 400 && err.status !== 404) uncertainError = err;
     }
   }
-  if (!succeeded && lastError) throw lastError;
+  if (uncertainError || (!succeeded && lastError)) throw uncertainError || lastError;
   return last;
 }
 

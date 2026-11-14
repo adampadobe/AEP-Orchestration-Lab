@@ -49,6 +49,15 @@ test('allows an empty successful fallback namespace after an unsupported namespa
   });
 });
 
+test('reports an uncertain fallback failure even if another namespace returned no events', async () => {
+  await withFetch(profileOrEvents((params) =>
+    params.get('relatedEntityIdNS') === 'ECID'
+      ? response({ children: [] })
+      : response({ message: 'Profile unavailable' }, 503)), async () => {
+    await assert.rejects(loadEvents(), /Profile unavailable/);
+  });
+});
+
 test('returns events from a successful fallback namespace', async () => {
   await withFetch(profileOrEvents((params) =>
     params.get('relatedEntityIdNS') === 'ECID'
