@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.56.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.57.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
@@ -52,8 +52,11 @@ and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-
 ### Owner-reviewed scheduled seed skip (General only)
 
 Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
-only, not arbitrary future days, industries or generation counts. The backend
-enforces this exact target despite the unchanged receipt interface;
+and the reviewed **2026-11-15 / slot 01 / media / count 1** preparation failure,
+not arbitrary future days, industries or generation counts. Media additionally
+requires the exact saved start/update times and attempted budget 3; empty
+identities alone do not allow arbitrary interrupted slots to be skipped.
+The backend enforces the reviewed day/slot pair and prewrite attempt despite the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.
 
 `lab_profile_seed_schedule_skip_preview` and

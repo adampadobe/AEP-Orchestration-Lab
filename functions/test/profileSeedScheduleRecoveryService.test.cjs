@@ -17,18 +17,22 @@ const config = {
   days: [0, 1, 2, 3, 4, 5], dailyCap: 50, campaignIsolationReviewed: true,
   unrelated: { retained: true, privateValue: 'never-output' },
 };
-function fixture(idle = false) {
-  let clock = new Date('2026-11-13T12:00:00Z');
+function fixture(idle = false, media = false) {
+  const day = media ? '2026-11-15' : '2026-11-11';
+  const dayKey = `${root}/days/${day}`;
+  const slotId = media ? '01' : '15';
+  let clock = new Date(media ? '2026-11-15T09:00:00Z' : '2026-11-13T12:00:00Z');
   let owner = { uid: 'owner', disabled: false };
   const data = new Map([
     [root, structuredClone(config)],
-    [control, { blocked: true, active: null, attention: { day, id: '15' }, unrelated: 'retained' }],
-    [dayKey, { day, fingerprint: validateConfig(config).fingerprint, attemptedCount: 5, plannedCount: 7,
+    [control, { blocked: true, active: null, attention: { day, id: slotId }, unrelated: 'retained' }],
+    [dayKey, { day, fingerprint: validateConfig(config).fingerprint, attemptedCount: media ? 3 : 5, plannedCount: 7,
       seed: 'retain-seed', unrelated: 'retained', slots: [
         { id: '14', state: 'committed', identities: [{ email: 'old-private@example.test' }] },
-        { id: '15', industry: 'retail', count: 2, state: 'needs_attention', identities: [],
+        { id: slotId, industry: media ? 'media' : 'retail', count: media ? 1 : 2, state: 'needs_attention', identities: [],
           dueAt: '2026-11-11T12:54:00Z', startedAt: '2026-11-11T12:55:00Z',
-          errorCode: 'SEED_INGESTION_NOT_HEALTHY', ingestion: 'unverified',
+          errorCode: media ? 'SEED_EXECUTION_INTERRUPTED' : 'SEED_INGESTION_NOT_HEALTHY', ingestion: 'unverified',
+          ...(media ? { startedAt: '2026-11-15T06:10:08.193Z', updatedAt: '2026-11-15T06:10:21.029Z' } : {}),
           flowHealth: { healthy: false, issues: [{ code: 'failed_count_unknown' }] } },
         { id: '16', state: 'pending', identities: [], dueAt: '2026-11-11T13:00:00Z' },
       ] }],
@@ -95,13 +99,78 @@ function fixture(idle = false) {
     snapshot: () => snapshot, setSnapshot: (next) => { snapshot = next; },
     setOwner: (next) => { owner = next; }, race: (action) => { beforeTransaction = action; },
     conflict: (action) => { onConflict = action; }, onFlowRead: (action) => { onFlowRead = action; },
-    preview: (input = {}) => service.preview({ ...scope, input: { day, slot_id: '15', ...input } }),
+    preview: (input = {}) => service.preview({ ...scope, input: { day, slot_id: slotId, ...input } }),
     apply: (preview, input = {}) => service.apply({ ...scope, input: {
       plan_id: preview.plan_id, manifest_digest: preview.manifest_digest, expected_count: preview.expected_count,
       confirmed: true, skip_only_acknowledged: true, confirmation_phrase: preview.confirmation_phrase, ...input,
     } }),
   };
 }
+
+test('exact reviewed media preparation failure skips once without changing its budget or other slots', async () => {
+  const f = fixture(false, true);
+  const key = `${root}/days/2026-11-15`;
+  const original = structuredClone(f.data.get(key));
+  const p = await f.preview();
+  assert.equal(p.confirmation_phrase, 'SKIP ONLY 2026-11-15/01');
+  assert.equal(p.target.attempted_count, 3);
+  assert.equal(p.target.count, 1);
+  const result = await f.apply(p);
+  assert.equal(result.dispatcher_unblocked, true);
+  assert.equal(f.slot().state, 'skipped');
+  assert.equal(f.slot().errorCode, 'SEED_EXECUTION_INTERRUPTED');
+  assert.deepEqual(f.slot().identities, []);
+  assert.equal(f.data.get(key).attemptedCount, 3);
+  assert.deepEqual(f.data.get(key).slots[0], original.slots[0]);
+  assert.deepEqual(f.data.get(key).slots[2], original.slots[2]);
+  assert.equal(f.slot().recovery.previousErrorCode, 'SEED_EXECUTION_INTERRUPTED');
+  await assert.rejects(f.apply(p), { status: 409 });
+});
+
+test('media recovery rejects a changed attempt, possible writes, active writers and unmatched incidents', async () => {
+  for (const mutate of [
+    (f) => { f.slot().startedAt = '2026-11-15T06:11:00Z'; },
+    (f) => { delete f.slot().updatedAt; },
+    (f) => { f.slot().updatedAt = '2026-11-15T06:10:22Z'; },
+    (f) => { f.data.get(`${root}/days/2026-11-15`).attemptedCount = 4; },
+    (f) => { f.slot().industry = 'retail'; },
+    (f) => { f.slot().count = 2; },
+    (f) => { f.slot().errorCode = 'SEED_OUTCOME_UNKNOWN'; },
+    (f) => { f.slot().runStamp = null; },
+    (f) => { f.slot().sourceWrites = {}; },
+    (f) => { f.slot().identities = [{ email: 'private' }]; },
+    (f) => { f.data.get(control).active = { day: '2026-11-15', id: '01' }; },
+  ]) {
+    const f = fixture(false, true);
+    mutate(f);
+    await assert.rejects(f.preview(), { status: 409 });
+    assert.equal(f.writes, 0);
+  }
+  for (const input of [{ day: '2026-11-11' }, { day: '2026-11-16' }, { slot_id: '15' }, { slot_id: '02' }]) {
+    const f = fixture(false, true);
+    await assert.rejects(f.preview(input), { status: 403 });
+    assert.equal(f.writes, 0);
+  }
+  const f = fixture(false, true);
+  const p = await f.preview();
+  f.race(() => { f.slot().runStamp = 'possible-write'; });
+  await assert.rejects(f.apply(p), { status: 409 });
+  assert.equal(f.slot().state, 'needs_attention');
+  assert.equal(f.writes, 1);
+});
+
+test('media skip retains explicit idle-policy acknowledgement and unknown counters', async () => {
+  const f = fixture(true, true);
+  assert.equal((await f.preview()).status, 'blocked');
+  const p = await f.preview({ allow_verified_idle_runs: true });
+  assert.equal(p.status, 'policy_review_required');
+  assert.equal(p.proposedFlowHealth.flows[0].lastRun.failedCount, null);
+  await assert.rejects(f.apply(p), { status: 409 });
+  const result = await f.apply(p, { idle_readiness_acknowledged: true });
+  assert.equal(result.flowHealth.flows[0].lastRun.failedCount, null);
+  assert.equal(f.data.get(`${root}/days/2026-11-15`).attemptedCount, 3);
+  assert.deepEqual(f.slot().identities, []);
+});
 
 test('skip-only recovery is atomic, auditable, consumes receipt and leaves old pending slots and budget intact', async () => {
   const f = fixture();
