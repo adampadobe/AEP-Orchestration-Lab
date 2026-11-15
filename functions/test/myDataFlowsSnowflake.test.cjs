@@ -143,6 +143,39 @@ test('scheduled batches reuse the pinned no-provisioning adapter with opt-in ong
   assert.equal(input.sandbox, 'apalmer');
 });
 
+test('scheduled recent timing reaches linked source records without changing ordinary generation defaults', async () => {
+  const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGenerator');
+  const { buildSeedRecord } = require('../snowflakeSeedStore');
+  const { RECENT_EVENT_WINDOW_MS } = require('../snowflakeEventTimeMode');
+  const stamp = '2026-11-16T05:10:00.000Z';
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    const f = fixture({ industry, generateProfiles: async (input) => {
+      assert.equal(input.eventTimeMode, 'recent', industry);
+      const { rowObject } = generateIndustryProfileRow(industry, {
+        idx: 2000, email: identity.email, ecid: identity.ecid, crmId: identity.crmId, runStamp: stamp,
+      });
+      const record = buildSeedRecord(industry, rowObject, {
+        index: 0, runStamp: stamp, eventTimeMode: input.eventTimeMode,
+      });
+      const events = listIndustryEventTables(industry).filter(({ kind }) => kind === 'event')
+        .flatMap(({ key }) => record.events.rowsByType[key]);
+      assert.ok(events.length, industry);
+      for (const event of events) {
+        const age = Date.parse(stamp) - Date.parse(event.TIMESTAMP);
+        assert.ok(age >= 0 && age <= RECENT_EVENT_WINDOW_MS, `${industry}: ${event.TIMESTAMP}`);
+        assert.equal(event.EMAIL, record.parent.EMAIL);
+        assert.equal(event.ECID, record.parent.ECID);
+        assert.equal(event.CRMID, record.parent.CRMID);
+      }
+      return { ok: true };
+    } });
+    await f.adapter.generate({ uid: 'owner', industry, eventTimeMode: 'recent' });
+  }
+  const ordinary = fixture();
+  await ordinary.adapter.generate({ uid: 'owner', industry: 'retail' });
+  assert.equal(ordinary.generated().eventTimeMode, undefined);
+});
+
 test('non-travel preflight accepts deployed 64-character recipient columns and rejects narrower ones', async () => {
   for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
     for (const width of [64, 320, 33]) {

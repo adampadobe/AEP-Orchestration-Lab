@@ -334,8 +334,9 @@ an explicitly selected industry, or on `lab_snowflake_enrich_profiles` for
 approved existing identities. `lab_snowflake_generate_base_profiles` also
 accepts it with an explicit industry. The API accepts `eventTimeMode` or
 `event_time_mode` (conflicting aliases fail). Historical mode remains the
-default, including scheduled runs; no existing events, retention or flows are
-changed.
+default for manual generation and travel scheduled runs. Future non-travel
+scheduled runs explicitly select recent mode; no existing events, retention or
+flows are changed or replayed.
 
 Recent mode generates new activity in the past six UTC hours, not six months of
 salary or billing merely stamped as today. It preserves transaction/application
