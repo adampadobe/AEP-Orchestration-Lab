@@ -17,23 +17,36 @@ const config = {
   days: [0, 1, 2, 3, 4, 5], dailyCap: 50, campaignIsolationReviewed: true,
   unrelated: { retained: true, privateValue: 'never-output' },
 };
-function fixture(idle = false, media = false) {
-  const day = media ? '2026-11-15' : '2026-11-11';
+function fixture(idle = false, media = false, travel = false) {
+  const day = media || travel ? '2026-11-15' : '2026-11-11';
   const dayKey = `${root}/days/${day}`;
   const slotId = media ? '01' : '15';
-  let clock = new Date(media ? '2026-11-15T09:00:00Z' : '2026-11-13T12:00:00Z');
+  let clock = new Date(media ? '2026-11-15T09:00:00Z'
+    : travel ? '2026-11-15T14:00:00Z' : '2026-11-13T12:00:00Z');
   let owner = { uid: 'owner', disabled: false };
+  const recoverySlot = travel ? {
+    id: slotId, industry: 'travel', count: 1, state: 'needs_attention',
+    dueAt: '2026-11-15T13:10:00.000Z', startedAt: '2026-11-15T13:10:08.231Z',
+    updatedAt: '2026-11-15T13:10:16.924Z', reason: null,
+    errorCode: 'SEED_EXECUTION_INTERRUPTED', ingestion: 'unverified',
+    preparedIdentityCount: 0, flowHealthAtFailure: null,
+  } : {
+    id: slotId, industry: media ? 'media' : 'retail', count: media ? 1 : 2,
+    state: 'needs_attention', identities: [], dueAt: '2026-11-11T12:54:00Z',
+    startedAt: '2026-11-11T12:55:00Z',
+    errorCode: media ? 'SEED_EXECUTION_INTERRUPTED' : 'SEED_INGESTION_NOT_HEALTHY',
+    ingestion: 'unverified',
+    ...(media ? { startedAt: '2026-11-15T06:10:08.193Z', updatedAt: '2026-11-15T06:10:21.029Z' } : {}),
+    flowHealth: { healthy: false, issues: [{ code: 'failed_count_unknown' }] },
+  };
   const data = new Map([
     [root, structuredClone(config)],
     [control, { blocked: true, active: null, attention: { day, id: slotId }, unrelated: 'retained' }],
-    [dayKey, { day, fingerprint: validateConfig(config).fingerprint, attemptedCount: media ? 3 : 5, plannedCount: 7,
+    [dayKey, { day, fingerprint: validateConfig(config).fingerprint,
+      attemptedCount: media ? 3 : travel ? 6 : 5, plannedCount: 7,
       seed: 'retain-seed', unrelated: 'retained', slots: [
         { id: '14', state: 'committed', identities: [{ email: 'old-private@example.test' }] },
-        { id: slotId, industry: media ? 'media' : 'retail', count: media ? 1 : 2, state: 'needs_attention', identities: [],
-          dueAt: '2026-11-11T12:54:00Z', startedAt: '2026-11-11T12:55:00Z',
-          errorCode: media ? 'SEED_EXECUTION_INTERRUPTED' : 'SEED_INGESTION_NOT_HEALTHY', ingestion: 'unverified',
-          ...(media ? { startedAt: '2026-11-15T06:10:08.193Z', updatedAt: '2026-11-15T06:10:21.029Z' } : {}),
-          flowHealth: { healthy: false, issues: [{ code: 'failed_count_unknown' }] } },
+        recoverySlot,
         { id: '16', state: 'pending', identities: [], dueAt: '2026-11-11T13:00:00Z' },
       ] }],
   ]);
@@ -77,7 +90,8 @@ function fixture(idle = false, media = false) {
       startedAtUTC: +clock - 120_000, completedAtUTC: +clock - 60_000,
     } };
   let snapshot = { complete: true, fetchedAt: clock.toISOString(), flows: [{
-    id: 'flow-a', sourceTables: ['REL.RETAIL'], sourceConnectionId: 'source-a', targetConnectionId: 'target-a',
+    id: 'flow-a', sourceTables: [travel ? 'REL.RECIPIENT' : 'REL.RETAIL'],
+    sourceConnectionId: 'source-a', targetConnectionId: 'target-a',
     state: 'enabled', schedule: { frequency: 'minute', interval: 15 },
     datasets: [{ id: 'dataset-a' }], mappings: [{ id: 'mapping-a', version: 1 }],
     lastRun: idle ? runSummary({ id: 'run-a', metrics, activities: [{
@@ -127,6 +141,51 @@ test('exact reviewed media preparation failure skips once without changing its b
   await assert.rejects(f.apply(p), { status: 409 });
 });
 
+test('exact reviewed travel interruption with zero prepared identities skips once without changing its budget', async () => {
+  const f = fixture(false, false, true);
+  const key = `${root}/days/2026-11-15`;
+  const original = structuredClone(f.data.get(key));
+  const p = await f.preview();
+  assert.equal(p.status, 'ready');
+  assert.equal(p.confirmation_phrase, 'SKIP ONLY 2026-11-15/15');
+  assert.equal(p.target.attempted_count, 6);
+  assert.equal(p.target.count, 1);
+  const result = await f.apply(p);
+  assert.equal(result.dispatcher_unblocked, true);
+  assert.equal(f.slot().state, 'skipped');
+  assert.equal(f.slot().errorCode, 'SEED_EXECUTION_INTERRUPTED');
+  assert.equal(f.slot().preparedIdentityCount, 0);
+  assert.equal(Object.hasOwn(f.slot(), 'identities'), false);
+  assert.equal(f.data.get(key).attemptedCount, 6);
+  assert.deepEqual(f.data.get(key).slots[0], original.slots[0]);
+  assert.deepEqual(f.data.get(key).slots[2], original.slots[2]);
+  await assert.rejects(f.apply(p), { status: 409 });
+});
+
+test('travel recovery rejects any change to the exact interrupted prewrite signature', async () => {
+  for (const mutate of [
+    (f) => { f.slot().startedAt = '2026-11-15T13:10:09.000Z'; },
+    (f) => { f.slot().updatedAt = '2026-11-15T13:10:17.000Z'; },
+    (f) => { f.slot().dueAt = '2026-11-15T13:11:00.000Z'; },
+    (f) => { f.slot().preparedIdentityCount = 1; },
+    (f) => { f.slot().identities = []; },
+    (f) => { f.slot().flowHealthAtFailure = { healthy: false }; },
+    (f) => { f.slot().reason = 'changed'; },
+    (f) => { f.data.get(`${root}/days/2026-11-15`).attemptedCount = 7; },
+    (f) => { f.slot().sourceWrite = true; },
+  ]) {
+    const f = fixture(false, false, true);
+    mutate(f);
+    await assert.rejects(f.preview(), { status: 409 });
+    assert.equal(f.writes, 0);
+  }
+  for (const input of [{ day: '2026-11-16' }, { slot_id: '02' }]) {
+    const f = fixture(false, false, true);
+    await assert.rejects(f.preview(input), { status: 403 });
+    assert.equal(f.writes, 0);
+  }
+});
+
 test('media recovery rejects a changed attempt, possible writes, active writers and unmatched incidents', async () => {
   for (const mutate of [
     (f) => { f.slot().startedAt = '2026-11-15T06:11:00Z'; },
@@ -146,7 +205,7 @@ test('media recovery rejects a changed attempt, possible writes, active writers 
     await assert.rejects(f.preview(), { status: 409 });
     assert.equal(f.writes, 0);
   }
-  for (const input of [{ day: '2026-11-11' }, { day: '2026-11-16' }, { slot_id: '15' }, { slot_id: '02' }]) {
+  for (const input of [{ day: '2026-11-11' }, { day: '2026-11-16' }, { slot_id: '02' }]) {
     const f = fixture(false, true);
     await assert.rejects(f.preview(input), { status: 403 });
     assert.equal(f.writes, 0);
