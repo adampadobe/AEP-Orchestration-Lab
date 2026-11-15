@@ -141,6 +141,17 @@ test('POST recovery forwards only validated input and verified identity to disti
   assert.equal(ctx.calls[1].input.expected_count, 3);
 });
 
+test('POST accepts the media slot identifier while leaving exact incident authorization to recovery', async () => {
+  const ctx = fixture();
+  const body = { ...previewBody, day: '2026-11-15', slot_id: '01' };
+  assert.equal((await ctx.request({}, undefined, 'POST', body)).statusCode, 200);
+  assert.equal(ctx.calls[0].input.day, body.day);
+  assert.equal(ctx.calls[0].input.slot_id, '01');
+  const invalid = fixture();
+  assert.equal((await invalid.request({}, undefined, 'POST', { ...body, slot_id: '02' })).statusCode, 400);
+  assert.equal(invalid.tokens, 0);
+});
+
 test('method isolation and malformed recovery inputs fail before token or service access', async () => {
   const cases = [
     [{ action: previewBody.action }, 'GET', undefined, 405],

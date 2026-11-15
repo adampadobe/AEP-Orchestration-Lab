@@ -38,10 +38,24 @@ separately.
 ## Reviewed scheduled-seed recovery and verified-idle readiness
 
 Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
-only. The backend rejects other days, slots, industries or generation counts;
+and the separately reviewed **2026-11-15 / slot 01 / media / count 1**
+preparation failure. The media target additionally requires the exact saved
+attempt (`startedAt: 2026-11-15T06:10:08.193Z`,
+`updatedAt: 2026-11-15T06:10:21.029Z`, attempted budget 3). Neither an arbitrary
+`SEED_EXECUTION_INTERRUPTED` failure nor a later recreated attempt is eligible.
+The backend rejects other day/slot pairs, industries or generation counts;
 this is not a general recovery interface for arbitrary future incidents. The
 receipt interface is unchanged: `expected_count` counts reviewed recovery
 targets, not the slot's generation count.
+
+The media review combines the original preparation-stage log, empty saved
+identities/no preparation stamp, the durable `onPrepared` barrier before
+`writeSeedRecords`, and a bounded source inspection: no rows were created in
+the shared parent or six media source tables between 06:09 and 06:20 UTC.
+It does not reconstruct the masked underlying exception or establish that
+every possible infrastructure side effect was absent. Prepared/ambiguous writes,
+an active writer or any attempt/state drift remain ineligible. Source health
+and the released recipient-width correction do not themselves clear the block.
 
 The scheduler's default health policy is strict: a missing failed-record count
 is unknown, not zero, and blocks readiness. Successful empty Snowflake runs can

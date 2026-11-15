@@ -4,8 +4,13 @@ const { createHash, randomUUID } = require('node:crypto');
 const { validateConfig, healthPolicy, diagnoseFlowHealth, IDLE_POLICY } = require('./profileSeedScheduleService');
 
 const ORG = 'BF9C27AA6464801C0A495FD0@AdobeOrg';
-const INCIDENT_DAY = '2026-11-11';
-const INCIDENT_SLOT = '15';
+const INCIDENTS = Object.freeze([
+  { day: '2026-11-11', slotId: '15', industry: 'retail', count: 2,
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY' },
+  { day: '2026-11-15', slotId: '01', industry: 'media', count: 1,
+    errorCode: 'SEED_EXECUTION_INTERRUPTED', attemptedCount: 3,
+    startedAt: '2026-11-15T06:10:08.193Z', updatedAt: '2026-11-15T06:10:21.029Z' },
+]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const reject = (status, code) => { throw Object.assign(new Error(code), { status, code }); };
@@ -19,8 +24,14 @@ function canonical(value) {
 }
 const digest = (value) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 
+function reviewedIncident(target) {
+  const incident = INCIDENTS.find(({ day, slotId }) => day === target.day && slotId === target.slotId);
+  if (!incident) reject(403, 'SEED_RECOVERY_INCIDENT_SCOPE_DENIED');
+  return incident;
+}
+
 function targetState({ config, dispatcher, day }, target) {
-  if (target.day !== INCIDENT_DAY || target.slotId !== INCIDENT_SLOT) reject(403, 'SEED_RECOVERY_INCIDENT_SCOPE_DENIED');
+  const incident = reviewedIncident(target);
   let validated;
   try { validated = validateConfig(config); } catch { reject(409, 'SEED_RECOVERY_CONFIG_INVALID'); }
   if (!validated || validated.ownerUid !== target.principalUid || validated.sandbox !== target.sandbox) {
@@ -37,9 +48,11 @@ function targetState({ config, dispatcher, day }, target) {
   const slots = day.slots.filter((slot) => slot.id === target.slotId);
   const slot = slots[0];
   if (slots.length !== 1 || slot.state !== 'needs_attention'
-    || slot.errorCode !== 'SEED_INGESTION_NOT_HEALTHY'
+    || slot.errorCode !== incident.errorCode
     || !Array.isArray(slot.identities) || slot.identities.length !== 0
-    || slot.industry !== 'retail' || slot.count !== 2 || day.attemptedCount < slot.count
+    || slot.industry !== incident.industry || slot.count !== incident.count || day.attemptedCount < slot.count
+    || (incident.startedAt && (slot.startedAt !== incident.startedAt || slot.updatedAt !== incident.updatedAt
+      || day.attemptedCount !== incident.attemptedCount))
     || !['unverified', 'not_started', undefined].includes(slot.ingestion)
     || ['runStamp', 'tableRowcounts', 'committed', 'outcomeUnknown', 'writeEvidence',
       'sourceWrite', 'sourceWrites', 'preparedAt', 'committedAt', 'recovery'].some((key) => Object.hasOwn(slot, key))
@@ -89,7 +102,7 @@ function createProfileSeedScheduleRecoveryService({ store, flowSnapshot, getOwne
       reject(400, 'SEED_RECOVERY_TARGET_INVALID');
     }
     const target = { principalUid, sandbox, orgId, day: input.day, slotId: input.slot_id };
-    if (target.day !== INCIDENT_DAY || target.slotId !== INCIDENT_SLOT) reject(403, 'SEED_RECOVERY_INCIDENT_SCOPE_DENIED');
+    reviewedIncident(target);
     const state = await readState(target.day);
     const current = targetState(state, target);
     const clock = now();
