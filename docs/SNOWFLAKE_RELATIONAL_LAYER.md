@@ -649,6 +649,12 @@ stop and review its data before migration; do not drop it or silently replace it
 with the view. Runtime preparation rejects incompatible recipient objects,
 duplicate base ECIDs, and non-null base keys that disagree with their ECID hash
 rather than silently duplicating people or rewriting their keys.
+All six customer profile contracts use `RECIPIENT_ID VARCHAR(64)`, matching the
+shared parent and its canonical `R-` plus 32-hex-character ECID-derived key.
+Readiness accepts existing wider recipient columns but rejects columns narrower
+than 64; it does not require widening deployed 64-character columns to the
+320-character default used by other profile strings. No live table alteration
+or failed-slot replay is needed for this contract correction.
 Existing AEP flows do not automatically expose added fields:
 review schema/data-prep mapping and incremental ingestion before relying on
 them in a demo.
