@@ -143,6 +143,28 @@ test('scheduled batches reuse the pinned no-provisioning adapter with opt-in ong
   assert.equal(input.sandbox, 'apalmer');
 });
 
+test('non-travel preflight accepts deployed 64-character recipient columns and rejects narrower ones', async () => {
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    for (const width of [64, 320, 33]) {
+      const f = fixture({ industry, changeMetadata: (rows) => rows.map((row) =>
+        row.TABLE_NAME === INDUSTRY_CONFIG[industry].table && row.COLUMN_NAME === 'RECIPIENT_ID'
+          ? { ...row, CHARACTER_MAXIMUM_LENGTH: width } : row) });
+      if (width >= 64) {
+        const result = await f.adapter.preflight({ uid: 'owner', industry });
+        assert.equal(result.ready, true, `${industry}: ${width}`);
+      } else {
+        await assert.rejects(f.adapter.preflight({ uid: 'owner', industry }), (error) =>
+          error.code === 'SNOWFLAKE_NOT_READY' && error.evidence.some((entry) =>
+            entry.table.endsWith(INDUSTRY_CONFIG[industry].table)
+            && entry.incompatibleColumns?.includes('RECIPIENT_ID')));
+      }
+      assert.equal(f.closed(), 1);
+      assert.ok(f.calls.every(({ sql }) => sql.startsWith('SELECT ')));
+      assert.equal(f.generated(), undefined);
+    }
+  }
+});
+
 test('preflight fails closed on missing columns, wrong types, narrow columns and wrong object kinds', async () => {
   for (const changeMetadata of [
     (rows) => rows.filter((row) => row.COLUMN_NAME !== 'PHONENUMBER'),

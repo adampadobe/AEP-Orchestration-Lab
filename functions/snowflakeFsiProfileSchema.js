@@ -15,6 +15,7 @@ const NUMBER_COLUMNS = new Set([
   'MORTGAGEBALANCE', 'INVESTMENTVALUE', 'CREDITCARDLIMIT', 'MONTHLYCREDITSPEND',
 ]);
 const COLUMN_DDL = COLUMNS.map((column) => {
+  if (column === 'RECIPIENT_ID') return `${column} VARCHAR(64)`;
   if (column === 'PUSHTOKENS') return `${column} ARRAY`;
   if (column === 'TESTPROFILE') return `${column} BOOLEAN`;
   if (NUMBER_COLUMNS.has(column)) return `${column} NUMBER(18,2)`;

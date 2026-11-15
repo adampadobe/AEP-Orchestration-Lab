@@ -13,6 +13,7 @@ const COLUMNS = [
 const NUMBER_COLUMNS = new Set(['LIFETIMEVALUE', 'MONTHLYFEE', 'VIEWINGMINUTESMONTHLY', 'DOWNLOADSPERMONTH']);
 const BOOL_COLUMNS = new Set(['TESTPROFILE', 'ADSUPPORTED', 'LIVESPORTSPACKAGE', 'KIDPROFILEENABLED']);
 const COLUMN_DDL = COLUMNS.map((column) => {
+  if (column === 'RECIPIENT_ID') return `${column} VARCHAR(64)`;
   if (column === 'PUSHTOKENS') return `${column} ARRAY`;
   if (BOOL_COLUMNS.has(column)) return `${column} BOOLEAN`;
   if (NUMBER_COLUMNS.has(column)) return `${column} NUMBER(18,2)`;

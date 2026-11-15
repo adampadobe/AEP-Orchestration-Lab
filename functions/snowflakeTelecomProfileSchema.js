@@ -14,6 +14,7 @@ const NUMBER_COLUMNS = new Set([
   'LIFETIMEVALUE', 'MONTHLYSPEND', 'DATAALLOWANCEGB', 'DATAUSAGEGB', 'NETWORKNPS', 'TOTALCALLMINUTES', 'CHURNRISK',
 ]);
 const COLUMN_DDL = COLUMNS.map((column) => {
+  if (column === 'RECIPIENT_ID') return `${column} VARCHAR(64)`;
   if (column === 'PUSHTOKENS') return `${column} ARRAY`;
   if (column === 'TESTPROFILE' || column === 'UPGRADEELIGIBLE') return `${column} BOOLEAN`;
   if (NUMBER_COLUMNS.has(column)) return `${column} NUMBER(18,2)`;
