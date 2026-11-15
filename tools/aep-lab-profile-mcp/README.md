@@ -54,10 +54,10 @@ and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-
 Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**,
 the reviewed **2026-11-15 / slot 01 / media / count 1** preparation failure,
 and the exact **2026-11-15 / slot 15 / travel / count 1** interrupted prewrite
-with zero prepared identities. The media and travel cases require exact saved
-timestamps and attempted budgets (3 and 6 respectively); the travel slot also
-requires the exact saved field shape. Empty identities alone do not allow
-arbitrary interrupted slots to be skipped.
+with an empty persisted `identities` array. The media and travel cases require
+exact saved timestamps and attempted budgets (3 and 6 respectively); the travel
+slot also requires the scheduler's exact saved field shape. Empty identities
+alone do not allow arbitrary interrupted slots to be skipped.
 The backend enforces the reviewed day/slot pair and prewrite attempt despite the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.
 

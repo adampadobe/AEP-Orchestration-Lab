@@ -26,10 +26,9 @@ function fixture(idle = false, media = false, travel = false) {
   let owner = { uid: 'owner', disabled: false };
   const recoverySlot = travel ? {
     id: slotId, industry: 'travel', count: 1, state: 'needs_attention',
-    dueAt: '2026-11-15T13:10:00.000Z', startedAt: '2026-11-15T13:10:08.231Z',
-    updatedAt: '2026-11-15T13:10:16.924Z', reason: null,
+    dueAt: '2026-11-15T13:10:00.000Z', identities: [],
+    startedAt: '2026-11-15T13:10:08.231Z', updatedAt: '2026-11-15T13:10:16.924Z',
     errorCode: 'SEED_EXECUTION_INTERRUPTED', ingestion: 'unverified',
-    preparedIdentityCount: 0, flowHealthAtFailure: null,
   } : {
     id: slotId, industry: media ? 'media' : 'retail', count: media ? 1 : 2,
     state: 'needs_attention', identities: [], dueAt: '2026-11-11T12:54:00Z',
@@ -154,8 +153,8 @@ test('exact reviewed travel interruption with zero prepared identities skips onc
   assert.equal(result.dispatcher_unblocked, true);
   assert.equal(f.slot().state, 'skipped');
   assert.equal(f.slot().errorCode, 'SEED_EXECUTION_INTERRUPTED');
-  assert.equal(f.slot().preparedIdentityCount, 0);
-  assert.equal(Object.hasOwn(f.slot(), 'identities'), false);
+  assert.deepEqual(f.slot().identities, []);
+  assert.equal(Object.hasOwn(f.slot(), 'preparedIdentityCount'), false);
   assert.equal(f.data.get(key).attemptedCount, 6);
   assert.deepEqual(f.data.get(key).slots[0], original.slots[0]);
   assert.deepEqual(f.data.get(key).slots[2], original.slots[2]);
@@ -167,10 +166,11 @@ test('travel recovery rejects any change to the exact interrupted prewrite signa
     (f) => { f.slot().startedAt = '2026-11-15T13:10:09.000Z'; },
     (f) => { f.slot().updatedAt = '2026-11-15T13:10:17.000Z'; },
     (f) => { f.slot().dueAt = '2026-11-15T13:11:00.000Z'; },
-    (f) => { f.slot().preparedIdentityCount = 1; },
-    (f) => { f.slot().identities = []; },
-    (f) => { f.slot().flowHealthAtFailure = { healthy: false }; },
-    (f) => { f.slot().reason = 'changed'; },
+    (f) => { f.slot().preparedIdentityCount = 0; },
+    (f) => { f.slot().identities = [{ email: 'private' }]; },
+    (f) => { f.slot().flowHealth = null; },
+    (f) => { f.slot().reason = null; },
+    (f) => { delete f.slot().identities; },
     (f) => { f.data.get(`${root}/days/2026-11-15`).attemptedCount = 7; },
     (f) => { f.slot().sourceWrite = true; },
   ]) {

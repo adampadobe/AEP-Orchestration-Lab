@@ -13,9 +13,9 @@ const INCIDENTS = Object.freeze([
   { day: '2026-11-15', slotId: '15', industry: 'travel', count: 1,
     errorCode: 'SEED_EXECUTION_INTERRUPTED', attemptedCount: 6,
     dueAt: '2026-11-15T13:10:00.000Z', startedAt: '2026-11-15T13:10:08.231Z',
-    updatedAt: '2026-11-15T13:10:16.924Z', preparedIdentityCount: 0,
-    slotKeys: ['count', 'dueAt', 'errorCode', 'flowHealthAtFailure', 'id', 'industry',
-      'ingestion', 'preparedIdentityCount', 'reason', 'startedAt', 'state', 'updatedAt'] },
+    updatedAt: '2026-11-15T13:10:16.924Z',
+    slotKeys: ['count', 'dueAt', 'errorCode', 'id', 'identities', 'industry',
+      'ingestion', 'startedAt', 'state', 'updatedAt'] },
 ]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
@@ -53,21 +53,19 @@ function targetState({ config, dispatcher, day }, target) {
   if (day.slots.some((slot) => !slot || typeof slot !== 'object')) reject(409, 'SEED_RECOVERY_DAY_MALFORMED');
   const slots = day.slots.filter((slot) => slot.id === target.slotId);
   const slot = slots[0];
-  if (slots.length !== 1 || slot.state !== 'needs_attention'
+  const hasNoPreparedIdentities = slots.length === 1
+    && Array.isArray(slot.identities) && slot.identities.length === 0
+    && (!incident.slotKeys || JSON.stringify(Object.keys(slot).sort()) === JSON.stringify(incident.slotKeys));
+  if (!hasNoPreparedIdentities || slot.state !== 'needs_attention'
     || slot.errorCode !== incident.errorCode
-    || (incident.preparedIdentityCount === undefined
-      ? !Array.isArray(slot.identities) || slot.identities.length !== 0
-      : slot.preparedIdentityCount !== 0 || Object.hasOwn(slot, 'identities')
-        || slot.reason !== null || slot.flowHealthAtFailure !== null || slot.dueAt !== incident.dueAt
-        || JSON.stringify(Object.keys(slot).sort()) !== JSON.stringify(incident.slotKeys))
+    || (incident.dueAt && slot.dueAt !== incident.dueAt)
     || slot.industry !== incident.industry || slot.count !== incident.count || day.attemptedCount < slot.count
     || (incident.startedAt && (slot.startedAt !== incident.startedAt || slot.updatedAt !== incident.updatedAt
       || day.attemptedCount !== incident.attemptedCount))
     || !['unverified', 'not_started', undefined].includes(slot.ingestion)
     || ['runStamp', 'tableRowcounts', 'committed', 'outcomeUnknown', 'writeEvidence',
       'sourceWrite', 'sourceWrites', 'preparedAt', 'committedAt', 'recovery'].some((key) => Object.hasOwn(slot, key))
-    || Object.keys(slot).some((key) => !(incident.preparedIdentityCount === 0 && key === 'preparedIdentityCount')
-      && /(write|commit|prepar|stamp|outcome|rowcount|batch|receipt)/i.test(key))
+    || Object.keys(slot).some((key) => /(write|commit|prepar|stamp|outcome|rowcount|batch|receipt)/i.test(key))
     || day.slots.some((item) => item.state === 'running'
       || (item !== slot && item.state === 'needs_attention'))) {
     reject(409, 'SEED_RECOVERY_SLOT_NOT_PREWRITE_FAILURE');
