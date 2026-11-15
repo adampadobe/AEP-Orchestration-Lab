@@ -196,6 +196,28 @@ test('only one plan and writer survive duplicate and concurrent ticks', async ()
   assert.equal(JSON.stringify(f.logs).includes(settings.expectedMobilePhone), false);
 });
 
+test('future non-travel scheduled seeds use recent activity while travel keeps ongoing history', async () => {
+  for (const industry of INDUSTRIES) {
+    const f = fixture({ snowflake: {
+      async generate(input) {
+        assert.equal(input.industry, industry);
+        assert.equal(input.eventTimeMode, industry === 'travel' ? 'historical' : 'recent');
+        assert.equal(input.samplingMode, 'ongoing');
+        await input.onPrepared({
+          profiles: Array.from({ length: input.count }, (_, index) => ({
+            email: `demo+11112026-${index + 1}@example.test`,
+            ecid: String(index + 1).repeat(38), crmId: `CRM${1000 + index}`, recipientId: `R-${index}`,
+          })),
+          runStamp: f.now().toISOString(),
+        });
+        return { ok: true };
+      },
+    } });
+    f.db.data.get(dayKey()).slots[0].industry = industry;
+    assert.equal((await f.service.tick()).state, 'committed', industry);
+  }
+});
+
 test('disabled, out-of-hours, Saturday, and changed owner never invoke the generator', async () => {
   const f = fixture();
   f.db.data.set(root, { ...settings, enabled: false });
