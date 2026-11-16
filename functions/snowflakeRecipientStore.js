@@ -52,6 +52,31 @@ const RECIPIENT_COLUMN_DEFINITIONS = Object.freeze([
 const RECIPIENT_COLUMNS = Object.freeze(RECIPIENT_COLUMN_DEFINITIONS.map(([name]) => name));
 const RECIPIENT_COLUMN_SET = new Set(RECIPIENT_COLUMNS);
 const ARRAY_COLUMNS = new Set(['PUSHTOKENS']);
+const ADDRESS_FALLBACKS = Object.freeze({
+  ADDRESSSTREET: 'HOMEADDRESS_STREET1',
+  ADDRESSCITY: 'HOMEADDRESS_CITY',
+  ADDRESSPOSTALCODE: 'HOMEADDRESS_POSTALCODE',
+  ADDRESSCOUNTRY: 'HOMEADDRESS_COUNTRY',
+});
+
+function recipientViewQuery(table, projection, useAddressFallbacks) {
+  const replace = (column) => {
+    const fallback = ADDRESS_FALLBACKS[column];
+    return useAddressFallbacks && fallback
+      ? `COALESCE(${column}, ${fallback}) AS ${column}`
+      : column;
+  };
+  const columns = projection === '*'
+    ? `*${useAddressFallbacks
+      ? ` REPLACE (${Object.keys(ADDRESS_FALLBACKS).map(replace).join(', ')})`
+      : ''}`
+    : RECIPIENT_COLUMNS.map(replace).join(', ');
+  return `SELECT ${columns} FROM ${table}`;
+}
+
+function normalizeSql(sql) {
+  return String(sql || '').replaceAll('"', '').replace(/;\s*$/, '').replace(/\s+/g, '').toUpperCase();
+}
 
 function qualifiedRecipientTable(database, schema = 'AEP_SCHEMA') {
   const identifier = String(database || '').trim();
@@ -72,7 +97,7 @@ function recipientTableStatements(database, schema = 'AEP_SCHEMA') {
     `UPDATE ${table} SET RECIPIENT_ID = 'R-' || LEFT(SHA2(ECID, 256), 32)
 WHERE RECIPIENT_ID IS NULL AND ECID IS NOT NULL AND TRIM(ECID) <> ''`,
     `CREATE SCHEMA IF NOT EXISTS ${database}.REL`,
-    `CREATE VIEW IF NOT EXISTS ${database}.REL.RECIPIENT AS SELECT ${RECIPIENT_COLUMNS.join(', ')} FROM ${table}`,
+    `CREATE VIEW IF NOT EXISTS ${database}.REL.RECIPIENT AS ${recipientViewQuery(table, '*', true)}`,
   ];
 }
 
@@ -142,17 +167,20 @@ VALUES (${columns.map((column) => `source.${column}`).join(', ')})`;
 
 async function ensureRecipientTable(execute, database, schema) {
   const table = qualifiedRecipientTable(database, schema);
-  const objects = await execute(`SELECT t.TABLE_TYPE, v.VIEW_DEFINITION
+  const recipientSchema = schema || 'AEP_SCHEMA';
+  const objects = await execute(`SELECT t.TABLE_TYPE, v.VIEW_DEFINITION, v.IS_SECURE
 FROM ${database}.INFORMATION_SCHEMA.TABLES t
 LEFT JOIN ${database}.INFORMATION_SCHEMA.VIEWS v
   ON t.TABLE_CATALOG = v.TABLE_CATALOG AND t.TABLE_SCHEMA = v.TABLE_SCHEMA AND t.TABLE_NAME = v.TABLE_NAME
 WHERE t.TABLE_SCHEMA = 'REL' AND t.TABLE_NAME = 'RECIPIENT'`);
+  let replacementViewSql = null;
   if (objects.length) {
     const type = readSnowflakeCell(objects[0], 0, 'TABLE_TYPE');
-    const definition = String(readSnowflakeCell(objects[0], 1, 'VIEW_DEFINITION') || '')
-      .replaceAll('"', '').toUpperCase();
-    const expectedSource = new RegExp(`(?<![\\w.])(?:${database}\\.)?${schema || 'AEP_SCHEMA'}\\.${BASE_RECIPIENT_TABLE}\\b`, 'i');
-    if (type !== 'VIEW' || (definition && !expectedSource.test(definition))) {
+    const definition = normalizeSql(readSnowflakeCell(objects[0], 1, 'VIEW_DEFINITION'));
+    const secureFlag = readSnowflakeCell(objects[0], 2, 'IS_SECURE');
+    const explicitlyNonSecure = secureFlag === false || secureFlag === 0
+      || ['FALSE', 'NO', 'N'].includes(String(secureFlag).toUpperCase());
+    if (type !== 'VIEW' || (definition && !explicitlyNonSecure)) {
       throw new Error('REL.RECIPIENT already exists with an incompatible definition. Review its migration to the shared base view before seeding.');
     }
     if (!definition) {
@@ -168,6 +196,29 @@ FROM TABLE(GET_OBJECT_REFERENCES(DATABASE_NAME => '${database.trim().toUpperCase
       ))) {
         throw new Error('REL.RECIPIENT definition is unavailable and its dependencies do not verify the shared base view. Review view metadata access and dependencies before seeding; no recipient changes were made.');
       }
+    } else {
+      const sourceTables = [table, `${recipientSchema}.${BASE_RECIPIENT_TABLE}`];
+      const knownDefinitions = sourceTables.flatMap((sourceTable) => [
+        {
+          current: normalizeSql(recipientViewQuery(sourceTable, '*', true)),
+          legacy: normalizeSql(recipientViewQuery(sourceTable, '*', false)),
+          projection: '*',
+        },
+        {
+          current: normalizeSql(recipientViewQuery(sourceTable, 'recipient', true)),
+          legacy: normalizeSql(recipientViewQuery(sourceTable, 'recipient', false)),
+          projection: 'recipient',
+        },
+      ]);
+      const match = knownDefinitions.find(({ current, legacy }) => (
+        definition === current || definition === legacy
+      ));
+      if (!match) {
+        throw new Error('REL.RECIPIENT already exists with an incompatible definition. Review its migration to the shared base view before seeding.');
+      }
+      if (definition === match.legacy) {
+        replacementViewSql = `CREATE OR REPLACE VIEW ${database}.REL.RECIPIENT COPY = (COMMENTS, TAGS, GRANTS) AS ${recipientViewQuery(table, match.projection, true)}`;
+      }
     }
   }
   const statements = recipientTableStatements(database, schema);
@@ -181,7 +232,8 @@ LIMIT 1`);
     throw new Error('Shared base contains duplicate ECIDs or incompatible recipient IDs. Review identity migration before seeding; existing IDs were not overwritten.');
   }
   for (const sqlText of statements.slice(-3, -1)) await execute(sqlText);
-  if (!objects.length) await execute(statements.at(-1));
+  if (replacementViewSql) await execute(replacementViewSql);
+  else if (!objects.length) await execute(statements.at(-1));
 }
 
 async function mergeRecipientRows(execute, database, rows, schema) {

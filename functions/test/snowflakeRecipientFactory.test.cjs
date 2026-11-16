@@ -68,6 +68,24 @@ describe('snowflakeRecipientFactory', () => {
     assert.equal(getCountryCode('Canada'), 'CA');
   });
 
+  it('uses shared home-address values when REL address aliases are absent', () => {
+    const recipient = createRecipient({ industry: 'retail', crmId: 'CRM4' });
+    const row = recipientRow(recipient, {
+      CRMID: 'CRM4',
+      ADDRESSSTREET: '4 Preferred Lane',
+      HOMEADDRESS_STREET1: '12 Example Road',
+      HOMEADDRESS_CITY: 'London',
+      HOMEADDRESS_POSTALCODE: 'SW1A 1AA',
+      HOMEADDRESS_COUNTRY: 'United Kingdom',
+    }, '2026-10-15 12:00:00.000');
+
+    assert.equal(row.ADDRESSSTREET, '4 Preferred Lane');
+    assert.equal(row.ADDRESSCITY, 'London');
+    assert.equal(row.ADDRESSPOSTALCODE, 'SW1A 1AA');
+    assert.equal(row.ADDRESSCOUNTRY, 'United Kingdom');
+    assert.equal(row.COUNTRYCODE, 'GB');
+  });
+
   it('rejects unsupported industries and nonnumeric CRM identifiers', () => {
     assert.throws(() => getRecipientId('unknown', 'CRM1'), /Unsupported recipient industry/);
     assert.throws(() => getRecipientId('travel', 'guest'), /must end in a numeric identifier/);
