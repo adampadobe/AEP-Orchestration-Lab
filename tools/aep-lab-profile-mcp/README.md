@@ -6,7 +6,30 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 247-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 252-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+
+### Read-only AJO Loyalty inspection
+
+General and the existing Decisioning endpoint include five Loyalty reads:
+`lab_ajo_loyalty_config`, `lab_ajo_loyalty_challenge_list`,
+`lab_ajo_loyalty_challenge_get`, `lab_ajo_loyalty_profile_state`, and
+`lab_ajo_loyalty_profile_challenges`. No new MCP connection is required.
+See [the Loyalty workflow](../../docs/AJO_LOYALTY_CHALLENGES.md#read-only-loyalty-mcp-workflow)
+for identity, region, response and release boundaries.
+
+The backend independently validates the caller's user-generated MCP key or Adobe
+IMS Portal enrollment and exact sandbox, then uses its existing server-held Adobe
+credentials. This is not a token-export or arbitrary API proxy. Only GET is
+supported; signup, withdrawal, events, authoring and fulfillment are absent.
+Configuration returns an allowlisted identity/event summary, excluding provider
+and completion-sink definitions that can contain credentials. Member IDs, bodies
+and credentials are not included in the tool's audit entries.
+
+These tools require a normal reviewed release of `ajoLoyaltyProxy` and the MCP
+service, followed by a connection refresh/new chat. Hosting's
+`/api/ajo-loyalty` rewrite is available after its separate normal Hosting release;
+MCP calls the named Function directly. Source registration and mocked tests do
+not prove live Loyalty entitlement or member-state access.
 
 ### Read-only ingestion diagnostics
 
@@ -115,7 +138,7 @@ does not relax health; see [the relational-layer recovery boundary](../../docs/S
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/ajo-oc-datasets` | 4 | Access check plus read-only Orchestrated Campaign dataset status, eligibility validation, and owned job status; use `/mcp` for preview/apply |
-| `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
+| `/mcp/decisioning` | 29 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, bulk tagging, and five read-only AJO Loyalty configuration/challenge/member-state tools |
 | `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |

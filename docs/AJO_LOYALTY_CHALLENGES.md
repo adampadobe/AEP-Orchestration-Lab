@@ -8,6 +8,165 @@ Follow the same rule as [AJO content templates](AJO_CONTENT_TEMPLATE_API.md): ca
 
 Firebase in this repo proxies **health** and **ledger** reads for the Tools UI. The reward provider itself runs on **Cloud Run** so Adobe can reach fulfillment over HTTPS.
 
+The read-only Loyalty MCP workflow below also uses a dedicated authenticated
+Firebase backend for metadata and member-state **GETs only**. This does not change
+the terminal-only policy for registering providers, creating or editing challenges.
+
+## Read-only Loyalty MCP workflow
+
+The source registers these tools in General (`/mcp`) and the existing Decisioning
+connection (`/mcp/decisioning`, Coworker `lab-dps`). No browser-held Adobe token or
+new credential is needed.
+
+| Tool | Adobe GET |
+|------|-----------|
+| `lab_ajo_loyalty_config` | `/ajo/loyalty/metadata/config` (safe identity/event summary only) |
+| `lab_ajo_loyalty_challenge_list` | `/ajo/loyalty/metadata/challenges?limit=25` (1-100; optional `start` cursor) |
+| `lab_ajo_loyalty_challenge_get` | `/ajo/loyalty/metadata/challenges/{challenge_id}` |
+| `lab_ajo_loyalty_profile_state` | `/ajo/loyalty/challenges/state?pid={profile_id}&v=2` (optional `challenge_id` as `cid`, and explicit `test`) |
+| `lab_ajo_loyalty_profile_challenges` | `/ajo/loyalty/challenges/{profile_id}?state=active` (or `complete`) |
+
+1. Call `lab_mcp_access_info` and choose an authorized sandbox.
+2. Read `lab_ajo_loyalty_config` to confirm `data.namespace`. Do not assume it
+   matches the coffee lab's `loyaltyId`, Email, ECID or an internal UPS ID. Provider
+   and sink definitions are omitted because they can contain authentication.
+3. List a bounded challenge page; follow Adobe's returned cursor explicitly.
+   Read the exact challenge ID for tasks, dates, reward definitions and completion
+   rules. Metadata publication alone is not member eligibility or participation.
+   The observed Postman response uses `data.children`, `data._page` and
+   `data._links`, with each challenge's ID in `_id`. The adapter also accepts the
+   published OpenAPI's `data.challengeList` format (`get_id` on metadata).
+   Both formats are preserved, not renamed or flattened.
+4. Confirm the existing test member's identifier in that namespace and the
+   sandbox's Adobe region. State reads default to `va7`, as the published State
+   API production server does. Set `region` to a confirmed regional suffix (for
+   example `nld2`) or `global` for `platform.adobe.io`; do not probe regions to guess.
+   Metadata always uses `platform.adobe.io`.
+5. Read member state; optionally filter to the exact challenge. Use
+   `state:"complete"` on `lab_ajo_loyalty_profile_challenges` for completed
+   participation. Tasks, zero counters, missing values, completion history and
+   returned pagination are preserved rather than synthesized. Member-state reads
+   still require `data.challengeList`; a metadata `children` response cannot
+   establish progress. Missing or invalid collections are errors, not "no challenges".
+
+The Function `ajoLoyaltyProxy` independently checks a user-generated MCP key or
+validated Adobe IMS enrollment, the exact sandbox and configured Adobe org.
+Shared operational keys and caller-supplied platform URLs, paths, methods or
+authorization overrides are not accepted. Adobe calls use the existing
+`adobeAuth.js` token cache and `aepHeaders()`. All API operations are GET-only,
+make one attempt, reject redirects, time out after 60 seconds and cap response
+bodies at 2 MiB. Adobe status and structured error bodies are returned to the
+authorized caller, not written to tool audits. Configuration errors retain only
+allowlisted scalar diagnostics, not embedded settings. Stop on 401/403; entitlement and
+Loyalty permissions are separate from a successful Decisioning call.
+
+There are no signup, withdrawal, event-send, reward-fulfillment, challenge-write or
+balance-update tools. Challenge completion does not prove provider fulfillment or
+a credited points balance. This is inspection support for later demo work, not a
+new customer-facing or unrestricted proxy.
+
+**Release boundary:** offline contract tests do not call Adobe. Live verification
+requires the normal feature branch / PR / Validate / merge / exact-main release
+of the named Function and MCP service, preserving all runtime secret bindings.
+Refresh the existing MCP connection and start a new chat after release. The
+optional Hosting rewrite `/api/ajo-loyalty` needs its normal Hosting release; MCP
+uses the named Function directly. Do not describe a locally registered tool or
+mock response as a successful live Loyalty test.
+
+API contracts: [metadata](https://developer.adobe.com/journey-optimizer-apis/references/loyalty-challenges)
+and [member state](https://developer.adobe.com/journey-optimizer-apis/references/loyalty-challenges-state).
+
+### Authentication and deployment configuration
+
+The two authentication hops have different purposes:
+
+1. **Client to lab:** the existing `lab-decisioning` connection supplies its
+   sandbox-scoped MCP key, or Coworker forwards its Adobe IMS session. The
+   backend independently verifies the Portal principal and exact sandbox.
+2. **Lab to Adobe:** `ajoLoyaltyProxy` uses `createAdobeAuth()` to obtain/cache a
+   server-to-server IMS token. `aepHeaders()` supplies `Authorization`,
+   `x-api-key` and `x-gw-ims-org-id`; the route sets the principal's
+   `x-sandbox-name`. Caller credentials are never reused as Adobe API overrides.
+
+The Function inherits `profileFnOpts`: region `us-central1`, 120-second Function
+timeout, and the existing Secret Manager bindings `ADOBE_CLIENT_ID`,
+`ADOBE_CLIENT_SECRET`, `ADOBE_IMS_ORG` and `ADOBE_SCOPES`. The Adobe read itself
+has a 60-second timeout. There is no new Postman environment, MCP connection,
+credential file or token-pasting step. A credential that works for Decisioning
+is not proof of Loyalty entitlement; stop and review the existing Adobe
+integration/product permissions if the Loyalty read returns 401/403. Do not
+silently add scopes or change secret values.
+
+The metadata host is `platform.adobe.io`. The state region, configured identity
+namespace and existing member ID must be confirmed before a member read.
+Neither sandbox `kirkham` nor a challenge ID determines the state region.
+The exported Postman `x-schema-id` belongs to schema-oriented APIs and is not
+required by the published Loyalty contracts; this adapter does not forward it.
+
+For a release owner, the rollout is:
+
+1. Commit/push the focused feature branch, open a PR, and complete required
+   Validate checks and review. Do not deploy the worktree.
+2. After merge and release approval, deploy only `ajoLoyaltyProxy` through the
+   existing Firebase workflow from clean `main` at freshly fetched `origin/main`.
+   Preserve the four Adobe secret bindings and verify the Function's region.
+3. Release the MCP image for that exact merged SHA with the existing guarded
+   `tools/aep-lab-profile-mcp/scripts/release-main.sh`, retaining the running
+   service's configuration. The release script's account/project guard is
+   intentional: use the authorized release owner, never change the guard to
+   accommodate a different account.
+4. Verify revision/build identity, refresh the existing connection and start a
+   new chat. Confirm all five Loyalty tools appear. Hosting is not needed for
+   MCP's direct Function call; publish the optional rewrite separately only if
+   a caller needs the Hosting URL.
+5. Run configuration, one metadata page and one exact member-state read.
+   Confirm Adobe status and actual returned task fields, not just tool discovery.
+
+### Retrieving a member's task status
+
+After release, the read-only sequence on the existing connection is:
+
+```text
+lab_ajo_loyalty_config(sandbox="kirkham")
+lab_ajo_loyalty_challenge_list(sandbox="kirkham", limit=25)
+lab_ajo_loyalty_challenge_get(sandbox="kirkham", challenge_id="<metadata _id or get_id>")
+lab_ajo_loyalty_profile_state(
+  sandbox="kirkham",
+  profile_id="<existing ID in the confirmed namespace>",
+  challenge_id="<same challenge ID>",
+  region="<confirmed Adobe region>"
+)
+```
+
+The last tool performs a bodyless
+`GET /ajo/loyalty/challenges/state?pid=<member>&cid=<challenge>&v=2`.
+Without `cid`, Adobe documents the response as active challenges, not the
+member's complete history. Use `lab_ajo_loyalty_profile_challenges` with
+`state:"complete"` when completed participation is needed. The optional State
+API `test` flag is separate from the AEP profile's `testProfile` attribute; do
+not infer it from that attribute or silently switch modes.
+
+| State response field | Interpretation |
+|----------------------|----------------|
+| `challengeList[].challenge_id` | Join to the selected metadata `_id` / `get_id`. |
+| `challengeList[].optedIn` | Member opt-in as returned by Adobe; preserve `false` and distinguish missing. |
+| `challengeList[].tasks[].taskId` | Join to the metadata task by ID, not array order or display name. |
+| `tasks[].taskState` | Adobe's task status, not the metadata's draft/published state. |
+| `tasks[].variables` | Goal, accumulation type and filters; retain actual values rather than guessing units. |
+| `tasks[].accumulators` | Returned `qty`, `spend`, `days` and item details; zero is meaningful. Select the measure only after checking the task definition. |
+| `tasks[].taskCompletions` | Completion history for that task; repeating tasks may reset their current counters. |
+| `challengeList[].challengeCompletions`, `completionDate` | Challenge completion evidence, not proof of reward delivery or points credited. |
+
+For example, "buy three items" can be **one task** with a goal of three:
+`tasksToComplete:1` is not a purchase counter. Report the task's actual goal,
+accumulator and returned state. Do not fabricate "0 of 3" when the accumulator
+is missing, mark a member eligible from publication alone, or treat an empty
+active page as proof they never completed a challenge.
+
+The saved metadata response can validate parsing locally, but does not contain
+a member's task status. Live namespace, region, member read and Loyalty
+entitlement remain separate acceptance checks.
+
 ## What AJO expects from a reward provider
 
 AJO Loyalty Challenges use a **standard challenge pattern** (not BYOD):

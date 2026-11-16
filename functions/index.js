@@ -100,6 +100,8 @@ const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes
 const { registerPlatformCleanupRoutes } = require('./platformCleanupRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerAjoOcDatasetRoutes } = require('./ajoOcDatasetRoutes');
+const { registerAjoLoyaltyRoutes } = require('./ajoLoyaltyRoutes');
+const { createAjoLoyaltyService } = require('./ajoLoyaltyService');
 const { registerAepIngestionDiagnosticsRoutes } = require('./aepIngestionDiagnosticsRoutes');
 const { createAepIngestionDiagnosticsService } = require('./aepIngestionDiagnosticsService');
 const { registerDemoAssetsRoutes } = require('./demoAssetsRoutes');
@@ -1299,6 +1301,20 @@ Object.assign(
     mcpApiKeyStore,
     ajoOcDatasetService: createAjoOcDatasetService(),
     ajoOcDatasetStore,
+  })
+);
+
+Object.assign(
+  exports,
+  registerAjoLoyaltyRoutes({
+    onRequest,
+    profileFnOpts,
+    setCors,
+    getAdobeAccessToken,
+    aepHeaders,
+    ADOBE_IMS_ORG,
+    mcpApiKeyStore,
+    loyaltyService: createAjoLoyaltyService(),
   })
 );
 
