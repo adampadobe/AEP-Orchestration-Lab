@@ -32,6 +32,7 @@
       <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
       <button id="loyaltyRun" type="button" disabled>Get content card</button>
       <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
+      <button id="loyaltyAbandon" type="button" disabled title="Send a live abandoned.search event for the loaded test profile. This may trigger a configured AJO journey.">Send abandoned.search</button>
     </div>
   </header>
   <main class="loyalty-workspace">
@@ -90,6 +91,7 @@
         <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
         <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
       </div>
+      <p><strong>Send abandoned.search</strong> uses the injected Web SDK, selected event datastream and event tenant namespace to send a live event for the loaded test profile. It may trigger a configured AJO journey. It does not update profile attributes or complete tasks.</p>
       <div class="loyalty-options">
         <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
         <label><input id="loyaltyAuto" type="checkbox"> Refresh task state every 30 seconds after a successful read</label>
@@ -120,7 +122,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261117-combined'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261117-abandoned-search'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

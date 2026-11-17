@@ -21,6 +21,7 @@
     $('loyaltyStatus').textContent = text; $('loyaltyStatus').dataset.error = String(!!error);
     $('loyaltyRun').disabled = busy || !loaded;
     $('loyaltyRefresh').disabled = busy || !loaded;
+    $('loyaltyAbandon').disabled = busy || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
   }
   const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
@@ -192,7 +193,63 @@
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
     if (!await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false })) throw new Error('Profile drawer lookup failed.');
     same(ctx, token); loaded = data; publish(); autoBlocked = true;
-    message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards.');
+    message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
+  }
+  async function sendAbandonedSearch(ctx, token) {
+    if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
+      throw new Error('Only AEP test profiles can send abandoned.search, matching the TUI / Center Parcs demo.');
+    }
+    if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
+      throw new Error('Configure the reviewed event tenant namespace in the top configuration bar before sending abandoned.search.');
+    }
+    if (typeof loaded.profileEmail !== 'string' || !loaded.profileEmail.includes('@')) {
+      throw new Error('The loaded profile has no email identity for abandoned.search. No event sent.');
+    }
+    if (!global.DemoTagsInjection?.ensureAlloyReady || !global.CdEdgeMounts?.buildIdentityMap ||
+        typeof global.DemoLabEdgeConfig?.edgeConfigOverrides !== 'function') {
+      throw new Error('Inject Tags with Web SDK and the lab datastream configuration before sending abandoned.search.');
+    }
+    const edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
+    const edgeSnapshot = JSON.stringify(edgeOptions), profileEmail = loaded.profileEmail;
+    const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
+    same(ctx, token);
+    const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
+    same(ctx, token);
+    const ecid = identity?.identity?.ECID;
+    if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) {
+      throw new Error('Active Web SDK browser ECID was not returned. No event sent.');
+    }
+    if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) {
+      throw new Error('The selected ECID differs from the active Web SDK visitor. No event sent.');
+    }
+    const payload = { ...edgeOptions,
+      renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+      xdm: {
+        eventType: 'abandoned.search',
+        identityMap: global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace),
+        [ctx.tenant]: { identification: { core: { ecid, email: profileEmail } } },
+        web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
+      },
+    };
+    same(ctx, token);
+    if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== edgeSnapshot) {
+      throw new Error('Event datastream changed while preparing abandoned.search. No event sent.');
+    }
+    try { await alloy('sendEvent', payload); }
+    catch (error) {
+      throw new Error('abandoned.search send was not confirmed: ' + error.message +
+        '. The event may already have been ingested; check profile events before sending again.');
+    }
+    same(ctx, token);
+    $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, event: payload, sdkAccepted: true,
+      journeyEntryVerified: false }, null, 2);
+    try { await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); }
+    catch (error) {
+      throw new Error('abandoned.search was accepted by Web SDK, but the profile event refresh failed: ' +
+        error.message + '. Do not resend to refresh the drawer. Journey entry is not verified.');
+    }
+    same(ctx, token);
+    message('abandoned.search accepted by Web SDK for the selected profile. Journey entry is not yet verified.');
   }
   function tracking(candidate, captured, ctx, kind, button) {
     const proposition = candidate.proposition;
@@ -321,6 +378,7 @@
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
     $('loyaltyRun').addEventListener('click', () => void work(run));
+    $('loyaltyAbandon').addEventListener('click', () => void work(sendAbandonedSearch));
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }
     }, true);
@@ -343,7 +401,7 @@
       if (!event.persisted) { clearInterval(timer); observer.disconnect(); }
     });
     global.addEventListener('pageshow', event => { if (event.persisted) invalidate(true); });
-    message('Look up a profile in the top bar, then select Get task status. SDK injection is only needed for content cards.');
+    message('Look up a profile in the top bar, then select Get task status. SDK injection is only needed for content cards and journey events.');
   }
   global.envBar.ready().then(init).catch(error => message('Demo initialization failed: ' + error.message, true));
 })(window);

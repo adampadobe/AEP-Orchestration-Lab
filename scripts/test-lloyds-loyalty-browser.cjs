@@ -12,7 +12,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
     const errors = [], writes = [], reads = [];
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
-    let holdState = false, events = [];
+    let holdState = false, events = [], testProfile = true, eventRefreshes = 0;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -27,8 +27,9 @@ async function main() {
         ] } };
       }
       else if (url.pathname === '/api/profile/table') data = { found: true, ecid: '12345678901234567890123456789012345678',
-        profileEmail: url.searchParams.get('identifier'), rows: [
+        profileEmail: url.searchParams.get('namespace') === 'ecid' ? 'fixture@example.invalid' : url.searchParams.get('identifier'), rows: [
           { path: 'person.name.firstName', value: 'Alex', valueType: 'string' },
+          { path: 'testProfile', value: testProfile, valueType: 'boolean' },
           { path: '_ownTenant.loyaltyDetails.points', value: 0, valueType: 'number' },
           { path: '_ownTenant.loyaltyDetails.level', value: 'Gold', valueType: 'string' },
           { path: '_ownTenant.scoring.npsScore', value: 0, valueType: 'number' },
@@ -36,7 +37,7 @@ async function main() {
         ] };
       else if (url.pathname === '/api/profile/consent') data = { found: true, firstName: 'Alex', email: 'fixture@example.invalid',
         ecid: '12345678901234567890123456789012345678', channels: { email: 'out', sms: null, push: null } };
-      else if (url.pathname === '/api/profile/events') data = { events };
+      else if (url.pathname === '/api/profile/events') { eventRefreshes++; data = { events }; }
       else if (url.pathname === '/api/profile/audiences') data = { realized: [], exited: [] };
       else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/events/generator-targets') data = { targets: [] };
@@ -90,6 +91,7 @@ async function main() {
     assert.equal(await page.locator('main.loyalty-workspace .loyalty-settings').count(), 0, 'No duplicate body configuration panel');
     assert.equal(await page.locator('#aepDemoEnvSection #loyaltyRegion').count(), 1, 'API options live in the existing top bar');
     assert.equal(await page.locator('#loyaltyRefresh').textContent(), 'Get task status');
+    assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Journey events require a loaded profile');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
@@ -130,7 +132,11 @@ async function main() {
         window.__sdkCalls.push({ command, payload });
         if (command === 'getIdentity') {
           if (window.__pauseIdentity) await new Promise(resolve => { window.__releaseDecision = resolve; });
-          return { identity: { ECID: '12345678901234567890123456789012345678' } };
+          return { identity: { ECID: window.__browserEcid ?? '12345678901234567890123456789012345678' } };
+        }
+        if (payload.xdm?.eventType === 'abandoned.search') {
+          if (window.__rejectAbandon) throw new Error('Fixture: Edge response interrupted');
+          return {};
         }
         if (payload.xdm?.eventType?.startsWith('decisioning.proposition')) return {};
         const proposition = (id, scope, rank) => ({ id, scope, scopeDetails: { decisionProvider: 'CJM', rank }, items: [{
@@ -147,6 +153,38 @@ async function main() {
         ] };
       };
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' } });
+    });
+    const abandonCalls = () => page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.xdm?.eventType === 'abandoned.search'));
+    assert.equal((await abandonCalls()).length, 0, 'Lookup, task reads and SDK setup never send a journey event');
+    const refreshesBefore = eventRefreshes;
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('abandoned.search accepted'));
+    const abandoned = await abandonCalls();
+    assert.equal(abandoned.length, 1, 'One explicit click sends one event');
+    assert.deepEqual(abandoned[0], { command: 'sendEvent', payload: {
+      edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' }, renderDecisions: false,
+      personalization: { defaultPersonalizationEnabled: false },
+      xdm: {
+        eventType: 'abandoned.search',
+        identityMap: {
+          Email: [{ id: 'fixture@example.invalid', authenticatedState: 'authenticated', primary: true }],
+          ECID: [{ id: '12345678901234567890123456789012345678', authenticatedState: 'ambiguous', primary: false }],
+        },
+        _ownTenant: { identification: { core: { ecid: '12345678901234567890123456789012345678', email: 'fixture@example.invalid' } } },
+        web: { webPageDetails: { URL: origin + '/profile-viewer/lloyds-loyalty-demo.html', name: 'Lloyds Loyalty', viewName: 'Lloyds Loyalty' } },
+      },
+    } }, 'The TUI / Center Parcs event contract is preserved with the selected profile, tenant and datastream');
+    assert.ok(eventRefreshes > refreshesBefore, 'Accepted events refresh the shared profile timeline');
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /Journey entry is not yet verified/);
+    assert.equal(await page.locator('.loyalty-task[data-complete="true"]').count(), 0, 'Sending a journey event never completes a task locally');
+    await page.evaluate(() => { window.__rejectAbandon = true; });
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('The event may already have been ingested'));
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /No automatic retry/);
+    await page.evaluate(() => { window.__rejectAbandon = false; });
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    await page.evaluate(() => {
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
       toggle.checked = true;
       toggle.dispatchEvent(new Event('change', { bubbles: true }));
@@ -197,7 +235,7 @@ async function main() {
     }
     await page.setViewportSize({ width: 390, height: 844 });
     assert.ok(await page.locator('.loyalty-columns').evaluate(node => node.getBoundingClientRect().right <= innerWidth + 1), 'Cards fit a mobile viewport');
-    assert.ok(await page.locator('#loyaltyRun,#loyaltyRefresh').evaluateAll(nodes =>
+    assert.ok(await page.locator('#loyaltyRun,#loyaltyRefresh,#loyaltyAbandon').evaluateAll(nodes =>
       nodes.every(node => node.getBoundingClientRect().right <= innerWidth + 1)), 'Action buttons remain on screen on mobile');
     assert.ok(await page.locator('.loyalty-phone').evaluate(node => {
       const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1;
@@ -279,6 +317,51 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     assert.ok(reads.some(read => read.action === 'profile_state' && read.sandbox === 'demo-two' &&
       read.region === 'va7' && read.profile_id === 'third@example.invalid'));
+    assert.equal((await abandonCalls()).length, 2, 'Content cards, state polling, errors and sandbox changes never retry journey events');
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Configure the reviewed event tenant'));
+    assert.equal((await abandonCalls()).length, 2, 'A sandbox change clears the tenant; no guessed event XDM is sent');
+    await openApiOptions();
+    await page.locator('#loyaltyTenant').fill('_ownTenant');
+    testProfile = false;
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Only AEP test profiles'));
+    assert.equal((await abandonCalls()).length, 2, 'The TUI test-profile mutation guard is retained');
+    testProfile = true;
+    await openConfiguration();
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
+    assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Double clicks are blocked while an event is being prepared');
+    await openConfiguration();
+    await page.locator('#customerEmail').fill('changed@example.invalid');
+    await page.evaluate(() => { window.__pauseIdentity = false; window.__releaseDecision(); });
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal((await abandonCalls()).length, 2, 'An identity change during getIdentity blocks event dispatch');
+    assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true);
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
+    await page.evaluate(() => {
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'changed-stream' } });
+      window.__pauseIdentity = false; window.__releaseDecision();
+    });
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Event datastream changed'));
+    assert.equal((await abandonCalls()).length, 2, 'A changed event destination blocks dispatch after asynchronous identity lookup');
+    await openConfiguration();
+    await page.locator('#lloydsLoyaltyNs').selectOption('ecid');
+    await page.locator('#customerEmail').fill('99999999999999999999999999999999999999');
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('selected ECID differs'));
+    assert.equal((await abandonCalls()).length, 2, 'Never associate a selected ECID with a different browser ECID');
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');

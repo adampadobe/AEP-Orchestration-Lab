@@ -72,6 +72,21 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    content does not establish that the member has no challenges. The authored
    hero remains on the page; `manageMounts:false` prevents the manual runtime
    from replacing or relocating the authored mounts.
+6. To trigger a journey configured for **`abandoned.search`**, load an AEP test
+   profile, inject Tags/Web SDK, and select the reviewed event datastream and event
+   tenant namespace in the top configuration bar. Select **Send abandoned.search**.
+   This copies the TUI / Center Parcs Web SDK event contract: active browser ECID
+   plus the selected profile identity, tenant `identification.core.ecid` and
+   profile email, page/view details, and the configured datastream override.
+   Selecting a different ECID from the active SDK visitor blocks the send.
+   The action requires neither a Loyalty state region nor a working Loyalty
+   state proxy. It does not update profile snapshots, synthesize task completion,
+   request/display content or enable/activate a journey. The shared drawer's event
+   timeline refreshes after SDK acceptance. Journey entry still depends on the
+   configured AJO event, sandbox, identity and journey eligibility; SDK acceptance
+   alone does not verify it. Each click sends at most one event, with no automatic
+   retry. If the response is interrupted, check stored profile events before
+   deliberately sending again, because ingestion may already have occurred.
 
 The optional challenge ID filters active state and reads that exact metadata
 definition for names, joined by challenge/task IDs. **Completed** uses Adobe's
