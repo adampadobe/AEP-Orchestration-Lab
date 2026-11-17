@@ -271,6 +271,7 @@
       runtimeApi = global.DecisioningProfileRuntime.init({
         iframeId: wiring.iframeId || '',
         useParentDocument: !!wiring.useParentDocument,
+        manageMounts: explicitDecisioning.manageMounts !== false,
         tagsStoragePrefix: prefix,
         mountLayoutPreset: wiring.mountLayoutPreset || 'generic',
         targetPageUrl: wiring.targetPageUrl || '',

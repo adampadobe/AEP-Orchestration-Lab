@@ -14,6 +14,60 @@ the terminal-only policy for registering providers, creating or editing challeng
 
 ## Read-only Loyalty MCP workflow
 
+### Lloyds Loyalty web demo
+
+Open **Demos > Lloyds > Loyalty** (`profile-viewer/lloyds-loyalty-demo.html`).
+This page reuses the shared Spectrum configuration bar and the Center Parcs
+profile drawer, including its compact proposition event timeline. It is not
+pinned to an owner's sandbox.
+
+1. Sign in to the Portal with an Adobe account and an active sandbox-scoped
+   MCP enrollment. The page sends its Firebase ID token, not an Adobe token
+   or a pasted MCP key. The server verifies the Firebase UID and its active
+   enrollment for the exact requested sandbox. Anonymous sessions cannot read
+   Loyalty state.
+2. Select your sandbox and confirmed **state region**, then look up a profile.
+   The page reads the configured Loyalty namespace before resolving the member
+   identifier. Matching namespaces use the selected identifier; ECID can use the
+   loaded profile's ECID. For another namespace, explicitly enter that profile's
+   member identifier. Profile data and Loyalty state are separate reads.
+3. Use **Refresh tasks**, or leave the 30-second state refresh enabled. Only
+   Adobe's returned `taskState` marks a task complete. Numeric progress requires
+   both a reported goal/type and the corresponding numeric accumulator.
+   Zero, false, missing counters and previous-cycle completions remain distinct.
+   Automatic reads pause when hidden, after an error or after configuration changes;
+   a successful manual task refresh resumes them. No task-completion events are
+   synthesized.
+4. To personalize, enable **Decisioning**, select your Tags environment/event
+   destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
+   namespace and the exact AJO **content-card surface URI**. The default is this
+   page's canonical `#ContentCardContainer`; a configured `#ContentCardLoyalty`
+   surface is also usable. **Get content card** requests only that surface and
+   renders the highest-ranked JSON rule consequence. It never treats a hero
+   proposition as a card. JSON title/body, image, action buttons and local
+   dismissal follow the supplied Luma content-card contract.
+5. Explicit card display/click events retain the original proposition ID, scope,
+   scope details, selected item and selection metadata, SDK identity and
+   datastream override. Failures are not retried automatically. Missing card
+   content does not establish that the member has no challenges. The authored
+   hero remains on the page; `manageMounts:false` prevents the manual runtime
+   from replacing or relocating the authored mounts.
+
+The optional challenge ID filters active state and reads that exact metadata
+definition for names, joined by challenge/task IDs. **Completed** uses Adobe's
+separate completed-participation endpoint; it cannot be combined with State API
+test mode. Returned pagination is identified explicitly, not presented as full
+history. Changing sandbox clears the profile, region, tenant and challenge
+settings so the previous sandbox's configuration is not silently reused.
+
+Release **the updated `ajoLoyaltyProxy` Function and Hosting** through the normal
+PR/Validate/merge workflow before live browser use. The earlier MCP release alone
+does not enable Firebase browser authentication. Local browser checks use
+synthetic fixtures and do not prove live Adobe access or reward delivery:
+`npm run test:lloyds-loyalty`.
+
+### MCP reads
+
 The source registers these tools in General (`/mcp`) and the existing Decisioning
 connection (`/mcp/decisioning`, Coworker `lab-dps`). No browser-held Adobe token or
 new credential is needed.

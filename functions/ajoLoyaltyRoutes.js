@@ -2,6 +2,28 @@
 
 const { resolveMcpAudiencePrincipal } = require('./audienceManagementRoutes');
 const { buildLoyaltyReadRequest } = require('./ajoLoyaltyService');
+const labUserSandboxStore = require('./labUserSandboxStore');
+
+async function resolveLoyaltyPrincipal(req, deps) {
+  if (req.headers['x-aep-lab-mcp-key'] || req.headers['x-gw-ims-org-id']) {
+    return resolveMcpAudiencePrincipal(req, deps.mcpApiKeyStore, deps);
+  }
+  const claims = await (deps.labUserSandboxStore || labUserSandboxStore).verifyIdTokenClaimsFromRequest(req);
+  if (!claims) return { ok: false, status: 401, body: { ok: false, error: 'Sign in to the Portal before reading Loyalty state.' } };
+  if (!claims.uid || claims.isAnonymous || typeof claims.email !== 'string' || !claims.email.endsWith('@adobe.com')) {
+    return { ok: false, status: 403, body: { ok: false, error: 'Loyalty requires your signed-in Adobe Portal account.' } };
+  }
+  const sandbox = req.query?.sandbox;
+  if (typeof sandbox !== 'string' || !/^[a-z0-9][a-z0-9_-]{0,47}$/.test(sandbox)) {
+    return { ok: false, status: 400, body: { ok: false, error: 'Select a valid sandbox.' } };
+  }
+  const keys = await deps.mcpApiKeyStore.listKeysForUser(claims.uid);
+  if (!keys.some(key => key.revoked === false && key.sandbox === sandbox)) {
+    return { ok: false, status: 403, body: { ok: false,
+      error: 'No active Portal enrollment for this sandbox. Create a sandbox-scoped key in MCP servers; do not paste it into this page.' } };
+  }
+  return { ok: true, sandbox, principalUid: claims.uid };
+}
 
 function registerAjoLoyaltyRoutes(deps) {
   const { onRequest, profileFnOpts, setCors, mcpApiKeyStore, getAdobeAccessToken, aepHeaders, ADOBE_IMS_ORG, loyaltyService } = deps;
@@ -12,8 +34,8 @@ function registerAjoLoyaltyRoutes(deps) {
     if (req.method !== 'GET') return res.status(405).set('Allow', 'GET, OPTIONS').json({ ok: false, error: 'Use GET. Loyalty mutations are not supported.' });
 
     let principal;
-    try { principal = await resolveMcpAudiencePrincipal(req, mcpApiKeyStore, deps); }
-    catch { return res.status(500).json({ ok: false, error: 'MCP principal validation failed.' }); }
+    try { principal = await resolveLoyaltyPrincipal(req, { ...deps, mcpApiKeyStore }); }
+    catch { return res.status(500).json({ ok: false, error: 'Loyalty principal validation failed.' }); }
     if (!principal.ok) return res.status(principal.status).json(principal.body);
 
     const query = req.query || {};

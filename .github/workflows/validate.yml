@@ -93,7 +93,7 @@ jobs:
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/aepIngestionDiagnostics*.test.cjs tools/aep-lab-profile-mcp/test/aepIngestionDiagnosticsTools.test.mjs
 
       - name: Verify read-only AJO Loyalty authentication and API contracts (offline)
-        run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/ajoLoyalty*.test.cjs tools/aep-lab-profile-mcp/test/ajoLoyaltyTools.test.mjs
+        run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/ajoLoyalty*.test.cjs tools/aep-lab-profile-mcp/test/ajoLoyaltyTools.test.mjs scripts/test-lloyds-loyalty.cjs
 
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |

@@ -105,3 +105,38 @@ test('returns Adobe status/error evidence and sanitizes server authentication er
   assert.equal(failed.status, 502);
   assert.doesNotMatch(JSON.stringify(failed.body), /secret-value/);
 });
+
+test('Firebase browser reads require verified UID-bound active enrollment for the requested sandbox', async () => {
+  const uids = [];
+  const app = setup({
+    labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => ({ uid: 'verified-uid', email: 'demo@adobe.com', isAnonymous: false }) },
+    mcpApiKeyStore: { listKeysForUser: async uid => { uids.push(uid); return [{ sandbox: 'own-sandbox', revoked: false }]; } },
+  });
+  const request = { headers: { authorization: 'Bearer firebase-session', 'x-user-id': 'forged' },
+    query: { action: 'profile_state', sandbox: 'own-sandbox', profile_id: 'member-1', region: 'nld2' } };
+  assert.equal((await app.invoke(request)).status, 200);
+  assert.deepEqual(uids, ['verified-uid']);
+  assert.equal(app.reads[0].headers['x-sandbox-name'], 'own-sandbox');
+  assert.equal(app.reads[0].headers.Authorization, 'Bearer server-only-token');
+  assert.equal((await app.invoke({ ...request, query: { ...request.query, sandbox: 'foreign' } })).status, 403);
+  assert.equal(app.tokenCalls(), 1);
+});
+
+test('Firebase browser authentication cannot use anonymous, missing, revoked or ambiguous enrollment', async () => {
+  const request = { headers: { authorization: 'Bearer firebase-session' }, query: { action: 'config', sandbox: 'own' } };
+  for (const claims of [null, { uid: 'uid', email: 'demo@adobe.com', isAnonymous: true },
+    { uid: 'uid', email: 'other@example.invalid' }, { email: 'demo@adobe.com' }]) {
+    const app = setup({ labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => claims } });
+    assert.ok((await app.invoke(request)).status >= 400);
+    assert.equal(app.tokenCalls(), 0);
+  }
+  for (const keys of [[], [{ sandbox: 'own', revoked: true }], [{ sandbox: 'other', revoked: false }],
+    [{ allowedSandboxes: ['own', 'other'], revoked: false }]]) {
+    const app = setup({
+      labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => ({ uid: 'uid', email: 'demo@adobe.com', isAnonymous: false }) },
+      mcpApiKeyStore: { listKeysForUser: async () => keys },
+    });
+    assert.equal((await app.invoke(request)).status, 403);
+    assert.equal(app.tokenCalls(), 0);
+  }
+});
