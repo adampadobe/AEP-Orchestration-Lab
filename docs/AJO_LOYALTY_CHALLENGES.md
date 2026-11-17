@@ -21,13 +21,15 @@ This page reuses the shared Spectrum configuration bar and the Center Parcs
 profile drawer, including its compact proposition event timeline. It is not
 pinned to an owner's sandbox.
 
-The body uses the supplied combined progress-ring / journey-rail design beside
+The body uses the updated combined progress-ring / compact task-rail design beside
 a scrollable phone preview. Both views render the same Adobe task response.
 There are no local task-completion buttons, invented offer tasks, countdowns,
 lock ordering or reward-unlock claims. The phone's Active/Completed controls
-switch the same participation filter used by the connection settings.
-Expand **Loyalty connection & SDK setup** for the page-specific settings; SDK
-injection remains in the shared configuration gear. This is a Web SDK mobile
+switch the same participation filter used by the top-bar API options. Task
+initials derive from returned names, not invented merchant brands. Raw counters,
+IDs and history remain available in collapsed **Challenge API details**.
+There is no second body setup panel: **Loyalty API options** lives in the existing
+top configuration gear alongside the shared SDK configuration. This is a Web SDK mobile
 preview, not a native Mobile SDK integration or journey authoring interface.
 
 1. Sign in to the Portal with an Adobe account and an active sandbox-scoped
@@ -35,21 +37,27 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    or a pasted MCP key. The server verifies the Firebase UID and its active
    enrollment for the exact requested sandbox. Anonymous sessions cannot read
    Loyalty state.
-2. Select your sandbox and confirmed **state region**, then look up a profile.
-   The page reads the configured Loyalty namespace before resolving the member
+2. Select your sandbox and look up a profile. This loads the shared profile drawer
+   independently of the Loyalty API or SDK. In the top configuration gear, expand
+   **Loyalty API options** and select the confirmed **state region**.
+   **Get task status** reads the configured Loyalty namespace before resolving the member
    identifier. Matching namespaces use the selected identifier; ECID can use the
    loaded profile's ECID. For another namespace, explicitly enter that profile's
    member identifier. Profile data and Loyalty state are separate reads.
-3. Use **Refresh tasks**, or leave the 30-second state refresh enabled. Only
+3. Select **Get task status**. SDK injection, Decisioning enablement and the event
+   tenant are not prerequisites for this read. Optionally enable the 30-second
+   state refresh in the top-bar API options after a successful manual read. Only
    Adobe's returned `taskState` marks a task complete. Numeric progress requires
    both a reported goal/type and the corresponding numeric accumulator.
    Zero, false, missing counters and previous-cycle completions remain distinct.
    Automatic reads pause when hidden, after an error or after configuration changes;
-   a successful manual task refresh resumes them. No task-completion events are
+   a successful manual task read resumes them. Polling is off by default and profile
+   lookup does not start it. No task-completion events are
    synthesized.
 4. To personalize, enable **Decisioning**, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
-   namespace and the exact AJO **content-card surface URI**. The default is this
+   namespace and the exact AJO **content-card surface URI** in the top-bar Loyalty
+   API options. The default is this
    page's canonical `#ContentCardContainerLoyalty`, inside the phone. The existing
    `#ContentCardContainer` remains its compatibility wrapper; it is not the
    default requested surface. A previously configured `#ContentCardLoyalty` or
@@ -77,6 +85,10 @@ PR/Validate/merge workflow before live browser use. The earlier MCP release alon
 does not enable Firebase browser authentication. Local browser checks use
 synthetic fixtures and do not prove live Adobe access or reward delivery:
 `npm run test:lloyds-loyalty`.
+If Hosting returns an HTML 404 for this endpoint, the task-status button reports
+that `ajoLoyaltyProxy` needs deployment by an authorized release owner. SDK
+injection cannot substitute for that backend release; profile lookup remains
+available independently.
 
 ### MCP reads
 
