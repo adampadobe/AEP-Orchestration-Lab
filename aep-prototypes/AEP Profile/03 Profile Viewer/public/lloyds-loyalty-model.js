@@ -38,6 +38,16 @@
             try { content = JSON.parse(content); } catch { continue; }
           }
           if (!content || typeof content !== 'object' || Array.isArray(content)) continue;
+          if (item.schema === 'https://ns.adobe.com/personalization/message/content-card') {
+            content = { ...content,
+              title: typeof content.title === 'string' ? { content: content.title } : content.title,
+              body: typeof content.body === 'string' ? { content: content.body } : content.body,
+              image: content.image || (content.imageUrl ? { url: content.imageUrl } : undefined),
+              buttons: content.buttons || (content.actionUrl ? [{
+                actionUrl: content.actionUrl, text: { content: data.meta?.buttonLabel || 'View reward' },
+              }] : []),
+            };
+          }
           if (!['title', 'body'].some(key => typeof content[key]?.content === 'string' && content[key].content.trim()) &&
               !safeUrl(content.image?.url, 'https://example.invalid/')) continue;
           candidates.push({ proposition, item, consequenceId: consequence.id || item.id, content,

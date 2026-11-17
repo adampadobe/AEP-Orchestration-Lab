@@ -54,7 +54,7 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    a successful manual task read resumes them. Polling is off by default and profile
    lookup does not start it. No task-completion events are
    synthesized.
-4. To personalize, enable **Decisioning**, select your Tags environment/event
+4. To personalize, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
    namespace and the exact AJO **content-card surface URI** in the top-bar Loyalty
    API options. The default is this
@@ -62,13 +62,29 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    `#ContentCardContainer` remains its compatibility wrapper; it is not the
    default requested surface. A previously configured `#ContentCardLoyalty` or
    `#ContentCardContainer` surface remains usable by explicitly entering that URI.
-   **Get content card** requests only the configured surface and
-   renders the highest-ranked JSON rule consequence. It never treats a hero
-   proposition as a card. JSON title/body, image, action buttons and local
-   dismissal follow the supplied Luma content-card contract.
+   No **Decisioning** toggle or card enablement is required. After a profile is
+   loaded and Web SDK is available, the page subscribes with
+   `subscribeRulesetItems` to the content-card schema for this exact surface
+   **before** sending a personalization request. Journey ruleset propositions
+   arrive through that callback, not the `sendEvent` response. Later SDK events
+   can evaluate the subscribed rulesets again. **Refresh content card** is an
+   optional explicit refresh, not an enablement step. No background polling or
+   automatic event retry is added.
+   The highest-ranked renderable JSON card is used; a hero proposition is never
+   treated as a card. JSON title/body, image, action buttons and dismissal follow
+   the supplied Luma content-card contract. Direct decision-response JSON cards
+   remain supported. Native AJO string `title`/`body`, `imageUrl`, `actionUrl`
+   and `meta.buttonLabel` are also supported. The request enables SDK ruleset
+   evaluation and retains the SDK's default schema support, rather than limiting
+   it to the old decision-only schema list. See Adobe's
+   [Web SDK content-card configuration](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/channels/content-card/configure/content-card-configuration-sdk)
+   and [`subscribeRulesetItems`](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/subscriberulesetitems).
 5. Explicit card display/click events retain the original proposition ID, scope,
    scope details, selected item and selection metadata, SDK identity and
-   datastream override. Failures are not retried automatically. Missing card
+   datastream override. Native journey cards use the SDK-provided `collectEvent`
+   for display, interaction and dismissal. Duplicate callbacks do not repeatedly
+   collect display events, and callbacks for a previous profile/sandbox are
+   ignored. Failures are not retried automatically. Missing card
    content does not establish that the member has no challenges. The authored
    hero remains on the page; `manageMounts:false` prevents the manual runtime
    from replacing or relocating the authored mounts.

@@ -6,7 +6,8 @@
   const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
   const cardMount = () => $('ContentCardContainerLoyalty');
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
-  let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter;
+  const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
+  let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
     namespace: $(prefix + 'Ns').value.toLowerCase(), identifier: $('customerEmail').value.trim(),
@@ -28,12 +29,13 @@
   }
   const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   function clearResults() {
+    displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
-    $('loyaltyCardHint').textContent = 'Journey content appears here. Inject the SDK, then get a content card for the current profile.';
+    $('loyaltyCardHint').textContent = 'Journey content appears automatically after SDK injection and profile lookup.';
   }
   function invalidate(clearProfile) {
     version++; aborter?.abort(); autoBlocked = true; clearResults();
@@ -185,7 +187,15 @@
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
       }
-    } finally { clearTimeout(timeout); busy = false; message($('loyaltyStatus').textContent, $('loyaltyStatus').dataset.error === 'true'); }
+    } finally {
+      clearTimeout(timeout); busy = false; message($('loyaltyStatus').textContent, $('loyaltyStatus').dataset.error === 'true');
+      if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
+    }
+  }
+  function requestAutomaticCard() {
+    if (!loaded || typeof global.alloy !== 'function') return;
+    if (busy) { pendingCard = true; return; }
+    void work(run);
   }
   async function lookup(ctx, token) {
     loaded = null; clearResults(); global.DemoProfileDrawer.clearDrawerVisitorState(); publish();
@@ -197,6 +207,7 @@
     if (!await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false })) throw new Error('Profile drawer lookup failed.');
     same(ctx, token); loaded = data; publish(); autoBlocked = true;
     message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
+    requestAutomaticCard();
   }
   async function sendAbandonedSearch(ctx, token) {
     if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
@@ -292,10 +303,13 @@
       control.addEventListener('click', () => void work(async (current, currentToken) => {
         same(ctx, token); same(current, currentToken); control.disabled = true;
         try {
-          await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button)); same(ctx, token);
+          if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
+          else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
+          same(ctx, token);
           message('Proposition interaction accepted. Task completion is determined by Adobe state.');
           if (new URL(url).origin === location.origin && new URL(url).pathname === location.pathname) {
-            await readTasks(ctx, token); same(ctx, token); location.hash = new URL(url).hash;
+            if (ctx.region) await readTasks(ctx, token);
+            same(ctx, token); location.hash = new URL(url).hash;
           } else location.assign(url);
         } finally { control.disabled = false; }
       }));
@@ -303,35 +317,86 @@
     }
     if (content.dismissBtn?.style && content.dismissBtn.style !== 'none') {
       const dismiss = node('button', 'Dismiss'); dismiss.type = 'button';
-      dismiss.addEventListener('click', () => { card.remove(); $('loyaltyCardHint').textContent = 'Card dismissed locally. Member challenge state is unchanged.'; });
+      dismiss.addEventListener('click', () => void work(async () => {
+        same(ctx, token);
+        if (captured.collectEvent) await captured.collectEvent('dismiss', [candidate.proposition]);
+        same(ctx, token); card.remove(); $('loyaltyCardHint').textContent = 'Card dismissed. Member challenge state is unchanged.';
+      }));
       body.append(dismiss);
     }
     card.append(body); cardMount().replaceChildren(card);
   }
   async function run(ctx, token) {
-    const runtime = global.DecisioningProfileRuntime;
-    if (!runtime?.supportsCapturedEventContext || !runtime.supportsManualDisplay) throw new Error('Inject Tags with the current decisioning runtime first.');
-    if (!await runtime.runProfileLookup({ skipHydrate: true, throwOnError: true })) throw new Error('Profile lookup for the decision failed.');
-    same(ctx, token);
-    const result = await runtime.runContentDecision({ manualDisplay: true, useBrowserEcid: true,
-      eventTenantNamespace: ctx.tenant, surfaces: [ctx.surface], validateContext: () => same(ctx, token) });
-    same(ctx, token);
-    const candidate = model.selectCard(result.propositions, ctx.surface);
-    if (!candidate) {
-      cardMount().replaceChildren(); $('loyaltyCardHint').textContent = 'No renderable card returned for this surface. This does not mean the member has no active challenges.';
-      message('No matching content-card proposition returned. No display event sent.'); return;
+    if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
+      throw new Error('Configure the reviewed event tenant namespace before requesting a content card.');
     }
-    const captured = result.manualDisplay;
+    if (!/^web:\/\/[^?#\s]+#[A-Za-z][A-Za-z0-9_-]*$/.test(ctx.surface)) throw new Error('Provide one explicit web surface URI with a fragment.');
+    const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
+    same(ctx, token);
+    const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
+    same(ctx, token);
+    const ecid = identity?.identity?.ECID;
+    if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned. No card requested.');
+    if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) throw new Error('The selected ECID differs from the active Web SDK visitor. No card requested.');
+    const identityMap = global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace);
+    if (loaded.profileLoyaltyId) identityMap.loyaltyId = [{ id: loaded.profileLoyaltyId, authenticatedState: 'authenticated', primary: false }];
+    const captured = { alloy, identityMap, edgeOptions: global.DemoLabEdgeConfig.edgeConfigOverrides(),
+      eventXdm: { [ctx.tenant]: { identification: { core: { ecid, email: loaded.profileEmail,
+        ...(loaded.profileLoyaltyId && { loyaltyId: loaded.profileLoyaltyId }) } } } } };
+    const current = () => token === version && JSON.stringify(ctx) === JSON.stringify(context()) &&
+      JSON.stringify(captured.edgeOptions) === JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides());
+    const subscriptionKey = JSON.stringify([token, ctx, captured.edgeOptions, identityMap]);
+    if (!cardSubscription || cardSubscription.key !== subscriptionKey || cardSubscription.alloy !== alloy) {
+      const subscription = { key: subscriptionKey, alloy };
+      cardSubscription = subscription;
+      try {
+        await alloy('subscribeRulesetItems', { surfaces: [ctx.surface], schemas: [cardSchema],
+          callback: (result, collectEvent) => {
+            if (cardSubscription !== subscription || !current()) return;
+            void showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true).catch(error => {
+              if (current()) message('Journey card rendering failed: ' + error.message + ' No automatic retry.', true);
+            });
+          } });
+      } catch (error) { cardSubscription = null; throw error; }
+    }
+    same(ctx, token);
+    if (!current()) throw new Error('Event datastream changed while preparing the card. No request sent.');
+    const result = await alloy('sendEvent', { ...captured.edgeOptions, renderDecisions: true,
+      personalization: { surfaces: [ctx.surface], sendDisplayEvent: false },
+      xdm: { ...captured.eventXdm, identityMap, web: { webPageDetails: {
+        URL: location.origin + location.pathname, name: viewName, viewName } } } });
+    same(ctx, token);
+    if (!current()) throw new Error('Event datastream changed; previous card response discarded.');
+    if (model.selectCard(result?.propositions, ctx.surface)) await showCard(result.propositions, captured, ctx, token);
+    else if (!cardMount().childElementCount) {
+      $('loyaltyCardHint').textContent = 'Waiting for a journey content-card proposition for this surface.';
+      message('Card request accepted. Journey cards render through the active ruleset subscription.');
+    }
+  }
+  async function showCard(propositions, captured, ctx, token, clearMissing) {
+    same(ctx, token);
+    const candidate = model.selectCard(propositions, ctx.surface);
+    if (!candidate) {
+      if (clearMissing) {
+        cardMount().replaceChildren(); displayedCard = '';
+        $('loyaltyCardHint').textContent = 'No eligible renderable journey card returned for this surface.';
+      }
+      return;
+    }
+    const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content]);
+    if (displayedCard === cardKey) return;
     if (!candidate.item.id || typeof captured?.alloy !== 'function' || !captured.identityMap ||
         !Object.values(captured.identityMap).some(ids => Array.isArray(ids) && ids.some(id => typeof id?.id === 'string' && id.id))) {
       throw new Error('Original proposition request identity is missing. No display event sent.');
     }
     renderCard(candidate, captured, ctx, token);
+    displayedCard = cardKey;
     $('loyaltyCardHint').textContent = 'Live AJO content-card proposition / ' + candidate.proposition.id;
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId }, null, 2);
-    await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display')); same(ctx, token);
-    await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); same(ctx, token);
+    if (captured.collectEvent) await captured.collectEvent('display', [candidate.proposition]);
+    else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
+    same(ctx, token);
     message('Content card displayed; original proposition display accepted. Task state refreshes independently.');
   }
   global.TuiDecisioningDrawer = { getSignals: () => loaded ? global.TuiDecisioningProfile.signals(loaded.rows) : null };
@@ -381,7 +446,7 @@
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
     });
-    global.addEventListener('aep-demo-tags-injected', () => invalidate(false));
+    global.addEventListener('aep-demo-tags-injected', () => { invalidate(false); requestAutomaticCard(); });
     global.addEventListener('aep-demo-visitor-reset-start', () => invalidate(true));
     global.addEventListener('aep-demo-visitor-invalidated', () => invalidate(true));
     for (const id of ['loyaltyRegion', 'loyaltyMember', 'loyaltyChallenge', 'loyaltyTenant', 'loyaltySurface', 'loyaltyParticipation', 'loyaltyTest', 'generatorTarget']) {
