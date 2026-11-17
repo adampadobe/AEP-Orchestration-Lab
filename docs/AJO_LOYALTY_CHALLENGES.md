@@ -74,7 +74,13 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    from replacing or relocating the authored mounts.
 6. To trigger a journey configured for **`abandoned.search`**, load an AEP test
    profile, inject Tags/Web SDK, and select the reviewed event datastream and event
-   tenant namespace in the top configuration bar. Select **Send abandoned.search**.
+   tenant namespace in the top configuration bar. Kirkham automatically uses
+   **`_demoemea`**, matching the reviewed TUI / Center Parcs configuration, so
+   no extra tenant entry is required there. Other sandboxes still require their
+   own reviewed namespace; switching away from Kirkham clears its default and
+   switching back restores it. An explicit tenant override remains available.
+   Select **Send abandoned.search**. The status shows SDK preparation, dispatch
+   and acceptance while the profile timeline refreshes.
    This copies the TUI / Center Parcs Web SDK event contract: active browser ECID
    plus the selected profile identity, tenant `identification.core.ecid` and
    profile email, page/view details, and the configured datastream override.

@@ -2,6 +2,8 @@
   'use strict';
   const $ = id => document.getElementById(id), model = global.LloydsLoyalty;
   const prefix = 'lloydsLoyalty', viewName = 'Lloyds Loyalty';
+  // Match the reviewed Kirkham event schema used by TUI / Center Parcs.
+  const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
   const cardMount = () => $('ContentCardContainerLoyalty');
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter;
@@ -211,6 +213,7 @@
     }
     const edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
     const edgeSnapshot = JSON.stringify(edgeOptions), profileEmail = loaded.profileEmail;
+    message('Preparing abandoned.search: connecting to Web SDK...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
@@ -235,6 +238,7 @@
     if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== edgeSnapshot) {
       throw new Error('Event datastream changed while preparing abandoned.search. No event sent.');
     }
+    message('Sending abandoned.search for the selected profile...');
     try { await alloy('sendEvent', payload); }
     catch (error) {
       throw new Error('abandoned.search send was not confirmed: ' + error.message +
@@ -243,6 +247,7 @@
     same(ctx, token);
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, event: payload, sdkAccepted: true,
       journeyEntryVerified: false }, null, 2);
+    message('abandoned.search accepted by Web SDK. Refreshing profile events...');
     try { await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); }
     catch (error) {
       throw new Error('abandoned.search was accepted by Web SDK, but the profile event refresh failed: ' +
@@ -332,6 +337,7 @@
   }
   async function init() {
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
+    $('loyaltyTenant').value = defaultEventTenant();
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
     $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
     document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
@@ -363,7 +369,7 @@
     $('queryProfileBtn').addEventListener('click', () => void work(lookup));
     email.addEventListener('input', () => invalidate(true)); $(prefix + 'Ns').addEventListener('change', () => invalidate(true));
     global.addEventListener('aep-global-sandbox-change', () => {
-      $('loyaltyRegion').value = ''; $('loyaltyTenant').value = ''; $('loyaltyChallenge').value = '';
+      $('loyaltyRegion').value = ''; $('loyaltyTenant').value = defaultEventTenant(); $('loyaltyChallenge').value = '';
       $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
