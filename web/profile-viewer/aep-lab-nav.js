@@ -700,6 +700,15 @@
           ],
         },
         {
+          id: 'demoLloyds',
+          label: 'Lloyds',
+          demoCustomer: true,
+          items: [
+            { label: 'Loyalty', href: 'lloyds-loyalty-demo.html', navHideKey: 'lloydsLoyaltyDemo',
+              demoMeta: { owners: ['kirkham'] }, ico: '\u2606' },
+          ],
+        },
+        {
           id: 'demoTui',
           label: 'TUI',
           demoCustomer: true,

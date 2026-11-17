@@ -2,6 +2,7 @@
   'use strict';
   const doc = document, $ = id => doc.getElementById(id);
   const model = global.DecisioningDemoModel || global.TuiDecisioning;
+  const kpiFields = model.profileKpis || [['score', 'Propensity'], ['points', 'Loyalty points'], ['booking', 'Journey stage'], ['intent', 'Shopping intent']];
   let selectTab = () => {};
   function classic() {
     try {
@@ -40,7 +41,8 @@
       const value = values ? values[field.key] : undefined;
       $('tuiPhSignal-' + field.key).textContent = value === undefined ? (values ? 'Not set' : 'Not loaded') : String(value);
     }
-    for (const [key, value] of [['score', values?.score], ['points', values?.points], ['booking', values?.booking], ['intent', values?.intent]]) {
+    for (const [key] of kpiFields) {
+      const value = values?.[key];
       $('tuiPhKpi-' + key).textContent = value === undefined ? 'Unavailable' : String(value);
     }
     for (const name of ['Sms', 'Push']) {
@@ -61,7 +63,7 @@
     const inner = doc.querySelector('#profileDrawer .aep-profile-drawer-inner');
     if (!inner || $('tuiProfileHero')) return !!inner;
     const hero = el('section', undefined, 'dph dph--compact'); hero.id = 'tuiProfileHero';
-    hero.setAttribute('aria-label', 'Loaded traveller profile');
+    hero.setAttribute('aria-label', model.brand?.profileLabel || 'Loaded traveller profile');
     const head = el('div', undefined, 'dph-hero'), avatar = el('img', undefined, 'dph-avatar');
     avatar.id = 'tuiPhAvatar'; avatar.alt = 'Customer profile photo'; avatar.hidden = true;
     const who = el('div', undefined, 'dph-who'), name = el('h2', 'No profile loaded'), meta = el('p');
@@ -87,12 +89,12 @@
     const ltv = el('div', undefined, 'dph-clv'), amount = el('b'); amount.id = 'tuiPhLtv';
     ltv.append(el('small', 'Lifetime value'), amount); head.append(avatar, who, ltv);
     const kpis = el('div', undefined, 'dph-kpis');
-    for (const [key, label] of [['score', 'Propensity'], ['points', 'Loyalty points'], ['booking', 'Journey stage'], ['intent', 'Shopping intent']]) {
+    for (const [key, label] of kpiFields) {
       const card = el('div', undefined, 'dph-card dph-kpi'), value = el('b', 'Unavailable');
       value.id = 'tuiPhKpi-' + key; card.append(el('small', label), value); kpis.append(card);
     }
     const details = el('div', undefined, 'dph-details tui-profile-sections');
-    const tabs = el('div', undefined, 'dph-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', 'Traveller attributes');
+    const tabs = el('div', undefined, 'dph-tabs'); tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', model.brand?.profileLabel || 'Traveller attributes');
     details.append(tabs);
     const labels = ['Contact', ...new Set(model.fields.map(f => f.group))];
     const panels = [], buttons = [];

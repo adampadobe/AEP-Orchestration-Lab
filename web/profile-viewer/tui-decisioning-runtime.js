@@ -1,6 +1,6 @@
 /**
- * TUI-scoped decisioning runtime, preserving the original preview's manual display contract.
- * Other demos continue using decisioning-profile-module/decisioning-profile-runtime.js.
+ * Manual-display runtime shared by TUI, Center Parcs and Loyalty demos.
+ * Other demos use decisioning-profile-module/decisioning-profile-runtime.js.
  */
 (function (global) {
   'use strict';
@@ -472,6 +472,7 @@
     var manualDisplay = options.manualDisplay === true;
     if (!isEnabled()) throw new Error('Decisioning is disabled.');
     await ensureLabConfigLoaded();
+    if (typeof options.validateContext === 'function') options.validateContext();
     ensureMounts();
     var preDecisionDoc = getIframeDoc();
     if (
@@ -523,6 +524,13 @@
       edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
     }
     var surfaces = buildSurfacesForPage();
+    if (options.surfaces !== undefined) {
+      if (!Array.isArray(options.surfaces) || options.surfaces.length !== 1 ||
+          typeof options.surfaces[0] !== 'string' || !/^web:\/\/[^?#\s]+#[A-Za-z][A-Za-z0-9_-]*$/.test(options.surfaces[0])) {
+        throw new Error('Provide one explicit web surface URI with a fragment.');
+      }
+      surfaces = options.surfaces.slice();
+    }
     var href = resolvePersonalizationPageUrl();
     if (!href && global.location) href = stripUrlQueryHash(global.location.href);
     var viewName =
@@ -555,6 +563,7 @@
       },
     };
     log('sendEvent', { surfaces: surfaces.length, ns: ns });
+    if (typeof options.validateContext === 'function') options.validateContext();
     var result = await alloyFn('sendEvent', sendOpts);
     var propositions = (result && (result.propositions || result.decisions)) || [];
     try {
@@ -596,13 +605,14 @@
   }
 
   function ensureMounts() {
-    if (!isEnabled()) return null;
+    if (!isEnabled() || cfg('manageMounts') === false) return null;
     var doc = getIframeDoc();
     if (!doc || !global.DecisioningEdgeInject) return null;
     return global.DecisioningEdgeInject.ensureDecisioningMounts(doc, mountLayout());
   }
 
   function removeMounts() {
+    if (cfg('manageMounts') === false) return;
     var doc = getIframeDoc();
     if (!doc || !global.DecisioningEdgeInject) return;
     global.DecisioningEdgeInject.removeDecisioningMounts(doc);
