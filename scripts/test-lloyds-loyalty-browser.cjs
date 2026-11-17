@@ -24,6 +24,7 @@ async function main() {
         data = { status: 200, platform_response: { sandboxes: [
         { name: 'demo-one', title: 'Demo one', type: 'development', state: 'active' },
         { name: 'demo-two', title: 'Demo two', type: 'development', state: 'active' },
+        { name: 'kirkham', title: 'Kirkham fixture', type: 'development', state: 'active' },
         ] } };
       }
       else if (url.pathname === '/api/profile/table') data = { found: true, ecid: '12345678901234567890123456789012345678',
@@ -92,6 +93,8 @@ async function main() {
     assert.equal(await page.locator('#aepDemoEnvSection #loyaltyRegion').count(), 1, 'API options live in the existing top bar');
     assert.equal(await page.locator('#loyaltyRefresh').textContent(), 'Get task status');
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Journey events require a loaded profile');
+    assert.doesNotMatch(await page.locator('body').textContent(), /Independent lab demonstration\. Not a banking service\./,
+      'The requested footer text has been removed');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
@@ -336,6 +339,8 @@ async function main() {
     await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /Preparing abandoned.search/,
+      'Preparing the SDK is visibly acknowledged rather than looking like an inactive button');
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Double clicks are blocked while an event is being prepared');
     await openConfiguration();
     await page.locator('#customerEmail').fill('changed@example.invalid');
@@ -362,6 +367,29 @@ async function main() {
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('selected ECID differs'));
     assert.equal((await abandonCalls()).length, 2, 'Never associate a selected ECID with a different browser ECID');
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
+      'Kirkham gets the same reviewed default as TUI / Center Parcs, without manual tenant setup');
+    await openConfiguration();
+    await page.locator('#lloydsLoyaltyNs').selectOption('email');
+    await page.locator('#customerEmail').fill('kirkham-fixture@example.invalid');
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.locator('#loyaltyAbandon').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Journey entry is not yet verified'));
+    const defaultTenantEvent = (await abandonCalls())[2].payload;
+    assert.equal(defaultTenantEvent.xdm.eventType, 'abandoned.search');
+    assert.deepEqual(defaultTenantEvent.xdm._demoemea.identification.core, {
+      ecid: '12345678901234567890123456789012345678', email: 'kirkham-fixture@example.invalid',
+    }, 'The TUI tenant identification fields are sent against the loaded profile');
+    assert.equal(defaultTenantEvent.xdm._ownTenant, undefined, 'The previous sandbox tenant is never reused');
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
+    assert.equal(await page.locator('#loyaltyTenant').inputValue(), '', 'The reviewed default is scoped to Kirkham only');
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    await page.reload();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('SDK injection is only needed'));
+    assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
+      'The TUI-compatible tenant is also populated on initial page load, not only after a sandbox switch');
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');
