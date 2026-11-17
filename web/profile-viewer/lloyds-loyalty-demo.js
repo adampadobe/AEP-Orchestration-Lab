@@ -193,6 +193,7 @@
     const data = await json('/api/profile/table?' + new URLSearchParams({ sandbox: ctx.sandbox, namespace: ctx.namespace, identifier: ctx.identifier }));
     same(ctx, token);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
+    data.profileLoyaltyId = global.TuiDecisioningProfile.signals(data.rows).loyaltyId;
     if (!await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false })) throw new Error('Profile drawer lookup failed.');
     same(ctx, token); loaded = data; publish(); autoBlocked = true;
     message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
@@ -212,7 +213,8 @@
       throw new Error('Inject Tags with Web SDK and the lab datastream configuration before sending abandoned.search.');
     }
     const edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
-    const edgeSnapshot = JSON.stringify(edgeOptions), profileEmail = loaded.profileEmail;
+    const edgeSnapshot = JSON.stringify(edgeOptions), profileEmail = loaded.profileEmail,
+      profileLoyaltyId = loaded.profileLoyaltyId;
     message('Preparing abandoned.search: connecting to Web SDK...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
@@ -225,12 +227,17 @@
     if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) {
       throw new Error('The selected ECID differs from the active Web SDK visitor. No event sent.');
     }
+    const identityMap = global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace);
+    if (profileLoyaltyId) {
+      identityMap.loyaltyId = [{ id: profileLoyaltyId, authenticatedState: 'authenticated', primary: false }];
+    }
     const payload = { ...edgeOptions,
       renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
       xdm: {
         eventType: 'abandoned.search',
-        identityMap: global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace),
-        [ctx.tenant]: { identification: { core: { ecid, email: profileEmail } } },
+        identityMap,
+        [ctx.tenant]: { identification: { core: { ecid, email: profileEmail,
+          ...(profileLoyaltyId && { loyaltyId: profileLoyaltyId }) } } },
         web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
       },
     };

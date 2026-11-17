@@ -12,7 +12,7 @@ async function main() {
     const context = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
     const errors = [], writes = [], reads = [];
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
-    let holdState = false, events = [], testProfile = true, eventRefreshes = 0;
+    let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -31,6 +31,11 @@ async function main() {
         profileEmail: url.searchParams.get('namespace') === 'ecid' ? 'fixture@example.invalid' : url.searchParams.get('identifier'), rows: [
           { path: 'person.name.firstName', value: 'Alex', valueType: 'string' },
           { path: 'testProfile', value: testProfile, valueType: 'boolean' },
+          ...(profileLoyaltyId === undefined ? [] : [{
+            path: (url.searchParams.get('sandbox') === 'kirkham' ? '_demoemea' : '_ownTenant') + '.identification.core.loyaltyId',
+            value: profileLoyaltyId, valueType: 'string',
+          }]),
+          { path: 'loyalty.loyaltyID.0', value: 'different-program-array-id', valueType: 'string' },
           { path: '_ownTenant.loyaltyDetails.points', value: 0, valueType: 'number' },
           { path: '_ownTenant.loyaltyDetails.level', value: 'Gold', valueType: 'string' },
           { path: '_ownTenant.scoring.npsScore', value: 0, valueType: 'number' },
@@ -123,6 +128,8 @@ async function main() {
     assert.equal(await page.locator('#tuiPhSignal-emailConsent').textContent(), 'n');
     assert.equal(await page.locator('#tuiPhSignal-tier').textContent(), 'Gold');
     assert.equal(await page.locator('#tuiPhSignal-nps').textContent(), '0');
+    assert.equal(await page.locator('#tuiPhSignal-loyaltyId').textContent(), 'Not set',
+      'A missing scalar Loyalty identity is not inferred from the separate loyalty.loyaltyID array');
     assert.equal(await page.locator('#tuiProfileHero').getAttribute('aria-label'), 'Loaded Loyalty profile');
     assert.ok(reads.some(read => read.action === 'profile_state' && read.profile_id === 'fixture@example.invalid' && read.region === 'nld2' && read.sandbox === 'demo-one'));
     await openApiOptions();
@@ -164,6 +171,8 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('abandoned.search accepted'));
     const abandoned = await abandonCalls();
     assert.equal(abandoned.length, 1, 'One explicit click sends one event');
+    assert.equal(abandoned[0].payload.xdm.identityMap.loyaltyId, undefined, 'Missing Loyalty identity is not invented');
+    assert.equal(abandoned[0].payload.xdm._ownTenant.identification.core.loyaltyId, undefined);
     assert.deepEqual(abandoned[0], { command: 'sendEvent', payload: {
       edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' }, renderDecisions: false,
       personalization: { defaultPersonalizationEnabled: false },
@@ -348,6 +357,7 @@ async function main() {
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal((await abandonCalls()).length, 2, 'An identity change during getIdentity blocks event dispatch');
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true);
+    await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'Not loaded');
     await page.locator('#queryProfileBtn').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
     await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
@@ -367,6 +377,7 @@ async function main() {
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('selected ECID differs'));
     assert.equal((await abandonCalls()).length, 2, 'Never associate a selected ECID with a different browser ECID');
+    profileLoyaltyId = 'loyalty-fixture-123';
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
       'Kirkham gets the same reviewed default as TUI / Center Parcs, without manual tenant setup');
@@ -375,16 +386,26 @@ async function main() {
     await page.locator('#customerEmail').fill('kirkham-fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'loyalty-fixture-123');
+    assert.equal(await page.locator('#tuiPhSignal-loyaltyId').textContent(), 'loyalty-fixture-123',
+      'The shared Loyalty drawer displays the scalar ID extracted from the supplied schema path');
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Journey entry is not yet verified'));
     const defaultTenantEvent = (await abandonCalls())[2].payload;
     assert.equal(defaultTenantEvent.xdm.eventType, 'abandoned.search');
     assert.deepEqual(defaultTenantEvent.xdm._demoemea.identification.core, {
       ecid: '12345678901234567890123456789012345678', email: 'kirkham-fixture@example.invalid',
+      loyaltyId: 'loyalty-fixture-123',
     }, 'The TUI tenant identification fields are sent against the loaded profile');
+    assert.deepEqual(defaultTenantEvent.xdm.identityMap.loyaltyId, [{
+      id: 'loyalty-fixture-123', authenticatedState: 'authenticated', primary: false,
+    }], 'The loaded Loyalty identity is authenticated and secondary');
+    assert.equal(defaultTenantEvent.xdm.identityMap.Email[0].primary, true);
     assert.equal(defaultTenantEvent.xdm._ownTenant, undefined, 'The previous sandbox tenant is never reused');
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '', 'The reviewed default is scoped to Kirkham only');
+    await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'Not loaded',
+      null, { timeout: 5000 });
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
     await page.reload();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('SDK injection is only needed'));
