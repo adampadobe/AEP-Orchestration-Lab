@@ -2,6 +2,8 @@
   'use strict';
   const $ = id => document.getElementById(id), model = global.LloydsLoyalty;
   const prefix = 'lloydsLoyalty', viewName = 'Lloyds Loyalty';
+  const cardMount = () => $('ContentCardContainerLoyalty');
+  const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   let loaded = null, version = 0, busy = false, autoBlocked = false, targets = [], aborter;
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
@@ -23,10 +25,12 @@
   }
   const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   function clearResults() {
-    $('ContentCardContainer').replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
+    cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
+    $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
+    syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
-    $('loyaltyCardHint').textContent = 'Request a content card for the current profile.';
+    $('loyaltyCardHint').textContent = 'Journey content appears here. Inject the SDK, then get a content card for the current profile.';
   }
   function invalidate(clearProfile) {
     version++; aborter?.abort(); autoBlocked = true; clearResults();
@@ -84,24 +88,44 @@
       member, region: ctx.region, state, metadata }, null, 2);
   }
   function renderTasks(state, metadata, ctx) {
-    const fragment = document.createDocumentFragment();
+    const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
     const challenges = state.challengeList.filter(challenge => !ctx.challenge || challenge.challenge_id === ctx.challenge);
-    if (!challenges.length) fragment.append(node('p', 'No ' + ctx.participation + ' challenges returned for this member and filter.', 'loyalty-empty'));
+    if (!challenges.length) {
+      const empty = node('p', 'No ' + ctx.participation + ' challenges returned for this member and filter.', 'loyalty-empty');
+      phone.append(empty.cloneNode(true)); fragment.append(empty);
+    }
     for (const challenge of challenges) {
       if (!challenge || typeof challenge !== 'object' || !Array.isArray(challenge.tasks)) throw new Error('Malformed challenge: tasks must be an array.');
+      if (challenge.tasks.some(task => !task || typeof task !== 'object')) throw new Error('Malformed task in Loyalty state.');
       const definition = metadata?.challenge_id === challenge.challenge_id || (metadata?._id || metadata?.get_id) === challenge.challenge_id ? metadata : null;
       const section = node('article', undefined, 'loyalty-challenge');
-      section.append(node('h3', challenge.challengeName || definition?.name || challenge.challenge_id || 'Unnamed challenge'),
+      const name = challenge.challengeName || definition?.name || challenge.challenge_id || 'Unnamed challenge';
+      const completed = challenge.tasks.filter(complete).length, total = challenge.tasks.length;
+      const summary = node('div', undefined, 'loyalty-progress-summary');
+      const ring = node('div', undefined, 'loyalty-progress-ring');
+      ring.style.setProperty('--loyalty-progress', (total ? completed / total * 100 : 0) + '%');
+      ring.append(node('b', completed + ' / ' + total), node('span', 'tasks complete'));
+      const title = node('div');
+      title.append(node('p', 'CHALLENGE PROGRESS', 'loyalty-eyebrow'), node('h3', name),
         node('small', 'Challenge ID: ' + repr(challenge.challenge_id)));
+      summary.append(ring, title); section.append(summary);
+      const mobile = node('article', undefined, 'loyalty-phone-challenge');
+      mobile.append(node('h4', name), node('p', completed + ' / ' + total + ' tasks complete', 'loyalty-phone-count'));
+      if (total) {
+        const meter = node('progress'); meter.max = total; meter.value = completed;
+        meter.setAttribute('aria-label', name + ' completed tasks'); mobile.append(meter);
+      }
       section.append(node('p', 'State: ' + repr(challenge.state) + ' / Opted in: ' + repr(challenge.optedIn) +
         ' / Required tasks: ' + repr(challenge.tasksToComplete)));
       if (Array.isArray(challenge.challengeCompletions)) section.append(node('small', 'Previous challenge completions: ' + challenge.challengeCompletions.length));
-      for (const task of challenge.tasks) {
-        if (!task || typeof task !== 'object') throw new Error('Malformed task in Loyalty state.');
+      for (const [index, task] of challenge.tasks.entries()) {
         const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
         const card = node('div', undefined, 'loyalty-task'), heading = node('div', undefined, 'loyalty-task-heading');
-        card.dataset.complete = String(/^(complete|completed)$/i.test(String(task.taskState)));
-        heading.append(node('strong', task.taskName || definitionTask?.taskName || definitionTask?.name || task.taskId || 'Unnamed task'),
+        const taskName = task.taskName || definitionTask?.taskName || definitionTask?.name || task.taskId || 'Unnamed task';
+        card.dataset.complete = String(complete(task));
+        const step = node('span', complete(task) ? '\u2713' : index + 1, 'loyalty-step-number');
+        step.setAttribute('aria-hidden', 'true');
+        heading.append(step, node('strong', taskName),
           node('span', repr(task.taskState), 'loyalty-task-state'));
         card.append(heading);
         const progress = model.progress(task);
@@ -113,11 +137,23 @@
         card.append(node('small', 'Accumulators: ' + repr(task.accumulators)));
         if (Array.isArray(task.taskCompletions)) card.append(node('small', 'Previous task completions: ' + task.taskCompletions.length));
         card.append(node('small', 'Task ID: ' + repr(task.taskId))); section.append(card);
+        const row = node('div', undefined, 'loyalty-phone-task');
+        row.dataset.complete = String(complete(task));
+        const initials = node('span', complete(task) ? '\u2713' : index + 1, 'loyalty-phone-task-icon');
+        initials.setAttribute('aria-hidden', 'true');
+        const text = node('div'); text.append(node('b', taskName), node('span', repr(task.taskState)));
+        row.append(initials, text); mobile.append(row);
       }
+      const outcome = node('div', undefined, 'loyalty-outcome');
+      outcome.append(node('b', 'Challenge state: ' + repr(challenge.state)),
+        node('span', 'Task completion is reported by Adobe. Reward delivery is not verified by this page.'));
+      section.append(outcome); phone.append(mobile);
       fragment.append(section);
     }
     if (state._links?.next) fragment.append(node('p', 'Adobe returned a next-page link. Showing only the challenges in this response; this is not the full history.'));
     $('loyaltyTasks').replaceChildren(fragment);
+    if (state._links?.next) phone.append(node('p', 'More challenges are available. This response is not the full history.'));
+    $('loyaltyPhoneTasks').replaceChildren(phone);
   }
   async function work(operation) {
     if (busy) return;
@@ -185,7 +221,7 @@
       dismiss.addEventListener('click', () => { card.remove(); $('loyaltyCardHint').textContent = 'Card dismissed locally. Member challenge state is unchanged.'; });
       body.append(dismiss);
     }
-    card.append(body); $('ContentCardContainer').replaceChildren(card);
+    card.append(body); cardMount().replaceChildren(card);
   }
   async function run(ctx, token) {
     const runtime = global.DecisioningProfileRuntime;
@@ -197,7 +233,7 @@
     same(ctx, token);
     const candidate = model.selectCard(result.propositions, ctx.surface);
     if (!candidate) {
-      $('ContentCardContainer').replaceChildren(); $('loyaltyCardHint').textContent = 'No renderable card returned for this surface. This does not mean the member has no active challenges.';
+      cardMount().replaceChildren(); $('loyaltyCardHint').textContent = 'No renderable card returned for this surface. This does not mean the member has no active challenges.';
       message('No matching content-card proposition returned. No display event sent.'); return;
     }
     const captured = result.manualDisplay;
@@ -214,9 +250,26 @@
     message('Content card displayed; original proposition display accepted. Task state refreshes independently.');
   }
   global.TuiDecisioningDrawer = { getSignals: () => loaded ? global.TuiDecisioningProfile.signals(loaded.rows) : null };
+  function syncParticipation() {
+    const participation = $('loyaltyParticipation').value;
+    document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.loyaltyParticipation === participation));
+    });
+    $('loyaltyPhoneTitle').textContent = participation === 'complete' ? 'Completed challenges' : 'In progress';
+  }
   async function init() {
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
-    $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainer';
+    $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
+    document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
+      button.addEventListener('click', () => {
+        if (busy || $('loyaltyParticipation').value === button.dataset.loyaltyParticipation) return;
+        $('loyaltyParticipation').value = button.dataset.loyaltyParticipation;
+        invalidate(false);
+        if (loaded) void work(async (ctx, token) => {
+          await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
+        });
+      });
+    });
     global.AepIdentityPicker.init('customerEmail', prefix + 'Ns'); global.attachEmailDatalist?.('customerEmail', 'recentEmails', prefix + 'Ns');
     const tags = global.DemoTagsInjection.init({ storagePrefix: prefix, identityEventType: 'lloyds.loyalty.identity.stitch',
       messageSetter: (text, type) => message(text, type === 'error'), infoEcidId: 'infoEcid',
@@ -237,7 +290,7 @@
     email.addEventListener('input', () => invalidate(true)); $(prefix + 'Ns').addEventListener('change', () => invalidate(true));
     global.addEventListener('aep-global-sandbox-change', () => {
       $('loyaltyRegion').value = ''; $('loyaltyTenant').value = ''; $('loyaltyChallenge').value = '';
-      $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainer';
+      $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
     });

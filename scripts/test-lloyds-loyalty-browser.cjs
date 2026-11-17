@@ -74,10 +74,15 @@ async function main() {
     });
     assert.equal(await page.locator('#sandboxSelect').isDisabled(), false, 'Sandbox is never pinned to the page author');
     assert.equal(await page.locator('#ContentCardContainer').count(), 1);
+    assert.equal(await page.locator('.loyalty-phone #ContentCardContainerLoyalty').count(), 1,
+      'The journey placement is inside the mobile app, not the hero or desktop rail');
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0, 'No invented journey content before SDK response');
+    await page.locator('.loyalty-settings summary').click();
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
     await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#loyaltyTenant').fill('_ownTenant');
+    if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
     await page.locator('#customerEmail').fill('fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Member task state loaded'));
@@ -85,6 +90,10 @@ async function main() {
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/);
     assert.equal(await page.locator('.loyalty-task progress').count(), 1, 'Missing accumulator is never fabricated as zero');
     assert.equal(await page.locator('.loyalty-task[data-complete="true"]').count(), 0, 'Previous-cycle completions do not complete current tasks');
+    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '0 / 2');
+    assert.equal(await page.locator('.loyalty-phone-count').textContent(), '0 / 2 tasks complete');
+    assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 0);
+    assert.equal(await page.locator('.loyalty-phone-task button').count(), 0, 'Phone tasks cannot be completed by local simulation buttons');
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-points')?.textContent === '0');
     assert.equal(await page.locator('#tuiPhSignal-emailConsent').textContent(), 'n');
     assert.equal(await page.locator('#tuiPhSignal-tier').textContent(), 'Gold');
@@ -108,7 +117,11 @@ async function main() {
               buttons: [{ id: 'see-tasks', text: { content: 'See my tasks' }, actionUrl: '#loyalty-challenges' }] },
           } } }] }] },
         }] });
-        return { propositions: [proposition('hero', surface.replace('ContentCardContainer', 'hero-banner'), 999), proposition('card', surface, 1)] };
+        return { propositions: [
+          proposition('hero', surface.replace('ContentCardContainerLoyalty', 'hero-banner'), 999),
+          proposition('legacy', surface.replace('ContentCardContainerLoyalty', 'ContentCardContainer'), 999),
+          proposition('card', surface, 1),
+        ] };
       };
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' } });
       const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
@@ -128,19 +141,30 @@ async function main() {
     assert.equal(display.xdm.identityMap.Email[0].id, 'fixture@example.invalid');
     assert.equal(display.xdm._ownTenant.identification.core.ecid, display.xdm.identityMap.ECID[0].id);
     const decision = calls.find(call => call.payload?.personalization?.surfaces)?.payload;
-    assert.deepEqual(decision.personalization.surfaces, [origin.replace('http:', 'web:') + '/profile-viewer/lloyds-loyalty-demo.html#ContentCardContainer']);
+    assert.deepEqual(decision.personalization.surfaces, [origin.replace('http:', 'web:') + '/profile-viewer/lloyds-loyalty-demo.html#ContentCardContainerLoyalty']);
+    assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
     await page.locator('#ContentCardContainer button').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/, 'A successful card interaction does not advance tasks locally');
     quantity = 3;
     await page.waitForFunction(() => document.querySelectorAll('.loyalty-task[data-complete="true"]').length === 1,
       null, { timeout: 35000 });
+    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '1 / 2');
+    assert.equal(await page.locator('.loyalty-phone-count').textContent(), '1 / 2 tasks complete');
+    assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 1);
     assert.ok(await page.evaluate(() => document.scrollingElement.scrollHeight -
       (document.querySelector('.loyalty-workspace').getBoundingClientRect().bottom + scrollY) < 100),
     'Navigation chrome must not add an extra empty viewport below the page');
     if (process.env.AEP_LOYALTY_SCREENSHOT) {
-      await page.evaluate(() => { window.scrollTo(0, 0); document.documentElement.removeAttribute('data-aep-theme'); });
+      await page.locator('.loyalty-settings summary').click();
+      await page.evaluate(() => {
+        window.scrollTo(0, 0); document.querySelector('.loyalty-phone-scroll').scrollTop = 0;
+        document.documentElement.removeAttribute('data-aep-theme');
+      });
       await page.screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT });
+      await page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+      await page.screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-dark.png') });
+      await page.locator('.loyalty-settings summary').click();
     }
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
@@ -151,7 +175,19 @@ async function main() {
     assert.ok(await page.locator('.loyalty-columns').evaluate(node => node.getBoundingClientRect().right <= innerWidth + 1), 'Cards fit a mobile viewport');
     assert.ok(await page.locator('#loyaltyRun,#loyaltyRefresh').evaluateAll(nodes =>
       nodes.every(node => node.getBoundingClientRect().right <= innerWidth + 1)), 'Action buttons remain on screen on mobile');
+    assert.ok(await page.locator('.loyalty-phone').evaluate(node => {
+      const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1;
+    }), 'The phone frame fits a narrow mobile viewport');
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      'The redesigned page must not introduce horizontal scrolling on mobile');
     await page.setViewportSize({ width: 1500, height: 1100 });
+    await page.locator('[data-loyalty-participation="complete"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await page.locator('#loyaltyParticipation').inputValue(), 'complete');
+    assert.equal(await page.locator('[data-loyalty-participation="complete"]').getAttribute('aria-pressed'), 'true');
+    assert.ok(reads.some(read => read.action === 'profile_challenges' && read.state === 'complete'));
+    await page.locator('[data-loyalty-participation="active"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     rejectState = true;
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('no active enrollment'));
@@ -177,6 +213,7 @@ async function main() {
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await page.locator('#ContentCardContainer article').count(), 0);
     assert.equal(await page.locator('.loyalty-task').count(), 0, 'Stale response cannot refill a different identity');
+    assert.equal(await page.locator('.loyalty-phone-task').count(), 0, 'Stale responses cannot refill the mobile preview either');
     assert.match(await page.locator('#tuiPhName').textContent(), /No profile loaded|Not loaded/);
     await page.locator('#queryProfileBtn').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Member task state loaded'));
@@ -199,6 +236,7 @@ async function main() {
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
     assert.equal(await page.locator('#loyaltyRegion').inputValue(), '');
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '');
+    assert.match(await page.locator('#loyaltySurface').inputValue(), /#ContentCardContainerLoyalty$/);
     await page.locator('#loyaltyRegion').selectOption('va7');
     if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
     await page.locator('#queryProfileBtn').click();
