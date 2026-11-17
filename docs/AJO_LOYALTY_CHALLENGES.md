@@ -84,6 +84,18 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    This copies the TUI / Center Parcs Web SDK event contract: active browser ECID
    plus the selected profile identity, tenant `identification.core.ecid` and
    profile email, page/view details, and the configured datastream override.
+   The page reads the scalar tenant `identification.core.loyaltyId` from the
+   loaded profile-table rows (`_demoemea.identification.core.loyaltyId` in the
+   supplied Operational Profile schema) into `profileLoyaltyId`. The same value
+   appears as **Loyalty ID** in the shared profile drawer's **Loyalty** tab.
+   The existing tenant-relative drawer field matching supports other sandbox
+   tenant prefixes. The separate standard `loyalty.loyaltyID` array is not used
+   to guess this scalar identification field.
+   When `profileLoyaltyId` is present, the event also includes
+   `identityMap.loyaltyId` (authenticated, non-primary) and tenant
+   `identification.core.loyaltyId`. Missing values are omitted, not invented.
+   This is resolved in the page from existing API rows, without a new Function
+   deployment. Clearing/changing the loaded profile also clears the drawer ID.
    Selecting a different ECID from the active SDK visitor blocks the send.
    The action requires neither a Loyalty state region nor a working Loyalty
    state proxy. It does not update profile snapshots, synthesize task completion,

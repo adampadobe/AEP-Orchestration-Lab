@@ -1,6 +1,7 @@
 (function (root) {
   'use strict';
   const fields = [
+    { key: 'loyaltyId', label: 'Loyalty ID', path: 'identification.core.loyaltyId', type: 'string', group: 'Loyalty' },
     { key: 'points', label: 'Profile loyalty points', path: 'loyaltyDetails.points', type: 'number', group: 'Loyalty' },
     { key: 'tier', label: 'Profile loyalty tier', path: 'loyaltyDetails.level', type: 'string', group: 'Loyalty' },
     { key: 'score', label: 'Propensity', path: 'scoring.core.propensityScore', type: 'number', group: 'Signals' },
