@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261117-mobile">
+  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261117-combined">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page">
@@ -31,39 +31,20 @@
     <div class="tui-action-controls">
       <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
       <button id="loyaltyRun" type="button" disabled>Get content card</button>
-      <button id="loyaltyRefresh" type="button" disabled>Refresh tasks</button>
+      <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
     </div>
   </header>
   <main class="loyalty-workspace">
     <section id="TopRibbon" aria-label="Personalized ribbon"></section>
     <section id="hero-banner" class="loyalty-hero" data-hero-mount data-ajo-insert-section="Loyalty welcome">
-      <div><p class="loyalty-eyebrow">LLOYDS / REWARDS</p><h1>Small steps. More rewards.</h1>
-      <p>Your challenge journey, alongside the mobile experience. Progress updates from Adobe Loyalty.</p></div>
+      <div><h1>Loyalty Challenge</h1>
+      <p>Look up a profile using the top bar, then select <strong>Get task status</strong> to retrieve its progress from Adobe.</p></div>
       <span class="loyalty-demo-badge">Demonstration experience</span>
     </section>
-    <details class="loyalty-settings">
-      <summary>Loyalty connection &amp; SDK setup</summary>
-      <p>Use the configuration gear above to select your sandbox and Tags environment, enable Decisioning, then inject the SDK. This is a web-based mobile app preview, not a native app.</p>
-      <p>Uses your selected sandbox and signed-in Portal session. Adobe credentials stay on the server.</p>
-      <div class="loyalty-settings-grid">
-        <label>Confirmed state region<select id="loyaltyRegion"><option value="">Select confirmed region</option><option value="va7">va7</option><option value="nld2">nld2</option><option value="aus5">aus5</option><option value="can2">can2</option><option value="ind2">ind2</option><option value="global">Global (platform.adobe.io)</option></select></label>
-        <label>Member identifier<input id="loyaltyMember" autocomplete="off" placeholder="Resolved when namespaces match"></label>
-        <label>Challenge ID (optional)<input id="loyaltyChallenge" autocomplete="off" placeholder="All active challenges"></label>
-        <label>Event tenant namespace<input id="loyaltyTenant" autocomplete="off" placeholder="_yourTenant"></label>
-        <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
-        <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
-      </div>
-      <div class="loyalty-options">
-        <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
-        <label><input id="loyaltyAuto" type="checkbox" checked> Refresh task state every 30 seconds</label>
-        <span id="loyaltyNamespace">Loyalty namespace not yet read</span>
-      </div>
-    </details>
     <div class="loyalty-columns">
       <section id="loyalty-challenges" class="loyalty-challenges" aria-labelledby="loyaltyTasksTitle" data-ajo-insert-section="Member task progress">
-        <div class="loyalty-section-heading"><div><p class="loyalty-eyebrow">CHALLENGE JOURNEY</p><h2 id="loyaltyTasksTitle">Every step counts</h2></div><span id="loyaltyUpdated">Not loaded</span></div>
-        <p class="loyalty-intro">Follow your tasks here and see the same progress in the app. A card interaction never completes a task locally.</p>
-        <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Task progress will appear after a successful member-state read.</p></div>
+        <div class="loyalty-section-heading"><h2 id="loyaltyTasksTitle">Challenge progress</h2><span id="loyaltyUpdated">Not loaded</span></div>
+        <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile, then select Get task status.</p></div>
       </section>
       <section class="loyalty-mobile-preview" aria-labelledby="loyaltyMobileTitle">
         <p class="loyalty-eyebrow" id="loyaltyMobileTitle">MOBILE APP PREVIEW</p>
@@ -79,7 +60,7 @@
             <p class="loyalty-phone-subtitle">Your challenges, one step at a time.</p>
             <div id="loyaltyPhoneTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to see its challenges.</p></div>
             <section class="loyalty-promotion" aria-labelledby="loyaltyPromotionTitle" data-ajo-insert-section="Loyalty content card">
-              <p class="loyalty-eyebrow">CHOSEN FOR YOU</p><h3 id="loyaltyPromotionTitle">Your next little treat</h3>
+              <h3 id="loyaltyPromotionTitle">Available for you</h3>
               <p id="loyaltyCardHint">Journey content will appear here after the SDK returns a matching card.</p>
               <div id="ContentCardContainer" class="ContentCardContainer">
                 <div id="ContentCardContainerLoyalty" class="ContentCardLoyalty" aria-live="polite"></div>
@@ -97,6 +78,25 @@
     <details class="loyalty-evidence"><summary>Last successful response / proposition evidence</summary><pre id="loyaltyEvidence">No live response yet.</pre></details>
     <footer class="loyalty-footer">Independent lab demonstration. Not a banking service. Challenge completion does not confirm reward delivery or points credited.</footer>
   </main>
+  <template id="loyaltyApiOptions">
+    <details class="loyalty-settings">
+      <summary>Loyalty API options</summary>
+      <p>Task status is a server-side API read, independent of SDK injection. Confirm the region for your selected sandbox; Adobe credentials stay on the server.</p>
+      <div class="loyalty-settings-grid">
+        <label>Confirmed state region<select id="loyaltyRegion"><option value="">Select confirmed region</option><option value="va7">va7</option><option value="nld2">nld2</option><option value="aus5">aus5</option><option value="can2">can2</option><option value="ind2">ind2</option><option value="global">Global (platform.adobe.io)</option></select></label>
+        <label>Member identifier<input id="loyaltyMember" autocomplete="off" placeholder="Resolved when namespaces match"></label>
+        <label>Challenge ID (optional)<input id="loyaltyChallenge" autocomplete="off" placeholder="All active challenges"></label>
+        <label>Event tenant namespace<input id="loyaltyTenant" autocomplete="off" placeholder="_yourTenant"></label>
+        <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
+        <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
+      </div>
+      <div class="loyalty-options">
+        <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
+        <label><input id="loyaltyAuto" type="checkbox"> Refresh task state every 30 seconds after a successful read</label>
+        <span id="loyaltyNamespace">Loyalty namespace not yet read</span>
+      </div>
+    </details>
+  </template>
   <div class="dashboard-shell"><aside class="dashboard-sidebar" aria-label="Lab navigation"></aside><div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div></div>
   <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
   <script src="firebase-database-config.js"></script>
@@ -120,7 +120,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261117-mobile'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261117-combined'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

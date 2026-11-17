@@ -4,7 +4,7 @@
   const prefix = 'lloydsLoyalty', viewName = 'Lloyds Loyalty';
   const cardMount = () => $('ContentCardContainerLoyalty');
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
-  let loaded = null, version = 0, busy = false, autoBlocked = false, targets = [], aborter;
+  let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter;
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
     namespace: $(prefix + 'Ns').value.toLowerCase(), identifier: $('customerEmail').value.trim(),
@@ -51,6 +51,9 @@
   async function json(url, options) {
     const response = await fetch(url, { ...options, signal: aborter.signal });
     const type = response.headers.get('content-type') || '';
+    if (url.startsWith('/api/ajo-loyalty?') && response.status === 404 && !type.includes('application/json')) {
+      throw new Error('Loyalty API is not deployed. An authorized release owner must deploy ajoLoyaltyProxy; SDK injection does not enable task-status reads.');
+    }
     if (!type.includes('application/json')) throw new Error('Expected the deployed lab JSON API; HTTP ' + response.status + '. Check the Functions release.');
     const data = await response.json();
     if (!response.ok || data.ok === false || data.error) throw new Error(typeof data.error === 'string' ? data.error : data.message || 'HTTP ' + response.status);
@@ -70,7 +73,7 @@
     throw new Error('Loyalty uses namespace "' + config.namespace + '". Enter this profile\'s member identifier in that namespace; it cannot be inferred from ' + ctx.namespace + '.');
   }
   async function readTasks(ctx, token) {
-    if (!ctx.region) throw new Error('Select the confirmed Loyalty state region. Regions are not probed automatically.');
+    if (!ctx.region) throw new Error('Choose the confirmed state region in the top configuration bar > Loyalty API options. Regions are not probed automatically.');
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
     const config = await loyalty(ctx, { action: 'config' }); same(ctx, token);
     const member = memberId(ctx, config);
@@ -106,26 +109,34 @@
       ring.style.setProperty('--loyalty-progress', (total ? completed / total * 100 : 0) + '%');
       ring.append(node('b', completed + ' / ' + total), node('span', 'tasks complete'));
       const title = node('div');
+      const remaining = challenge.tasks.find(task => !complete(task));
       title.append(node('p', 'CHALLENGE PROGRESS', 'loyalty-eyebrow'), node('h3', name),
-        node('small', 'Challenge ID: ' + repr(challenge.challenge_id)));
+        node('p', !total ? 'No tasks reported' : remaining ? 'Remaining: ' + (remaining.taskName || remaining.taskId || 'Unnamed task') : 'All returned tasks complete', 'loyalty-next-task'));
       summary.append(ring, title); section.append(summary);
       const mobile = node('article', undefined, 'loyalty-phone-challenge');
-      mobile.append(node('h4', name), node('p', completed + ' / ' + total + ' tasks complete', 'loyalty-phone-count'));
+      const mobileTop = node('div', undefined, 'loyalty-phone-challenge-top');
+      mobileTop.append(node('h4', name), node('span', repr(challenge.state), 'loyalty-task-state'));
+      mobile.append(mobileTop, node('p', completed + ' / ' + total + ' tasks complete', 'loyalty-phone-count'));
       if (total) {
         const meter = node('progress'); meter.max = total; meter.value = completed;
         meter.setAttribute('aria-label', name + ' completed tasks'); mobile.append(meter);
       }
-      section.append(node('p', 'State: ' + repr(challenge.state) + ' / Opted in: ' + repr(challenge.optedIn) +
+      const diagnostic = node('details', undefined, 'loyalty-task-details');
+      diagnostic.append(node('summary', 'Challenge API details'), node('small', 'Challenge ID: ' + repr(challenge.challenge_id)),
+        node('p', 'State: ' + repr(challenge.state) + ' / Opted in: ' + repr(challenge.optedIn) +
         ' / Required tasks: ' + repr(challenge.tasksToComplete)));
-      if (Array.isArray(challenge.challengeCompletions)) section.append(node('small', 'Previous challenge completions: ' + challenge.challengeCompletions.length));
+      if (Array.isArray(challenge.challengeCompletions)) diagnostic.append(node('small', 'Previous challenge completions: ' + challenge.challengeCompletions.length));
       for (const [index, task] of challenge.tasks.entries()) {
         const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
         const card = node('div', undefined, 'loyalty-task'), heading = node('div', undefined, 'loyalty-task-heading');
         const taskName = task.taskName || definitionTask?.taskName || definitionTask?.name || task.taskId || 'Unnamed task';
         card.dataset.complete = String(complete(task));
+        card.dataset.current = String(task === remaining);
         const step = node('span', complete(task) ? '\u2713' : index + 1, 'loyalty-step-number');
         step.setAttribute('aria-hidden', 'true');
-        heading.append(step, node('strong', taskName),
+        const initialsText = taskName.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
+        const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
+        heading.append(step, logo, node('strong', taskName),
           node('span', repr(task.taskState), 'loyalty-task-state'));
         card.append(heading);
         const progress = model.progress(task);
@@ -134,20 +145,25 @@
           meter.setAttribute('aria-label', (task.taskName || task.taskId) + ' progress');
           card.append(meter, node('p', progress.value + ' of ' + progress.goal + ' (' + progress.key + ')'));
         } else card.append(node('p', 'Goal: ' + repr(task.variables?.goal) + ' / Goal type: ' + repr(task.variables?.type)));
-        card.append(node('small', 'Accumulators: ' + repr(task.accumulators)));
-        if (Array.isArray(task.taskCompletions)) card.append(node('small', 'Previous task completions: ' + task.taskCompletions.length));
-        card.append(node('small', 'Task ID: ' + repr(task.taskId))); section.append(card);
+        const taskDetails = node('div');
+        taskDetails.append(node('b', taskName), node('small', 'Accumulators: ' + repr(task.accumulators)));
+        if (Array.isArray(task.taskCompletions)) taskDetails.append(node('small', 'Previous task completions: ' + task.taskCompletions.length));
+        taskDetails.append(node('small', 'Task ID: ' + repr(task.taskId))); diagnostic.append(taskDetails);
+        section.append(card);
         const row = node('div', undefined, 'loyalty-phone-task');
         row.dataset.complete = String(complete(task));
-        const initials = node('span', complete(task) ? '\u2713' : index + 1, 'loyalty-phone-task-icon');
+        const initials = node('span', initialsText, 'loyalty-phone-task-icon');
         initials.setAttribute('aria-hidden', 'true');
         const text = node('div'); text.append(node('b', taskName), node('span', repr(task.taskState)));
-        row.append(initials, text); mobile.append(row);
+        row.append(initials, text);
+        if (complete(task)) row.append(node('span', '\u2713', 'loyalty-phone-tick'));
+        mobile.append(row);
       }
       const outcome = node('div', undefined, 'loyalty-outcome');
-      outcome.append(node('b', 'Challenge state: ' + repr(challenge.state)),
+      const remainingCount = total - completed;
+      outcome.append(node('b', !total ? 'No tasks reported' : remaining ? remainingCount + (remainingCount === 1 ? ' task remaining' : ' tasks remaining') : 'All returned tasks complete'),
         node('span', 'Task completion is reported by Adobe. Reward delivery is not verified by this page.'));
-      section.append(outcome); phone.append(mobile);
+      section.append(outcome, diagnostic); phone.append(mobile);
       fragment.append(section);
     }
     if (state._links?.next) fragment.append(node('p', 'Adobe returned a next-page link. Showing only the challenges in this response; this is not the full history.'));
@@ -175,8 +191,8 @@
     same(ctx, token);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
     if (!await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false })) throw new Error('Profile drawer lookup failed.');
-    same(ctx, token); loaded = data; publish(); autoBlocked = false;
-    await readTasks(ctx, token); message('Member task state loaded. Content-card requests are separate.');
+    same(ctx, token); loaded = data; publish(); autoBlocked = true;
+    message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards.');
   }
   function tracking(candidate, captured, ctx, kind, button) {
     const proposition = candidate.proposition;
@@ -258,6 +274,7 @@
     $('loyaltyPhoneTitle').textContent = participation === 'complete' ? 'Completed challenges' : 'In progress';
   }
   async function init() {
+    $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
     $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
     document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
@@ -326,7 +343,7 @@
       if (!event.persisted) { clearInterval(timer); observer.disconnect(); }
     });
     global.addEventListener('pageshow', event => { if (event.persisted) invalidate(true); });
-    message('Select a confirmed state region, then look up a profile. No events are sent by task reads.');
+    message('Look up a profile in the top bar, then select Get task status. SDK injection is only needed for content cards.');
   }
   global.envBar.ready().then(init).catch(error => message('Demo initialization failed: ' + error.message, true));
 })(window);
