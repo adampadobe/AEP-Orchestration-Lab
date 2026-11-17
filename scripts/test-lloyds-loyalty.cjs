@@ -45,3 +45,19 @@ test('content-card links refuse executable protocols', () => {
   }
   assert.equal(model.safeUrl('#tasks', 'https://example.invalid/rewards'), 'https://example.invalid/rewards#tasks');
 });
+
+test('evaluated native journey cards retain their original item and exact surface', () => {
+  const surface = 'web://example.invalid/rewards#ContentCardContainerLoyalty';
+  const proposition = { id: 'journey', scope: surface, scopeDetails: { decisionProvider: 'CJM' },
+    items: [{ id: 'card', schema: 'https://ns.adobe.com/personalization/message/content-card',
+      data: { content: { title: 'Journey reward', body: 'Delivered card', imageUrl: 'https://example.invalid/reward.png',
+        actionUrl: '#tasks' }, meta: { buttonLabel: 'View tasks' } } }] };
+  const selected = model.selectCard([proposition], surface);
+  assert.equal(selected.proposition, proposition);
+  assert.equal(selected.item, proposition.items[0]);
+  assert.equal(selected.content.title.content, 'Journey reward');
+  assert.equal(selected.content.body.content, 'Delivered card');
+  assert.equal(selected.content.image.url, 'https://example.invalid/reward.png');
+  assert.equal(selected.content.buttons[0].text.content, 'View tasks');
+  assert.equal(model.selectCard([proposition], surface.replace('Loyalty', 'Other')), null);
+});

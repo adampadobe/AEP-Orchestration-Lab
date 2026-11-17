@@ -76,6 +76,8 @@ async function main() {
     const openConfiguration = async () => {
       if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
     };
+    const waitForProfile = () => page.waitForFunction(() =>
+      !document.getElementById('queryProfileBtn').disabled && !document.getElementById('loyaltyAbandon').disabled);
     const openApiOptions = async () => {
       await openConfiguration();
       if (!await page.locator('.loyalty-settings').evaluate(element => element.open)) {
@@ -106,7 +108,7 @@ async function main() {
     await openConfiguration();
     await page.locator('#customerEmail').fill('fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     assert.equal(reads.length, 0, 'Profile lookup does not depend on the Loyalty backend or SDK');
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('top configuration bar > Loyalty API options'));
@@ -196,11 +198,8 @@ async function main() {
     await page.evaluate(() => { window.__rejectAbandon = false; });
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
-    await page.evaluate(() => {
-      const toggle = document.getElementById('siteCloneDecisioningEnabledToggle');
-      toggle.checked = true;
-      toggle.dispatchEvent(new Event('change', { bubbles: true }));
-    });
+    assert.equal(await page.locator('#siteCloneDecisioningEnabledToggle').isChecked(), false,
+      'Journey content does not require the Decisioning toggle');
     await page.locator('#loyaltyRun').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('original proposition display accepted'));
     assert.equal(await page.locator('#ContentCardContainer h3').textContent(), '<b>Your rewards</b>');
@@ -299,7 +298,7 @@ async function main() {
     assert.equal(await page.locator('.loyalty-phone-task').count(), 0, 'Stale responses cannot refill the mobile preview either');
     assert.match(await page.locator('#tuiPhName').textContent(), /No profile loaded|Not loaded/);
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     const displayedBefore = await page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.xdm?.eventType === 'decisioning.propositionDisplay').length);
     const decisionsBefore = await page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.personalization?.surfaces).length);
     await page.evaluate(() => { window.__pauseIdentity = true; });
@@ -324,7 +323,7 @@ async function main() {
     await page.locator('#loyaltyRegion').selectOption('va7');
     if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     assert.ok(reads.some(read => read.action === 'profile_state' && read.sandbox === 'demo-two' &&
@@ -337,14 +336,14 @@ async function main() {
     await page.locator('#loyaltyTenant').fill('_ownTenant');
     testProfile = false;
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Only AEP test profiles'));
     assert.equal((await abandonCalls()).length, 2, 'The TUI test-profile mutation guard is retained');
     testProfile = true;
     await openConfiguration();
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
@@ -359,7 +358,7 @@ async function main() {
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true);
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'Not loaded');
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
@@ -373,7 +372,7 @@ async function main() {
     await page.locator('#lloydsLoyaltyNs').selectOption('ecid');
     await page.locator('#customerEmail').fill('99999999999999999999999999999999999999');
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('selected ECID differs'));
     assert.equal((await abandonCalls()).length, 2, 'Never associate a selected ECID with a different browser ECID');
@@ -385,7 +384,7 @@ async function main() {
     await page.locator('#lloydsLoyaltyNs').selectOption('email');
     await page.locator('#customerEmail').fill('kirkham-fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.startsWith('Profile loaded.'));
+    await waitForProfile();
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'loyalty-fixture-123');
     assert.equal(await page.locator('#tuiPhSignal-loyaltyId').textContent(), 'loyalty-fixture-123',
       'The shared Loyalty drawer displays the scalar ID extracted from the supplied schema path');
@@ -408,9 +407,74 @@ async function main() {
       null, { timeout: 5000 });
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
     await page.reload();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('SDK injection is only needed'));
+    await page.waitForFunction(() => document.getElementById('loyaltyTenant')?.value === '_demoemea' &&
+      !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
       'The TUI-compatible tenant is also populated on initial page load, not only after a sandbox switch');
+    await page.evaluate(() => {
+      window.__journeySubscriptions = [];
+      window.__journeyTracking = [];
+      window.__journeyCommands = [];
+      window.alloy = async (command, options) => {
+        window.__journeyCommands.push(command);
+        if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
+        if (command === 'subscribeRulesetItems') { window.__journeySubscriptions.push(options); return; }
+        if (command === 'sendEvent' && options.personalization?.surfaces) {
+          if (options.renderDecisions !== true || options.personalization.schemas !== undefined) {
+            throw new Error('Use SDK ruleset evaluation and default supported schemas, not the legacy decision-only schema list');
+          }
+          const subscription = window.__journeySubscriptions.at(-1);
+          const propositions = [{ id: 'journey-card', scope: subscription.surfaces[0],
+            scopeDetails: { decisionProvider: 'CJM' }, items: [{ id: 'native-card',
+              schema: 'https://ns.adobe.com/personalization/message/content-card',
+              data: { content: { title: 'Delivered by the journey', body: 'Native AJO card',
+                actionUrl: '#loyalty-challenges' }, meta: { buttonLabel: 'View tasks' } } }] }];
+          window.__deliverJourney = () => subscription.callback({ propositions }, async (type, selected) => {
+            window.__journeyTracking.push({ type, selected });
+          });
+          window.__deliverJourney();
+          return { propositions: [] };
+        }
+        return {};
+      };
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'native-fixture-stream' } });
+    });
+    await openConfiguration();
+    await page.locator('#customerEmail').fill('journey-fixture@example.invalid');
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.querySelector('#ContentCardContainerLoyalty h3')?.textContent === 'Delivered by the journey');
+    assert.equal(await page.locator('#siteCloneDecisioningEnabledToggle').isChecked(), false);
+    const journey = await page.evaluate(() => ({
+      commands: window.__journeyCommands, tracking: window.__journeyTracking,
+      schemas: window.__journeySubscriptions[0].schemas,
+    }));
+    assert.ok(journey.commands.indexOf('subscribeRulesetItems') < journey.commands.indexOf('sendEvent'),
+      'Subscribe before requesting ruleset evaluation; sendEvent itself returns no cards');
+    assert.deepEqual(journey.schemas, ['https://ns.adobe.com/personalization/message/content-card']);
+    assert.equal(journey.tracking.length, 1);
+    assert.equal(journey.tracking[0].type, 'display');
+    assert.equal(journey.tracking[0].selected[0].items[0].id, 'native-card');
+    await page.evaluate(() => window.__deliverJourney());
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1,
+      'Repeated ruleset callbacks cannot loop display collection');
+    await page.evaluate(() => {
+      window.__journeySubscriptions.at(-1).callback({ propositions: [] }, async () => {});
+    });
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
+      'A ruleset update with no eligible cards removes previously qualified content');
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('aep-demo-tags-injected')));
+    await page.waitForFunction(() => window.__journeySubscriptions.length === 2 &&
+      !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), 'Delivered by the journey',
+      'SDK injection after profile lookup automatically reestablishes the card subscription');
+    await page.locator('#ContentCardContainerLoyalty button').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
+    assert.equal(await page.evaluate(() => window.__journeyTracking.at(-1).type), 'interact');
+    await openConfiguration();
+    await page.locator('#customerEmail').fill('another-fixture@example.invalid');
+    await page.evaluate(() => window.__deliverJourney());
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
+      'A previous profile subscription cannot render into the changed context');
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');
