@@ -21,6 +21,15 @@ This page reuses the shared Spectrum configuration bar and the Center Parcs
 profile drawer, including its compact proposition event timeline. It is not
 pinned to an owner's sandbox.
 
+The body uses the supplied combined progress-ring / journey-rail design beside
+a scrollable phone preview. Both views render the same Adobe task response.
+There are no local task-completion buttons, invented offer tasks, countdowns,
+lock ordering or reward-unlock claims. The phone's Active/Completed controls
+switch the same participation filter used by the connection settings.
+Expand **Loyalty connection & SDK setup** for the page-specific settings; SDK
+injection remains in the shared configuration gear. This is a Web SDK mobile
+preview, not a native Mobile SDK integration or journey authoring interface.
+
 1. Sign in to the Portal with an Adobe account and an active sandbox-scoped
    MCP enrollment. The page sends its Firebase ID token, not an Adobe token
    or a pasted MCP key. The server verifies the Firebase UID and its active
@@ -41,8 +50,11 @@ pinned to an owner's sandbox.
 4. To personalize, enable **Decisioning**, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
    namespace and the exact AJO **content-card surface URI**. The default is this
-   page's canonical `#ContentCardContainer`; a configured `#ContentCardLoyalty`
-   surface is also usable. **Get content card** requests only that surface and
+   page's canonical `#ContentCardContainerLoyalty`, inside the phone. The existing
+   `#ContentCardContainer` remains its compatibility wrapper; it is not the
+   default requested surface. A previously configured `#ContentCardLoyalty` or
+   `#ContentCardContainer` surface remains usable by explicitly entering that URI.
+   **Get content card** requests only the configured surface and
    renders the highest-ranked JSON rule consequence. It never treats a hero
    proposition as a card. JSON title/body, image, action buttons and local
    dismissal follow the supplied Luma content-card contract.
