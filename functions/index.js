@@ -100,7 +100,7 @@ const { registerAudienceManagementRoutes } = require('./audienceManagementRoutes
 const { registerPlatformCleanupRoutes } = require('./platformCleanupRoutes');
 const { registerAjoCleanupRoutes } = require('./ajoCleanupRoutes');
 const { registerAjoOcDatasetRoutes } = require('./ajoOcDatasetRoutes');
-const { registerAjoLoyaltyRoutes } = require('./ajoLoyaltyRoutes');
+const { createAjoLoyaltyHandler } = require('./ajoLoyaltyRoutes');
 const { createAjoLoyaltyService } = require('./ajoLoyaltyService');
 const { registerAepIngestionDiagnosticsRoutes } = require('./aepIngestionDiagnosticsRoutes');
 const { createAepIngestionDiagnosticsService } = require('./aepIngestionDiagnosticsService');
@@ -441,6 +441,15 @@ const measurementQualityService = createMeasurementQualityService({
   tagsService: tagsReactorService,
 });
 
+const ajoLoyaltyHandler = createAjoLoyaltyHandler({
+  setCors,
+  getAdobeAccessToken,
+  aepHeaders,
+  ADOBE_IMS_ORG,
+  mcpApiKeyStore,
+  loyaltyService: createAjoLoyaltyService(),
+});
+
 exports.aepProxy = onRequest(
   {
     region: REGION,
@@ -453,6 +462,7 @@ exports.aepProxy = onRequest(
     memory: '256MiB',
   },
   async (req, res) => {
+    if (req.path === '/api/ajo-loyalty') return ajoLoyaltyHandler(req, res);
     setCors(res);
     if (req.method === 'OPTIONS') {
       res.status(204).send('');
@@ -1301,20 +1311,6 @@ Object.assign(
     mcpApiKeyStore,
     ajoOcDatasetService: createAjoOcDatasetService(),
     ajoOcDatasetStore,
-  })
-);
-
-Object.assign(
-  exports,
-  registerAjoLoyaltyRoutes({
-    onRequest,
-    profileFnOpts,
-    setCors,
-    getAdobeAccessToken,
-    aepHeaders,
-    ADOBE_IMS_ORG,
-    mcpApiKeyStore,
-    loyaltyService: createAjoLoyaltyService(),
   })
 );
 

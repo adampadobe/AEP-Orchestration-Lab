@@ -25,7 +25,7 @@ Configuration returns an allowlisted identity/event summary, excluding provider
 and completion-sink definitions that can contain credentials. Member IDs, bodies
 and credentials are not included in the tool's audit entries.
 
-These tools require a normal reviewed release of `ajoLoyaltyProxy` and the MCP
+These tools require a normal reviewed update of the existing `aepProxy` Function (direct path `/aepProxy/api/ajo-loyalty`) and the MCP
 service, followed by a connection refresh/new chat. Hosting's
 `/api/ajo-loyalty` rewrite is available after its separate normal Hosting release;
 MCP calls the named Function directly. Source registration and mocked tests do

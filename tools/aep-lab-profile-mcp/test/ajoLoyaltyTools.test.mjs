@@ -70,7 +70,7 @@ test('handlers forward both authentication modes, preserve explicit false and om
         assert.equal(result.isError, undefined);
         assert.equal(JSON.parse(result.content[0].text).lab.ok, true);
         const { url, init } = requests.at(-1);
-        assert.equal(url.pathname, '/ajoLoyaltyProxy');
+        assert.equal(url.pathname, '/aepProxy/api/ajo-loyalty');
         assert.equal(url.searchParams.get('sandbox'), 'kirkham');
         assert.equal(init.method, 'GET');
         assert.equal(init.body, undefined);
