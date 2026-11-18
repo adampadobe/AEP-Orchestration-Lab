@@ -12,7 +12,7 @@
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
-  let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '';
+  let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   const purchaseReceipts = new Map();
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
@@ -52,7 +52,7 @@
     $('loyaltyCardHint').textContent = 'Your next challenge will appear here.';
   }
   function invalidate(clearProfile) {
-    version++; aborter?.abort(); autoBlocked = true; clearResults();
+    version++; aborter?.abort(); pendingProfile = null; autoBlocked = true; clearResults();
     global.DecisioningProfileRuntime?.invalidateProfileLookupCache();
     if (clearProfile) {
       loaded = null; $('loyaltyMember').value = '';
@@ -318,8 +318,19 @@
       }
     } finally {
       clearTimeout(timeout); busy = false; message($('loyaltyStatus').textContent, $('loyaltyStatus').dataset.error === 'true');
+      if (pendingProfile) {
+        const detail = pendingProfile; pendingProfile = null;
+        adoptDrawerProfile(detail);
+      }
       if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
     }
+  }
+  function adoptDrawerProfile(detail) {
+    const ctx = context();
+    if (loaded || !detail?.found || !global.DemoProfileDrawer.getLastLookedUpProfile() ||
+        detail.identifier !== ctx.identifier || String(detail.namespace).toLowerCase() !== ctx.namespace) return;
+    if (busy) { pendingProfile = detail; return; }
+    void work((current, token) => lookup(current, token, true));
   }
   function requestAutomaticCard() {
     if (!loaded || typeof global.alloy !== 'function') return;
@@ -632,12 +643,7 @@
     };
     email.addEventListener('input', identityChanged); email.addEventListener('change', identityChanged);
     $(prefix + 'Ns').addEventListener('change', identityChanged);
-    global.addEventListener('aep-profile-drawer-loaded', event => {
-      const ctx = context(), detail = event.detail;
-      if (busy || loaded || !detail?.found || !global.DemoProfileDrawer.getLastLookedUpProfile() ||
-          detail.identifier !== ctx.identifier || String(detail.namespace).toLowerCase() !== ctx.namespace) return;
-      void work((current, token) => lookup(current, token, true));
-    });
+    global.addEventListener('aep-profile-drawer-loaded', event => adoptDrawerProfile(event.detail));
     global.addEventListener('aep-global-sandbox-change', () => {
       if (selectedProfileKey === profileKey()) return;
       selectedProfileKey = profileKey();

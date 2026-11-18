@@ -90,6 +90,12 @@ async function main() {
     };
     const waitForProfile = () => page.waitForFunction(() =>
       !document.getElementById('queryProfileBtn').disabled && !document.getElementById('loyaltyAbandon').disabled);
+    const changeIdentifier = async value => {
+      // Isolate context invalidation from an independent lookup triggered by hovering the drawer.
+      await page.mouse.move(0, 0);
+      await page.locator('#profileHoverZone').dispatchEvent('mouseleave');
+      await page.locator('#customerEmail').fill(value);
+    };
     const openApiOptions = async () => {
       await openConfiguration();
       if (!await page.locator('.loyalty-settings').evaluate(element => element.open)) {
@@ -134,7 +140,7 @@ async function main() {
       }), 'The profile lookup button is visible without scrolling');
     }
     await page.setViewportSize({ width: 1500, height: 1100 });
-    await page.locator('#customerEmail').fill('fixture@example.invalid');
+    await changeIdentifier('fixture@example.invalid');
     consentGate = new Promise(resolve => { releaseConsent = resolve; });
     const firstConsent = page.waitForRequest(request => new URL(request.url()).pathname === '/api/profile/consent');
     await page.locator('#queryProfileBtn').click();
@@ -366,7 +372,7 @@ async function main() {
       pendingState.then(() => clearTimeout(timeout));
     })]);
     if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
-    await page.locator('#customerEmail').fill('other@example.invalid');
+    await changeIdentifier('other@example.invalid');
     holdState = false; releaseState?.();
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await page.locator('#ContentCardContainer article').count(), 0);
@@ -383,14 +389,25 @@ async function main() {
       document.getElementById('loyaltyStatus').dataset.error === 'true');
     assert.equal(await page.evaluate(() => typeof window.__releaseDecision), 'function', await page.locator('#loyaltyStatus').textContent());
     if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
-    await page.locator('#customerEmail').fill('third@example.invalid');
+    await changeIdentifier('third@example.invalid');
+    await page.evaluate(async () => {
+      window.__heldAlloy = window.alloy;
+      window.alloy = undefined;
+      await window.DemoProfileDrawer.loadProfileDataForDrawer(
+        document.getElementById('customerEmail').value, { updateMessage: false, sendApplicationLogin: false });
+    });
+    assert.equal(await page.locator('#queryProfileBtn').isDisabled(), true,
+      'The previous SDK operation is still pending when the new drawer profile arrives');
     await page.evaluate(() => { window.__pauseIdentity = false; window.__releaseDecision(); });
-    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    await waitForProfile();
+    assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), false,
+      'A drawer-first load queued during a previous operation hydrates the current profile without another lookup');
     assert.equal(await page.locator('#ContentCardContainer article').count(), 0);
     assert.equal(await page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.xdm?.eventType === 'decisioning.propositionDisplay').length),
       displayedBefore, 'A stale SDK response must not render or send a display event for the new identity');
     assert.equal(await page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.personalization?.surfaces).length),
       decisionsBefore, 'Identity changes during SDK lookup must block the Edge decision before dispatch');
+    await page.evaluate(() => { window.alloy = window.__heldAlloy; delete window.__heldAlloy; });
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
     assert.equal(await page.locator('#loyaltyRegion').inputValue(), '');
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '');
@@ -428,7 +445,7 @@ async function main() {
       'Preparing the SDK is visibly acknowledged rather than looking like an inactive button');
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Double clicks are blocked while an event is being prepared');
     await openConfiguration();
-    await page.locator('#customerEmail').fill('changed@example.invalid');
+    await changeIdentifier('changed@example.invalid');
     await page.evaluate(() => { window.__pauseIdentity = false; window.__releaseDecision(); });
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal((await abandonCalls()).length, 2, 'An identity change during getIdentity blocks event dispatch');
@@ -447,7 +464,7 @@ async function main() {
     assert.equal((await abandonCalls()).length, 2, 'A changed event destination blocks dispatch after asynchronous identity lookup');
     await openConfiguration();
     await page.locator('#lloydsLoyaltyNs').selectOption('ecid');
-    await page.locator('#customerEmail').fill('99999999999999999999999999999999999999');
+    await changeIdentifier('99999999999999999999999999999999999999');
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
     await page.locator('#loyaltyAbandon').click();
@@ -459,7 +476,7 @@ async function main() {
       'Kirkham gets the same reviewed default as TUI / Center Parcs, without manual tenant setup');
     await openConfiguration();
     await page.locator('#lloydsLoyaltyNs').selectOption('email');
-    await page.locator('#customerEmail').fill('kirkham-fixture@example.invalid');
+    await changeIdentifier('kirkham-fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'loyalty-fixture-123');
@@ -517,7 +534,7 @@ async function main() {
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'native-fixture-stream' } });
     });
     await openConfiguration();
-    await page.locator('#customerEmail').fill('journey-fixture@example.invalid');
+    await changeIdentifier('journey-fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
     await page.waitForFunction(() => document.querySelector('#ContentCardContainerLoyalty h3')?.textContent === 'Delivered by the journey');
     assert.equal(await page.locator('#siteCloneDecisioningEnabledToggle').isChecked(), false);
@@ -551,7 +568,7 @@ async function main() {
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
     assert.equal(await page.evaluate(() => window.__journeyTracking.at(-1).type), 'interact');
     await openConfiguration();
-    await page.locator('#customerEmail').fill('another-fixture@example.invalid');
+    await changeIdentifier('another-fixture@example.invalid');
     await page.evaluate(() => window.__deliverJourney());
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
       'A previous profile subscription cannot render into the changed context');
@@ -771,7 +788,7 @@ async function main() {
     await page.locator('[data-loyalty-purchase="waitrose"]').click();
     await page.waitForFunction(() => typeof window.__releaseLoyaltyIdentity === 'function');
     await openConfiguration();
-    await page.locator('#customerEmail').fill('changed-purchase-fixture@example.invalid');
+    await changeIdentifier('changed-purchase-fixture@example.invalid');
     await page.evaluate(() => { window.__holdLoyaltyIdentity = false; window.__releaseLoyaltyIdentity(); });
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal((await loyaltySends()).length, sendsBeforeStalePurchase, 'A changed profile during getIdentity blocks purchase dispatch');
