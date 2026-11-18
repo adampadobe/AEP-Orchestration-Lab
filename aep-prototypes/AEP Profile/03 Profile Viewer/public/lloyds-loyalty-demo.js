@@ -12,7 +12,7 @@
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
-  let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null;
+  let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '';
   const purchaseReceipts = new Map();
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
@@ -22,6 +22,8 @@
     participation: $('loyaltyParticipation').value, surface: $('loyaltySurface').value.trim(),
     tenant: $('loyaltyTenant').value.trim(), target: $('generatorTarget').value,
   });
+  const profileKey = () => JSON.stringify([global.AepGlobalSandbox.getSandboxName(),
+    $(prefix + 'Ns').value.toLowerCase(), $('customerEmail').value.trim()]);
   const same = (ctx, token) => {
     if (token !== version || JSON.stringify(ctx) !== JSON.stringify(context())) throw new Error('Demo context changed; previous response discarded.');
     if (aborter?.signal.aborted) throw new Error('Request expired or was cancelled; previous response discarded.');
@@ -34,6 +36,9 @@
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
     document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
   }
+  function closeConfiguration() {
+    if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
+  }
   const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   function clearResults() {
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
@@ -44,7 +49,7 @@
     syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
-    $('loyaltyCardHint').textContent = 'Journey content appears automatically after SDK injection and profile lookup.';
+    $('loyaltyCardHint').textContent = 'Your next challenge will appear here.';
   }
   function invalidate(clearProfile) {
     version++; aborter?.abort(); autoBlocked = true; clearResults();
@@ -88,14 +93,14 @@
     throw new Error('Loyalty uses namespace "' + config.namespace + '". Enter this profile\'s member identifier in that namespace; it cannot be inferred from ' + ctx.namespace + '.');
   }
   async function readTasks(ctx, token) {
-    if (!ctx.region) throw new Error('Choose the confirmed state region in the top configuration bar > Loyalty API options. Regions are not probed automatically.');
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
     const config = await loyalty(ctx, { action: 'config' }); same(ctx, token);
     const member = memberId(ctx, config);
     $('loyaltyNamespace').textContent = 'State member: ' + config.namespace + ' / ' + member;
+    const region = ctx.region ? { region: ctx.region } : {};
     const input = ctx.participation === 'complete'
-      ? { action: 'profile_challenges', profile_id: member, region: ctx.region, state: 'complete' }
-      : { action: 'profile_state', profile_id: member, region: ctx.region, ...(ctx.challenge ? { challenge_id: ctx.challenge } : {}), test: String(ctx.test) };
+      ? { action: 'profile_challenges', profile_id: member, ...region, state: 'complete' }
+      : { action: 'profile_state', profile_id: member, ...region, ...(ctx.challenge ? { challenge_id: ctx.challenge } : {}), test: String(ctx.test) };
     const state = await loyalty(ctx, input); same(ctx, token);
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     let metadata = null;
@@ -103,7 +108,7 @@
     renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
-      member, region: ctx.region, state, metadata }, null, 2);
+      member, region: ctx.region || 'va7', state, metadata }, null, 2);
   }
   function renderTasks(state, metadata, ctx, selectedMember) {
     const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
@@ -151,17 +156,20 @@
         step.setAttribute('aria-hidden', 'true');
         const initialsText = taskName.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
         const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
-        heading.append(step, logo, node('strong', taskName),
-          node('span', repr(task.taskState), 'loyalty-task-state'));
+        const progress = model.progress(task), taskCopy = node('div', undefined, 'loyalty-task-copy');
+        taskCopy.append(node('strong', taskName),
+          node('small', progress ? progress.value + ' of ' + progress.goal : 'Progress not yet reported'));
+        heading.append(step, logo, taskCopy,
+          node('span', complete(task) ? 'Completed' : task === remaining ? 'Up next' : 'To do', 'loyalty-task-state'));
         card.append(heading);
-        const progress = model.progress(task);
         if (progress) {
           const meter = node('progress'); meter.max = progress.goal; meter.value = Math.max(0, Math.min(progress.value, progress.goal));
           meter.setAttribute('aria-label', (task.taskName || task.taskId) + ' progress');
-          card.append(meter, node('p', progress.value + ' of ' + progress.goal + ' (' + progress.key + ')'));
-        } else card.append(node('p', 'Goal: ' + repr(task.variables?.goal) + ' / Goal type: ' + repr(task.variables?.type)));
+          card.append(meter);
+        }
         const taskDetails = node('div');
-        taskDetails.append(node('b', taskName), node('small', 'Accumulators: ' + repr(task.accumulators)));
+        taskDetails.append(node('b', taskName), node('small', 'Goal: ' + repr(task.variables?.goal) + ' / Goal type: ' + repr(task.variables?.type)),
+          node('small', 'Accumulators: ' + repr(task.accumulators)));
         if (Array.isArray(task.taskCompletions)) taskDetails.append(node('small', 'Previous task completions: ' + task.taskCompletions.length));
         taskDetails.append(node('small', 'Task ID: ' + repr(task.taskId))); diagnostic.append(taskDetails);
         section.append(card);
@@ -194,9 +202,35 @@
     if (joinedChallenge && (joinedChallenge.id !== deliveredChallenge?.id || joinedChallenge.confirmed && !challenge)) {
       joinedChallenge = null; purchaseReceipts.clear(); closeOffer(false);
       $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
+      if ($('loyaltyTasks').querySelector('.loyalty-pending-progress')) {
+        $('loyaltyTasks').replaceChildren(node('p', 'Join a challenge to see its offers.', 'loyalty-empty'));
+      }
     }
     if (challenge) joinedChallenge = { ...deliveredChallenge, confirmed: true };
     if (joinedChallenge) renderPartnerOffers();
+  }
+  function renderPendingChallenge() {
+    if ($('loyaltyTasks').querySelector('.loyalty-challenge:not(.loyalty-pending-progress)')) return;
+    const section = node('article', undefined, 'loyalty-challenge loyalty-pending-progress');
+    const summary = node('div', undefined, 'loyalty-progress-summary');
+    const ring = node('div', undefined, 'loyalty-progress-ring');
+    ring.append(node('b', '\u2014'), node('span', 'Live status'));
+    const title = node('div');
+    title.append(node('p', 'YOUR CHALLENGE', 'loyalty-eyebrow'), node('h3', joinedChallenge.title),
+      node('p', 'Signup event sent. Awaiting Adobe progress.', 'loyalty-next-task'));
+    summary.append(ring, title); section.append(summary);
+    for (const [index, offer] of model.partnerOffers.entries()) {
+      const row = node('div', undefined, 'loyalty-offer-step');
+      row.dataset.partner = offer.key;
+      const text = node('div');
+      text.append(node('strong', offer.title), node('small', offer.description));
+      row.append(node('span', index + 1, 'loyalty-step-number'),
+        node('span', offer.initials, 'loyalty-task-logo'), text, node('span', 'Not verified', 'loyalty-task-state'));
+      section.append(row);
+    }
+    const outcome = node('div', undefined, 'loyalty-outcome');
+    outcome.append(node('b', 'Ready when you are'), node('span', 'View the offers on your phone. Get task status for live progress.'));
+    section.append(outcome); $('loyaltyTasks').replaceChildren(section);
   }
   function renderPartnerOffers() {
     const section = $('loyaltyPartnerOffers');
@@ -209,8 +243,8 @@
       const row = node('div', undefined, 'loyalty-phone-task loyalty-partner-task');
       row.dataset.partner = offer.key;
       const text = node('div');
-      text.append(node('b', offer.title), node('span', offer.description),
-        node('span', purchaseReceipts.has(offer.key) ? 'Purchase event accepted; task status not yet verified.' : 'Demo purchase: GBP ' + offer.amount.toFixed(2)));
+      text.append(node('b', offer.title), node('span', offer.description));
+      if (purchaseReceipts.has(offer.key)) text.append(node('span', 'Event sent; progress not verified.'));
       const button = node('button', offer.label, 'loyalty-offer-button'); button.type = 'button';
       button.dataset.loyaltyPurchase = offer.key; button.disabled = busy || !loaded;
       button.setAttribute('aria-label', 'View ' + offer.brand + ' offer and send demo purchase');
@@ -218,7 +252,10 @@
       row.append(node('span', offer.initials, 'loyalty-phone-task-icon'), text, button);
       section.append(row);
     }
-    section.append(node('small', 'Offer views send demo purchase events. Only Adobe task status confirms completion.'));
+    const details = node('details', undefined, 'loyalty-task-details');
+    details.append(node('summary', 'About these offers'),
+      node('small', 'Offer views send demo purchase events. Only Adobe task status confirms completion.'));
+    section.append(details);
   }
   function closeOffer(restoreFocus = true) {
     $('loyaltyOfferSheet').hidden = true;
@@ -251,6 +288,7 @@
     };
   }
   async function sendPurchase(offer, button, ctx, token) {
+    closeConfiguration();
     if (!joinedChallenge) throw new Error('Join the delivered challenge before viewing its partner offers. No purchase event sent.');
     const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
     const purchaseID = global.crypto.randomUUID();
@@ -288,20 +326,24 @@
     if (busy) { pendingCard = true; return; }
     void work(run);
   }
-  async function lookup(ctx, token) {
-    loaded = null; clearResults(); global.DemoProfileDrawer.clearDrawerVisitorState(); publish();
+  async function lookup(ctx, token, drawerReady = false) {
+    loaded = null; clearResults();
+    if (!drawerReady) global.DemoProfileDrawer.clearDrawerVisitorState();
+    publish();
     if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier.');
     const data = await json('/api/profile/table?' + new URLSearchParams({ sandbox: ctx.sandbox, namespace: ctx.namespace, identifier: ctx.identifier }));
     same(ctx, token);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
     data.profileLoyaltyId = global.TuiDecisioningProfile.signals(data.rows).loyaltyId;
-    let drawerError = '';
-    const drawerLoaded = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
-      updateMessage: false, sendApplicationLogin: false,
-      onUserMessage: (text, type) => { if (type === 'error') drawerError = text; },
-    });
-    same(ctx, token);
-    if (!drawerLoaded) throw new Error(drawerError || 'Profile drawer lookup was superseded or cancelled. Look up the current profile.');
+    if (!drawerReady) {
+      let drawerError = '';
+      const drawerLoaded = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+        updateMessage: false, sendApplicationLogin: false,
+        onUserMessage: (text, type) => { if (type === 'error') drawerError = text; },
+      });
+      same(ctx, token);
+      if (!drawerLoaded) throw new Error(drawerError || 'Profile drawer lookup was superseded or cancelled. Look up the current profile.');
+    }
     loaded = data; publish(); autoBlocked = true;
     message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
     requestAutomaticCard();
@@ -402,7 +444,7 @@
       const signup = button.interactId === 'joinChallenge';
       const control = node('button', button.text?.content || 'View reward'); control.type = 'button';
       control.addEventListener('click', () => void work(async (current, currentToken) => {
-        same(ctx, token); same(current, currentToken); control.disabled = true;
+        same(ctx, token); same(current, currentToken); closeConfiguration(); control.disabled = true;
         try {
           if (signup) {
             const challengeId = candidate.meta.challengeId;
@@ -421,8 +463,8 @@
                 _experience: { ajo: { loyalty: { challenge: { id: challengeId } } } } } };
             await dispatchProfileEvent(sender, payload, ctx, token);
             joinedChallenge = { id: challengeId, title: content.title?.content || 'Your challenge' };
-            purchaseReceipts.clear(); renderPartnerOffers();
-            $('loyaltyPartnerOffers').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge();
+            document.querySelector('.loyalty-phone-scroll').scrollTo({ top: 0, behavior: 'smooth' });
             const evidence = { sandbox: ctx.sandbox, event: payload, sdkAccepted: true, enrollmentVerified: false,
               journeyEntryVerified: false, proposition: candidate.proposition,
               renderedConsequence: candidate.consequenceId, interactionAccepted: false };
@@ -464,6 +506,7 @@
     card.append(body); cardMount().replaceChildren(card);
   }
   async function run(ctx, token) {
+    closeConfiguration();
     if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
       throw new Error('Configure the reviewed event tenant namespace before requesting a content card.');
     }
@@ -531,7 +574,7 @@
       ? { id: candidate.meta.challengeId, title: candidate.content.title?.content || 'Your challenge' } : null;
     restoreParticipation();
     displayedCard = cardKey;
-    $('loyaltyCardHint').textContent = 'Live AJO content-card proposition / ' + candidate.proposition.id;
+    $('loyaltyCardHint').textContent = 'Chosen for you';
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId }, null, 2);
     if (captured.collectEvent) await captured.collectEvent('display', [candidate.proposition]);
@@ -549,7 +592,10 @@
   }
   async function init() {
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
+    const panel = $('aepLabEnvOverlayPanel');
+    panel.prepend($('aepDemoProfileSection'));
     $('loyaltyTenant').value = defaultEventTenant();
+    selectedProfileKey = profileKey();
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
     $('loyaltySurface').value = defaultCardSurface();
     document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
@@ -579,8 +625,22 @@
       targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect($('generatorTarget'), {});
     });
     $('queryProfileBtn').addEventListener('click', () => void work(lookup));
-    email.addEventListener('input', () => invalidate(true)); $(prefix + 'Ns').addEventListener('change', () => invalidate(true));
+    const identityChanged = () => {
+      const key = profileKey();
+      if (key === selectedProfileKey) return;
+      selectedProfileKey = key; invalidate(true);
+    };
+    email.addEventListener('input', identityChanged); email.addEventListener('change', identityChanged);
+    $(prefix + 'Ns').addEventListener('change', identityChanged);
+    global.addEventListener('aep-profile-drawer-loaded', event => {
+      const ctx = context(), detail = event.detail;
+      if (busy || loaded || !detail?.found || !global.DemoProfileDrawer.getLastLookedUpProfile() ||
+          detail.identifier !== ctx.identifier || String(detail.namespace).toLowerCase() !== ctx.namespace) return;
+      void work((current, token) => lookup(current, token, true));
+    });
     global.addEventListener('aep-global-sandbox-change', () => {
+      if (selectedProfileKey === profileKey()) return;
+      selectedProfileKey = profileKey();
       $('loyaltyRegion').value = ''; $('loyaltyTenant').value = defaultEventTenant(); $('loyaltyChallenge').value = '';
       $('loyaltySurface').value = defaultCardSurface();
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
@@ -593,15 +653,18 @@
       $(id).addEventListener(id === 'loyaltyRegion' || id === 'loyaltyParticipation' || id === 'loyaltyTest' || id === 'generatorTarget' ? 'change' : 'input', () => invalidate(false));
     }
     $('loyaltyRefresh').addEventListener('click', () => void work(async (ctx, token) => {
+      closeConfiguration();
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
     $('loyaltyRun').addEventListener('click', () => void work(run));
-    $('loyaltyAbandon').addEventListener('click', () => void work(sendAbandonedSearch));
+    $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendAbandonedSearch); });
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }
     }, true);
     const anchor = document.querySelector('.mod-demo-top-anchor'), actions = document.querySelector('.tui-live-actions');
     const layout = () => {
+      const toolbarHeight = anchor.querySelector('.lab-env-toolbar').getBoundingClientRect().height;
+      document.body.style.setProperty('--loyalty-config-chrome', (toolbarHeight + actions.getBoundingClientRect().height + 32) + 'px');
       const hidden = anchor.classList.contains('lab-env-top-anchor--docked-hidden') || anchor.classList.contains('lab-env-top-anchor--presenter-strip-hidden');
       const top = hidden ? 0 : anchor.getBoundingClientRect().bottom;
       document.body.style.setProperty('--tui-toolbar-top', top + 'px');
@@ -610,7 +673,7 @@
     const observer = new ResizeObserver(layout); observer.observe(anchor); observer.observe(actions);
     new MutationObserver(layout).observe(anchor, { attributes: true, attributeFilter: ['class'] }); layout();
     const timer = setInterval(() => {
-      if (!busy && loaded && !autoBlocked && $('loyaltyAuto').checked && !document.hidden && context().region) {
+      if (!busy && loaded && !autoBlocked && $('loyaltyAuto').checked && !document.hidden) {
         void work(async (ctx, token) => { await readTasks(ctx, token); message('Task state refreshed from Adobe.'); });
       }
     }, 30000);
