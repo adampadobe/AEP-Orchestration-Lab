@@ -390,6 +390,13 @@
         }
       },
       {
+        "source": "/api/ajo-loyalty",
+        "function": {
+          "functionId": "ajoLoyaltyProxy",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/ajo-oc-datasets",
         "function": {
           "functionId": "ajoOcDatasetProxy",

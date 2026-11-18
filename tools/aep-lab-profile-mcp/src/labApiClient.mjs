@@ -999,6 +999,17 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
   });
 }
 
+/** Scoped GET-only Loyalty reads; credentials remain on the backend. */
+export function ajoLoyaltyRead(params) {
+  return labApiRequest('/ajoLoyaltyProxy', {
+    origin: getLabFunctionsOrigin(),
+    query: params,
+    headers: principalAuthHeaders(),
+    retries: 0,
+    timeoutMs: 120_000,
+  });
+}
+
 /** Read the Orchestrated Campaign extension status for rel_ datasets. */
 export async function ajoOcDatasetStatus({ sandbox, dataset_ids, name_prefix }) {
   return labApiRequest('/ajoOcDatasetProxy', {

@@ -41,7 +41,11 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
   for (const authSource of ['ims', 'user']) {
     for (const [id, register, required] of [
       ['aep-lab-profiles', registerFocusedProfileTools, ['lab_generate_profile', 'lab_generate_profiles_batch', 'lab_batch_job_status']],
-      ['aep-lab-decisioning', registerFocusedDecisioningTools, [eligibility, 'lab_batch_job_status']],
+      ['aep-lab-decisioning', registerFocusedDecisioningTools, [
+        eligibility, 'lab_batch_job_status', 'lab_ajo_loyalty_config',
+        'lab_ajo_loyalty_challenge_list', 'lab_ajo_loyalty_challenge_get',
+        'lab_ajo_loyalty_profile_state', 'lab_ajo_loyalty_profile_challenges',
+      ]],
       ['aep-lab-commerce-optimizer', registerFocusedCommerceOptimizerTools, optimizerChanges],
       ['aep-lab-general', registerProfileTools, [
         eligibility, 'lab_batch_job_status', ...optimizerChanges,
@@ -51,6 +55,8 @@ test('initial tools/list exposes focused change workflows equally for IMS and ke
         'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_preview',
         'lab_ajo_oc_dataset_apply', 'lab_ajo_oc_dataset_job_status',
         'lab_profile_seed_schedule_skip_preview', 'lab_profile_seed_schedule_skip_apply',
+        'lab_ajo_loyalty_config', 'lab_ajo_loyalty_challenge_list', 'lab_ajo_loyalty_challenge_get',
+        'lab_ajo_loyalty_profile_state', 'lab_ajo_loyalty_profile_challenges',
       ]],
       ['aep-lab-ajo-oc-datasets', registerFocusedAjoOcDatasetTools, [
         'lab_ajo_oc_dataset_status', 'lab_ajo_oc_dataset_validate', 'lab_ajo_oc_dataset_job_status',
@@ -182,7 +188,7 @@ test('focused demo-prep endpoint contains scrape, stable assets, RTDB and orches
 
   const full = registrationRecorder();
   registerProfileTools(full.server);
-  assert.equal(full.names.length, 247);
+  assert.equal(full.names.length, 252);
   assert.equal(full.names.includes('lab_profile_seed_schedule_diagnose'), true);
   assert.equal(full.names.includes('lab_profile_seed_schedule_skip_preview'), true);
   assert.equal(full.names.includes('lab_profile_seed_schedule_skip_apply'), true);

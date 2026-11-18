@@ -56,6 +56,7 @@ import { registerAdobeCapabilityTools } from './adobeCapabilityTools.mjs';
 import { registerMeasurementQualityTools } from './measurementQualityTools.mjs';
 import { registerGeoInsightsTools } from './geoInsightsTools.mjs';
 import { registerAjoOcDatasetTools } from './ajoOcDatasetTools.mjs';
+import { registerAjoLoyaltyTools } from './ajoLoyaltyTools.mjs';
 import { registerAepIngestionDiagnosticsTools } from './aepIngestionDiagnosticsTools.mjs';
 
 const batchStatusServers = new WeakSet();
@@ -94,6 +95,7 @@ export function registerProfileTools(mcpServer) {
   registerEnableEventProfileTool(mcpServer);
   registerEventConfigTools(mcpServer);
   registerDecisioningTools(mcpServer);
+  registerAjoLoyaltyTools(mcpServer);
   registerAudienceTools(mcpServer);
   registerPlatformCleanupTools(mcpServer);
   registerAjoCleanupTools(mcpServer);
@@ -173,6 +175,7 @@ function registerDemoPrepDomainTools(mcpServer) {
 
 function registerDecisioningDomainTools(mcpServer) {
   registerDecisioningTools(mcpServer);
+  registerAjoLoyaltyTools(mcpServer);
   registerSharedBatchJobStatusTool(mcpServer);
 }
 
