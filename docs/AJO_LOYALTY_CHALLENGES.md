@@ -51,6 +51,8 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    also hydrates the Loyalty page's table model and enables its actions, without
    requiring a second lookup or repeating the drawer request. Same-value identity
    and sandbox notifications do not clear a valid loaded profile.
+   If a previous operation is still ending, the current drawer's successful load
+   is queued and rechecked against the selected identity before table hydration.
    No region entry is required: reads use the backend's documented Adobe default
    **va7**. If your sandbox uses another confirmed region, expand **Loyalty API
    options** in the top configuration gear and set **State region override**.
