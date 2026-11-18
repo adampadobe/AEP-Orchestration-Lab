@@ -5,6 +5,10 @@
   // Match the reviewed Kirkham event schema used by TUI / Center Parcs.
   const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
   const cardMount = () => $('ContentCardContainerLoyalty');
+  const defaultCardSurface = () => {
+    const page = new URL('content-decision-live-edge.html', location.href);
+    return 'web://' + page.host + page.pathname + '#ContentCardContainerLoyalty';
+  };
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
@@ -411,7 +415,7 @@
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     $('loyaltyTenant').value = defaultEventTenant();
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
-    $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
+    $('loyaltySurface').value = defaultCardSurface();
     document.querySelectorAll('[data-loyalty-participation]').forEach(button => {
       button.addEventListener('click', () => {
         if (busy || $('loyaltyParticipation').value === button.dataset.loyaltyParticipation) return;
@@ -442,7 +446,7 @@
     email.addEventListener('input', () => invalidate(true)); $(prefix + 'Ns').addEventListener('change', () => invalidate(true));
     global.addEventListener('aep-global-sandbox-change', () => {
       $('loyaltyRegion').value = ''; $('loyaltyTenant').value = defaultEventTenant(); $('loyaltyChallenge').value = '';
-      $('loyaltySurface').value = 'web://' + location.host + location.pathname + '#ContentCardContainerLoyalty';
+      $('loyaltySurface').value = defaultCardSurface();
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
     });
