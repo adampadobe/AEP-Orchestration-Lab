@@ -71,7 +71,7 @@
     const response = await fetch(url, { ...options, signal: aborter.signal });
     const type = response.headers.get('content-type') || '';
     if (url.startsWith('/api/ajo-loyalty?') && response.status === 404 && !type.includes('application/json')) {
-      throw new Error('Loyalty API is not deployed. An authorized release owner must deploy ajoLoyaltyProxy; SDK injection does not enable task-status reads.');
+      throw new Error('Loyalty API is not deployed. An authorized release owner must update aepProxy and the Hosting route; SDK injection does not enable task-status reads.');
     }
     if (!type.includes('application/json')) throw new Error('Expected the deployed lab JSON API; HTTP ' + response.status + '. Check the Functions release.');
     const data = await response.json();

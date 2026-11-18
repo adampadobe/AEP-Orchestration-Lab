@@ -27,9 +27,9 @@ async function resolveLoyaltyPrincipal(req, deps) {
   return { ok: true, sandbox, principalUid: claims.uid };
 }
 
-function registerAjoLoyaltyRoutes(deps) {
-  const { onRequest, profileFnOpts, setCors, mcpApiKeyStore, getAdobeAccessToken, aepHeaders, ADOBE_IMS_ORG, loyaltyService } = deps;
-  const ajoLoyaltyProxy = onRequest(profileFnOpts, async (req, res) => {
+function createAjoLoyaltyHandler(deps) {
+  const { setCors, mcpApiKeyStore, getAdobeAccessToken, aepHeaders, ADOBE_IMS_ORG, loyaltyService } = deps;
+  return async (req, res) => {
     setCors(res, 'GET, POST, OPTIONS');
     res.set('Cache-Control', 'private, no-store, max-age=0');
     if (req.method === 'OPTIONS') return res.status(204).send('');
@@ -103,8 +103,7 @@ function registerAjoLoyaltyRoutes(deps) {
         platform_response: error.platformResponse ?? null,
       });
     }
-  });
-  return { ajoLoyaltyProxy };
+  };
 }
 
-module.exports = { registerAjoLoyaltyRoutes };
+module.exports = { createAjoLoyaltyHandler };

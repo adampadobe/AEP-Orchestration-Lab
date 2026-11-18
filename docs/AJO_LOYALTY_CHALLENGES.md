@@ -224,8 +224,8 @@ history. Changing sandbox clears the profile, region, tenant and challenge
 settings so the previous sandbox's configuration is not silently reused.
 
 Release Hosting through the normal PR/Validate/merge workflow for the SDK Join
-handler and partner offer changes. **Get task status still requires the updated
-`ajoLoyaltyProxy` Function** and Portal authentication; an optional region override
+handler and partner offer changes. **Get task status requires the updated
+existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite** and Portal authentication; an optional region override
 is needed only when the documented va7 default is unsuitable. Rendering a card or sending its signup event does not
 enable that backend. The earlier MCP release alone does not enable Firebase
 browser authentication or the separate Portal-only signup route.
@@ -234,7 +234,7 @@ release must not be bypassed or mistaken for a Hosting fix. Local browser checks
 synthetic fixtures and do not prove live Adobe access or reward delivery:
 `npm run test:lloyds-loyalty`.
 If Hosting returns an HTML 404 for this endpoint, the task-status button reports
-that `ajoLoyaltyProxy` needs deployment by an authorized release owner. SDK
+that `aepProxy` and the Hosting route need updating by an authorized release owner. SDK
 injection cannot substitute for that backend release; profile lookup remains
 available independently.
 
@@ -275,7 +275,7 @@ new credential is needed.
    still require `data.challengeList`; a metadata `children` response cannot
    establish progress. Missing or invalid collections are errors, not "no challenges".
 
-The Function `ajoLoyaltyProxy` independently checks a user-generated MCP key or
+The dedicated Loyalty handler inside `aepProxy` independently checks a user-generated MCP key or
 validated Adobe IMS enrollment, the exact sandbox and configured Adobe org.
 Shared operational keys and caller-supplied platform URLs, paths, methods or
 authorization overrides are not accepted. Adobe calls use the existing
@@ -309,12 +309,12 @@ The two authentication hops have different purposes:
 1. **Client to lab:** the existing `lab-decisioning` connection supplies its
    sandbox-scoped MCP key, or Coworker forwards its Adobe IMS session. The
    backend independently verifies the Portal principal and exact sandbox.
-2. **Lab to Adobe:** `ajoLoyaltyProxy` uses `createAdobeAuth()` to obtain/cache a
+2. **Lab to Adobe:** the Loyalty handler uses the existing `createAdobeAuth()` to obtain/cache a
    server-to-server IMS token. `aepHeaders()` supplies `Authorization`,
    `x-api-key` and `x-gw-ims-org-id`; the route sets the principal's
    `x-sandbox-name`. Caller credentials are never reused as Adobe API overrides.
 
-The Function inherits `profileFnOpts`: region `us-central1`, 120-second Function
+The handler runs inside the existing `aepProxy`: region `us-central1`, 120-second Function
 timeout, and the existing Secret Manager bindings `ADOBE_CLIENT_ID`,
 `ADOBE_CLIENT_SECRET`, `ADOBE_IMS_ORG` and `ADOBE_SCOPES`. The Adobe read itself
 has a 60-second timeout. There is no new Postman environment, MCP connection,
@@ -333,18 +333,23 @@ For a release owner, the rollout is:
 
 1. Commit/push the focused feature branch, open a PR, and complete required
    Validate checks and review. Do not deploy the worktree.
-2. After merge and release approval, deploy only `ajoLoyaltyProxy` through the
+2. After merge and release approval, deploy only `functions:aepProxy` through the
    existing Firebase workflow from clean `main` at freshly fetched `origin/main`.
-   Preserve the four Adobe secret bindings and verify the Function's region.
+   Preserve the four Adobe secret bindings and verify the Function's region,
+   then release Hosting so `/api/ajo-loyalty` targets `aepProxy`.
+   No separate Loyalty Function or IAM grant is introduced. Existing IAM and
+   deployment gates still apply; updating an existing Function is not a guarantee
+   that all deployment permissions are available.
 3. Release the MCP image for that exact merged SHA with the existing guarded
    `tools/aep-lab-profile-mcp/scripts/release-main.sh`, retaining the running
    service's configuration. The release script's account/project guard is
    intentional: use the authorized release owner, never change the guard to
    accommodate a different account.
 4. Verify revision/build identity, refresh the existing connection and start a
-   new chat. Confirm all five Loyalty tools appear. Hosting is not needed for
-   MCP's direct Function call; publish the optional rewrite separately only if
-   a caller needs the Hosting URL.
+   new chat. Confirm all five Loyalty tools appear. MCP calls the direct
+   Function URL `/aepProxy/api/ajo-loyalty`; browser calls retain
+   `/api/ajo-loyalty`. Both enter the same protected handler before generic
+   proxy processing. Hosting is not needed for MCP's direct Function call.
 5. Run configuration, one metadata page and one exact member-state read.
    Confirm Adobe status and actual returned task fields, not just tool discovery.
 

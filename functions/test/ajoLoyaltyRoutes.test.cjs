@@ -2,15 +2,31 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { registerAjoLoyaltyRoutes } = require('../ajoLoyaltyRoutes');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { createAjoLoyaltyHandler } = require('../ajoLoyaltyRoutes');
+
+function sharedProxy(ajoLoyaltyHandler) {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  const start = source.indexOf('exports.aepProxy = onRequest(');
+  const end = source.indexOf('\n);', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {
+    exports: {}, onRequest: (_options, handler) => handler,
+    REGION: 'us-central1', ADOBE_CLIENT_ID: {}, ADOBE_CLIENT_SECRET: {},
+    ADOBE_IMS_ORG: {}, ADOBE_SCOPES: {}, RESOLVED_ADOBE_SANDBOX: 'kirkham',
+    ajoLoyaltyHandler, setCors() {},
+  };
+  vm.runInNewContext(source.slice(start, end + 4), context);
+  return context.exports.aepProxy;
+}
 
 function setup(overrides = {}) {
-  let handler;
   let tokenCalls = 0;
   const reads = [];
   const dependencies = {
-    onRequest: (_opts, fn) => { handler = fn; return fn; },
-    profileFnOpts: {}, setCors() {},
+    setCors() {},
     mcpApiKeyStore: { validateUserApiKey: async () => ({ ok: true, principalUid: 'uid', sandbox: 'kirkham' }) },
     getAdobeAccessToken: async () => { tokenCalls++; return 'server-only-token'; },
     aepHeaders: (token) => ({ Authorization: `Bearer ${token}`, 'x-api-key': 'server-client', 'x-gw-ims-org-id': 'test@AdobeOrg' }),
@@ -18,7 +34,7 @@ function setup(overrides = {}) {
     loyaltyService: { read: async (headers, input) => { reads.push({ headers, input }); return { ok: true, data: {} }; } },
     ...overrides,
   };
-  registerAjoLoyaltyRoutes(dependencies);
+  const handler = sharedProxy(createAjoLoyaltyHandler(dependencies));
   async function invoke(request = {}) {
     const state = { status: 200, headers: {} };
     const response = {
@@ -27,11 +43,29 @@ function setup(overrides = {}) {
       json(body) { state.body = body; return this; },
       send(body) { state.body = body; return this; },
     };
-    await handler({ method: 'GET', headers: { 'x-aep-lab-mcp-key': 'user-key' }, query: { action: 'config' }, ...request }, response);
+    await handler({ path: '/api/ajo-loyalty', method: 'GET', headers: { 'x-aep-lab-mcp-key': 'user-key' }, query: { action: 'config' }, ...request }, response);
     return state;
   }
   return { invoke, reads, tokenCalls: () => tokenCalls };
 }
+
+test('Hosting routes Loyalty to the shared Function and unrelated paths retain generic proxy behavior', async () => {
+  const config = require('../../firebase.json');
+  const rewrite = config.hosting.flatMap(site => site.rewrites || [])
+    .find(route => route.source === '/api/ajo-loyalty');
+  assert.equal(rewrite.function.functionId, 'aepProxy');
+  assert.equal(rewrite.function.region, 'us-central1');
+  const source = fs.readFileSync(path.join(__dirname, '..', 'index.js'), 'utf8');
+  assert.doesNotMatch(source, /registerAjoLoyaltyRoutes|exports\.ajoLoyaltyProxy/);
+  const app = setup();
+  for (const route of ['/api/aep', '/api/ajo-loyalty/other', '/']) {
+    assert.equal((await app.invoke({ path: route })).status, 405);
+    assert.equal((await app.invoke({ path: route, method: 'OPTIONS' })).status, 204);
+    assert.equal((await app.invoke({ path: route, method: 'POST', rawBody: '{' })).status, 400);
+  }
+  assert.equal(app.tokenCalls(), 0);
+  assert.equal(app.reads.length, 0);
+});
 
 test('GET resolves a sandbox-scoped user and uses server-held Adobe headers only', async () => {
   const app = setup();

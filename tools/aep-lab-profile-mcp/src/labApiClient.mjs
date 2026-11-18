@@ -1001,7 +1001,7 @@ export async function ajoAssetDelete({ sandbox, asset_type, asset_id, expected_n
 
 /** Scoped GET-only Loyalty reads; credentials remain on the backend. */
 export function ajoLoyaltyRead(params) {
-  return labApiRequest('/ajoLoyaltyProxy', {
+  return labApiRequest('/aepProxy/api/ajo-loyalty', {
     origin: getLabFunctionsOrigin(),
     query: params,
     headers: principalAuthHeaders(),

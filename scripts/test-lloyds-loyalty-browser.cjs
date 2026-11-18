@@ -179,6 +179,7 @@ async function main() {
     await waitForProfile();
     assert.equal(consentRequests, consentBeforeHandoff + 1,
       'A drawer-first load enables page actions without repeating the drawer request');
+    await page.waitForFunction(() => document.getElementById('tuiPhSignal-points').textContent === '0');
     assert.equal(await page.locator('#tuiPhSignal-points').textContent(), '0',
       'Drawer-first lookup also loads the table signals needed by the Loyalty page');
     assert.equal(reads.length, 0, 'Profile lookup does not depend on the Loyalty backend or SDK');
