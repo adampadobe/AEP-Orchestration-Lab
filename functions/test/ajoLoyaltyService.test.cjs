@@ -48,6 +48,7 @@ test('signup failures preserve Adobe errors and uncertain responses are never re
       assert.equal(error.status, expectedStatus);
       assert.doesNotMatch(error.message, /secret-transport/);
       if (expectedStatus === 409) assert.deepEqual(error.platformResponse, { title: 'Already joined' });
+      assert.equal(error.signupOutcomeUnknown, expectedStatus === 502 || expectedStatus === 504);
       return true;
     });
     assert.equal(calls, 1);

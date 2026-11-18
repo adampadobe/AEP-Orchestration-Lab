@@ -12,8 +12,8 @@ The read-only Loyalty MCP workflow below also uses a dedicated authenticated
 Firebase backend for metadata and member-state **GETs only**. This does not change
 the terminal-only policy for registering providers, creating or editing challenges.
 The backend also supports Portal-only, server-verified test-member signup;
-that mutation is not exposed to MCP. The Lloyds page's Join button uses the
-explicitly selected Web SDK event flow below, not that enrollment endpoint.
+that mutation is not exposed to MCP. The Lloyds page's Join button uses that
+protected enrollment endpoint, with Adobe authentication held server-side.
 
 ## Read-only Loyalty MCP workflow
 
@@ -150,41 +150,53 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    alone does not verify it. Each click sends at most one event, with no automatic
    retry. If the response is interrupted, check stored profile events before
    deliberately sending again, because ingestion may already have occurred.
-7. The delivered **Join Challenge** button is an event-only button:
+7. The delivered **Join Challenge** button is an API-owned action:
    `interactId: "joinChallenge"` with an empty `actionUrl`. An empty target no
    longer hides the button. The renderer retains the selected consequence's
    `data.meta`, including **`challengeId`**; it never substitutes proposition,
    item or campaign IDs, or a hardcoded challenge ID. This works for both raw
    ruleset consequences and evaluated native content-card items. Metadata-only
    changes also update the rendered action.
-   One explicit click sends `loyalty.challenge.challenge_signup` through
-   injected Web SDK, with the delivered challenge ID at
-   `_experience.ajo.loyalty.challenge.id`. The real loaded scalar Loyalty ID is
-   the **only primary identity** for this event (`identityMap.loyaltyId`);
-   selected-profile and browser ECID identities remain secondary. Tenant
-   `identification.core` retains the same ECID, email and scalar Loyalty ID,
-   with the selected datastream override and personalization/rendering disabled.
-   The page does not call the Loyalty signup API or require a state region,
-   Portal token or a working Loyalty Function for this event.
-   SDK acceptance proves only that the event was sent, **not enrollment,
-   journey entry or task completion**. Actual enrollment depends on the
-   configured downstream Loyalty processing; confirm it through member state.
-   After an accepted signup event, a separate `decisioning.propositionInteract`
-   carries the original proposition attribution and
-   `propositionAction.id: "joinChallenge"`. The page handles this action itself:
-   **do not add a second Tags signup rule for the same click**.
-   A loaded AEP test profile, scalar Loyalty ID, reviewed tenant, active browser
-   ECID and unchanged datastream are required. No credential is exposed to the
-   browser. Repeated clicks do not resend an accepted signup event in the current
-   context. After an uncertain SDK response, check stored profile events before
-   another deliberate attempt; no automatic retry is made. If only interaction
-   tracking fails, SDK acceptance and the actual signup event remain visible in
-   the evidence, with `enrollmentVerified: false`: do not join again to retry
-   tracking. Keep this handler in the page; do not install the supplied delegated
-   listener separately in Tags or add a hardcoded challenge ID.
-8. After SDK signup-event acceptance, the phone shows the fixed partner rows and their
-   **View offer** buttons. It labels the signup event as sent, not state-confirmed
-   participation. A matching state response with `optedIn: true` can restore
+   The rendered button has `data-interact-id="joinChallenge"` and
+   `data-challenge-id` from `contentCardMeta.challengeId` (the selected card's
+   `data.meta`). One explicit click calls the protected
+   `POST /api/ajo-loyalty?sandbox=<selected sandbox>` route with `action: signup`,
+   `profile_id`, `challenge_id`, `region`, `test: false` and `confirmed: true`.
+   The member is always the selected AEP profile's loaded scalar Loyalty ID,
+   never the Portal operator, a manual member override or a standard Loyalty ID array.
+   The backend independently verifies Portal enrollment, the Loyalty namespace,
+   the exact member identity and AEP `testProfile: true` before calling
+   `POST /ajo/loyalty/challenges/signup/{challengeId}` on the confirmed regional
+   host (documented default va7). Adobe receives only
+   `{ "profileId": "<scalar Loyalty ID>", "test": false }`.
+   State API test mode is separate from the AEP test-profile safety guard;
+   signup always uses `test: false`.
+   HTTP 200 leaves **Challenge Joined** disabled. An Adobe **signup** HTTP 409
+   leaves **Challenge Already Joined** disabled; a configuration/namespace 409
+   is an error, not enrollment. Definite errors restore the original button and
+   show **Unable to join challenge**, with response status/body in the console.
+   A timeout, lost/unreadable response or malformed success leaves the action
+   disabled as **Check challenge status**. There is no automatic POST retry.
+   During the current page lifetime, receipts are scoped to sandbox, region,
+   scalar member ID and challenge, including across profile lookups/card rerenders.
+   A successful live active-state read for the same scope resolves an unknown
+   outcome: explicit `optedIn: true` confirms enrollment; explicit
+   `optedIn: false` permits a deliberate retry. Missing challenges or failed,
+   foreign-member, different-region or State API test-mode reads do not unlock it.
+   Reloading loses these in-memory receipts; read task state before retrying an
+   interrupted signup after a reload.
+   No manually constructed `loyalty.challenge.challenge_signup` event is sent.
+   A separate `decisioning.propositionInteract` retains the original card
+   attribution after confirmed enrollment. Tracking failure does not undo
+   enrollment, enable another signup, or prevent an independent task-state read.
+   The page automatically reads exact-member/exact-challenge live state after
+   HTTP 200/Adobe signup 409, without completing tasks locally. A failed state
+   refresh leaves enrollment confirmed and reports the refresh failure.
+   **Journey entry is not verified:** the Signup API must not be assumed to
+   trigger an existing event-conditioned journey. Verify that behavior separately;
+   do not add a second Tags/manual signup-event listener.
+8. After API-confirmed enrollment, the phone shows the fixed partner rows and their
+   **View offer** buttons. A matching state response with `optedIn: true` can restore
    these rows after a fresh profile lookup without another signup. Both the
    challenge ID and the returned participation must match the delivered card,
    and the state read must use the loaded profile's scalar Loyalty ID in the
@@ -209,10 +221,12 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    and keyboard focus return. Closing it sends no event. A later deliberate
    offer view is a new demo purchase with a new purchase ID; there is no
    automatic retry, especially after an interrupted response.
-   Partner purchase receipts are not task-completion ticks: only **Get task
-   status** (or explicitly enabled state polling) updates confirmed progress.
-   Profile/sandbox/configuration changes clear the local signup, partner
-   receipts and open sheet; stale asynchronous identity results cannot dispatch
+   Partner purchase receipts are not task-completion ticks: only Adobe state
+   reads (**Get task status**, the post-signup refresh or explicitly enabled
+   state polling) update confirmed progress.
+   Profile/sandbox/configuration changes clear the visible partner
+   receipts and open sheet; scoped API signup receipts remain in memory to prevent
+   accidental resubmission. Stale asynchronous identity results cannot dispatch
    a purchase for a different context. The supplied combined design's Gymshark
    row is intentionally PureGym here, matching the reviewed campaign and events.
 
@@ -223,10 +237,10 @@ test mode. Returned pagination is identified explicitly, not presented as full
 history. Changing sandbox clears the profile, region, tenant and challenge
 settings so the previous sandbox's configuration is not silently reused.
 
-Release Hosting through the normal PR/Validate/merge workflow for the SDK Join
-handler and partner offer changes. **Get task status requires the updated
+Release Hosting through the normal PR/Validate/merge workflow for the API Join
+handler and partner offer changes. **Get task status and Join Challenge require the updated
 existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite** and Portal authentication; an optional region override
-is needed only when the documented va7 default is unsuitable. Rendering a card or sending its signup event does not
+is needed only when the documented va7 default is unsuitable. Rendering a card does not
 enable that backend. The earlier MCP release alone does not enable Firebase
 browser authentication or the separate Portal-only signup route.
 The Functions release requires an authorized release owner; an IAM-blocked
