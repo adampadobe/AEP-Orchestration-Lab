@@ -114,10 +114,26 @@ async function main() {
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Journey events require a loaded profile');
     assert.doesNotMatch(await page.locator('body').textContent(), /Independent lab demonstration\. Not a banking service\./,
       'The requested footer text has been removed');
+    assert.doesNotMatch(await page.locator('body').textContent(),
+      /Demonstration experience|Web SDK preview · live state, no simulated task completion/,
+      'The requested demonstration badge and phone caption stay removed');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
     await openConfiguration();
+    for (const viewport of [{ width: 1366, height: 768 }, { width: 390, height: 844 }]) {
+      await page.setViewportSize(viewport);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      assert.ok(await page.locator('#customerEmail').evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= innerHeight && rect.left >= 0 && rect.right <= innerWidth;
+      }), 'The email lookup is visible without scrolling the configuration panel at ' + viewport.width + 'px');
+      assert.ok(await page.locator('#queryProfileBtn').evaluate(element => {
+        const rect = element.getBoundingClientRect();
+        return rect.top >= 0 && rect.bottom <= innerHeight;
+      }), 'The profile lookup button is visible without scrolling');
+    }
+    await page.setViewportSize({ width: 1500, height: 1100 });
     await page.locator('#customerEmail').fill('fixture@example.invalid');
     consentGate = new Promise(resolve => { releaseConsent = resolve; });
     const firstConsent = page.waitForRequest(request => new URL(request.url()).pathname === '/api/profile/consent');
@@ -133,6 +149,14 @@ async function main() {
     await waitForProfile();
     assert.equal(await page.locator('#tuiPhSignal-points').textContent(), '0',
       'The successful page lookup must publish its table signals alongside the basic drawer fields');
+    await page.evaluate(() => {
+      document.getElementById('customerEmail').dispatchEvent(new Event('input', { bubbles: true }));
+      window.dispatchEvent(new CustomEvent('aep-global-sandbox-change', {
+        detail: { name: window.AepGlobalSandbox.getSandboxName() },
+      }));
+    });
+    assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), false,
+      'Same-value identity and sandbox notifications must not discard a loaded profile');
     await page.locator('#profileHoverZone').dispatchEvent('mouseleave');
     await page.waitForFunction(() => !document.body.classList.contains('mod-demo-page--profile-open'));
     rejectConsent = true;
@@ -143,12 +167,26 @@ async function main() {
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true,
       'A genuine drawer failure must not enable profile-dependent event actions');
     rejectConsent = false;
-    await page.locator('#queryProfileBtn').click();
+    const consentBeforeHandoff = consentRequests;
+    await page.evaluate(() => window.DemoProfileDrawer.loadProfileDataForDrawer(
+      document.getElementById('customerEmail').value, { updateMessage: false, sendApplicationLogin: false }));
     await waitForProfile();
+    assert.equal(consentRequests, consentBeforeHandoff + 1,
+      'A drawer-first load enables page actions without repeating the drawer request');
+    assert.equal(await page.locator('#tuiPhSignal-points').textContent(), '0',
+      'Drawer-first lookup also loads the table signals needed by the Loyalty page');
     assert.equal(reads.length, 0, 'Profile lookup does not depend on the Loyalty backend or SDK');
+    unavailableState = true;
     await page.locator('#loyaltyRefresh').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('top configuration bar > Loyalty API options'));
-    assert.equal(reads.length, 0, 'A missing region is not guessed or probed');
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Loyalty API is not deployed'));
+    assert.equal(reads.length, 1, 'An unavailable backend is reported once, not hidden behind a missing-region prompt');
+    assert.equal(reads[0].action, 'config');
+    unavailableState = false;
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.ok(reads.some(read => read.action === 'profile_state' && !Object.hasOwn(read, 'region')),
+      'Without an override, use the backend documented va7 default instead of requiring setup or probing regions');
+    assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).region, 'va7');
     await openApiOptions();
     await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#loyaltyTenant').fill('_ownTenant');
@@ -625,6 +663,10 @@ async function main() {
     assert.deepEqual(signupEvidence.event, signup, 'Preserve the actual signup event after interaction tracking');
     assert.equal(signupEvidence.sdkAccepted, true);
     assert.equal(signupEvidence.enrollmentVerified, false, 'SDK acceptance must not claim confirmed enrollment');
+    assert.equal(await page.locator('.loyalty-pending-progress .loyalty-offer-step').count(), 3,
+      'After signup the desktop rail shows the three authored offers without pretending they are reported tasks');
+    assert.equal(await page.locator('.loyalty-pending-progress .loyalty-progress-ring b').textContent(), '—',
+      'An unknown task count is not presented as zero progress');
     assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3);
     assert.match(await page.locator('#loyaltyPartnerOffers').textContent(), /Signup event sent.*confirm enrollment/s);
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Signup does not fabricate completed tasks');

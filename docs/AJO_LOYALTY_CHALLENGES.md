@@ -21,7 +21,9 @@ explicitly selected Web SDK event flow below, not that enrollment endpoint.
 
 Open **Demos > Lloyds > Loyalty** (`profile-viewer/lloyds-loyalty-demo.html`).
 This page reuses the shared Spectrum configuration bar and the Center Parcs
-profile drawer, including its compact proposition event timeline. It is not
+profile drawer, including its compact proposition event timeline. Profile lookup
+is the first configuration row, above environment settings, so the identifier
+and lookup button are visible without scrolling through SDK options. It is not
 pinned to an owner's sandbox.
 
 The body uses the updated combined progress-ring / compact task-rail design beside
@@ -29,7 +31,9 @@ a scrollable phone preview. Both views render the same Adobe task response.
 There are no local task-completion buttons, invented progress, countdowns,
 lock ordering or reward-unlock claims. After challenge signup the phone also shows
 the authored Waitrose, TK Maxx and PureGym partner offers from the combined design;
-these offers are fixed demo UI, not content supplied by AJO. The phone's Active/Completed controls
+these offers are fixed demo UI, not content supplied by AJO. Before state is
+available, the desktop rail shows those authored offers as **Not verified**, with
+an unknown progress count rather than fabricated task completion. The phone's Active/Completed controls
 switch the same participation filter used by the top-bar API options. Task
 initials derive from returned names, not invented merchant brands. Raw counters,
 IDs and history remain available in collapsed **Challenge API details**.
@@ -43,8 +47,15 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    enrollment for the exact requested sandbox. Anonymous sessions cannot read
    Loyalty state.
 2. Select your sandbox and look up a profile. This loads the shared profile drawer
-   independently of the Loyalty API or SDK. In the top configuration gear, expand
-   **Loyalty API options** and select the confirmed **state region**.
+   independently of the Loyalty API or SDK. A profile loaded through the drawer
+   also hydrates the Loyalty page's table model and enables its actions, without
+   requiring a second lookup or repeating the drawer request. Same-value identity
+   and sandbox notifications do not clear a valid loaded profile.
+   No region entry is required: reads use the backend's documented Adobe default
+   **va7**. If your sandbox uses another confirmed region, expand **Loyalty API
+   options** in the top configuration gear and set **State region override**.
+   Regions are never probed automatically. An unavailable Function is reported as
+   a deployment error, not disguised as missing browser configuration.
    **Get task status** reads the configured Loyalty namespace before resolving the member
    identifier. Matching namespaces use the selected identifier; ECID can use the
    loaded profile's ECID; `loyaltyId` uses its loaded scalar Loyalty ID.
@@ -212,8 +223,8 @@ settings so the previous sandbox's configuration is not silently reused.
 
 Release Hosting through the normal PR/Validate/merge workflow for the SDK Join
 handler and partner offer changes. **Get task status still requires the updated
-`ajoLoyaltyProxy` Function**, an explicitly selected confirmed state region and
-Portal authentication. Rendering a card or sending its signup event does not
+`ajoLoyaltyProxy` Function** and Portal authentication; an optional region override
+is needed only when the documented va7 default is unsuitable. Rendering a card or sending its signup event does not
 enable that backend. The earlier MCP release alone does not enable Firebase
 browser authentication or the separate Portal-only signup route.
 The Functions release requires an authorized release owner; an IAM-blocked
