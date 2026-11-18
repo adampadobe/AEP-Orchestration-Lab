@@ -118,6 +118,25 @@ function buildLoyaltyReadRequest(input) {
   return url;
 }
 
+function buildLoyaltySignupRequest(input) {
+  const fields = ['action', 'sandbox', 'profile_id', 'challenge_id', 'region', 'test', 'confirmed'];
+  if (!input || typeof input !== 'object' || Array.isArray(input) || input.action !== 'signup'
+      || Object.keys(input).some(key => !fields.includes(key)) || input.confirmed !== true
+      || typeof input.region !== 'string' || typeof input.test !== 'boolean') {
+    throw failure(400, 'Signup requires one confirmed challenge, an explicit region and boolean test mode; extra fields are not supported.');
+  }
+  const url = buildLoyaltyReadRequest({
+    action: 'profile_state', sandbox: input.sandbox, profile_id: input.profile_id, region: input.region,
+  });
+  const id = challengeId(input.challenge_id), profileId = text(input.profile_id, 'profile_id', 512);
+  if (id !== input.challenge_id || profileId !== input.profile_id) {
+    throw failure(400, 'Signup identifiers must not contain surrounding whitespace.');
+  }
+  url.pathname = `/ajo/loyalty/challenges/signup/${id}`;
+  url.search = '';
+  return { url, body: { profileId, test: input.test } };
+}
+
 async function boundedResponseText(response) {
   const reader = response.body?.getReader();
   if (!reader) throw failure(502, 'Adobe Loyalty returned no readable response body.');
@@ -138,6 +157,34 @@ async function boundedResponseText(response) {
 }
 
 function createAjoLoyaltyService({ fetchImpl = fetch } = {}) {
+  async function signup(headers, input) {
+    const { url, body } = buildLoyaltySignupRequest(input);
+    let response, raw;
+    try {
+      response = await fetchImpl(url, {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body), redirect: 'error', signal: AbortSignal.timeout(60_000),
+      });
+      raw = response.body ? await boundedResponseText(response) : '';
+    } catch (error) {
+      throw failure(error.name === 'TimeoutError' || error.name === 'AbortError' ? 504 : 502,
+        'Adobe Loyalty signup response was not confirmed. Signup may have occurred; read member state before another attempt.');
+    }
+    let data = null;
+    if (raw.trim()) {
+      try { data = JSON.parse(raw); }
+      catch {
+        throw failure(response.ok ? 502 : response.status,
+          'Adobe Loyalty signup returned a non-JSON response. Read member state before another attempt.', null, response.status);
+      }
+    }
+    if (response.status !== 200 || data?.error || data?.ok === false) {
+      throw failure(response.ok ? 502 : response.status,
+        `Adobe Loyalty signup returned HTTP ${response.status}. Read member state before another attempt.`, data, response.status);
+    }
+    return { ok: true, sandbox: input.sandbox, action: 'signup', challenge_id: input.challenge_id,
+      platform_status: response.status, platform_host: url.hostname, accepted: true, data };
+  }
   async function read(headers, input) {
     const url = buildLoyaltyReadRequest(input);
     let response;
@@ -190,7 +237,7 @@ function createAjoLoyaltyService({ fetchImpl = fetch } = {}) {
       ...(input.action === 'config' ? { privacy: 'Only identity and event configuration fields are returned; provider and sink authentication is omitted.' } : {}),
     };
   }
-  return { read };
+  return { read, signup };
 }
 
-module.exports = { buildLoyaltyReadRequest, createAjoLoyaltyService };
+module.exports = { buildLoyaltyReadRequest, buildLoyaltySignupRequest, createAjoLoyaltyService };

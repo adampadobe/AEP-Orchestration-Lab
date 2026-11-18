@@ -61,3 +61,26 @@ test('evaluated native journey cards retain their original item and exact surfac
   assert.equal(selected.content.buttons[0].text.content, 'View tasks');
   assert.equal(model.selectCard([proposition], surface.replace('Loyalty', 'Other')), null);
 });
+
+test('ruleset cards retain event-only buttons and the delivered challenge metadata', () => {
+  const surface = 'web://example.invalid/rewards#ContentCardContainerLoyalty';
+  const data = { contentType: 'application/json',
+    content: { title: { content: 'Join a challenge' }, buttons: [{
+      id: 'button-fixture', interactId: 'joinChallenge', actionUrl: '', text: { content: 'Join Challenge' },
+    }] }, meta: { challengeId: 'dynamic-challenge-fixture' } };
+  const proposition = { id: 'ruleset-fixture', scope: surface, scopeDetails: { decisionProvider: 'AJO' },
+    items: [{ id: 'original-item', schema: 'https://ns.adobe.com/personalization/ruleset-item',
+      data: { rules: [{ consequences: [{ id: 'card-consequence', detail: {
+        schema: 'https://ns.adobe.com/personalization/message/content-card', data,
+      } }] }] } }] };
+  const card = model.selectCard([proposition], surface);
+  assert.equal(card.meta, data.meta, 'Read challengeId from consequence data, not proposition/item IDs');
+  assert.equal(card.content.buttons[0].interactId, 'joinChallenge');
+  assert.equal(card.content.buttons[0].actionUrl, '', 'An event-only button must not require navigation');
+  assert.equal(card.item, proposition.items[0], 'Preserve the original ruleset attribution');
+  data.content = { title: 'Native title inside a raw ruleset', body: 'Native copy', actionUrl: '#tasks' };
+  data.meta.buttonLabel = 'View tasks';
+  const native = model.selectCard([proposition], surface);
+  assert.equal(native.content.title.content, 'Native title inside a raw ruleset');
+  assert.equal(native.content.buttons[0].text.content, 'View tasks');
+});
