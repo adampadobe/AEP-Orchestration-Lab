@@ -14,7 +14,7 @@ async function main() {
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
     let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
     let consentGate, releaseConsent, consentRequests = 0, rejectConsent = false;
-    let stateChallengeId = 'challenge-fixture', optedIn = false, rejectSignup = false;
+    let stateChallengeId = 'challenge-fixture', optedIn = false;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -61,9 +61,7 @@ async function main() {
         if (request.method() === 'POST') {
           const body = request.postDataJSON();
           signupRequests.push({ sandbox: url.searchParams.get('sandbox'), ...body });
-          if (rejectSignup) return route.fulfill({ status: 504, json: { ok: false, error: 'Fixture: signup response interrupted' } });
-          return route.fulfill({ json: { ok: true, sandbox: url.searchParams.get('sandbox'),
-            challenge_id: body.challenge_id, accepted: true, platform_status: 200 } });
+          return route.fulfill({ status: 503, json: { ok: false, error: 'Fixture: Loyalty API unavailable' } });
         }
         assert.equal(request.method(), 'GET');
         reads.push(Object.fromEntries(url.searchParams));
@@ -546,19 +544,27 @@ async function main() {
           }] }, async () => {});
           window.__deliverSignupCard(); return {};
         }
-        if (options.xdm?.eventType === 'loyalty.challenge.challenge_signup') throw new Error('Never synthesize the Adobe signup state event');
-        if (options.xdm?._experience?.decisioning?.propositionAction?.id === 'joinChallenge' || options.xdm?.eventType === 'commerce.purchases') {
+        if (options.xdm?.eventType === 'loyalty.challenge.challenge_signup' ||
+            options.xdm?._experience?.decisioning?.propositionAction?.id === 'joinChallenge' || options.xdm?.eventType === 'commerce.purchases') {
           window.__loyaltySends.push(options);
-          if (window.__rejectLoyaltySend) throw new Error('Fixture: interrupted loyalty send');
+          if (window.__rejectLoyaltySend ||
+              window.__rejectLoyaltyTracking && options.xdm?.eventType === 'decisioning.propositionInteract') {
+            throw new Error('Fixture: interrupted loyalty send');
+          }
         }
         return {};
       };
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'purchase-fixture-stream' } });
     });
-    const loyaltySends = () => page.evaluate(() => window.__loyaltySends);
+    const loyaltySends = () => page.evaluate(() => window.__loyaltySends.filter(event =>
+      event.xdm.eventType !== 'decisioning.propositionInteract'));
+    const signupInteractions = () => page.evaluate(() => window.__loyaltySends.filter(event =>
+      event.xdm.eventType === 'decisioning.propositionInteract'));
     profileLoyaltyId = undefined;
     await openApiOptions();
-    await page.locator('#loyaltyRegion').selectOption('nld2');
+    await page.locator('#loyaltyRegion').selectOption('');
+    unavailableState = true;
+    const readsBeforeSignup = reads.length;
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
     const joinButton = page.locator('#ContentCardContainerLoyalty button');
@@ -575,42 +581,57 @@ async function main() {
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('no meta.challengeId'));
     assert.equal((await loyaltySends()).length, 0, 'Never substitute a proposition, item or hardcoded challenge ID');
-    assert.equal(signupRequests.length, 0, 'Missing profile identity or card metadata blocks the backend mutation');
-    await page.evaluate(() => { window.__cardChallengeId = 'challenge-one-fixture'; window.__deliverSignupCard(); });
-    rejectSignup = true;
+    assert.equal(signupRequests.length, 0, 'Join is not a backend mutation');
+    await page.evaluate(() => { window.__cardChallengeId = 'challenge-one-fixture'; window.__deliverSignupCard(); window.__rejectLoyaltySend = true; });
     await joinButton.click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Read member state before another attempt'));
-    assert.equal(signupRequests.length, 1, 'An uncertain signup is not retried automatically');
-    assert.equal((await loyaltySends()).length, 0, 'Do not claim an interaction or enrollment after an unconfirmed signup');
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('may already have been ingested'));
+    assert.equal((await loyaltySends()).length, 1, 'An uncertain signup event is not retried automatically');
+    assert.equal((await signupInteractions()).length, 0, 'Do not track a successful interaction after an unconfirmed signup event');
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false);
-    rejectSignup = false;
-    const previousSignupRequests = signupRequests.length;
-    await page.evaluate(() => { window.__cardChallengeId = 'challenge-one-fixture'; window.__deliverSignupCard(); window.__holdLoyaltyIdentity = true; });
+    await page.evaluate(() => {
+      window.__rejectLoyaltySend = false; window.__loyaltySends = [];
+      window.__cardChallengeId = 'challenge-one-fixture'; window.__deliverSignupCard(); window.__holdLoyaltyIdentity = true;
+    });
     await joinButton.click();
     await page.waitForFunction(() => typeof window.__releaseLoyaltyIdentity === 'function');
     await joinButton.dispatchEvent('click');
     await page.evaluate(() => { window.__holdLoyaltyIdentity = false; window.__releaseLoyaltyIdentity(); });
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge signup accepted'));
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge signup event sent'));
     const signup = (await loyaltySends())[0];
     assert.equal((await loyaltySends()).length, 1, 'Rapid double clicks send only one signup');
-    assert.equal(signup.xdm.eventType, 'decisioning.propositionInteract', 'SDK records the button interaction, not a fabricated signup');
-    assert.equal(signup.xdm._experience.ajo, undefined);
-    assert.deepEqual(signupRequests.slice(previousSignupRequests), [{ sandbox: 'kirkham', action: 'signup', challenge_id: 'challenge-one-fixture',
-      profile_id: 'loyalty-fixture-123', region: 'nld2', test: false, confirmed: true }],
-    'Signup calls the authenticated Loyalty backend once using the dynamically delivered challenge ID');
-    assert.deepEqual(signup.xdm._experience.decisioning.propositionAction, { id: 'joinChallenge', label: 'Join Challenge' });
-    assert.equal(signup.xdm._experience.decisioning.propositionEventType.interact, 1);
-    assert.equal(signup.xdm._experience.decisioning.propositions[0].id, 'signup-proposition');
-    assert.equal(signup.xdm._experience.decisioning.propositions[0].items[0].id, 'signup-ruleset-item');
-    assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).signup.accepted, true,
-      'Preserve the real signup response after interaction tracking');
+    assert.deepEqual(signup, {
+      edgeConfigOverrides: { datastreamId: 'purchase-fixture-stream' }, renderDecisions: false,
+      personalization: { defaultPersonalizationEnabled: false },
+      xdm: { eventType: 'loyalty.challenge.challenge_signup',
+        identityMap: {
+          Email: [{ id: 'another-fixture@example.invalid', authenticatedState: 'authenticated', primary: false }],
+          ECID: [{ id: '12345678901234567890123456789012345678', authenticatedState: 'ambiguous', primary: false }],
+          loyaltyId: [{ id: 'loyalty-fixture-123', primary: true }],
+        },
+        _demoemea: { identification: { core: { ecid: '12345678901234567890123456789012345678',
+          email: 'another-fixture@example.invalid', loyaltyId: 'loyalty-fixture-123' } } },
+        _experience: { ajo: { loyalty: { challenge: { id: 'challenge-one-fixture' } } } },
+      },
+    }, 'Send the requested signup event with the delivered challenge ID and Loyalty ID as the only primary identity');
+    assert.equal(signupRequests.length, 0, 'SDK signup works without the blocked Loyalty backend');
+    assert.equal(reads.length, readsBeforeSignup, 'Signup requires neither state reads nor a state region');
+    const interaction = (await signupInteractions())[0];
+    assert.equal((await signupInteractions()).length, 1, 'Track one card interaction separately, not a second signup');
+    assert.deepEqual(interaction.xdm._experience.decisioning.propositionAction, { id: 'joinChallenge', label: 'Join Challenge' });
+    assert.equal(interaction.xdm._experience.decisioning.propositionEventType.interact, 1);
+    assert.equal(interaction.xdm._experience.decisioning.propositions[0].id, 'signup-proposition');
+    assert.equal(interaction.xdm._experience.decisioning.propositions[0].items[0].id, 'signup-ruleset-item');
+    const signupEvidence = JSON.parse(await page.locator('#loyaltyEvidence').textContent());
+    assert.deepEqual(signupEvidence.event, signup, 'Preserve the actual signup event after interaction tracking');
+    assert.equal(signupEvidence.sdkAccepted, true);
+    assert.equal(signupEvidence.enrollmentVerified, false, 'SDK acceptance must not claim confirmed enrollment');
     assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3);
-    assert.match(await page.locator('#loyaltyPartnerOffers').textContent(), /Signup accepted.*confirm participation/s);
+    assert.match(await page.locator('#loyaltyPartnerOffers').textContent(), /Signup event sent.*confirm enrollment/s);
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Signup does not fabricate completed tasks');
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Signup already sent'));
     assert.equal((await loyaltySends()).length, 1, 'The same delivered challenge is not signed up twice');
-    assert.equal(signupRequests.length, previousSignupRequests + 1);
+    assert.equal((await signupInteractions()).length, 1, 'Duplicate clicks do not resend tracking');
     await page.evaluate(() => { window.__rejectLoyaltySend = true; });
     await page.locator('[data-loyalty-purchase="waitrose"]').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('may already have been ingested'));
@@ -652,21 +673,26 @@ async function main() {
       assert.equal(await page.locator('[data-loyalty-purchase="' + key + '"]').evaluate(node => document.activeElement === node), true);
     }
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Purchase acceptance never marks Adobe tasks complete locally');
-    await page.evaluate(() => { window.__cardChallengeId = 'challenge-two-fixture'; window.__deliverSignupCard(); window.__rejectLoyaltySend = true; });
+    await page.evaluate(() => { window.__cardChallengeId = 'challenge-two-fixture'; window.__deliverSignupCard(); window.__rejectLoyaltyTracking = true; });
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false, 'A new delivered challenge cannot reuse the previous signup');
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Do not join again to retry tracking'));
-    assert.equal(signupRequests.at(-1).challenge_id, 'challenge-two-fixture',
+    assert.equal((await loyaltySends()).at(-1).xdm._experience.ajo.loyalty.challenge.id, 'challenge-two-fixture',
       'A metadata-only card change updates the captured challenge ID');
     assert.equal(await page.locator('#loyaltyPartnerOffers').getAttribute('data-challenge-id'), 'challenge-two-fixture');
-    assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), true, 'An interaction failure does not undo a real accepted signup');
-    assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).signup.accepted, true);
+    assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), true, 'An interaction failure does not undo SDK signup-event acceptance');
+    assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).sdkAccepted, true);
+    const sendsAfterTrackingFailure = (await loyaltySends()).length;
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Signup already sent'));
-    assert.equal(signupRequests.length, previousSignupRequests + 2, 'Never repeat a successful enrollment to retry tracking');
-    await page.evaluate(() => { window.__rejectLoyaltySend = false; });
+    assert.equal((await loyaltySends()).length, sendsAfterTrackingFailure, 'Never repeat an accepted signup event to retry tracking');
+    assert.equal(signupRequests.length, 0);
+    assert.equal(reads.length, readsBeforeSignup);
+    await page.evaluate(() => { window.__rejectLoyaltyTracking = false; });
+    unavailableState = false;
     stateChallengeId = 'challenge-two-fixture'; optedIn = true; namespace = 'loyaltyId';
-    await openConfiguration();
+    await openApiOptions();
+    await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false, 'A lookup clears local signup receipts');

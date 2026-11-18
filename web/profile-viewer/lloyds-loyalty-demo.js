@@ -204,7 +204,7 @@
     section.dataset.challengeId = joinedChallenge.id;
     section.append(node('h4', joinedChallenge.title),
       node('p', joinedChallenge.confirmed ? 'Participation confirmed by Adobe.' :
-        'Signup accepted. Get task status to confirm participation.', 'loyalty-phone-count'));
+        'Signup event sent. Get task status to confirm enrollment.', 'loyalty-phone-count'));
     for (const offer of model.partnerOffers) {
       const row = node('div', undefined, 'loyalty-phone-task loyalty-partner-task');
       row.dataset.partner = offer.key;
@@ -407,49 +407,34 @@
           if (signup) {
             const challengeId = candidate.meta.challengeId;
             if (typeof challengeId !== 'string' || !challengeId.trim()) throw new Error('The delivered card has no meta.challengeId. No signup submitted.');
-            if (joinedChallenge?.id === challengeId) { message('Signup already sent for this challenge. Get task status to confirm participation.'); return; }
-            if (!ctx.region) throw new Error('Choose the confirmed state region in the top configuration bar > Loyalty API options before joining.');
-            const sender = await prepareProfileEvent(ctx, token, 'challenge signup', true);
+            if (joinedChallenge?.id === challengeId) { message('Signup already sent for this challenge. Get task status to confirm enrollment.'); return; }
+            const sender = await prepareProfileEvent(ctx, token, 'loyalty.challenge.challenge_signup', true);
             if (JSON.stringify(sender.edgeOptions) !== JSON.stringify(captured.edgeOptions)) throw new Error('Event datastream changed since this card was delivered. Refresh the card before joining.');
             if (sender.alloy !== captured.alloy || sender.identityMap.ECID?.[0]?.id !== captured.identityMap.ECID?.[0]?.id) {
               throw new Error('Web SDK visitor changed since this card was delivered. Refresh the card before joining.');
             }
-            const profileId = loaded.profileLoyaltyId;
-            const headers = await global.AepLabSandboxSync.getAuthHeaders();
-            same(ctx, token);
-            if (!headers.Authorization) throw new Error('Sign in to the Portal before joining a challenge.');
-            if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== sender.edgeSnapshot) {
-              throw new Error('Event datastream changed while preparing signup. No signup submitted.');
-            }
-            message('Signing up to the delivered challenge...');
-            let signup;
-            try {
-              signup = await json('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox }), {
-                method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'signup', challenge_id: challengeId, profile_id: profileId,
-                  region: ctx.region, test: ctx.test, confirmed: true }),
-              });
-            } catch (error) {
-              throw new Error('Challenge signup was not confirmed. Read member state before another attempt. ' + error.message);
-            }
-            same(ctx, token);
-            if (signup.accepted !== true || signup.challenge_id !== challengeId || signup.sandbox !== ctx.sandbox) {
-              throw new Error('Signup response did not confirm the requested challenge and sandbox. Read member state before another attempt.');
-            }
+            const identityMap = Object.fromEntries(Object.entries(sender.identityMap).map(([namespace, identities]) =>
+              [namespace, identities.map(identity => ({ ...identity, primary: namespace === 'loyaltyId' }))]));
+            const payload = { ...sender.edgeOptions, renderDecisions: false,
+              personalization: { defaultPersonalizationEnabled: false },
+              xdm: { ...sender.eventXdm, eventType: 'loyalty.challenge.challenge_signup', identityMap,
+                _experience: { ajo: { loyalty: { challenge: { id: challengeId } } } } } };
+            await dispatchProfileEvent(sender, payload, ctx, token);
             joinedChallenge = { id: challengeId, title: content.title?.content || 'Your challenge' };
             purchaseReceipts.clear(); renderPartnerOffers();
             $('loyaltyPartnerOffers').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-            const evidence = { sandbox: ctx.sandbox, signup, proposition: candidate.proposition,
+            const evidence = { sandbox: ctx.sandbox, event: payload, sdkAccepted: true, enrollmentVerified: false,
+              journeyEntryVerified: false, proposition: candidate.proposition,
               renderedConsequence: candidate.consequenceId, interactionAccepted: false };
             const interaction = tracking(candidate, sender, ctx, 'interact', button);
             $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
             try { await dispatchProfileEvent(sender, interaction, ctx, token); }
             catch (error) {
-              throw new Error('Challenge signup was accepted by Adobe, but interaction tracking was not confirmed. Do not join again to retry tracking. ' + error.message);
+              throw new Error('Signup event was accepted by Web SDK, but interaction tracking was not confirmed. Do not join again to retry tracking. ' + error.message);
             }
             same(ctx, token);
             $('loyaltyEvidence').textContent = JSON.stringify({ ...evidence, interaction, interactionAccepted: true }, null, 2);
-            message('Challenge signup accepted by Adobe. Partner offers are ready; Get task status for confirmed progress.');
+            message('Challenge signup event sent via Web SDK. Enrollment is not verified. Partner offers are ready; Get task status for confirmed progress.');
             return;
           }
           if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
