@@ -231,3 +231,40 @@ test('only an enrolled Portal user can sign up a server-verified test profile in
   assert.equal((await app.invoke(request)).status, 409);
   assert.equal(signups.length, 1, 'No unauthorized, unverified or malformed request reaches the mutation');
 });
+
+test('signup errors distinguish Adobe signup conflicts, preflight conflicts and unknown submitted outcomes', async () => {
+  const request = { method: 'POST', headers: { authorization: 'Bearer firebase-session', 'content-type': 'application/json' },
+    query: { sandbox: 'own' }, body: { action: 'signup', profile_id: 'member-1', challenge_id: 'challenge-1', region: 'va7', test: false, confirmed: true } };
+  let preflight = false;
+  for (const [status, unknown] of [[409, false], [422, false], [504, true]]) {
+    const app = setup({
+      labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => ({ uid: 'uid', email: 'demo@adobe.com', isAnonymous: false }) },
+      mcpApiKeyStore: { listKeysForUser: async () => [{ sandbox: 'own', revoked: false }] },
+      profileTableHelpers: { fetchUpsProfileEntities: async () => ({ profile: { entity: {
+        testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'member-1' } } },
+      } } }) },
+      loyaltyService: {
+        read: async () => {
+          if (preflight) throw Object.assign(new Error('Configuration conflict'), { status: 409, platformStatus: 409 });
+          return { data: { namespace: 'loyaltyId' } };
+        },
+        signup: async () => { throw Object.assign(new Error('Signup failed'), {
+          status, platformStatus: unknown ? null : status, signupOutcomeUnknown: unknown,
+          platformResponse: { title: 'Adobe error' },
+        }); },
+      },
+    });
+    const result = await app.invoke(request);
+    assert.equal(result.status, status);
+    assert.equal(result.body.signup_submitted, true);
+    assert.equal(result.body.signup_outcome_unknown, unknown);
+    assert.equal(result.body.platform_status, unknown ? null : status);
+    assert.deepEqual(result.body.platform_response, { title: 'Adobe error' });
+    preflight = true;
+    const rejected = await app.invoke(request);
+    assert.equal(rejected.status, 409);
+    assert.equal(rejected.body.signup_submitted, false, 'An Adobe configuration 409 is not a signup 409');
+    assert.equal(rejected.body.signup_outcome_unknown, false);
+    preflight = false;
+  }
+});

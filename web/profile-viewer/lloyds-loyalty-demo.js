@@ -14,6 +14,9 @@
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   const purchaseReceipts = new Map();
+  const signupReceipts = new Map();
+  const signupScope = (ctx, member) => JSON.stringify([ctx.sandbox, ctx.region || 'va7', member]);
+  const signupKey = (ctx, member, challenge) => JSON.stringify([signupScope(ctx, member), challenge]);
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
     namespace: $(prefix + 'Ns').value.toLowerCase(), identifier: $('customerEmail').value.trim(),
@@ -35,6 +38,7 @@
     $('loyaltyAbandon').disabled = busy || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
     document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
+    syncSignupButtons();
   }
   function closeConfiguration() {
     if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
@@ -84,6 +88,116 @@
     const result = await json('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox, ...input }), { headers });
     return result.data;
   }
+  function syncSignupButtons() {
+    const ctx = context();
+    cardMount().querySelectorAll('[data-interact-id="joinChallenge"]').forEach(button => {
+      const receipt = signupReceipts.get(signupKey(ctx, loaded?.profileLoyaltyId, button.dataset.challengeId));
+      button.disabled = busy || !!receipt;
+      button.textContent = receipt?.state === 'joined' ? 'Challenge Joined' :
+        receipt?.state === 'already' ? 'Challenge Already Joined' :
+        receipt?.state === 'unknown' ? 'Check challenge status' :
+        receipt?.state === 'pending' ? 'Joining Challenge...' : button.dataset.joinLabel;
+    });
+  }
+  function reconcileSignupState(state, ctx, member) {
+    if (ctx.test || ctx.participation !== 'active') return;
+    for (const [key, receipt] of signupReceipts) {
+      if (receipt.scope !== signupScope(ctx, member)) continue;
+      const challenge = state.challengeList.find(value => value?.challenge_id === receipt.id);
+      if (challenge?.optedIn === true && receipt.state === 'unknown') receipt.state = 'already';
+      else if (challenge?.optedIn === false && receipt.state === 'unknown') signupReceipts.delete(key);
+    }
+    syncSignupButtons();
+  }
+  async function submitSignup(ctx, token, challengeId, member) {
+    const headers = await global.AepLabSandboxSync.getAuthHeaders();
+    same(ctx, token);
+    if (!headers.Authorization) throw new Error('Sign in to the Portal before joining a challenge.');
+    const key = signupKey(ctx, member, challengeId);
+    const receipt = { id: challengeId, scope: signupScope(ctx, member), state: 'pending' };
+    signupReceipts.set(key, receipt); syncSignupButtons();
+    let response, body;
+    try {
+      response = await fetch('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox }), {
+        method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, signal: aborter.signal,
+        body: JSON.stringify({ action: 'signup', profile_id: member, challenge_id: challengeId,
+          region: ctx.region || 'va7', test: false, confirmed: true }),
+      });
+      body = await response.json();
+    } catch {
+      receipt.state = 'unknown';
+      console.error('Loyalty signup response not confirmed', { status: response?.status ?? null,
+        error: 'Response unavailable or unreadable; read member state before another attempt.' });
+      throw new Error('Unable to join challenge: outcome unknown. Get task status before another attempt; no automatic retry.');
+    }
+    const duplicate = response.status === 409 && body?.signup_submitted === true && body.platform_status === 409;
+    if ((response.status === 200 && body?.ok === true && body.accepted === true &&
+        body.platform_status === 200 && body.challenge_id === challengeId) || duplicate) {
+      receipt.state = duplicate ? 'already' : 'joined';
+      return { result: body, receipt };
+    }
+    const unknown = response.ok || body?.signup_outcome_unknown === true ||
+      response.status >= 500 && body?.signup_submitted !== false && body?.signup_outcome_unknown !== false;
+    if (unknown) receipt.state = 'unknown';
+    else signupReceipts.delete(key);
+    console.error('Loyalty signup failed', { status: response.status, body });
+    throw new Error('Unable to join challenge' + (unknown ?
+      ': outcome unknown. Get task status before another attempt; no automatic retry.' : '. ' + (body?.error || 'Adobe rejected the request.')));
+  }
+  async function refreshSignupState(ctx, token, challengeId, member) {
+    const state = await loyalty(ctx, { action: 'profile_state', profile_id: member,
+      challenge_id: challengeId, region: ctx.region || 'va7', test: 'false' });
+    same(ctx, token);
+    if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing.');
+    const stateContext = { ...ctx, challenge: challengeId, participation: 'active', test: false };
+    reconcileSignupState(state, stateContext, member);
+    if (!ctx.test && ctx.participation === 'active') renderTasks(state, null, stateContext, true);
+    $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
+    $('loyaltyNamespace').textContent = 'State member: loyaltyId / ' + member;
+    return state;
+  }
+  async function joinChallenge(candidate, captured, button, ctx, token) {
+    const contentCardMeta = candidate.meta, challengeId = contentCardMeta.challengeId;
+    if (typeof challengeId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(challengeId)) {
+      throw new Error('Unable to join challenge: the delivered card has no valid meta.challengeId. No signup submitted.');
+    }
+    if (!loaded.profileLoyaltyId) throw new Error('Unable to join challenge: the loaded profile has no Loyalty ID.');
+    if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
+      throw new Error('Unable to join challenge: only AEP test profiles can join.');
+    }
+    const member = loaded.profileLoyaltyId;
+    if (signupReceipts.has(signupKey(ctx, member, challengeId))) {
+      message('Signup already submitted. Get task status before another attempt.'); return;
+    }
+    const { result, receipt } = await submitSignup(ctx, token, challengeId, member);
+    same(ctx, token);
+    joinedChallenge = { id: challengeId, title: candidate.content.title?.content || 'Your challenge', confirmed: true };
+    purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge(); syncSignupButtons();
+    document.querySelector('.loyalty-phone-scroll').scrollTo({ top: 0, behavior: 'smooth' });
+    const evidence = { sandbox: ctx.sandbox, signup: result, enrollmentVerified: true,
+      journeyEntryVerified: false, proposition: candidate.proposition,
+      renderedConsequence: candidate.consequenceId, interactionAccepted: false };
+    const warnings = [];
+    try {
+      if (global.alloy !== captured.alloy ||
+          JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== JSON.stringify(captured.edgeOptions)) {
+        throw new Error('Card tracking context changed.');
+      }
+      const interaction = tracking(candidate, captured, ctx, 'interact', button);
+      await captured.alloy('sendEvent', interaction);
+      same(ctx, token); evidence.interaction = interaction; evidence.interactionAccepted = true;
+    } catch (error) {
+      warnings.push('Card interaction tracking was not confirmed. Do not join again to retry tracking.');
+      console.error('Loyalty card interaction tracking failed', { error: error.message });
+    }
+    same(ctx, token);
+    try { evidence.state = await refreshSignupState(ctx, token, challengeId, member); }
+    catch (error) { warnings.push('Task state could not be refreshed: ' + error.message); }
+    same(ctx, token);
+    $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
+    message((receipt.state === 'already' ? 'Challenge Already Joined.' : 'Challenge Joined.') +
+      ' Journey entry is not verified. ' + warnings.join(' '), warnings.length > 0);
+  }
   function memberId(ctx, config) {
     if (!config || typeof config.namespace !== 'string' || !config.namespace.trim()) throw new Error('Adobe Loyalty has not reported its member namespace.');
     if (ctx.member) return ctx.member;
@@ -103,6 +217,7 @@
       : { action: 'profile_state', profile_id: member, ...region, ...(ctx.challenge ? { challenge_id: ctx.challenge } : {}), test: String(ctx.test) };
     const state = await loyalty(ctx, input); same(ctx, token);
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
+    reconcileSignupState(state, ctx, member);
     let metadata = null;
     if (ctx.challenge) { metadata = await loyalty(ctx, { action: 'challenge_get', challenge_id: ctx.challenge }); same(ctx, token); }
     renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
@@ -199,15 +314,20 @@
   function restoreParticipation() {
     const challenge = deliveredChallenge && memberChallenges.find(value =>
       value.challenge_id === deliveredChallenge.id && value.optedIn === true);
-    if (joinedChallenge && (joinedChallenge.id !== deliveredChallenge?.id || joinedChallenge.confirmed && !challenge)) {
+    const receipt = deliveredChallenge && signupReceipts.get(signupKey(context(), loaded?.profileLoyaltyId, deliveredChallenge.id));
+    const confirmedSignup = receipt && ['joined', 'already'].includes(receipt.state);
+    if (joinedChallenge && (joinedChallenge.id !== deliveredChallenge?.id || joinedChallenge.confirmed && !challenge && !confirmedSignup)) {
       joinedChallenge = null; purchaseReceipts.clear(); closeOffer(false);
       $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
       if ($('loyaltyTasks').querySelector('.loyalty-pending-progress')) {
         $('loyaltyTasks').replaceChildren(node('p', 'Join a challenge to see its offers.', 'loyalty-empty'));
       }
     }
-    if (challenge) joinedChallenge = { ...deliveredChallenge, confirmed: true };
+    if (challenge || confirmedSignup) joinedChallenge = { ...deliveredChallenge, confirmed: true };
+    if (challenge && !receipt) signupReceipts.set(signupKey(context(), loaded?.profileLoyaltyId, deliveredChallenge.id),
+      { id: deliveredChallenge.id, scope: signupScope(context(), loaded?.profileLoyaltyId), state: 'already' });
     if (joinedChallenge) renderPartnerOffers();
+    syncSignupButtons();
   }
   function renderPendingChallenge() {
     if ($('loyaltyTasks').querySelector('.loyalty-challenge:not(.loyalty-pending-progress)')) return;
@@ -217,7 +337,7 @@
     ring.append(node('b', '\u2014'), node('span', 'Live status'));
     const title = node('div');
     title.append(node('p', 'YOUR CHALLENGE', 'loyalty-eyebrow'), node('h3', joinedChallenge.title),
-      node('p', 'Signup event sent. Awaiting Adobe progress.', 'loyalty-next-task'));
+      node('p', 'Enrollment confirmed. Awaiting Adobe task progress.', 'loyalty-next-task'));
     summary.append(ring, title); section.append(summary);
     for (const [index, offer] of model.partnerOffers.entries()) {
       const row = node('div', undefined, 'loyalty-offer-step');
@@ -238,7 +358,7 @@
     section.dataset.challengeId = joinedChallenge.id;
     section.append(node('h4', joinedChallenge.title),
       node('p', joinedChallenge.confirmed ? 'Participation confirmed by Adobe.' :
-        'Signup event sent. Get task status to confirm enrollment.', 'loyalty-phone-count'));
+        'Get task status to confirm enrollment.', 'loyalty-phone-count'));
     for (const offer of model.partnerOffers) {
       const row = node('div', undefined, 'loyalty-phone-task loyalty-partner-task');
       row.dataset.partner = offer.key;
@@ -454,55 +574,34 @@
       const url = model.safeUrl(button.actionUrl, location.href);
       const signup = button.interactId === 'joinChallenge';
       const control = node('button', button.text?.content || 'View reward'); control.type = 'button';
-      control.addEventListener('click', () => void work(async (current, currentToken) => {
-        same(ctx, token); same(current, currentToken); closeConfiguration(); control.disabled = true;
-        try {
-          if (signup) {
-            const challengeId = candidate.meta.challengeId;
-            if (typeof challengeId !== 'string' || !challengeId.trim()) throw new Error('The delivered card has no meta.challengeId. No signup submitted.');
-            if (joinedChallenge?.id === challengeId) { message('Signup already sent for this challenge. Get task status to confirm enrollment.'); return; }
-            const sender = await prepareProfileEvent(ctx, token, 'loyalty.challenge.challenge_signup', true);
-            if (JSON.stringify(sender.edgeOptions) !== JSON.stringify(captured.edgeOptions)) throw new Error('Event datastream changed since this card was delivered. Refresh the card before joining.');
-            if (sender.alloy !== captured.alloy || sender.identityMap.ECID?.[0]?.id !== captured.identityMap.ECID?.[0]?.id) {
-              throw new Error('Web SDK visitor changed since this card was delivered. Refresh the card before joining.');
+      if (button.interactId) control.dataset.interactId = button.interactId;
+      if (signup) {
+        control.dataset.joinLabel = control.textContent;
+        if (typeof candidate.meta.challengeId === 'string') control.dataset.challengeId = candidate.meta.challengeId;
+      }
+      control.addEventListener('click', event => {
+        if (signup) { event.preventDefault(); event.stopPropagation(); }
+        void work(async (current, currentToken) => {
+          same(ctx, token); same(current, currentToken); closeConfiguration(); control.disabled = true;
+          try {
+            if (signup) {
+              await joinChallenge(candidate, captured, button, ctx, token);
+              return;
             }
-            const identityMap = Object.fromEntries(Object.entries(sender.identityMap).map(([namespace, identities]) =>
-              [namespace, identities.map(identity => ({ ...identity, primary: namespace === 'loyaltyId' }))]));
-            const payload = { ...sender.edgeOptions, renderDecisions: false,
-              personalization: { defaultPersonalizationEnabled: false },
-              xdm: { ...sender.eventXdm, eventType: 'loyalty.challenge.challenge_signup', identityMap,
-                _experience: { ajo: { loyalty: { challenge: { id: challengeId } } } } } };
-            await dispatchProfileEvent(sender, payload, ctx, token);
-            joinedChallenge = { id: challengeId, title: content.title?.content || 'Your challenge' };
-            purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge();
-            document.querySelector('.loyalty-phone-scroll').scrollTo({ top: 0, behavior: 'smooth' });
-            const evidence = { sandbox: ctx.sandbox, event: payload, sdkAccepted: true, enrollmentVerified: false,
-              journeyEntryVerified: false, proposition: candidate.proposition,
-              renderedConsequence: candidate.consequenceId, interactionAccepted: false };
-            const interaction = tracking(candidate, sender, ctx, 'interact', button);
-            $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
-            try { await dispatchProfileEvent(sender, interaction, ctx, token); }
-            catch (error) {
-              throw new Error('Signup event was accepted by Web SDK, but interaction tracking was not confirmed. Do not join again to retry tracking. ' + error.message);
-            }
+            if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
+            if (button.interactId) await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
+            else if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
+            else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
             same(ctx, token);
-            $('loyaltyEvidence').textContent = JSON.stringify({ ...evidence, interaction, interactionAccepted: true }, null, 2);
-            message('Challenge signup event sent via Web SDK. Enrollment is not verified. Partner offers are ready; Get task status for confirmed progress.');
-            return;
-          }
-          if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
-          if (button.interactId) await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
-          else if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
-          else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
-          same(ctx, token);
-          message('Proposition interaction accepted. Task completion is determined by Adobe state.');
-          if (!url) return;
-          if (new URL(url).origin === location.origin && new URL(url).pathname === location.pathname) {
-            if (ctx.region) await readTasks(ctx, token);
-            same(ctx, token); location.hash = new URL(url).hash;
-          } else location.assign(url);
-        } finally { control.disabled = false; }
-      }));
+            message('Proposition interaction accepted. Task completion is determined by Adobe state.');
+            if (!url) return;
+            if (new URL(url).origin === location.origin && new URL(url).pathname === location.pathname) {
+              if (ctx.region) await readTasks(ctx, token);
+              same(ctx, token); location.hash = new URL(url).hash;
+            } else location.assign(url);
+          } finally { if (signup) syncSignupButtons(); else control.disabled = false; }
+        });
+      });
       body.append(control);
     }
     if (content.dismissBtn?.style && content.dismissBtn.style !== 'none') {

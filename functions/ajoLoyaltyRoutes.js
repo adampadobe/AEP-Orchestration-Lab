@@ -44,7 +44,7 @@ function createAjoLoyaltyHandler(deps) {
 
     let principal;
     try { principal = await resolveLoyaltyPrincipal(req, { ...deps, mcpApiKeyStore }); }
-    catch { return res.status(500).json({ ok: false, error: 'Loyalty principal validation failed.' }); }
+    catch { return res.status(500).json({ ok: false, error: 'Loyalty principal validation failed.', ...(signup && { signup_submitted: false }) }); }
     if (!principal.ok) return res.status(principal.status).json(principal.body);
 
     const query = req.query || {};
@@ -69,8 +69,9 @@ function createAjoLoyaltyHandler(deps) {
       accessToken = await getAdobeAccessToken();
       headers = { ...aepHeaders(accessToken), 'x-sandbox-name': sandbox };
     } catch {
-      return res.status(502).json({ ok: false, error: 'Server-side Adobe authentication failed.' });
+      return res.status(502).json({ ok: false, error: 'Server-side Adobe authentication failed.', ...(signup && { signup_submitted: false }) });
     }
+    let signupSubmitted = false;
     try {
       if (!signup) return res.status(200).json(await loyaltyService.read(headers, input));
       const config = await loyaltyService.read(headers, { action: 'config', sandbox });
@@ -91,6 +92,7 @@ function createAjoLoyaltyHandler(deps) {
       }
       const correlationId = requestCorrelationId(req);
       logFunctionEvent('INFO', 'loyalty.signup.submitting', { correlationId, sandbox, challengeId: input.challenge_id, principalUid: principal.principalUid });
+      signupSubmitted = true;
       const result = await loyaltyService.signup(headers, input);
       logFunctionEvent('INFO', 'loyalty.signup.accepted', { correlationId, sandbox, challengeId: input.challenge_id });
       return res.status(200).json(result);
@@ -101,6 +103,8 @@ function createAjoLoyaltyHandler(deps) {
         error: error.message || (signup ? 'Adobe Loyalty signup failed. Read member state before another attempt.' : 'Adobe Loyalty read failed.'),
         platform_status: error.platformStatus ?? null,
         platform_response: error.platformResponse ?? null,
+        ...(signup && { signup_submitted: signupSubmitted,
+          signup_outcome_unknown: signupSubmitted && (error.signupOutcomeUnknown ?? true) }),
       });
     }
   };

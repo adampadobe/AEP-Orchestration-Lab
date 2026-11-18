@@ -79,7 +79,7 @@
   <template id="loyaltyApiOptions">
     <details class="loyalty-settings">
       <summary>Loyalty API options</summary>
-      <p>Task status uses Adobe's default State API region (va7). Only override it if your sandbox uses another confirmed region. Adobe credentials stay on the server.</p>
+      <p>Task status and challenge signup use Adobe's default State API region (va7). Only override it if your sandbox uses another confirmed region. Adobe credentials stay on the server. Join Challenge uses the Loyalty Signup API with test: false; it does not send a signup event through Web SDK or prove journey entry.</p>
       <div class="loyalty-settings-grid">
         <label>State region override<select id="loyaltyRegion"><option value="">Adobe default (va7)</option><option value="va7">va7</option><option value="nld2">nld2</option><option value="aus5">aus5</option><option value="can2">can2</option><option value="ind2">ind2</option><option value="global">Global (platform.adobe.io)</option></select></label>
         <label>Member identifier<input id="loyaltyMember" autocomplete="off" placeholder="Resolved when namespaces match"></label>
@@ -119,7 +119,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261118-profile-layout'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261118-api-signup'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

@@ -167,20 +167,23 @@ function createAjoLoyaltyService({ fetchImpl = fetch } = {}) {
       });
       raw = response.body ? await boundedResponseText(response) : '';
     } catch (error) {
-      throw failure(error.name === 'TimeoutError' || error.name === 'AbortError' ? 504 : 502,
-        'Adobe Loyalty signup response was not confirmed. Signup may have occurred; read member state before another attempt.');
+      throw Object.assign(failure(error.name === 'TimeoutError' || error.name === 'AbortError' ? 504 : 502,
+        'Adobe Loyalty signup response was not confirmed. Signup may have occurred; read member state before another attempt.'),
+      { signupOutcomeUnknown: true });
     }
     let data = null;
     if (raw.trim()) {
       try { data = JSON.parse(raw); }
       catch {
-        throw failure(response.ok ? 502 : response.status,
-          'Adobe Loyalty signup returned a non-JSON response. Read member state before another attempt.', null, response.status);
+        throw Object.assign(failure(response.ok ? 502 : response.status,
+          'Adobe Loyalty signup returned a non-JSON response. Read member state before another attempt.',
+          { responseText: raw.slice(0, 2000) }, response.status), { signupOutcomeUnknown: response.ok });
       }
     }
     if (response.status !== 200 || data?.error || data?.ok === false) {
-      throw failure(response.ok ? 502 : response.status,
-        `Adobe Loyalty signup returned HTTP ${response.status}. Read member state before another attempt.`, data, response.status);
+      throw Object.assign(failure(response.ok ? 502 : response.status,
+        `Adobe Loyalty signup returned HTTP ${response.status}. Read member state before another attempt.`, data, response.status),
+      { signupOutcomeUnknown: response.ok });
     }
     return { ok: true, sandbox: input.sandbox, action: 'signup', challenge_id: input.challenge_id,
       platform_status: response.status, platform_host: url.hostname, accepted: true, data };
