@@ -12,6 +12,8 @@
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
+  let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null;
+  const purchaseReceipts = new Map();
   const context = () => ({
     sandbox: global.AepGlobalSandbox.getSandboxName(),
     namespace: $(prefix + 'Ns').value.toLowerCase(), identifier: $('customerEmail').value.trim(),
@@ -30,9 +32,12 @@
     $('loyaltyRefresh').disabled = busy || !loaded;
     $('loyaltyAbandon').disabled = busy || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
+    document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
   }
   const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   function clearResults() {
+    joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
+    $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
     displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
@@ -79,6 +84,7 @@
     if (ctx.member) return ctx.member;
     if (config.namespace.toLowerCase() === ctx.namespace) return ctx.identifier;
     if (config.namespace.toLowerCase() === 'ecid' && typeof loaded.ecid === 'string' && loaded.ecid) return loaded.ecid;
+    if (config.namespace.toLowerCase() === 'loyaltyid' && loaded.profileLoyaltyId) return loaded.profileLoyaltyId;
     throw new Error('Loyalty uses namespace "' + config.namespace + '". Enter this profile\'s member identifier in that namespace; it cannot be inferred from ' + ctx.namespace + '.');
   }
   async function readTasks(ctx, token) {
@@ -94,12 +100,12 @@
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     let metadata = null;
     if (ctx.challenge) { metadata = await loyalty(ctx, { action: 'challenge_get', challenge_id: ctx.challenge }); same(ctx, token); }
-    renderTasks(state, metadata, ctx);
+    renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
       member, region: ctx.region, state, metadata }, null, 2);
   }
-  function renderTasks(state, metadata, ctx) {
+  function renderTasks(state, metadata, ctx, selectedMember) {
     const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
     const challenges = state.challengeList.filter(challenge => !ctx.challenge || challenge.challenge_id === ctx.challenge);
     if (!challenges.length) {
@@ -175,10 +181,91 @@
       section.append(outcome, diagnostic); phone.append(mobile);
       fragment.append(section);
     }
+    memberChallenges = selectedMember ? challenges : [];
+    restoreParticipation();
     if (state._links?.next) fragment.append(node('p', 'Adobe returned a next-page link. Showing only the challenges in this response; this is not the full history.'));
     $('loyaltyTasks').replaceChildren(fragment);
     if (state._links?.next) phone.append(node('p', 'More challenges are available. This response is not the full history.'));
     $('loyaltyPhoneTasks').replaceChildren(phone);
+  }
+  function restoreParticipation() {
+    const challenge = deliveredChallenge && memberChallenges.find(value =>
+      value.challenge_id === deliveredChallenge.id && value.optedIn === true);
+    if (joinedChallenge && (joinedChallenge.id !== deliveredChallenge?.id || joinedChallenge.confirmed && !challenge)) {
+      joinedChallenge = null; purchaseReceipts.clear(); closeOffer(false);
+      $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
+    }
+    if (challenge) joinedChallenge = { ...deliveredChallenge, confirmed: true };
+    if (joinedChallenge) renderPartnerOffers();
+  }
+  function renderPartnerOffers() {
+    const section = $('loyaltyPartnerOffers');
+    section.hidden = false; section.replaceChildren();
+    section.dataset.challengeId = joinedChallenge.id;
+    section.append(node('h4', joinedChallenge.title),
+      node('p', joinedChallenge.confirmed ? 'Participation confirmed by Adobe.' :
+        'Signup accepted. Get task status to confirm participation.', 'loyalty-phone-count'));
+    for (const offer of model.partnerOffers) {
+      const row = node('div', undefined, 'loyalty-phone-task loyalty-partner-task');
+      row.dataset.partner = offer.key;
+      const text = node('div');
+      text.append(node('b', offer.title), node('span', offer.description),
+        node('span', purchaseReceipts.has(offer.key) ? 'Purchase event accepted; task status not yet verified.' : 'Demo purchase: GBP ' + offer.amount.toFixed(2)));
+      const button = node('button', offer.label, 'loyalty-offer-button'); button.type = 'button';
+      button.dataset.loyaltyPurchase = offer.key; button.disabled = busy || !loaded;
+      button.setAttribute('aria-label', 'View ' + offer.brand + ' offer and send demo purchase');
+      button.addEventListener('click', () => void work((ctx, token) => sendPurchase(offer, button, ctx, token)));
+      row.append(node('span', offer.initials, 'loyalty-phone-task-icon'), text, button);
+      section.append(row);
+    }
+    section.append(node('small', 'Offer views send demo purchase events. Only Adobe task status confirms completion.'));
+  }
+  function closeOffer(restoreFocus = true) {
+    $('loyaltyOfferSheet').hidden = true;
+    if (restoreFocus && offerFocus?.isConnected) offerFocus.focus();
+    offerFocus = null;
+  }
+  function openOffer(offer, button, purchaseId) {
+    const overlay = $('loyaltyOfferSheet'), sheet = node('div', undefined, 'loyalty-offer-sheet');
+    offerFocus = button;
+    sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-labelledby', 'loyaltyOfferTitle');
+    const close = node('button', '\u00d7', 'loyalty-offer-close'); close.type = 'button';
+    close.setAttribute('aria-label', 'Close offer'); close.addEventListener('click', () => closeOffer());
+    const hero = node('div', undefined, 'loyalty-offer-hero');
+    hero.append(close, node('span', offer.brand, 'loyalty-eyebrow'), node('h3', offer.headline));
+    const body = node('div', undefined, 'loyalty-offer-body');
+    const title = node('h4', offer.title); title.id = 'loyaltyOfferTitle';
+    const done = node('button', 'Done', 'loyalty-offer-button'); done.type = 'button';
+    done.addEventListener('click', () => closeOffer());
+    body.append(title, node('p', offer.detail),
+      node('p', 'Demo purchase event accepted. This does not activate a real offer, create a gym account or confirm challenge progress.'),
+      node('small', 'Purchase ID: ' + purchaseId), done);
+    sheet.append(hero, body); overlay.replaceChildren(sheet); overlay.hidden = false; close.focus();
+    overlay.onclick = event => { if (event.target === overlay) closeOffer(); };
+    overlay.onkeydown = event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeOffer(); }
+      if (event.key === 'Tab') {
+        event.preventDefault(); (document.activeElement === close ? done : close).focus();
+      }
+    };
+  }
+  async function sendPurchase(offer, button, ctx, token) {
+    if (!joinedChallenge) throw new Error('Join the delivered challenge before viewing its partner offers. No purchase event sent.');
+    const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
+    const purchaseID = global.crypto.randomUUID();
+    const payload = { ...captured.edgeOptions, renderDecisions: false,
+      personalization: { defaultPersonalizationEnabled: false },
+      xdm: { eventType: 'commerce.purchases', identityMap: captured.identityMap,
+        commerce: { purchases: { value: 1 }, order: { purchaseID, priceTotal: offer.amount, currencyCode: 'GBP' } },
+        productListItems: [{ SKU: offer.sku, name: offer.productName, quantity: 1, priceTotal: offer.amount, currencyCode: 'GBP' }],
+        ...captured.eventXdm } };
+    await dispatchProfileEvent(captured, payload, ctx, token);
+    purchaseReceipts.set(offer.key, purchaseID);
+    renderPartnerOffers();
+    const currentButton = $('loyaltyPartnerOffers').querySelector('[data-loyalty-purchase="' + offer.key + '"]');
+    openOffer(offer, currentButton || button, purchaseID);
+    message(offer.brand + ' purchase event accepted by Web SDK. Get task status for Adobe-confirmed progress.');
   }
   async function work(operation) {
     if (busy) return;
@@ -208,29 +295,36 @@
     same(ctx, token);
     if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
     data.profileLoyaltyId = global.TuiDecisioningProfile.signals(data.rows).loyaltyId;
-    if (!await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, { updateMessage: false, sendApplicationLogin: false })) throw new Error('Profile drawer lookup failed.');
-    same(ctx, token); loaded = data; publish(); autoBlocked = true;
+    let drawerError = '';
+    const drawerLoaded = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+      updateMessage: false, sendApplicationLogin: false,
+      onUserMessage: (text, type) => { if (type === 'error') drawerError = text; },
+    });
+    same(ctx, token);
+    if (!drawerLoaded) throw new Error(drawerError || 'Profile drawer lookup was superseded or cancelled. Look up the current profile.');
+    loaded = data; publish(); autoBlocked = true;
     message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
     requestAutomaticCard();
   }
-  async function sendAbandonedSearch(ctx, token) {
+  async function prepareProfileEvent(ctx, token, eventType, requireLoyaltyId = false) {
     if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
-      throw new Error('Only AEP test profiles can send abandoned.search, matching the TUI / Center Parcs demo.');
+      throw new Error('Only AEP test profiles can send ' + eventType + ', matching the TUI / Center Parcs demo.');
     }
     if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
-      throw new Error('Configure the reviewed event tenant namespace in the top configuration bar before sending abandoned.search.');
+      throw new Error('Configure the reviewed event tenant namespace in the top configuration bar before sending ' + eventType + '.');
     }
     if (typeof loaded.profileEmail !== 'string' || !loaded.profileEmail.includes('@')) {
-      throw new Error('The loaded profile has no email identity for abandoned.search. No event sent.');
+      throw new Error('The loaded profile has no email identity for ' + eventType + '. No event sent.');
     }
+    if (requireLoyaltyId && !loaded.profileLoyaltyId) throw new Error('The loaded profile has no Loyalty ID. No event sent.');
     if (!global.DemoTagsInjection?.ensureAlloyReady || !global.CdEdgeMounts?.buildIdentityMap ||
         typeof global.DemoLabEdgeConfig?.edgeConfigOverrides !== 'function') {
-      throw new Error('Inject Tags with Web SDK and the lab datastream configuration before sending abandoned.search.');
+      throw new Error('Inject Tags with Web SDK and the lab datastream configuration before sending ' + eventType + '.');
     }
     const edgeOptions = global.DemoLabEdgeConfig.edgeConfigOverrides();
     const edgeSnapshot = JSON.stringify(edgeOptions), profileEmail = loaded.profileEmail,
       profileLoyaltyId = loaded.profileLoyaltyId;
-    message('Preparing abandoned.search: connecting to Web SDK...');
+    message('Preparing ' + eventType + ': connecting to Web SDK...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
@@ -244,31 +338,34 @@
     }
     const identityMap = global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace);
     if (profileLoyaltyId) {
-      identityMap.loyaltyId = [{ id: profileLoyaltyId, authenticatedState: 'authenticated', primary: false }];
+      identityMap.loyaltyId = [{ id: profileLoyaltyId, ...(!requireLoyaltyId && { authenticatedState: 'authenticated' }), primary: false }];
     }
-    const payload = { ...edgeOptions,
-      renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
-      xdm: {
-        eventType: 'abandoned.search',
-        identityMap,
-        [ctx.tenant]: { identification: { core: { ecid, email: profileEmail,
-          ...(profileLoyaltyId && { loyaltyId: profileLoyaltyId }) } } },
-        web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
-      },
-    };
+    return { alloy, identityMap, edgeOptions, edgeSnapshot,
+      eventXdm: { [ctx.tenant]: { identification: { core: { ecid, email: profileEmail,
+        ...(profileLoyaltyId && { loyaltyId: profileLoyaltyId }) } } } } };
+  }
+  async function dispatchProfileEvent(captured, payload, ctx, token) {
     same(ctx, token);
-    if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== edgeSnapshot) {
-      throw new Error('Event datastream changed while preparing abandoned.search. No event sent.');
+    if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
+      throw new Error('Event datastream changed while preparing ' + payload.xdm.eventType + '. No event sent.');
     }
-    message('Sending abandoned.search for the selected profile...');
-    try { await alloy('sendEvent', payload); }
+    message('Sending ' + payload.xdm.eventType + ' for the selected profile...');
+    try { await captured.alloy('sendEvent', payload); }
     catch (error) {
-      throw new Error('abandoned.search send was not confirmed: ' + error.message +
+      throw new Error(payload.xdm.eventType + ' send was not confirmed: ' + error.message +
         '. The event may already have been ingested; check profile events before sending again.');
     }
     same(ctx, token);
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, event: payload, sdkAccepted: true,
       journeyEntryVerified: false }, null, 2);
+  }
+  async function sendAbandonedSearch(ctx, token) {
+    const captured = await prepareProfileEvent(ctx, token, 'abandoned.search');
+    const payload = { ...captured.edgeOptions,
+      renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+      xdm: { ...captured.eventXdm, eventType: 'abandoned.search', identityMap: captured.identityMap,
+        web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } } };
+    await dispatchProfileEvent(captured, payload, ctx, token);
     message('abandoned.search accepted by Web SDK. Refreshing profile events...');
     try { await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); }
     catch (error) {
@@ -289,7 +386,7 @@
             items: proposition.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}),
               ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
           propositionEventType: { [kind]: 1 },
-          ...(button ? { propositionAction: { id: button.id || candidate.consequenceId, label: button.text?.content || 'Open reward' } } : {}),
+          ...(button ? { propositionAction: { id: button.interactId || button.id || candidate.consequenceId, label: button.text?.content || 'Open reward' } } : {}),
         } } } };
   }
   function renderCard(candidate, captured, ctx, token) {
@@ -302,15 +399,66 @@
     if (!buttons.length && content.actionUrl) buttons.push({ actionUrl: content.actionUrl, text: { content: 'View reward' } });
     for (const button of buttons) {
       const url = model.safeUrl(button.actionUrl, location.href);
-      if (!url) continue;
+      const signup = button.interactId === 'joinChallenge';
       const control = node('button', button.text?.content || 'View reward'); control.type = 'button';
       control.addEventListener('click', () => void work(async (current, currentToken) => {
         same(ctx, token); same(current, currentToken); control.disabled = true;
         try {
-          if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
+          if (signup) {
+            const challengeId = candidate.meta.challengeId;
+            if (typeof challengeId !== 'string' || !challengeId.trim()) throw new Error('The delivered card has no meta.challengeId. No signup submitted.');
+            if (joinedChallenge?.id === challengeId) { message('Signup already sent for this challenge. Get task status to confirm participation.'); return; }
+            if (!ctx.region) throw new Error('Choose the confirmed state region in the top configuration bar > Loyalty API options before joining.');
+            const sender = await prepareProfileEvent(ctx, token, 'challenge signup', true);
+            if (JSON.stringify(sender.edgeOptions) !== JSON.stringify(captured.edgeOptions)) throw new Error('Event datastream changed since this card was delivered. Refresh the card before joining.');
+            if (sender.alloy !== captured.alloy || sender.identityMap.ECID?.[0]?.id !== captured.identityMap.ECID?.[0]?.id) {
+              throw new Error('Web SDK visitor changed since this card was delivered. Refresh the card before joining.');
+            }
+            const profileId = loaded.profileLoyaltyId;
+            const headers = await global.AepLabSandboxSync.getAuthHeaders();
+            same(ctx, token);
+            if (!headers.Authorization) throw new Error('Sign in to the Portal before joining a challenge.');
+            if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== sender.edgeSnapshot) {
+              throw new Error('Event datastream changed while preparing signup. No signup submitted.');
+            }
+            message('Signing up to the delivered challenge...');
+            let signup;
+            try {
+              signup = await json('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox }), {
+                method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'signup', challenge_id: challengeId, profile_id: profileId,
+                  region: ctx.region, test: ctx.test, confirmed: true }),
+              });
+            } catch (error) {
+              throw new Error('Challenge signup was not confirmed. Read member state before another attempt. ' + error.message);
+            }
+            same(ctx, token);
+            if (signup.accepted !== true || signup.challenge_id !== challengeId || signup.sandbox !== ctx.sandbox) {
+              throw new Error('Signup response did not confirm the requested challenge and sandbox. Read member state before another attempt.');
+            }
+            joinedChallenge = { id: challengeId, title: content.title?.content || 'Your challenge' };
+            purchaseReceipts.clear(); renderPartnerOffers();
+            $('loyaltyPartnerOffers').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            const evidence = { sandbox: ctx.sandbox, signup, proposition: candidate.proposition,
+              renderedConsequence: candidate.consequenceId, interactionAccepted: false };
+            const interaction = tracking(candidate, sender, ctx, 'interact', button);
+            $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
+            try { await dispatchProfileEvent(sender, interaction, ctx, token); }
+            catch (error) {
+              throw new Error('Challenge signup was accepted by Adobe, but interaction tracking was not confirmed. Do not join again to retry tracking. ' + error.message);
+            }
+            same(ctx, token);
+            $('loyaltyEvidence').textContent = JSON.stringify({ ...evidence, interaction, interactionAccepted: true }, null, 2);
+            message('Challenge signup accepted by Adobe. Partner offers are ready; Get task status for confirmed progress.');
+            return;
+          }
+          if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
+          if (button.interactId) await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
+          else if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
           else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
           same(ctx, token);
           message('Proposition interaction accepted. Task completion is determined by Adobe state.');
+          if (!url) return;
           if (new URL(url).origin === location.origin && new URL(url).pathname === location.pathname) {
             if (ctx.region) await readTasks(ctx, token);
             same(ctx, token); location.hash = new URL(url).hash;
@@ -387,13 +535,16 @@
       }
       return;
     }
-    const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content]);
+    const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content, candidate.meta]);
     if (displayedCard === cardKey) return;
     if (!candidate.item.id || typeof captured?.alloy !== 'function' || !captured.identityMap ||
         !Object.values(captured.identityMap).some(ids => Array.isArray(ids) && ids.some(id => typeof id?.id === 'string' && id.id))) {
       throw new Error('Original proposition request identity is missing. No display event sent.');
     }
     renderCard(candidate, captured, ctx, token);
+    deliveredChallenge = typeof candidate.meta.challengeId === 'string' && candidate.meta.challengeId.trim()
+      ? { id: candidate.meta.challengeId, title: candidate.content.title?.content || 'Your challenge' } : null;
+    restoreParticipation();
     displayedCard = cardKey;
     $('loyaltyCardHint').textContent = 'Live AJO content-card proposition / ' + candidate.proposition.id;
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,

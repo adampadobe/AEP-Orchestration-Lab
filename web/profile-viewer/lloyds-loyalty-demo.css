@@ -76,7 +76,7 @@ body.lloyds-loyalty-page { display: flow-root; }
 .loyalty-outcome { display: grid; gap: 6px; margin-top: 22px; border-radius: var(--dash-radius-sm); padding: 16px; background: var(--dash-surface-alt); border: 1px solid var(--dash-border); }
 .loyalty-outcome span { font-size: 12px; color: var(--dash-text-secondary); line-height: 1.5; }
 .loyalty-mobile-preview { min-width: 0; text-align: center; }
-.loyalty-phone { display: flex; flex-direction: column; width: 100%; height: 740px; border: 9px solid var(--dash-text); border-radius: 42px; overflow: hidden; background: var(--dash-bg); box-shadow: var(--dash-shadow); text-align: left; }
+.loyalty-phone { position: relative; display: flex; flex-direction: column; width: 100%; height: 740px; border: 9px solid var(--dash-text); border-radius: 42px; overflow: hidden; background: var(--dash-bg); box-shadow: var(--dash-shadow); text-align: left; }
 .loyalty-phone-status { display: flex; justify-content: space-between; padding: 14px 18px 8px; font-size: 11px; font-weight: 700; }
 .loyalty-phone-scroll { min-height: 0; flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 0 14px 18px; scrollbar-width: thin; }
 .loyalty-phone-heading { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 20px; }
@@ -106,6 +106,22 @@ body.lloyds-loyalty-page { display: flow-root; }
 .loyalty-phone-nav { display: flex; flex-shrink: 0; justify-content: space-around; align-items: center; height: 58px; background: var(--dash-surface); border-top: 1px solid var(--dash-border); font-size: 10px; color: var(--dash-muted); }
 .loyalty-phone-nav [aria-current] { color: var(--dash-success-text); font-weight: 700; }
 .loyalty-preview-caption { font-size: 11px; margin: 14px 0 0; }
+.loyalty-offer-button { padding: 8px 12px; border: 1px solid var(--dash-success-border); border-radius: 20px; background: var(--dash-success-bg); color: var(--dash-success-text); font: inherit; font-size: 11px; font-weight: 700; cursor: pointer; }
+.loyalty-offer-button:disabled { opacity: .5; cursor: wait; }
+.loyalty-partner-task > div { flex: 1; }
+.loyalty-partner-task .loyalty-offer-button { flex-shrink: 0; max-width: 76px; }
+#loyaltyPartnerOffers > small { display: block; font-size: 11px; line-height: 1.5; color: var(--dash-muted); }
+.loyalty-offer-overlay { position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: color-mix(in srgb, var(--dash-text) 45%, transparent); }
+.loyalty-offer-overlay[hidden], #loyaltyPartnerOffers[hidden] { display: none; }
+.loyalty-offer-sheet { width: 100%; max-height: 95%; overflow-y: auto; border-radius: 24px 24px 0 0; background: var(--dash-surface); box-shadow: var(--dash-shadow); }
+.loyalty-offer-hero { position: relative; min-height: 150px; padding: 54px 20px 20px; background: var(--dash-success-bg); color: var(--dash-success-text); }
+.loyalty-offer-hero h3 { margin: 12px 0 0; }
+.loyalty-offer-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 1px solid var(--dash-border); border-radius: 50%; background: var(--dash-surface); color: var(--dash-text); font-size: 20px; cursor: pointer; }
+.loyalty-offer-body { padding: 20px; }
+.loyalty-offer-body h4 { margin: 0 0 10px; }
+.loyalty-offer-body p { font-size: 12px; }
+.loyalty-offer-body small { display: block; overflow-wrap: anywhere; font-size: 10px; color: var(--dash-muted); }
+.loyalty-offer-body .loyalty-offer-button { width: 100%; margin-top: 16px; }
 @media (max-width: 1050px) {
   .loyalty-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .loyalty-surface-field { grid-column: span 2; }

@@ -11,6 +11,8 @@ Firebase in this repo proxies **health** and **ledger** reads for the Tools UI. 
 The read-only Loyalty MCP workflow below also uses a dedicated authenticated
 Firebase backend for metadata and member-state **GETs only**. This does not change
 the terminal-only policy for registering providers, creating or editing challenges.
+The signed-in Lloyds web demo additionally supports one explicitly clicked,
+server-verified test-member signup; that mutation is not exposed to MCP.
 
 ## Read-only Loyalty MCP workflow
 
@@ -23,8 +25,10 @@ pinned to an owner's sandbox.
 
 The body uses the updated combined progress-ring / compact task-rail design beside
 a scrollable phone preview. Both views render the same Adobe task response.
-There are no local task-completion buttons, invented offer tasks, countdowns,
-lock ordering or reward-unlock claims. The phone's Active/Completed controls
+There are no local task-completion buttons, invented progress, countdowns,
+lock ordering or reward-unlock claims. After challenge signup the phone also shows
+the authored Waitrose, TK Maxx and PureGym partner offers from the combined design;
+these offers are fixed demo UI, not content supplied by AJO. The phone's Active/Completed controls
 switch the same participation filter used by the top-bar API options. Task
 initials derive from returned names, not invented merchant brands. Raw counters,
 IDs and history remain available in collapsed **Challenge API details**.
@@ -42,8 +46,15 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    **Loyalty API options** and select the confirmed **state region**.
    **Get task status** reads the configured Loyalty namespace before resolving the member
    identifier. Matching namespaces use the selected identifier; ECID can use the
-   loaded profile's ECID. For another namespace, explicitly enter that profile's
+   loaded profile's ECID; `loyaltyId` uses its loaded scalar Loyalty ID.
+   For another namespace, explicitly enter that profile's
    member identifier. Profile data and Loyalty state are separate reads.
+   Opening the profile drawer while a lookup is pending shares the same drawer
+   request for the identifier, namespace, sandbox and visitor context. It does
+   not supersede the page's lookup or leave model signals unavailable after the
+   basic name/contact fields arrive. Identity/sandbox changes still discard
+   older requests. Genuine drawer API failures retain their underlying message;
+   they are not retried automatically or treated as a successful profile load.
 3. Select **Get task status**. SDK injection, Decisioning enablement and the event
    tenant are not prerequisites for this read. Optionally enable the 30-second
    state refresh in the top-bar API options after a successful manual read. Only
@@ -125,6 +136,68 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    alone does not verify it. Each click sends at most one event, with no automatic
    retry. If the response is interrupted, check stored profile events before
    deliberately sending again, because ingestion may already have occurred.
+7. The delivered **Join Challenge** button is an event-only button:
+   `interactId: "joinChallenge"` with an empty `actionUrl`. An empty target no
+   longer hides the button. The renderer retains the selected consequence's
+   `data.meta`, including **`challengeId`**; it never substitutes proposition,
+   item or campaign IDs, or a hardcoded challenge ID. This works for both raw
+   ruleset consequences and evaluated native content-card items. Metadata-only
+   changes also update the rendered action.
+   One explicit click calls authenticated
+   `POST /api/ajo-loyalty?sandbox=<selected>` with `action: "signup"`, the
+   delivered `challenge_id`, loaded scalar Loyalty ID as `profile_id`, explicit
+   `region`, boolean `test` and `confirmed: true`. The Function uses server-held
+   Adobe authentication to call the documented
+   `POST /ajo/loyalty/challenges/signup/{challengeId}` with `{profileId, test}`.
+   It independently verifies the Portal user's active sandbox enrollment,
+   configured `loyaltyId` namespace, and a fresh strict UPS read matching exactly
+   one test profile and its scalar Loyalty ID before submitting. Anonymous,
+   MCP-key and forwarded-IMS requests cannot sign up.
+   Adobe's signup state-change event is **not synthesized in the browser**.
+   After an accepted signup, a separate `decisioning.propositionInteract`
+   carries the original proposition attribution and
+   `propositionAction.id: "joinChallenge"`. The page handles this action itself:
+   **do not add a second Tags signup rule for the same click**.
+   A loaded AEP test profile, scalar Loyalty ID, reviewed tenant, active browser
+   ECID, explicit region and unchanged datastream are required. No credential is
+   exposed to the browser. Repeated clicks do not resubmit an accepted signup
+   in the current context. An uncertain response requires a member-state read
+   before another deliberate attempt; no automatic retry is made. If only
+   interaction tracking fails, accepted signup and its evidence remain visible:
+   do not join again to retry tracking.
+8. After Adobe signup acceptance, the phone shows the fixed partner rows and their
+   **View offer** buttons. It labels signup as accepted, not state-confirmed
+   participation. A matching state response with `optedIn: true` can restore
+   these rows after a fresh profile lookup without another signup. Both the
+   challenge ID and the returned participation must match the delivered card,
+   and the state read must use the loaded profile's scalar Loyalty ID in the
+   configured `loyaltyId` namespace. A newly delivered challenge cannot reuse
+   a previous challenge's signup receipt or partner actions.
+   Each offer view sends one `commerce.purchases` event for the loaded profile,
+   with `commerce.purchases.value: 1`, a fresh `crypto.randomUUID()` purchase ID,
+   GBP order/item totals, quantity 1 and these exact products:
+
+   | Partner | SKU | Product name | GBP |
+   | --- | --- | --- | --- |
+   | Waitrose | `WAITROSE-OFFER-001` | Waitrose Offer | 10.00 |
+   | TK Maxx | `TKMAXX-OFFER-001` | TK Maxx Offer | 20.00 |
+   | PureGym | `PUREGYM-SIGNUP-001` | PureGym Signup | 25.00 |
+
+   Purchase events use `CdEdgeMounts.buildIdentityMap`, the active SDK ECID,
+   secondary `identityMap.loyaltyId`, and tenant `identification.core` ECID,
+   email and scalar Loyalty ID, with the selected datastream override.
+   They disable decision rendering/default personalization and do not issue
+   real merchant purchases or create gym accounts.
+   The offer sheet opens only after SDK acceptance and supports close, Escape
+   and keyboard focus return. Closing it sends no event. A later deliberate
+   offer view is a new demo purchase with a new purchase ID; there is no
+   automatic retry, especially after an interrupted response.
+   Partner purchase receipts are not task-completion ticks: only **Get task
+   status** (or explicitly enabled state polling) updates confirmed progress.
+   Profile/sandbox/configuration changes clear the local signup, partner
+   receipts and open sheet; stale asynchronous identity results cannot dispatch
+   a purchase for a different context. The supplied combined design's Gymshark
+   row is intentionally PureGym here, matching the reviewed campaign and events.
 
 The optional challenge ID filters active state and reads that exact metadata
 definition for names, joined by challenge/task IDs. **Completed** uses Adobe's
@@ -135,7 +208,9 @@ settings so the previous sandbox's configuration is not silently reused.
 
 Release **the updated `ajoLoyaltyProxy` Function and Hosting** through the normal
 PR/Validate/merge workflow before live browser use. The earlier MCP release alone
-does not enable Firebase browser authentication. Local browser checks use
+does not enable Firebase browser authentication or the Portal-only signup route.
+The Functions release requires an authorized release owner; an IAM-blocked
+release must not be bypassed or mistaken for a Hosting fix. Local browser checks use
 synthetic fixtures and do not prove live Adobe access or reward delivery:
 `npm run test:lloyds-loyalty`.
 If Hosting returns an HTML 404 for this endpoint, the task-status button reports

@@ -9,6 +9,20 @@
     { key: 'emailConsent', label: 'Email consent', path: 'consents.marketing.email.val', type: 'string', group: 'Consent' },
     { key: 'personalize', label: 'Personalisation consent', path: 'consents.personalize.content.val', type: 'string', group: 'Consent' },
   ];
+  const partnerOffers = [
+    { key: 'waitrose', brand: 'Waitrose', initials: 'W', title: 'Click the Waitrose offer',
+      description: '15% cashback · Online', label: 'View offer', amount: 10,
+      sku: 'WAITROSE-OFFER-001', productName: 'Waitrose Offer',
+      headline: '15% cashback at Waitrose', detail: 'Explore the Waitrose offer and send a £10 demo purchase for your loaded profile.' },
+    { key: 'tkmaxx', brand: 'TK Maxx', initials: 'TK', title: 'Click the TK Maxx offer',
+      description: '10% cashback · Online', label: 'View offer', amount: 20,
+      sku: 'TKMAXX-OFFER-001', productName: 'TK Maxx Offer',
+      headline: '10% cashback at TK Maxx', detail: 'Explore the TK Maxx offer and send a £20 demo purchase for your loaded profile.' },
+    { key: 'puregym', brand: 'PureGym', initials: 'PG', title: 'Sign up to PureGym',
+      description: 'Create your account', label: 'View offer', amount: 25,
+      sku: 'PUREGYM-SIGNUP-001', productName: 'PureGym Signup',
+      headline: 'Sign up to PureGym', detail: 'Explore PureGym membership and send a £25 demo signup purchase for your loaded profile.' },
+  ];
   function progress(task) {
     const goal = task.variables?.goal, type = String(task.variables?.type || '').toLowerCase();
     const key = /^(qty|quantity|count)$/.test(type) ? 'qty' : /^(spend|amount)$/.test(type) ? 'spend' : /^(day|days)$/.test(type) ? 'days' : null;
@@ -38,7 +52,8 @@
             try { content = JSON.parse(content); } catch { continue; }
           }
           if (!content || typeof content !== 'object' || Array.isArray(content)) continue;
-          if (item.schema === 'https://ns.adobe.com/personalization/message/content-card') {
+          if (item.schema === 'https://ns.adobe.com/personalization/message/content-card' ||
+              consequence.detail?.schema === 'https://ns.adobe.com/personalization/message/content-card') {
             content = { ...content,
               title: typeof content.title === 'string' ? { content: content.title } : content.title,
               body: typeof content.body === 'string' ? { content: content.body } : content.body,
@@ -50,7 +65,7 @@
           }
           if (!['title', 'body'].some(key => typeof content[key]?.content === 'string' && content[key].content.trim()) &&
               !safeUrl(content.image?.url, 'https://example.invalid/')) continue;
-          candidates.push({ proposition, item, consequenceId: consequence.id || item.id, content,
+          candidates.push({ proposition, item, consequenceId: consequence.id || item.id, content, meta: data.meta || {},
             rank: rank(data.meta?.rank) === -Infinity ? rank(proposition.scopeDetails.rank) : rank(data.meta.rank) });
         }
       }
@@ -59,7 +74,7 @@
   }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, safeUrl, selectCard };
+    progress, safeUrl, selectCard, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

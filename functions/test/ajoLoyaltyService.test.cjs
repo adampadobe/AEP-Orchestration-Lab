@@ -2,11 +2,57 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildLoyaltyReadRequest, createAjoLoyaltyService } = require('../ajoLoyaltyService');
+const { buildLoyaltyReadRequest, buildLoyaltySignupRequest, createAjoLoyaltyService } = require('../ajoLoyaltyService');
 
 const headers = { Authorization: 'Bearer test-token', 'x-sandbox-name': 'kirkham' };
 const input = (action, params = {}) => ({ action, sandbox: 'kirkham', ...params });
 const json = (data, status = 200) => new Response(JSON.stringify(data), { status });
+const signupInput = (overrides = {}) => input('signup', {
+  profile_id: 'member-1', challenge_id: 'challenge-1', region: 'nld2', test: false, confirmed: true, ...overrides,
+});
+
+test('signup submits exactly one documented single-challenge POST with server headers and no extra payload', async () => {
+  const calls = [];
+  const service = createAjoLoyaltyService({ fetchImpl: async (url, init) => {
+    calls.push({ url, init }); return new Response('', { status: 200 });
+  } });
+  const result = await service.signup(headers, signupInput());
+  assert.equal(result.accepted, true);
+  assert.equal(result.challenge_id, 'challenge-1');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url.href, 'https://platform-nld2.adobe.io/ajo/loyalty/challenges/signup/challenge-1');
+  assert.equal(calls[0].init.method, 'POST');
+  assert.equal(calls[0].init.redirect, 'error');
+  assert.deepEqual(calls[0].init.headers, { ...headers, 'Content-Type': 'application/json' });
+  assert.deepEqual(JSON.parse(calls[0].init.body), { profileId: 'member-1', test: false });
+  for (const changes of [{ confirmed: false }, { confirmed: 'true' }, { test: 'false' }, { region: undefined },
+    { region: 'bad.host' }, { challenge_id: '../other' }, { profile_id: '' }, { data: {} }, { method: 'DELETE' },
+    { action: 'withdraw' }, { sandbox: 'other/../sandbox' }, { challenge_id: ' challenge-1 ' }, { profile_id: ' member-1 ' }]) {
+    assert.throws(() => buildLoyaltySignupRequest(signupInput(changes)), { status: 400 });
+  }
+  assert.equal(calls.length, 1);
+});
+
+test('signup failures preserve Adobe errors and uncertain responses are never retried or accepted', async () => {
+  for (const [response, expectedStatus] of [
+    [() => json({ title: 'Already joined' }, 409), 409],
+    [() => json({ title: 'Personalization missing' }, 422), 422],
+    [() => new Response('<html>unexpected</html>'), 502],
+    [() => new Response('', { status: 202 }), 502],
+    [() => json({ ok: false, error: 'Rejected' }), 502],
+    [() => { throw Object.assign(new Error('secret-transport'), { name: 'TimeoutError' }); }, 504],
+  ]) {
+    let calls = 0;
+    const service = createAjoLoyaltyService({ fetchImpl: async () => { calls++; return response(); } });
+    await assert.rejects(service.signup(headers, signupInput()), error => {
+      assert.equal(error.status, expectedStatus);
+      assert.doesNotMatch(error.message, /secret-transport/);
+      if (expectedStatus === 409) assert.deepEqual(error.platformResponse, { title: 'Already joined' });
+      return true;
+    });
+    assert.equal(calls, 1);
+  }
+});
 
 test('builds only documented GET resource paths with encoded cursors and identities', async () => {
   const calls = [];

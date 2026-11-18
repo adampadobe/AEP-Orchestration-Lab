@@ -136,7 +136,64 @@ test('Firebase browser authentication cannot use anonymous, missing, revoked or 
       labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => ({ uid: 'uid', email: 'demo@adobe.com', isAnonymous: false }) },
       mcpApiKeyStore: { listKeysForUser: async () => keys },
     });
+
     assert.equal((await app.invoke(request)).status, 403);
     assert.equal(app.tokenCalls(), 0);
   }
+});
+
+test('only an enrolled Portal user can sign up a server-verified test profile in the configured Loyalty namespace', async () => {
+  const signups = [], profileReads = [];
+  let entity = { testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'member-1' } } } };
+  let namespace = 'loyaltyId', entities, profileError;
+  const app = setup({
+    labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => ({ uid: 'uid', email: 'demo@adobe.com', isAnonymous: false }) },
+    mcpApiKeyStore: { listKeysForUser: async () => [{ sandbox: 'own', revoked: false }] },
+    loyaltyService: {
+      read: async () => ({ data: { namespace } }),
+      signup: async (headers, input) => { signups.push({ headers, input }); return { ok: true, accepted: true }; },
+    },
+    profileTableHelpers: { fetchUpsProfileEntities: async (...args) => {
+      profileReads.push(args);
+      if (profileError) throw profileError;
+      return entities || { profile: { entity } };
+    } },
+  });
+  const request = { method: 'POST', headers: { authorization: 'Bearer firebase-session', 'content-type': 'application/json' },
+    query: { sandbox: 'own' }, body: { action: 'signup', profile_id: 'member-1', challenge_id: 'challenge-1', region: 'nld2', test: false, confirmed: true } };
+  assert.equal((await app.invoke(request)).status, 200);
+  assert.equal(signups.length, 1);
+  assert.deepEqual(profileReads[0], ['member-1', 'own', 'server-only-token', 'server-client', 'test@AdobeOrg', 'loyaltyid', { strictRead: true }]);
+  assert.equal(signups[0].headers.Authorization, 'Bearer server-only-token');
+  assert.deepEqual(signups[0].input, { ...request.body, sandbox: 'own' });
+  for (const invalid of [
+    { ...request, headers: { ...request.headers, 'x-aep-lab-mcp-key': 'key' } },
+    { ...request, headers: { ...request.headers, 'x-gw-ims-org-id': 'test@AdobeOrg' } },
+    { ...request, headers: { ...request.headers, 'content-type': 'text/plain' } },
+    { ...request, query: { sandbox: 'foreign' } },
+    { ...request, query: { sandbox: 'own', action: 'config' } },
+    { ...request, body: { ...request.body, sandbox: 'foreign' } },
+    { ...request, body: { ...request.body, confirmed: false } },
+    { ...request, body: { ...request.body, data: {} } },
+  ]) assert.ok((await app.invoke(invalid)).status >= 400);
+  for (const invalid of [
+    { testProfile: false }, { testProfile: 'true' }, {},
+    { testProfile: true, 'xdm:testProfile': false },
+    { testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'different-member' } } } },
+    { testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'member-1' } } },
+      _other: { identification: { core: { loyaltyId: 'different-member' } } } },
+  ]) {
+    entity = invalid;
+    assert.equal((await app.invoke(request)).status, 403);
+  }
+  for (const invalid of [{}, { profile1: { entity }, profile2: { entity } }]) {
+    entities = invalid;
+    assert.equal((await app.invoke(request)).status, 403, 'Missing or ambiguous UPS members cannot authorize signup');
+  }
+  profileError = new Error('Fixture: strict profile read failed');
+  assert.equal((await app.invoke(request)).status, 502);
+  profileError = null;
+  namespace = 'Email';
+  assert.equal((await app.invoke(request)).status, 409);
+  assert.equal(signups.length, 1, 'No unauthorized, unverified or malformed request reaches the mutation');
 });
