@@ -57,8 +57,12 @@ preview, not a native Mobile SDK integration or journey authoring interface.
 4. To personalize, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
    namespace and the exact AJO **content-card surface URI** in the top-bar Loyalty
-   API options. The default is this
-   page's canonical `#ContentCardContainerLoyalty`, inside the phone. The existing
+   API options when an override is needed. By default, both the request and
+   subscription use the shared Decisioning lab channel:
+   `web://<hosting-host>/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty`.
+   No manual surface configuration is needed for this channel. The returned card
+   renders inside the Lloyds phone's `#ContentCardContainerLoyalty`, independently
+   of the shared channel page URL. The existing
    `#ContentCardContainer` remains its compatibility wrapper; it is not the
    default requested surface. A previously configured `#ContentCardLoyalty` or
    `#ContentCardContainer` surface remains usable by explicitly entering that URI.

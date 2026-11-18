@@ -213,7 +213,9 @@ async function main() {
     assert.equal(display.xdm.identityMap.Email[0].id, 'fixture@example.invalid');
     assert.equal(display.xdm._ownTenant.identification.core.ecid, display.xdm.identityMap.ECID[0].id);
     const decision = calls.find(call => call.payload?.personalization?.surfaces)?.payload;
-    assert.deepEqual(decision.personalization.surfaces, [origin.replace('http:', 'web:') + '/profile-viewer/lloyds-loyalty-demo.html#ContentCardContainerLoyalty']);
+    const sharedCardSurface = origin.replace('http:', 'web:') + '/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty';
+    assert.deepEqual(decision.personalization.surfaces, [sharedCardSurface],
+      'Request the configured shared AJO channel, not the Lloyds document URL');
     assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
     await page.locator('#ContentCardContainer button').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
@@ -318,7 +320,8 @@ async function main() {
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
     assert.equal(await page.locator('#loyaltyRegion').inputValue(), '');
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '');
-    assert.match(await page.locator('#loyaltySurface').inputValue(), /#ContentCardContainerLoyalty$/);
+    assert.equal(await page.locator('#loyaltySurface').inputValue(), sharedCardSurface,
+      'Sandbox changes restore the shared channel surface rather than the Lloyds page URL');
     await openApiOptions();
     await page.locator('#loyaltyRegion').selectOption('va7');
     if (!await page.locator('#customerEmail').isVisible()) await page.locator('#aepLabEnvMinimizeBtn').click();
@@ -447,7 +450,10 @@ async function main() {
     const journey = await page.evaluate(() => ({
       commands: window.__journeyCommands, tracking: window.__journeyTracking,
       schemas: window.__journeySubscriptions[0].schemas,
+      surfaces: window.__journeySubscriptions[0].surfaces,
     }));
+    assert.deepEqual(journey.surfaces, [sharedCardSurface],
+      'Automatic ruleset subscription uses the shared channel while rendering in the Lloyds phone');
     assert.ok(journey.commands.indexOf('subscribeRulesetItems') < journey.commands.indexOf('sendEvent'),
       'Subscribe before requesting ruleset evaluation; sendEvent itself returns no cards');
     assert.deepEqual(journey.schemas, ['https://ns.adobe.com/personalization/message/content-card']);
