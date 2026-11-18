@@ -17,14 +17,23 @@ const config = {
   days: [0, 1, 2, 3, 4, 5], dailyCap: 50, campaignIsolationReviewed: true,
   unrelated: { retained: true, privateValue: 'never-output' },
 };
-function fixture(idle = false, media = false, travel = false) {
-  const day = media || travel ? '2026-11-15' : '2026-11-11';
+function fixture(idle = false, media = false, travel = false, sports = false) {
+  const day = sports ? '2026-11-17' : media || travel ? '2026-11-15' : '2026-11-11';
   const dayKey = `${root}/days/${day}`;
-  const slotId = media ? '01' : '15';
-  let clock = new Date(media ? '2026-11-15T09:00:00Z'
+  const slotId = sports ? '14' : media ? '01' : '15';
+  let clock = new Date(sports ? '2026-11-18T05:24:00Z' : media ? '2026-11-15T09:00:00Z'
     : travel ? '2026-11-15T14:00:00Z' : '2026-11-13T12:00:00Z');
   let owner = { uid: 'owner', disabled: false };
-  const recoverySlot = travel ? {
+  const recoverySlot = sports ? {
+    id: '14', industry: 'sports', count: 3, state: 'needs_attention', identities: [],
+    dueAt: '2026-11-17T13:37:00.000Z', startedAt: '2026-11-17T13:40:15.679Z',
+    updatedAt: '2026-11-17T13:40:22.003Z', errorCode: 'SEED_INGESTION_NOT_HEALTHY',
+    ingestion: 'unverified', flowHealth: {
+      healthy: false, complete: true, observedAt: '2026-11-17T13:40:22.001Z', flowCount: 13,
+      flows: [{ flowId: '065f3b53-df40-43d1-9d91-c42f031996d6',
+        lastRun: { state: 'inProgress', readCount: 2, completedAt: null, failedCount: null } }],
+    },
+  } : travel ? {
     id: slotId, industry: 'travel', count: 1, state: 'needs_attention',
     dueAt: '2026-11-15T13:10:00.000Z', identities: [],
     startedAt: '2026-11-15T13:10:08.231Z', updatedAt: '2026-11-15T13:10:16.924Z',
@@ -42,9 +51,9 @@ function fixture(idle = false, media = false, travel = false) {
     [root, structuredClone(config)],
     [control, { blocked: true, active: null, attention: { day, id: slotId }, unrelated: 'retained' }],
     [dayKey, { day, fingerprint: validateConfig(config).fingerprint,
-      attemptedCount: media ? 3 : travel ? 6 : 5, plannedCount: 7,
+      attemptedCount: sports ? 31 : media ? 3 : travel ? 6 : 5, plannedCount: sports ? 35 : 7,
       seed: 'retain-seed', unrelated: 'retained', slots: [
-        { id: '14', state: 'committed', identities: [{ email: 'old-private@example.test' }] },
+        { id: sports ? '13' : '14', state: 'committed', identities: [{ email: 'old-private@example.test' }] },
         recoverySlot,
         { id: '16', state: 'pending', identities: [], dueAt: '2026-11-11T13:00:00Z' },
       ] }],
@@ -119,6 +128,48 @@ function fixture(idle = false, media = false, travel = false) {
     } }),
   };
 }
+
+test('sports health failure is skipped once while preserving budget, evidence, and other slots', async () => {
+  const f = fixture(false, false, false, true);
+  const key = `${root}/days/2026-11-17`;
+  const original = structuredClone(f.data.get(key));
+  const p = await f.preview();
+  assert.equal(p.status, 'ready');
+  assert.equal(p.confirmation_phrase, 'SKIP ONLY 2026-11-17/14');
+  assert.equal(p.target.attempted_count, 31);
+  assert.equal(p.target.count, 3);
+  assert.equal((await f.apply(p)).dispatcher_unblocked, true);
+  assert.equal(f.slot().state, 'skipped');
+  assert.equal(f.slot().errorCode, 'SEED_INGESTION_NOT_HEALTHY');
+  assert.deepEqual(f.slot().flowHealth, original.slots[1].flowHealth);
+  assert.deepEqual(f.slot().identities, []);
+  assert.equal(f.data.get(key).attemptedCount, 31);
+  assert.deepEqual(f.data.get(key).slots[0], original.slots[0]);
+  assert.deepEqual(f.data.get(key).slots[2], original.slots[2]);
+  await assert.rejects(f.apply(p), { status: 409 });
+});
+
+test('sports recovery rejects incident drift and possible writes', async () => {
+  for (const mutate of [
+    (f) => { f.slot().dueAt = '2026-11-17T13:38:00.000Z'; },
+    (f) => { f.slot().startedAt = '2026-11-17T13:40:16.000Z'; },
+    (f) => { f.slot().updatedAt = '2026-11-17T13:40:23.000Z'; },
+    (f) => { f.data.get(`${root}/days/2026-11-17`).attemptedCount = 32; },
+    (f) => { f.slot().identities = [{ email: 'private' }]; },
+    (f) => { f.slot().sourceWrite = null; },
+    (f) => { f.slot().flowHealth.flows[0].lastRun.state = 'success'; },
+    (f) => { f.slot().flowHealth.flows = {}; },
+    (f) => { f.slot().flowHealth.observedAt = '2026-11-17T13:40:23.001Z'; },
+    (f) => { f.data.get(control).active = { day: '2026-11-17', id: '14' }; },
+  ]) {
+    const f = fixture(false, false, false, true);
+    mutate(f);
+    await assert.rejects(f.preview(), { status: 409 });
+    assert.equal(f.writes, 0);
+  }
+  const f = fixture(false, false, false, true);
+  await assert.rejects(f.preview({ day: '2026-11-18' }), { status: 403 });
+});
 
 test('exact reviewed media preparation failure skips once without changing its budget or other slots', async () => {
   const f = fixture(false, true);

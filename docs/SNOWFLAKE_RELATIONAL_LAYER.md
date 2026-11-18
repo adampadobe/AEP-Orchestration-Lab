@@ -43,6 +43,11 @@ preparation failure. The media target additionally requires the exact saved
 attempt (`startedAt: 2026-11-15T06:10:08.193Z`,
 `updatedAt: 2026-11-15T06:10:21.029Z`, attempted budget 3). Neither an arbitrary
 `SEED_EXECUTION_INTERRUPTED` failure nor a later recreated attempt is eligible.
+The exact **2026-11-17 / slot 14 / sports / count 3** health failure is also
+eligible only with its recorded 13:37 due time, 13:40:15.679 start,
+13:40:22.003 failure, attempted budget 31, empty identities, and matching
+failure snapshot showing the shared-base flow in progress. That flow later
+completed successfully; its missing output/failure counters remain unknown.
 The backend rejects other day/slot pairs, industries or generation counts;
 this is not a general recovery interface for arbitrary future incidents. The
 receipt interface is unchanged: `expected_count` counts reviewed recovery
