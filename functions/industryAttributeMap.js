@@ -22,6 +22,9 @@
  *
  *   - Root-mixin form  : `personalFinances.creditScores.0.score`
  *   - Tenant-prefixed  : `_demoemea.industryFsi.financialProducts.checking`
+ * CRM profiles ingested from Snowflake also use the tenant subtrees
+ * `customerProfile` (Travel), `fsiProfile`, `retailProfile`,
+ * `telecomProfile`, `mediaProfile`, and `sportsProfile`.
  *
  * Resolution semantics
  * --------------------
@@ -109,6 +112,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'fsi',
     prefixes: [
+      'fsiProfile.',
       'industryFsi.',
       'personalFinances.',
       '<TENANT>industryFsi.',
@@ -126,6 +130,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'telecom',
     prefixes: [
+      'telecomProfile.',
       'industryTelecom.',
       'telecomSubscription.',
       '<TENANT>industryTelecom.',
@@ -144,6 +149,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'retail',
     prefixes: [
+      'retailProfile.',
       'industryRetail.',
       'individualCharacteristics.retail.',
       'scoring.retail.',
@@ -164,6 +170,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'travel',
     prefixes: [
+      'customerProfile.',
       'travelReservations.',
       'travelPreferences.',
       'industryTravel.',
@@ -186,6 +193,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'media',
     prefixes: [
+      'mediaProfile.',
       'industryMedia.',
       'subscriptions.',
       '<TENANT>industryMedia.',
@@ -203,6 +211,7 @@ const RAW_PATH_OWNERSHIP = [
   {
     industry: 'sports',
     prefixes: [
+      'sportsProfile.',
       'industrySports.',
       '<TENANT>industrySports.',
       '<TENANT>individualCharacteristics.sports.',
