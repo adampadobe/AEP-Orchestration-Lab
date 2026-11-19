@@ -26,8 +26,29 @@ is the first configuration row, above environment settings, so the identifier
 and lookup button are visible without scrolling through SDK options. It is not
 pinned to an owner's sandbox.
 
-The body uses the updated combined progress-ring / compact task-rail design beside
-a scrollable phone preview. Both views render the same Adobe task response.
+The desktop progress-ring / compact task rail sits beside a scrollable banking
+app adapted from the supplied Rewards mockup. **Home** opens first, with a
+current-account card, quick actions, a Rewards teaser, accounts, spending and
+transactions. The greeting uses the loaded profile's first name; the banking
+amounts are explicitly illustrative, not AEP balances.
+
+The **Rewards** tab contains the summary/breakdown, quick navigation and
+**Win £1 million** banner. The original live journey Content Card mount is
+immediately below that banner, before the featured-offer carousel. Switching
+tabs preserves the delivered card, subscription, signup receipt and task state
+without sending any new events. The carousel supports native touch scrolling,
+mouse dragging, previous/next controls, pagination dots and keyboard arrows /
+Home / End. Its six authored offers are visual previews: saving one updates
+only the current page's saved-offers row, never Adobe activation or task state.
+Context changes clear these saved previews. Prize-draw and banking placeholders
+explicitly perform no real action.
+
+Live participation controls, joined-challenge partner offers and the mobile task
+rail remain below the Rewards benefits. They and the desktop rail render the
+same Adobe task response. A successful Join scrolls to the live challenge area;
+the lab's Refresh content card action opens Rewards at the delivered-card slot.
+Both themes use the shared `--dash-*` palette, with page-scoped Loyalty accent
+tokens in `home.css` and `aep-theme.css`.
 There are no local task-completion buttons, invented progress, countdowns,
 lock ordering or reward-unlock claims. After challenge signup the phone also shows
 the authored Waitrose, TK Maxx and PureGym partner offers from the combined design;

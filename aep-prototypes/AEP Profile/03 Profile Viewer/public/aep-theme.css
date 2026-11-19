@@ -58,6 +58,13 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge {
   --panel-bg-alt: var(--dash-surface-alt);
 }
 
+html[data-aep-theme='dark'] body.home-dashboard-concierge.lloyds-loyalty-page {
+  --dash-loyalty-accent: #00c56a;
+  --dash-loyalty-accent-end: #22d980;
+  --dash-loyalty-ink: #071c12;
+  --dash-loyalty-on-ink: #f3fff8;
+}
+
 /* Env bar toolbar + overlay stay forced-light when dashboard is dark */
 html[data-aep-theme='dark'] .mod-demo-id-banner,
 html[data-aep-theme='dark'] [class*='-demo-id-banner'],

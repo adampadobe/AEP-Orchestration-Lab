@@ -9,7 +9,7 @@ async function main() {
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
+    const context = await browser.newContext({ viewport: { width: 1500, height: 1100 }, reducedMotion: 'reduce' });
     const errors = [], writes = [], reads = [], signupRequests = [];
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
     let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
@@ -141,6 +141,77 @@ async function main() {
       /Demonstration experience|Web SDK preview · live state, no simulated task completion/,
       'The requested demonstration badge and phone caption stay removed');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
+    const homeTab = page.locator('.loyalty-phone-nav [data-phone-view="home"]');
+    const rewardsTab = page.locator('.loyalty-phone-nav [data-phone-view="rewards"]');
+    assert.equal(await page.locator('#loyaltyViewHome').isVisible(), true, 'The mockup opens on Home');
+    assert.equal(await page.locator('#loyaltyViewRewards').isVisible(), false);
+    assert.equal(await homeTab.getAttribute('aria-current'), 'page');
+    const readsBeforeNavigation = reads.length;
+    await page.locator('.loyalty-rewards-teaser').click();
+    assert.equal(await page.locator('#loyaltyViewHome').isVisible(), false);
+    assert.equal(await page.locator('#loyaltyViewRewards').isVisible(), true);
+    assert.equal(await rewardsTab.getAttribute('aria-current'), 'page');
+    assert.equal(await homeTab.getAttribute('aria-current'), null);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'loyaltyMobileTitle', 'A hidden Home teaser does not retain keyboard focus');
+    assert.equal(await page.locator('#loyaltyPrizeDraw').evaluate(element =>
+      element.nextElementSibling.querySelector('#ContentCardContainerLoyalty') !== null), true,
+    'The live challenge card sits immediately below the Win £1m promotion, before the carousel');
+    await page.locator('#loyaltyBreakdownButton').click();
+    assert.equal(await page.locator('#loyaltyBreakdown').isVisible(), true);
+    assert.equal(await page.locator('#loyaltyBreakdownButton').getAttribute('aria-expanded'), 'true');
+    await page.locator('#loyaltyBreakdownButton').click();
+    assert.equal(await page.locator('#loyaltyBreakdown').isVisible(), false);
+    const carousel = page.locator('#loyaltyOfferCarousel');
+    assert.equal(await page.locator('#loyaltyFeaturedOffers [role="listitem"]').count(), 6);
+    assert.equal(await carousel.evaluate(element => element.scrollWidth > element.clientWidth), true, 'Offers swipe horizontally inside the phone');
+    await page.locator('#loyaltyNextOffer').click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
+    await carousel.focus();
+    await page.keyboard.press('End');
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[5].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltyNextOffer').isDisabled(), true);
+    await page.keyboard.press('Home');
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltyPreviousOffer').isDisabled(), true);
+    await page.locator('#loyaltyOfferDots button').nth(3).click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[3].getAttribute('aria-current') === 'true');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    await carousel.scrollIntoViewIfNeeded();
+    const carouselBox = await carousel.boundingBox();
+    await page.mouse.move(carouselBox.x + carouselBox.width - 40, carouselBox.y + 55);
+    await page.mouse.down();
+    await page.mouse.move(carouselBox.x + 30, carouselBox.y + 55, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0, 'Dragging a card does not save it');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    await page.locator('[data-save-preview-offer="waitrose"]').click();
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('#loyaltySavedOffers [aria-label="Waitrose saved preview offer"]').count(), 1);
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /preview only.*not activated/);
+    assert.equal(signupRequests.length, 0, 'Preview offers and navigation never submit Loyalty signup');
+    assert.equal(reads.length, readsBeforeNavigation, 'Navigating the app does not fetch or alter Loyalty state');
+    await homeTab.click();
+    await rewardsTab.click();
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true', 'Tab switches preserve preview selections');
+    await page.locator('[data-save-preview-offer="waitrose"]').click();
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
+    await page.locator('#loyaltyPrizeDraw button').click();
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /No banking action or prize entry was submitted/);
+    if (process.env.AEP_LOYALTY_SCREENSHOT) {
+      await page.evaluate(() => { document.getElementById('loyaltyAppToast').hidden = true; });
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+        await homeTab.click();
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-home-' + theme + '.png') });
+        await rewardsTab.click();
+        await page.evaluate(() => { document.querySelector('.loyalty-phone-scroll').scrollTop = 0; });
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-rewards-' + theme + '.png') });
+      }
+      await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    }
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
     await openConfiguration();
@@ -170,6 +241,8 @@ async function main() {
       'Opening the drawer during lookup must not report failure before its data arrives');
     assert.equal(consentRequests, 1, 'Same-profile hover and explicit lookups share one drawer request');
     await waitForProfile();
+    assert.equal(await page.locator('#loyaltyHomeName').textContent(), 'Alex', 'Home greets the selected profile, not a hardcoded customer');
+    assert.equal(await page.locator('#loyaltyHomeAvatar').textContent(), 'A');
     assert.equal(await page.locator('#tuiPhSignal-points').textContent(), '0',
       'The successful page lookup must publish its table signals alongside the basic drawer fields');
     await page.evaluate(() => {
@@ -315,6 +388,28 @@ async function main() {
     assert.deepEqual(decision.personalization.surfaces, [sharedCardSurface],
       'Request the configured shared AJO channel, not the Lloyds document URL');
     assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
+    const originalCard = await page.locator('#ContentCardContainerLoyalty article').elementHandle();
+    const sdkCallsBeforeTabs = await page.evaluate(() => window.__sdkCalls.length);
+    await homeTab.click();
+    await rewardsTab.click();
+    assert.equal(await originalCard.evaluate(card => card.isConnected), true, 'Tab switches preserve the original live card and its handlers');
+    assert.equal(await page.evaluate(() => window.__sdkCalls.length), sdkCallsBeforeTabs, 'Switching tabs does not resend a proposition, display or signup event');
+    if (process.env.AEP_LOYALTY_SCREENSHOT) {
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(theme => {
+          document.documentElement.setAttribute('data-aep-theme', theme);
+          const scroll = document.querySelector('.loyalty-phone-scroll'), prize = document.getElementById('loyaltyPrizeDraw');
+          scroll.scrollTop += prize.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
+        }, theme);
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-challenge-' + theme + '.png') });
+        await page.evaluate(() => {
+          const scroll = document.querySelector('.loyalty-phone-scroll'), featured = document.getElementById('loyaltyFeaturedTitle');
+          scroll.scrollTop += featured.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
+        });
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-carousel-' + theme + '.png') });
+      }
+      await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    }
     await page.locator('#ContentCardContainer button').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/, 'A successful card interaction does not advance tasks locally');
@@ -353,6 +448,15 @@ async function main() {
     }), 'The phone frame fits a narrow mobile viewport');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       'The redesigned page must not introduce horizontal scrolling on mobile');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    assert.ok(await page.locator('#loyaltyOfferCarousel').evaluate(element => {
+      const rect = element.getBoundingClientRect(), phone = document.querySelector('.loyalty-phone').getBoundingClientRect();
+      return rect.left >= phone.left && rect.right <= phone.right;
+    }), 'The swipeable carousel stays within the mobile phone instead of widening the page');
+    assert.equal(await page.locator('.loyalty-featured-offer').first().evaluate(element =>
+      element.getBoundingClientRect().width < document.getElementById('loyaltyOfferCarousel').clientWidth - 20), true,
+    'The next offer peeks into view at mobile width');
     await openApiOptions();
     assert.ok(await page.locator('#loyaltyRegion').evaluate(node => {
       const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1;
@@ -523,6 +627,7 @@ async function main() {
       !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
       'The TUI-compatible tenant is also populated on initial page load, not only after a sandbox switch');
+    await rewardsTab.click();
     await page.evaluate(() => {
       window.__journeySubscriptions = [];
       window.__journeyTracking = [];
