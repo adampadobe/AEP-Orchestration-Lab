@@ -1,0 +1,24 @@
+{
+  "mcp_servers": {
+    "servers": [
+      {
+        "name": "lab-v2-entry",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 60
+      },
+      {
+        "name": "lab-v2-demo",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 650
+      }
+    ]
+  }
+}

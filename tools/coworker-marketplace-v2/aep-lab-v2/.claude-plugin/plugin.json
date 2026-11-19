@@ -1,0 +1,9 @@
+{
+  "name": "aep-lab-v2",
+  "version": "0.1.0",
+  "description": "Experimental two-connection pilot using one personal Lab API key saved in Coworker Secrets",
+  "author": { "name": "Adam Palmer" },
+  "metadata": {
+    "lifecycle": "experimental"
+  }
+}

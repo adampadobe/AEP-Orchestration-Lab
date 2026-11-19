@@ -1,0 +1,15 @@
+{
+  "name": "aep-lab-v2-pilot",
+  "owner": { "name": "Adam Palmer" },
+  "metadata": {
+    "description": "Experimental AEP Lab shared-secret authentication pilot for CX Coworker"
+  },
+  "plugins": [
+    {
+      "name": "aep-lab-v2",
+      "displayName": "AEP Lab v2 authentication pilot",
+      "description": "Two existing Lab connections using one personal secret. Plugin secret resolution requires live validation.",
+      "source": "./aep-lab-v2"
+    }
+  ]
+}

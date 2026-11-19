@@ -4,6 +4,44 @@ A Claude/Cowork-format plugin marketplace so Adobe CX Coworker users can install
 
 This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. Claude uses the repository-root marketplace and the separate `tools/claude-marketplace` package, which prompts for a sandbox-scoped Portal MCP key.
 
+## Experimental v2: one personal secret
+
+The separate `tools/coworker-marketplace-v2` marketplace contains only
+`lab-v2-entry` and `lab-v2-demo`. It does not replace v1 or the root Claude
+marketplace. It contains no workflow skill; this pilot tests authentication only.
+
+Both servers reference `${user_secrets.aep_lab_mcp_key}` in the
+`X-AEP-Lab-Mcp-Key` header, without an IMS passthrough provider. This uses the
+secret-backed header syntax exposed by Coworker's Add Server UI. Resolution of
+that syntax from a **plugin** remains unverified until the live pilot succeeds;
+local packaging checks do not prove Coworker runtime compatibility.
+
+Pilot setup, after the package is published to an approved GitHub ref:
+
+1. In Coworker **App settings > Secrets > Your secrets**, save a personal,
+   sandbox-scoped Portal MCP key as `aep_lab_mcp_key`. Never put the key in Git,
+   chat, the marketplace's GitHub-token field, or an organization-wide secret.
+2. Add repository `adampadobe/AEP-Orchestration-Lab`, the published pilot ref,
+   subdirectory `tools/coworker-marketplace-v2`, and a distinct marketplace name.
+   Install **AEP Lab v2 authentication pilot**, leaving v1 unchanged.
+3. Test both connections and start a fresh chat. Verify access information
+   identifies the intended user and sandbox, then perform only a read-only demo
+   config inspection. Do not scrape, back up, switch customers, or generate data
+   as part of this authentication test. The demo-prep connection still exposes
+   mutation tools; this package is not a read-only security boundary.
+4. Verify a fresh chat after refreshing the plugin still authenticates both
+   contexts. Confirm missing/invalid credentials fail without exposing their
+   values, using a dedicated test key rather than revoking an in-use key.
+
+If either connection cannot resolve the saved secret, stop the pilot and retain
+the exact sanitized error for Coworker development; do not embed a key or fall
+back to forwarding IMS tokens. Remove only the v2 plugin/marketplace to undo the
+pilot, and remove its personal secret only if no other connection uses it.
+
+Removing the subdirectory requirement is deferred until this proof succeeds.
+The repository root already serves Claude and must not be repointed to Coworker.
+No Firebase or Cloud Run deployment is needed for this package-only pilot.
+
 ## Add this marketplace in Coworker
 
 1. Open **CX Coworker**.

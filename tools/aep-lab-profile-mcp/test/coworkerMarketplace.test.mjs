@@ -183,6 +183,53 @@ test('Coworker connection prefixes keep every catalog tool within the 64-charact
   }
 });
 
+test('v2 pilot resolves an isolated plugin and two existing contexts using one personal secret', async () => {
+  const marketplaceRoot = join(repoRoot, 'tools', 'coworker-marketplace-v2');
+  const marketplace = await readJson(join(marketplaceRoot, '.claude-plugin', 'marketplace.json'));
+  const v1Marketplace = await readJson(join(repoRoot, 'tools', 'coworker-marketplace', '.claude-plugin', 'marketplace.json'));
+  assert.notEqual(marketplace.name, v1Marketplace.name);
+  assert.equal(marketplace.plugins.length, 1);
+  const [entry] = marketplace.plugins;
+  assert.notEqual(entry.name, v1Marketplace.plugins[0].name);
+  const root = await realpath(join(marketplaceRoot, entry.source));
+  assert.ok(relative(marketplaceRoot, root).startsWith('aep-lab-v2'));
+  const manifest = await readJson(join(root, '.claude-plugin', 'plugin.json'));
+  assert.equal(manifest.name, entry.name);
+  const config = await readJson(join(root, '.mcp.json'));
+  assert.equal(config.auth_providers, undefined);
+  assert.equal(manifest.mcpServers, undefined);
+  const v1 = await readJson(join(pluginRoot, '.mcp.json'));
+  const contexts = new Map([
+    ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
+    ['/mcp/demo-prep', registrations.registerFocusedDemoPrepTools],
+  ]);
+  const servers = config.mcp_servers.servers;
+  assert.equal(servers.length, contexts.size);
+  assert.equal(new Set(servers.map((server) => server.name)).size, servers.length);
+  for (const server of servers) {
+    const original = v1.mcp_servers.servers.find((candidate) => candidate.source === server.source);
+    assert.ok(original, server.source);
+    assert.notEqual(server.name, original.name);
+    assert.equal(server.transport, original.transport);
+    assert.equal(server.tool_timeout_seconds, original.tool_timeout_seconds);
+    assert.equal(server.auth, undefined);
+    assert.deepEqual(server.headers, {
+      'X-AEP-Lab-Mcp-Key': '${user_secrets.aep_lab_mcp_key}',
+    });
+    const path = new URL(server.source).pathname;
+    const register = contexts.get(path);
+    assert.equal(typeof register, 'function', path);
+    register({
+      registerTool: (name) => {
+        const qualifiedName = `mcp__${server.name}__${name}`;
+        assert.ok(qualifiedName.length <= 64, qualifiedName);
+      },
+    });
+    contexts.delete(path);
+  }
+  assert.equal(contexts.size, 0);
+});
+
 test('repository root exposes a Claude marketplace with a runtime-specific plugin', async () => {
   const marketplace = await readJson(join(repoRoot, '.claude-plugin', 'marketplace.json'));
 
