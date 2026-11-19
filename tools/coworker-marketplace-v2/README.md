@@ -4,6 +4,11 @@ One Coworker plugin containing the Lab workflow skill and all 20 Lab MCP
 connections. Every connection uses the same personal, sandbox-scoped Lab key.
 No Adobe IMS passthrough or separate per-connection key setup is required.
 
+For key creation, every marketplace field, safe verification, v1 removal and
+troubleshooting, follow the
+[complete onboarding guide](https://github.com/adampadobe/AEP-Orchestration-Lab/blob/f94b507fb39ef3ae3fc4f2d009362f2ddb0fc454/docs/COWORKER_MARKETPLACE_V2.md).
+This permalink remains valid when the authoring branch changes.
+
 ## Install in Coworker
 
 1. Open **Customizations > User > Marketplaces > Add marketplace**.
