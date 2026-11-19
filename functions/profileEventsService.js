@@ -7,6 +7,7 @@ const {
   toEcidString,
   getProfileEcid,
   appendProfileAccessMergePolicyIfConfigured,
+  isUpsEntityNotFound,
 } = require('./profileTableHelpers');
 const { deriveEventChannel } = require('./profileEventChannel');
 
@@ -258,16 +259,21 @@ async function getProfileWithExperienceEvents(identityValue, limit, sandboxName,
   const norm = rawKey.toLowerCase().replace(/[\s_-]+/g, '');
   const nsTries = EVENTS_NAMESPACE_TRIES[norm] || (rawKey && rawKey !== 'email' ? [rawKey] : EVENTS_NAMESPACE_TRIES.email);
   let res, data;
+  let lastFailure;
   for (const ns of nsTries) {
     const result = await fetchOne(ns);
     res = result.res;
     data = result.data;
+    if (isUpsEntityNotFound(res.status, data)) continue;
+    if (!res.ok) lastFailure = result;
     const keyCount = Object.keys(data).filter((k) => !k.startsWith('_')).length;
     if (res.ok && keyCount > 0) return data;
   }
   if (!res.ok) {
-    const msg = data.message || data.error_description || data.title || res.statusText;
-    throw new Error(msg || `Profile API (profile + events) ${res.status}`);
+    if (!lastFailure) return {};
+    const failed = lastFailure.data;
+    const msg = failed.message || failed.error_description || failed.title || lastFailure.res.statusText;
+    throw new Error(msg || `Profile API (profile + events) ${lastFailure.res.status}`);
   }
   return data;
 }
@@ -312,6 +318,7 @@ async function getProfileExperienceEvents(relatedEntityId, relatedEntityIdNS, sa
         data = {};
       }
       if (!res.ok) {
+        if (page === 0 && isUpsEntityNotFound(res.status, data)) return { children: [] };
         const msg = data.message || data.error_description || data.title || res.statusText;
         const error = new Error(msg || `Profile API (events) ${res.status}`);
         error.status = res.status;

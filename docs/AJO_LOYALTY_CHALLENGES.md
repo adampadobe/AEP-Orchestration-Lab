@@ -99,6 +99,14 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    basic name/contact fields arrive. Identity/sandbox changes still discard
    older requests. Genuine drawer API failures retain their underlying message;
    they are not retried automatically or treated as a successful profile load.
+   A newly created profile can exist before any experience events are indexed.
+   The shared `profileEventsProxy` treats only Adobe's explicit entity-absence
+   response (`UPLIB-201001-404`, HTTP 404, `Entity not found.`) as no indexed
+   events, after the remaining event lookup. This is not a failed profile lookup
+   or proof that an event was never sent. Authentication, other API failures and
+   missing later pages remain errors. This correction requires a Functions
+   release of `profileEventsProxy`; changing Hosting or `aepProxy` alone is not
+   sufficient.
 3. Select **Get task status**. SDK injection, Decisioning enablement and the event
    tenant are not prerequisites for this read. Optionally enable the 30-second
    state refresh in the top-bar API options after a successful manual read. Only
@@ -261,8 +269,14 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    a purchase for a different context. The supplied combined design's Gymshark
    row is intentionally PureGym here, matching the reviewed campaign and events.
 
-The optional challenge ID filters active state and reads that exact metadata
-definition for names, joined by challenge/task IDs. **Completed** uses Adobe's
+When state omits a usable challenge name, the page reads each displayed challenge's
+exact-ID Adobe metadata, including in the all-challenges view and after signup.
+Desktop and phone headings show the trimmed name; technical IDs remain in
+**Challenge API details**. Metadata identity must match the requested challenge.
+A failed name read shows **Challenge name unavailable** and an explicit details
+warning without hiding Adobe-reported task progress or inventing a name.
+The optional challenge ID filters state and reads that exact metadata definition
+for challenge/task names, joined by IDs. **Completed** uses Adobe's
 separate completed-participation endpoint; it cannot be combined with State API
 test mode. Returned pagination is identified explicitly, not presented as full
 history. Changing sandbox clears the profile, region, tenant and challenge

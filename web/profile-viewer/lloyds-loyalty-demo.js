@@ -10,6 +10,8 @@
     return 'web://' + page.host + page.pathname + '#ContentCardContainerLoyalty';
   };
   const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
+  const stateChallengeName = challenge => typeof challenge?.challengeName === 'string' &&
+    challenge.challengeName.trim() !== challenge.challenge_id ? challenge.challengeName.trim() : '';
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
@@ -311,7 +313,10 @@
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing.');
     const stateContext = { ...ctx, challenge: challengeId, participation: 'active', test: false };
     reconcileSignupState(state, stateContext, member);
-    if (!ctx.test && ctx.participation === 'active') renderTasks(state, null, stateContext, true);
+    if (!ctx.test && ctx.participation === 'active') {
+      const metadata = await readChallengeMetadata(state, ctx, token, challengeId);
+      renderTasks(state, metadata, stateContext, true);
+    }
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyNamespace').textContent = 'State member: loyaltyId / ' + member;
     return state;
@@ -366,6 +371,30 @@
     if (config.namespace.toLowerCase() === 'loyaltyid' && loaded.profileLoyaltyId) return loaded.profileLoyaltyId;
     throw new Error('Loyalty uses namespace "' + config.namespace + '". Enter this profile\'s member identifier in that namespace; it cannot be inferred from ' + ctx.namespace + '.');
   }
+  async function readChallengeMetadata(state, ctx, token, filter = ctx.challenge) {
+    const ids = [...new Set(state.challengeList.filter(challenge => challenge &&
+      (!filter || challenge.challenge_id === filter) && (filter || !stateChallengeName(challenge)))
+      .map(challenge => challenge.challenge_id))];
+    const entries = await Promise.all(ids.map(async id => {
+      try {
+        const definition = await loyalty(ctx, { action: 'challenge_get', challenge_id: id });
+        const returnedIds = [definition?._id, definition?.get_id, definition?.challenge_id].filter(value => value != null);
+        if (!returnedIds.length || returnedIds.some(value => value !== id)) {
+          throw new Error('Adobe challenge metadata does not match the requested challenge.');
+        }
+        if (typeof definition.name !== 'string' || !definition.name.trim()) {
+          throw new Error('Adobe challenge metadata has no challenge name.');
+        }
+        return [id, { definition }];
+      } catch (error) {
+        same(ctx, token);
+        console.error('Loyalty challenge metadata lookup failed', { challenge_id: id, error: error.message });
+        return [id, { error: error.message }];
+      }
+    }));
+    same(ctx, token);
+    return new Map(entries);
+  }
   async function readTasks(ctx, token) {
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
     const config = await loyalty(ctx, { action: 'config' }); same(ctx, token);
@@ -378,12 +407,11 @@
     const state = await loyalty(ctx, input); same(ctx, token);
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     reconcileSignupState(state, ctx, member);
-    let metadata = null;
-    if (ctx.challenge) { metadata = await loyalty(ctx, { action: 'challenge_get', challenge_id: ctx.challenge }); same(ctx, token); }
+    const metadata = await readChallengeMetadata(state, ctx, token);
     renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
-      member, region: ctx.region || 'va7', state, metadata }, null, 2);
+      member, region: ctx.region || 'va7', state, metadata: Object.fromEntries(metadata) }, null, 2);
   }
   function renderTasks(state, metadata, ctx, selectedMember) {
     const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
@@ -395,9 +423,9 @@
     for (const challenge of challenges) {
       if (!challenge || typeof challenge !== 'object' || !Array.isArray(challenge.tasks)) throw new Error('Malformed challenge: tasks must be an array.');
       if (challenge.tasks.some(task => !task || typeof task !== 'object')) throw new Error('Malformed task in Loyalty state.');
-      const definition = metadata?.challenge_id === challenge.challenge_id || (metadata?._id || metadata?.get_id) === challenge.challenge_id ? metadata : null;
+      const { definition, error } = metadata.get(challenge.challenge_id) || {};
       const section = node('article', undefined, 'loyalty-challenge');
-      const name = challenge.challengeName || definition?.name || challenge.challenge_id || 'Unnamed challenge';
+      const name = stateChallengeName(challenge) || definition?.name.trim() || 'Challenge name unavailable';
       const completed = challenge.tasks.filter(complete).length, total = challenge.tasks.length;
       const summary = node('div', undefined, 'loyalty-progress-summary');
       const ring = node('div', undefined, 'loyalty-progress-ring');
@@ -412,6 +440,11 @@
       const mobileTop = node('div', undefined, 'loyalty-phone-challenge-top');
       mobileTop.append(node('h4', name), node('span', repr(challenge.state), 'loyalty-task-state'));
       mobile.append(mobileTop, node('p', completed + ' / ' + total + ' tasks complete', 'loyalty-phone-count'));
+      if (error) {
+        const warning = node('p', 'Challenge details unavailable: ' + error, 'loyalty-empty');
+        warning.setAttribute('role', 'status');
+        section.append(warning); mobile.append(warning.cloneNode(true));
+      }
       if (total) {
         const meter = node('progress'); meter.max = total; meter.value = completed;
         meter.setAttribute('aria-label', name + ' completed tasks'); mobile.append(meter);
