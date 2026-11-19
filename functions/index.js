@@ -855,7 +855,7 @@ const profileFnOpts = {
 
 Object.assign(exports, registerMyDataFlowsRoutes({
   onRequest,
-  fnOpts: profileFnOpts,
+  fnOpts: { ...profileFnOpts, ...SNOWFLAKE_VPC_OPTS, maxInstances: 20 },
   setCors,
   getServices: () => {
     const { getAdminFirestore } = require('./adminFirestore');
@@ -874,6 +874,17 @@ Object.assign(exports, registerMyDataFlowsRoutes({
         return createProfileSeedScheduleDiagnosticsService(profileSeedDiagnosticsDependencies({
           token: auth.accessToken, clientId: auth.clientId, orgId: auth.orgId,
         })).diagnose({ principalUid, sandbox, historyDays: 7 });
+      },
+      getScheduledProfiles: (input) => {
+        const { createProfileSeedScheduleStore } = require('./profileSeedScheduleStore');
+        const { createProfileSeedScheduleProfilesService } = require('./profileSeedScheduleProfilesService');
+        const { createMyDataFlowsSnowflake } = require('./myDataFlowsSnowflake');
+        const { createMyDataFlowsTraceAep } = require('./myDataFlowsTraceAep');
+        return createProfileSeedScheduleProfilesService({
+          store: createProfileSeedScheduleStore(db),
+          snowflake: createMyDataFlowsSnowflake(),
+          aep: createMyDataFlowsTraceAep({ getAdobeAuth }),
+        }).read(input);
       },
       service: createMyDataFlowsService({
         getConnection: async (industry) => {

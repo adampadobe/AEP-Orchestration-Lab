@@ -134,6 +134,17 @@ Flow-to-component associations are declared in `functions/myDataFlowsRegistry.js
 
 Run `npm run test:my-data-flows` and the route verifier for workspace changes. Set `MY_DATA_FLOWS_SCREENSHOTS` to a local artifact directory when running the browser test to capture the mocked desktop/mobile overview in both themes. These tests never access live AEP or create production profiles.
 
+**Monitor → Scheduled profiles** lists the schedule owner's saved identities for a
+selected Asia/Riyadh date within the last seven calendar days (at most 50 per day).
+Prepared identities and recorded source commits are distinct; neither is a stored
+AEP receipt. **Verify stored data** reads the exact saved identity through the
+existing Snowflake source/REL and AEP Profile adapters, without generating a person,
+replaying a slot, editing flows, or writing scheduler state. AEP Profile verification
+covers Email/ECID stitching, the saved mobile and test-profile flag, not a complete
+industry-field audit. AEP dataset/REL storage still needs separate dataset-level
+verification. These checks run only on demand; timestamps describe observations,
+and failures or missing rows must not be presented as confirmed delivery.
+
 ### Preserved Decisioning Profile Viewer routes
 
 These hosted paths are part of the lab surface and must stay in **`web/profile-viewer/`** on **`main`** (with nav + Global values wiring intact). Do **not** remove or orphan them without an explicit product decision and a redirect or replacement plan:
