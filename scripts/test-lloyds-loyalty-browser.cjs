@@ -58,7 +58,8 @@ async function main() {
       else if (url.pathname === '/api/tags/reactor' || url.pathname === '/api/events/datastreams') data = { data: [] };
       else if (url.pathname === '/api/image-hosting/library') data = { items: [] };
       else if (url.pathname === '/api/ajo-loyalty') {
-        assert.equal(request.headers().authorization, 'Bearer offline-fixture');
+        assert.equal(request.headers().authorization, ['kirkham', 'apalmer'].includes(url.searchParams.get('sandbox')) ? undefined : 'Bearer offline-fixture',
+          'Demo sandboxes omit Portal authentication; other sandboxes retain it');
         if (request.method() === 'POST') {
           const body = request.postDataJSON();
           signupRequests.push({ sandbox: url.searchParams.get('sandbox'), ...body });
@@ -770,15 +771,13 @@ async function main() {
     assert.equal(await joinButton.getAttribute('data-interact-id'), 'joinChallenge');
     assert.equal(await joinButton.getAttribute('data-challenge-id'), 'challenge-one-fixture');
     await page.evaluate(() => { window.AepLabSandboxSync.getAuthHeaders = async () => ({}); });
-    await joinButton.click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Sign in to the Portal'));
-    assert.equal(signupRequests.length, 0);
-    await page.evaluate(() => {
-      window.AepLabSandboxSync.getAuthHeaders = async () => ({ Authorization: 'Bearer offline-fixture' });
-    });
     signupMode = 'namespace';
+    const anonymousSignup = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === '/api/ajo-loyalty');
     await joinButton.click();
+    assert.equal((await (await anonymousSignup).allHeaders()).authorization, undefined, 'Demo signup is triggered without Portal sign-in or a browser Adobe token');
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('configured namespace mismatch'));
+    assert.equal(signupRequests.length, 1, 'No frontend sign-in check prevents the server-verified demo request');
+    await page.evaluate(() => { window.AepLabSandboxSync.getAuthHeaders = async () => ({ Authorization: 'Bearer offline-fixture' }); });
     assert.equal(await joinButton.isDisabled(), false, 'A local proxy 409 is not Adobe already-joined enrollment');
     signupMode = 'rejected';
     await joinButton.click();
@@ -798,7 +797,12 @@ async function main() {
     assert.equal(signupRequests.length, uncertainCount, 'An uncertain submission cannot be retried by another click');
     assert.equal((await signupInteractions()).length, 0);
     unavailableState = false; namespace = 'loyaltyId'; stateChallengeId = 'challenge-one-fixture'; quantity = 0;
+    const anonymousState = page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname === '/api/ajo-loyalty' && url.searchParams.get('action') === 'profile_state';
+    });
     await page.locator('#loyaltyRefresh').click();
+    assert.equal((await (await anonymousState).allHeaders()).authorization, undefined, 'Test-member task reads do not need Portal sign-in');
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     assert.equal(await joinButton.isDisabled(), false, 'Explicit Adobe optedIn:false permits a deliberate retry after reconciliation');
     signupMode = 'success';

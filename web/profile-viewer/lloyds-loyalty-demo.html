@@ -23,7 +23,7 @@
         data-demo-env-strip-title="Lloyds Loyalty" data-demo-env-strip-subtitle="Active Configuration"
         data-demo-env-strip-bc-bottom="1"
         data-demo-env-strip-message-id="lloydsLoyaltyMessage"
-        data-demo-env-strip-disclaimer="Demo only. Task progress is read from Adobe, never simulated by a card click. Sign in to the Portal with enrollment for your selected sandbox."></div>
+        data-demo-env-strip-disclaimer="Demo only. No Portal sign-in is needed for kirkham or apalmer test profiles; other sandboxes require enrollment. Task progress is read from Adobe, never simulated by a card click."></div>
     </section>
   </div>
   <header class="tui-live-actions" aria-label="Loyalty demo controls">
@@ -215,7 +215,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261119-rewards-app'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261119-test-profile-access'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
