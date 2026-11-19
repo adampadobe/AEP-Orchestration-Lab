@@ -16,6 +16,16 @@ const INCIDENTS = Object.freeze([
     updatedAt: '2026-11-15T13:10:16.924Z',
     slotKeys: ['count', 'dueAt', 'errorCode', 'id', 'identities', 'industry',
       'ingestion', 'startedAt', 'state', 'updatedAt'] },
+  { day: '2026-11-17', slotId: '14', industry: 'sports', count: 3,
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY', attemptedCount: 31,
+    dueAt: '2026-11-17T13:37:00.000Z', startedAt: '2026-11-17T13:40:15.679Z',
+    updatedAt: '2026-11-17T13:40:22.003Z',
+    failureSnapshot: {
+      observedAt: '2026-11-17T13:40:22.001Z',
+      flowCount: 13,
+      flowId: '065f3b53-df40-43d1-9d91-c42f031996d6',
+      issueCodes: ['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown'],
+    } },
 ]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
@@ -29,6 +39,23 @@ function canonical(value) {
   return value;
 }
 const digest = (value) => createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
+
+function matchesFailureSnapshot(slot, expected) {
+  const health = slot.flowHealth;
+  const flow = health?.flows?.find((item) => item.flowId === expected.flowId);
+  const issueCodes = (health?.issues || []).map((issue) => issue.code).sort();
+  const expectedIssueCodes = [...expected.issueCodes].sort();
+  return health?.healthy === false && health.complete === true
+    && health.observedAt === expected.observedAt && health.flowCount === expected.flowCount
+    && health.flows?.length === expected.flowCount
+    && health.flows.filter((item) => item.healthy === false).length === 1
+    && JSON.stringify(issueCodes) === JSON.stringify(expectedIssueCodes)
+    && flow?.healthy === false && flow.state === 'enabled'
+    && flow.lastRun?.state === 'inProgress' && flow.lastRun.completedAt === null
+    && flow.lastRun.readCount === 2 && flow.lastRun.writtenCount === null
+    && flow.lastRun.failedCount === null
+    && JSON.stringify([...(flow.reasons || [])].sort()) === JSON.stringify(expectedIssueCodes);
+}
 
 function reviewedIncident(target) {
   const incident = INCIDENTS.find(({ day, slotId }) => day === target.day && slotId === target.slotId);
@@ -60,8 +87,10 @@ function targetState({ config, dispatcher, day }, target) {
     || slot.errorCode !== incident.errorCode
     || (incident.dueAt && slot.dueAt !== incident.dueAt)
     || slot.industry !== incident.industry || slot.count !== incident.count || day.attemptedCount < slot.count
+    || (incident.attemptedCount !== undefined && day.attemptedCount !== incident.attemptedCount)
     || (incident.startedAt && (slot.startedAt !== incident.startedAt || slot.updatedAt !== incident.updatedAt
       || day.attemptedCount !== incident.attemptedCount))
+    || (incident.failureSnapshot && !matchesFailureSnapshot(slot, incident.failureSnapshot))
     || !['unverified', 'not_started', undefined].includes(slot.ingestion)
     || ['runStamp', 'tableRowcounts', 'committed', 'outcomeUnknown', 'writeEvidence',
       'sourceWrite', 'sourceWrites', 'preparedAt', 'committedAt', 'recovery'].some((key) => Object.hasOwn(slot, key))

@@ -855,18 +855,37 @@ const profileFnOpts = {
 
 Object.assign(exports, registerMyDataFlowsRoutes({
   onRequest,
-  fnOpts: profileFnOpts,
+  fnOpts: { ...profileFnOpts, ...SNOWFLAKE_VPC_OPTS, maxInstances: 20 },
   setCors,
   getServices: () => {
     const { getAdminFirestore } = require('./adminFirestore');
     const db = getAdminFirestore();
+    const getAdobeAuth = async () => ({
+      accessToken: await getAdobeAccessToken(),
+      clientId: ADOBE_CLIENT_ID.value(),
+      orgId: ADOBE_IMS_ORG.value(),
+    });
     return {
       auth: require('firebase-admin').auth(),
-      getAdobeAuth: async () => ({
-        accessToken: await getAdobeAccessToken(),
-        clientId: ADOBE_CLIENT_ID.value(),
-        orgId: ADOBE_IMS_ORG.value(),
-      }),
+      getAdobeAuth,
+      getSchedulerDiagnostics: async ({ principalUid, sandbox }) => {
+        const { createProfileSeedScheduleDiagnosticsService } = require('./profileSeedScheduleDiagnosticsService');
+        const auth = await getAdobeAuth();
+        return createProfileSeedScheduleDiagnosticsService(profileSeedDiagnosticsDependencies({
+          token: auth.accessToken, clientId: auth.clientId, orgId: auth.orgId,
+        })).diagnose({ principalUid, sandbox, historyDays: 7 });
+      },
+      getScheduledProfiles: (input) => {
+        const { createProfileSeedScheduleStore } = require('./profileSeedScheduleStore');
+        const { createProfileSeedScheduleProfilesService } = require('./profileSeedScheduleProfilesService');
+        const { createMyDataFlowsSnowflake } = require('./myDataFlowsSnowflake');
+        const { createMyDataFlowsTraceAep } = require('./myDataFlowsTraceAep');
+        return createProfileSeedScheduleProfilesService({
+          store: createProfileSeedScheduleStore(db),
+          snowflake: createMyDataFlowsSnowflake(),
+          aep: createMyDataFlowsTraceAep({ getAdobeAuth }),
+        }).read(input);
+      },
       service: createMyDataFlowsService({
         getConnection: async (industry) => {
           const snap = await db.collection(`${industry}ProfileConnections`).doc('apalmer').get();

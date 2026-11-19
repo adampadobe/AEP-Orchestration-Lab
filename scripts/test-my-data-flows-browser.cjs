@@ -149,6 +149,39 @@ async function main() {
         window.fixtureStatus = options.status || 200;
         window.traceRequests = [];
         window.fixtureLive = structuredClone(live);
+        window.fixtureScheduler = {
+          ok: true, sandbox: 'apalmer', configured: true, observedAt: '2026-11-19T02:45:43.631Z',
+          schedule: { enabled: true, timeZone: 'Asia/Riyadh', startHour: 8, endHour: 18 },
+          dispatcher: { blocked: true, attention: { day: '2026-11-17', id: '14' } },
+          days: [{ day: '2026-11-17', plannedCount: 35, attemptedCount: 31, slots: [
+            { id: '00', industry: 'retail', count: 2, state: 'committed', ingestion: 'pending', preparedIdentityCount: 2 },
+            { id: '14', industry: 'sports', count: 3, state: 'needs_attention', errorCode: 'SEED_INGESTION_NOT_HEALTHY',
+              ingestion: 'unverified', preparedIdentityCount: 0,
+              flowHealthAtFailure: { issues: [{ code: 'last_run_completion_missing' }] } },
+          ] }],
+          focus: { day: '2026-11-17', slot: { id: '14', industry: 'sports' },
+            liveFlowHealth: { healthy: true, complete: true, flowCount: 13, observedAt: '2026-11-19T02:45:43.631Z', issues: [] } },
+        };
+        window.fixtureProfileStatus = 200;
+        window.fixtureScheduledProfiles = {
+          ok: true, sandbox: 'apalmer', configured: true, day: '2026-11-18',
+          observedAt: '2026-11-19T03:00:00.000Z',
+          range: { startDay: '2026-11-12', endDay: '2026-11-18' }, limit: 50, total: 2,
+          profiles: [
+            { slotId: '00', index: 0, industry: options.hostileProfile ? '<svg onload=alert(1)>' : 'retail',
+              email: options.hostileProfile ? '<img src=x onerror=alert(1)>@example.invalid' : 'prepared@example.invalid',
+              ecid: '1000000001', crmId: 'CRM0001', recipientId: '1', state: 'prepared',
+              startedAt: '2026-11-18T08:00:00.000Z', preparedAt: null, sourceCommittedAt: null,
+              errorCode: 'SOURCE_COMMIT_UNCONFIRMED' },
+            { slotId: '00', index: 1, industry: 'retail', email: 'committed@example.invalid',
+              ecid: '1000000002', crmId: 'CRM0002', recipientId: '2', state: 'committed',
+              startedAt: '2026-11-18T08:00:00.000Z', preparedAt: null,
+              sourceCommittedAt: '2026-11-18T08:01:00.000Z', errorCode: null },
+          ],
+        };
+        window.delayProfileResponse = false;
+        window.rejectProfileRead = false;
+        window.invalidScheduledProfiles = false;
         window.fixtureTraceRun = options.run ? structuredClone(traceFixture) : null;
         if (options.manual && window.fixtureTraceRun) window.fixtureTraceRun.stages.forEach(stage => {
           if (['aepXdm', 'aepRel'].includes(stage.id)) { stage.state = 'unavailable'; stage.verification = 'manual'; }
@@ -192,7 +225,38 @@ async function main() {
           if (window.delayResponse) await new Promise(resolve => { window.releaseResponse = resolve; });
           if (window.rejectRead) throw new TypeError('Fixture offline');
           const response = structuredClone(fixture);
+          const query = new URL(url, location.href).searchParams;
+          if (query.has('scheduledProfiles')) {
+            if (window.delayProfileResponse) await new Promise(resolve => { window.releaseProfileResponse = resolve; });
+            if (window.rejectProfileRead) throw new TypeError('Scheduled profile fixture offline');
+            let scheduledProfiles = structuredClone(window.fixtureScheduledProfiles);
+            const requestedDay = query.get('day');
+            const startDay = new Date(requestedDay + 'T00:00:00Z');
+            startDay.setUTCDate(startDay.getUTCDate() - 6);
+            scheduledProfiles.day = requestedDay;
+            scheduledProfiles.range = { startDay: startDay.toISOString().slice(0, 10), endDay: requestedDay };
+            if (query.get('scheduledProfiles') === 'verify') {
+              const profile = scheduledProfiles.profiles.find(item =>
+                item.slotId === query.get('slot') && String(item.index) === query.get('profile'));
+              scheduledProfiles.total = profile ? 1 : 0;
+              scheduledProfiles.profiles = profile ? [{
+                ...profile,
+                verification: {
+                  checkedAt: '2026-11-19T03:05:00.000Z',
+                  source: { state: 'verified', detail: 'Existing source row matched.', evidence: ['identity predicate matched'] },
+                  rel: { state: 'waiting', detail: 'No matching Snowflake REL row observed.', evidence: [] },
+                  aepProfile: { state: 'verified', detail: 'Email and ECID matched; full industry completeness not checked.', evidence: { emailMatch: true, ecidMatch: true } },
+                  aepStorage: { state: 'manual', detail: 'Requires separate AEP dataset-level REL verification.' },
+                },
+              }] : [];
+            }
+            if (window.invalidScheduledProfiles) scheduledProfiles.ok = false;
+            return { ok: window.fixtureProfileStatus === 200, status: window.fixtureProfileStatus, json: async () => ({
+              ...response, schedulerProfiles: scheduledProfiles,
+            }) };
+          }
           if (String(url).includes('refresh=true')) response.live = structuredClone(window.fixtureLive);
+          if (String(url).includes('scheduler=true')) response.scheduler = structuredClone(window.fixtureScheduler);
           if (window.invalidReference) response.reference = null;
           return { ok: window.fixtureStatus === 200, status: window.fixtureStatus, json: async () => response };
         };
@@ -284,6 +348,16 @@ async function main() {
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Observed last run/);
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Unknown/);
     assert.equal((await page.evaluate(() => window.requests))[1].url, '/api/architecture/my-data-flows?sandbox=apalmer&refresh=true');
+    await page.locator('#flowsSchedule').click();
+    await page.waitForFunction(() => document.getElementById('flowsScheduleStatus').textContent.includes('Owner-scoped read completed'));
+    const schedulerText = await page.locator('#flowsScheduleResults').textContent();
+    assert.match(schedulerText, /Blocked at 2026-11-17 \/ slot 14/);
+    assert.match(schedulerText, /Healthy · complete · 13 flows/);
+    assert.match(schedulerText, /Snowflake-committed profiles/);
+    assert.match(schedulerText, /last_run_completion_missing/);
+    assert.match(schedulerText, /does not verify AEP Profile or REL storage/);
+    assert.equal((await page.evaluate(() => window.requests))[2].url, '/api/architecture/my-data-flows?sandbox=apalmer&scheduler=true');
+    assert.equal((await page.evaluate(() => window.requests))[2].method, 'GET', 'Scheduler health performs no mutation');
     await page.locator('#flowsReload').click();
     await page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('not been requested'));
     assert.equal(await page.locator('#flowsMonitorMode').getAttribute('aria-pressed'), 'true', 'The task preference survives a reference reload');
@@ -323,6 +397,169 @@ async function main() {
     assert.ok(await signedOut.page.locator('#flowsSignIn').isVisible());
     assert.equal((await signedOut.page.evaluate(() => window.requests)).length, 0);
     await signedOut.context.close();
+    const scheduled = await open(owner, { hostileProfile: true });
+    await scheduled.page.locator('#flowsResults').waitFor();
+    await scheduled.page.locator('#flowsMonitorMode').click();
+    const dayInput = scheduled.page.locator('#flowsScheduledProfilesDay');
+    const dateBounds = await dayInput.evaluate(input => ({ min: input.min, max: input.max, value: input.value }));
+    assert.equal(dateBounds.value, dateBounds.max, 'The scheduled-profile date defaults to the current Riyadh calendar day');
+    assert.match(dateBounds.min, /^\d{4}-\d{2}-\d{2}$/);
+    assert.equal(await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')).length), 0,
+      'Loading the page or changing task mode never reads scheduled identities');
+    const tooOld = await dayInput.evaluate(input => {
+      const date = new Date(input.max + 'T00:00:00Z');
+      date.setUTCDate(date.getUTCDate() - 7);
+      return date.toISOString().slice(0, 10);
+    });
+    await dayInput.fill(tooOld);
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('last seven'));
+    assert.equal(await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')).length), 0,
+      'An out-of-range calendar date is rejected before fetching');
+    const tomorrow = await dayInput.evaluate(input => {
+      const date = new Date(input.max + 'T00:00:00Z');
+      date.setUTCDate(date.getUTCDate() + 1);
+      return date.toISOString().slice(0, 10);
+    });
+    await dayInput.fill(tomorrow);
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('last seven'));
+    assert.equal(await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')).length), 0,
+      'A future date is rejected before fetching');
+    const selectedDay = await dayInput.evaluate(input => {
+      const date = new Date(input.max + 'T00:00:00Z');
+      date.setUTCDate(date.getUTCDate() - 1);
+      return date.toISOString().slice(0, 10);
+    });
+    await dayInput.fill(selectedDay);
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('read completed'));
+    let profileRequests = await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')));
+    assert.equal(profileRequests.length, 1);
+    assert.equal(profileRequests[0].method, 'GET');
+    assert.equal(profileRequests[0].credentials, 'omit');
+    const listQuery = new URL(profileRequests[0].url, 'http://localhost').searchParams;
+    assert.equal(listQuery.get('sandbox'), 'apalmer');
+    assert.equal(listQuery.get('scheduledProfiles'), 'list');
+    assert.equal(listQuery.get('day'), selectedDay);
+    for (const identityKey of ['email', 'ecid', 'crmId', 'recipientId']) {
+      assert.equal(listQuery.has(identityKey), false, 'List reads never send caller-supplied profile identity');
+    }
+    const profileRows = scheduled.page.locator('#flowsScheduledProfilesResults tbody tr');
+    assert.equal(await profileRows.count(), 2);
+    assert.equal(await profileRows.nth(0).locator('.flows-profile-state').textContent(), 'prepared');
+    assert.match(await profileRows.nth(0).locator('td').nth(9).textContent(), /Not confirmed/);
+    assert.equal(await profileRows.nth(0).locator('td').nth(10).textContent(), 'Not committed');
+    assert.equal(await profileRows.nth(0).locator('td').nth(1).textContent(), '2026-11-18T08:00:00.000Z',
+      'Slot start is shown as a slot timestamp, not mislabeled as identity preparation time');
+    assert.equal(await profileRows.nth(0).locator('td').nth(4).textContent(), 'SOURCE_COMMIT_UNCONFIRMED',
+      'Per-profile issues are visible in the scheduled list');
+    assert.equal(await profileRows.nth(0).locator('td').nth(11).textContent(), 'Not checked');
+    assert.equal(await profileRows.nth(0).locator('td').nth(13).textContent(), 'Not checked');
+    assert.match(await profileRows.nth(0).locator('td').nth(14).textContent(), /Requires separate dataset verification/);
+    assert.equal(await profileRows.nth(1).locator('.flows-profile-state').textContent(), 'committed');
+    assert.equal(await profileRows.nth(1).locator('td').nth(9).textContent(), 'Committed');
+    assert.equal(await profileRows.nth(1).locator('td').nth(10).textContent(), '2026-11-18T08:01:00.000Z',
+      'Source commit time is shown only for a committed identity');
+    assert.equal(await scheduled.page.locator('#flowsScheduledProfilesResults img').count(), 0, 'Hostile identity strings remain text');
+    assert.equal(await profileRows.nth(0).locator('td').nth(5).textContent(), '<img src=x onerror=alert(1)>@example.invalid');
+    assert.equal(await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')).length), 1,
+      'No profile refresh or polling is started after a list read');
+    const lightProfilesColor = await scheduled.page.locator('#flowsScheduledProfiles').evaluate(el => getComputedStyle(el).color);
+    await scheduled.page.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+    const darkProfilesColor = await scheduled.page.locator('#flowsScheduledProfiles').evaluate(el => getComputedStyle(el).color);
+    assert.notEqual(darkProfilesColor, lightProfilesColor, 'Scheduled-profile results follow explicit light/dark theme tokens');
+    await scheduled.page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await scheduled.page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
+      'The scheduled-profile list does not overflow the mobile viewport');
+    assert.ok(await scheduled.page.locator('#flowsScheduledProfilesResults .flows-run-table-wrap').evaluate(el => el.scrollWidth > el.clientWidth),
+      'The wide identity table has its own horizontal mobile scroller');
+    assert.equal(await profileRows.nth(0).locator('.flows-profile-verify').getAttribute('aria-label'),
+      'Verify stored data for slot 00, profile 0');
+    await profileRows.nth(0).locator('.flows-profile-verify').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('verification completed'));
+    profileRequests = await scheduled.page.evaluate(() => window.requests.filter(request => request.url.includes('scheduledProfiles=')));
+    assert.equal(profileRequests.length, 2);
+    assert.equal(profileRequests[1].method, 'GET');
+    const verifyQuery = new URL(profileRequests[1].url, 'http://localhost').searchParams;
+    assert.equal(verifyQuery.get('scheduledProfiles'), 'verify');
+    assert.equal(verifyQuery.get('day'), selectedDay);
+    assert.equal(verifyQuery.get('slot'), '00');
+    assert.equal(verifyQuery.get('profile'), '0');
+    for (const identityKey of ['email', 'ecid', 'crmId', 'recipientId']) {
+      assert.equal(verifyQuery.has(identityKey), false, 'Verify requests use only the schedule row key, never caller identity');
+    }
+    assert.equal(profileRequests.filter(request => request.method === 'POST').length, 0, 'Scheduled verification is read-only');
+    assert.equal(await profileRows.nth(0).locator('td').nth(11).getAttribute('data-profile-readback'), 'verified');
+    assert.equal(await profileRows.nth(0).locator('td').nth(12).getAttribute('data-profile-readback'), 'waiting',
+      'Snowflake REL evidence is displayed separately from AEP dataset storage');
+    assert.equal(await profileRows.nth(0).locator('td').nth(13).getAttribute('data-profile-readback'), 'verified');
+    assert.match(await profileRows.nth(0).locator('td').nth(14).textContent(), /separate AEP dataset-level REL verification/);
+    assert.match(await profileRows.nth(0).locator('.flows-profile-evidence summary').textContent(), /Readback checked 2026-11-19T03:05:00.000Z/);
+    await profileRows.nth(0).locator('.flows-profile-evidence summary').click();
+    const verifiedEvidence = await profileRows.nth(0).locator('.flows-profile-evidence').textContent();
+    assert.match(verifiedEvidence, /Checked at 2026-11-19T03:05:00.000Z/);
+    assert.match(verifiedEvidence, /Email and ECID matched; full industry completeness not checked/);
+    assert.match(verifiedEvidence, /does not prove arrival in an AEP REL dataset/);
+    await scheduled.page.evaluate(() => { window.fixtureProfileStatus = 503; });
+    await profileRows.nth(0).locator('.flows-profile-verify').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('HTTP 503'));
+    assert.match(await profileRows.nth(0).locator('.flows-profile-evidence').textContent(), /Stale verification/);
+    assert.match(await profileRows.nth(0).locator('td').nth(4).textContent(), /Verification recheck failed/);
+    assert.match(await profileRows.nth(0).locator('td').nth(11).textContent(), /Stale · verified/,
+      'A failed recheck visibly marks the preserved per-stage state stale');
+    assert.equal(await profileRows.nth(0).locator('td').nth(11).getAttribute('data-stale'), 'true',
+      'A failed recheck preserves but clearly marks prior evidence stale');
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('HTTP 503'));
+    assert.equal(await profileRows.count(), 2, 'A failed list refresh preserves the previous identities');
+    assert.match(await scheduled.page.locator('#flowsScheduledProfilesResults').textContent(), /saved observation below is stale/);
+    assert.equal(await scheduled.page.locator('#flowsScheduledProfilesResults img').count(), 0);
+    await scheduled.page.evaluate(() => {
+      window.fixtureProfileStatus = 200;
+      window.fixtureScheduledProfiles.profiles = [];
+      window.fixtureScheduledProfiles.total = 0;
+    });
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesResults').textContent.includes('No scheduled profiles were recorded'));
+    assert.equal(await scheduled.page.locator('#flowsScheduledProfilesResults tbody tr').count(), 0,
+      'An empty day is a valid observation, not an error');
+    await scheduled.page.evaluate(() => { window.fixtureScheduledProfiles.configured = false; });
+    await scheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await scheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesResults').textContent.includes('No profile-seeding schedule is configured'));
+    assert.equal(await scheduled.page.locator('#flowsScheduledProfilesResults tbody tr').count(), 0,
+      'The configured:false profiles:[] branch is valid');
+    await scheduled.context.close();
+
+    for (const status of [401, 403]) {
+      const deniedProfiles = await open(owner);
+      await deniedProfiles.page.locator('#flowsResults').waitFor();
+      await deniedProfiles.page.locator('#flowsMonitorMode').click();
+      await deniedProfiles.page.locator('#flowsScheduledProfilesRead').click();
+      await deniedProfiles.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('read completed'));
+      await deniedProfiles.page.evaluate(value => { window.fixtureProfileStatus = value; }, status);
+      await deniedProfiles.page.locator('#flowsScheduledProfilesResults .flows-profile-verify').first().click();
+      await deniedProfiles.page.waitForFunction(() => document.getElementById('flowsResults').hidden);
+      assert.equal(await deniedProfiles.page.locator('#flowsScheduledProfilesResults').textContent(), '',
+        'Auth denial clears private identities and verification evidence');
+      assert.doesNotMatch(await deniedProfiles.page.locator('body').textContent(), /prepared@example\.invalid|committed@example\.invalid/);
+      if (status === 401) assert.ok(await deniedProfiles.page.locator('#flowsSignIn').isVisible());
+      await deniedProfiles.context.close();
+    }
+    const lateScheduled = await open(owner);
+    await lateScheduled.page.locator('#flowsResults').waitFor();
+    await lateScheduled.page.locator('#flowsMonitorMode').click();
+    await lateScheduled.page.locator('#flowsScheduledProfilesRead').click();
+    await lateScheduled.page.waitForFunction(() => document.getElementById('flowsScheduledProfilesStatus').textContent.includes('read completed'));
+    await lateScheduled.page.evaluate(() => { window.delayProfileResponse = true; });
+    await lateScheduled.page.locator('#flowsScheduledProfilesResults .flows-profile-verify').first().click();
+    await lateScheduled.page.waitForFunction(() => !!window.releaseProfileResponse);
+    await lateScheduled.page.evaluate(() => window.setFixtureUser(null));
+    await lateScheduled.page.evaluate(() => window.releaseProfileResponse());
+    assert.ok(await lateScheduled.page.locator('#flowsResults').isHidden());
+    assert.equal(await lateScheduled.page.locator('#flowsScheduledProfilesResults').textContent(), '',
+      'A late profile verification cannot restore private data after sign-out');
+    await lateScheduled.context.close();
     for (const status of [401, 403, 500]) {
       const failure = await open(owner, { status });
       await failure.page.waitForFunction(() => document.getElementById('flowsStatus').dataset.error === 'true');
@@ -819,7 +1056,7 @@ async function main() {
     const navEntry = nav.slice(nav.indexOf("label: 'My data flows'"), nav.indexOf("label: 'AEP & Apps'"));
     assert.doesNotMatch(navEntry, /inDevelopment/);
     assert.deepEqual(errors, []);
-    console.log('PASS My data flows: simulations/fullscreen/themes/mobile, owner auth, live create-once, evidence/query copy, readback states, polling/stop/resume, identity persistence, unknown outcome recovery and late GET/POST signout protection. All APIs mocked.');
+    console.log('PASS My data flows: simulations/fullscreen/themes/mobile, owner auth, explicit scheduled-profile date/list/verification reads, prepared-vs-committed receipt labels, safe identity rendering, stale/error/auth-denial handling, late scheduled-read signout protection, and existing trace lifecycle. All APIs mocked.');
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

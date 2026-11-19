@@ -106,6 +106,37 @@
 .my-data-flows-page .flows-story,
 .my-data-flows-page .flows-monitor-controls,
 .my-data-flows-page .flows-trace-controls { border-block: 1px solid var(--dash-border); padding: 1rem 0; margin-bottom: 1rem; }
+.my-data-flows-page .flows-scheduler { border-top: 1px solid var(--dash-border); margin-top: 1.25rem; padding-top: 1rem; }
+.my-data-flows-page .flows-scheduler .flows-toolbar h3 { margin: 0 auto 0 0; }
+.my-data-flows-page #flowsSchedule { background: var(--dash-blue); color: var(--dash-on-accent); border-color: var(--dash-blue); }
+.my-data-flows-page #flowsSchedule:disabled { opacity: .65; cursor: progress; }
+.my-data-flows-page .flows-scheduler-summary { display: grid; grid-template-columns: minmax(8rem, max-content) minmax(0, 1fr); gap: .35rem .8rem; margin: .75rem 0 1rem; }
+.my-data-flows-page .flows-scheduler-summary dt { color: var(--dash-text-secondary); }
+.my-data-flows-page .flows-scheduler-summary dd { margin: 0; overflow-wrap: anywhere; }
+.my-data-flows-page .flows-scheduler-failures { margin-top: 1rem; }
+.my-data-flows-page .flows-scheduler-failure { padding: .6rem 0; border-top: 1px solid var(--dash-border); }
+.my-data-flows-page .flows-scheduler-failure summary { cursor: pointer; font-weight: 600; }
+.my-data-flows-page .flows-scheduled-profiles { border-top: 1px solid var(--dash-border); margin-top: 1.25rem; padding-top: 1rem; }
+.my-data-flows-page .flows-scheduled-profiles h3 { margin-top: 0; }
+.my-data-flows-page #flowsScheduledProfilesDay { font: inherit; max-width: 100%; padding: .6rem; color: var(--dash-text); background: var(--dash-input-bg); border: 1px solid var(--dash-input-border); border-radius: 8px; }
+.my-data-flows-page #flowsScheduledProfilesRead { background: var(--dash-blue); color: var(--dash-on-accent); border-color: var(--dash-blue); }
+.my-data-flows-page #flowsScheduledProfilesRead:disabled,
+.my-data-flows-page .flows-profile-verify:disabled { opacity: .65; cursor: progress; }
+.my-data-flows-page .flows-profile-state { display: inline-block; padding: .25rem .5rem; border: 1px solid var(--dash-border); border-radius: 999px; overflow-wrap: anywhere; }
+.my-data-flows-page .flows-profile-state[data-state="committed"],
+.my-data-flows-page [data-profile-readback="verified"] { color: var(--dash-success-text); }
+.my-data-flows-page .flows-profile-state[data-state="needs_attention"],
+.my-data-flows-page [data-profile-readback="failed"] { color: var(--dash-error-text); }
+.my-data-flows-page [data-profile-readback="waiting"] { color: var(--dash-warning-text); }
+.my-data-flows-page [data-stale="true"] { color: var(--dash-error-text); }
+.my-data-flows-page .flows-profile-stale { color: var(--dash-error-text); font-weight: 600; }
+.my-data-flows-page .flows-profile-evidence { min-width: 14rem; max-width: 28rem; }
+.my-data-flows-page .flows-profile-evidence summary { cursor: pointer; }
+.my-data-flows-page .flows-profile-evidence pre { max-width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--dash-text); background: var(--dash-surface-alt); padding: .65rem; border-radius: 8px; }
+.my-data-flows-page .flows-profile-evidence [data-stale="true"] { color: var(--dash-error-text); font-weight: 600; }
+.my-data-flows-page .flows-profile-verify { white-space: nowrap; }
+.my-data-flows-page .flows-scheduled-profiles .flows-run-table-wrap { max-height: 65vh; overflow: auto; overscroll-behavior: contain; }
+.my-data-flows-page .flows-scheduled-profiles .flows-run-table { min-width: 68rem; }
 .my-data-flows-page .flows-scenarios button { font-size: .8rem; padding: .45rem .65rem; }
 .my-data-flows-page #flowsScenarioDescription { font-size: .875rem; margin: .5rem 0; }
 .my-data-flows-page .flows-story-controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; font-size: .8rem; }
@@ -208,6 +239,7 @@
   .my-data-flows-page :is(.flows-workspace-body, .flows-inspector-column) { transition: none; }
 }
 @media (max-width: 600px) {
+  .my-data-flows-page .flows-scheduler-summary { grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr); }
   .my-data-flows-page .flows-modes button { font-size: .8rem; padding: .65rem .35rem; }
   .my-data-flows-page .flows-modes span { display: none; }
   .my-data-flows-page .flows-workspace { padding: .85rem; }

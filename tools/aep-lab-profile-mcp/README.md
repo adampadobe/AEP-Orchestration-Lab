@@ -6,7 +6,7 @@ Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) serve
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 252-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 252-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics, governed cleanup, and AJO Loyalty additions require deployment of their Firebase functions and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only AJO Loyalty inspection
 
@@ -74,14 +74,21 @@ and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-
 
 ### Owner-reviewed scheduled seed skip (General only)
 
-Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**,
-the reviewed **2026-11-15 / slot 01 / media / count 1** preparation failure,
-and the exact **2026-11-15 / slot 15 / travel / count 1** interrupted prewrite
-with an empty persisted `identities` array. The media and travel cases require
+Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
+only, not arbitrary future days, industries or generation counts. It also
+covers the reviewed **2026-11-15 / slot 01 / media / count 1** preparation
+failure and the exact **2026-11-15 / slot 15 / travel / count 1** interrupted
+prewrite with an empty persisted `identities` array. The media and travel cases require
 exact saved timestamps and attempted budgets (3 and 6 respectively); the travel
 slot also requires the scheduler's exact saved field shape. Empty identities
 alone do not allow arbitrary interrupted slots to be skipped.
-The backend enforces the reviewed day/slot pair and prewrite attempt despite the unchanged receipt interface;
+It additionally covers the exact **2026-11-17 / slot 14 / sports / count 3**
+prewrite health failure: attempted budget 31, exact due/start/update timestamps,
+zero prepared identities, and the saved 13-flow snapshot with only the shared
+base-profile flow marked in-progress. The backend checks that failure snapshot,
+including its three health reasons, before issuing a recovery receipt.
+The backend enforces each reviewed day/slot pair and prewrite attempt despite
+the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.
 
 `lab_profile_seed_schedule_skip_preview` and

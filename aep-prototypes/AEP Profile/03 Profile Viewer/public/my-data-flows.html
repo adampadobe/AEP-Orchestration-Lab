@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="my-data-flows.css?v=20261113-viewport">
+  <link rel="stylesheet" href="my-data-flows.css?v=20261119-scheduled-profiles">
   <link rel="stylesheet" href="home.css?v=20260515-rtdb-lab-disclosure">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
@@ -69,6 +69,27 @@
               </div>
               <p id="flowsMonitorSummary" role="status" aria-live="polite">No live status requested.</p>
               <p class="flows-muted">A run observation is not proof that a particular record arrived. No automatic refresh or pipeline repair.</p>
+              <section class="flows-scheduler" aria-labelledby="flowsSchedulerHeading">
+                <div class="flows-toolbar">
+                  <h3 id="flowsSchedulerHeading">Scheduled profile seeding</h3>
+                  <button type="button" id="flowsSchedule">Read scheduler health</button>
+                </div>
+                <p id="flowsScheduleStatus" role="status" aria-live="polite">No scheduler read requested. Refresh is owner-only and on demand.</p>
+                <div id="flowsScheduleResults"></div>
+                <p class="flows-muted">Committed counts mean the scheduler recorded its Snowflake source transaction. This summary does not verify AEP Profile or REL arrival; use a profile-specific trace and readback for that.</p>
+              </section>
+              <section id="flowsScheduledProfiles" class="flows-scheduled-profiles" aria-labelledby="flowsScheduledProfilesHeading">
+                <h3 id="flowsScheduledProfilesHeading">Scheduled profiles</h3>
+                <p class="flows-muted">Read one of the last seven Asia/Riyadh calendar days on demand. Listed identities may be prepared without a committed source write. Each verification is a separate read; no profiles are generated or changed.</p>
+                <div class="flows-toolbar">
+                  <label for="flowsScheduledProfilesDay">Schedule day (Asia/Riyadh)</label>
+                  <input type="date" id="flowsScheduledProfilesDay" required>
+                  <button type="button" id="flowsScheduledProfilesRead">Read scheduled profiles</button>
+                </div>
+                <p id="flowsScheduledProfilesStatus" role="status" aria-live="polite">No scheduled profiles read. Choose a day and read explicitly.</p>
+                <div id="flowsScheduledProfilesResults"></div>
+                <p class="flows-muted">A Snowflake REL read is separate from arrival in an AEP REL dataset. AEP Profile visibility does not verify full field-mapping completeness. Dataset/REL storage requires separate dataset verification.</p>
+              </section>
             </section>
           <section id="flowsTracePanel" class="flows-trace-controls" aria-labelledby="flowsTraceHeading" hidden>
             <h2 id="flowsTraceHeading">Create and trace a profile</h2>
@@ -175,6 +196,6 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
-  <script defer src="my-data-flows.js?v=20261113-viewport"></script>
+  <script defer src="my-data-flows.js?v=20261119-scheduled-profiles"></script>
 </body>
 </html>
