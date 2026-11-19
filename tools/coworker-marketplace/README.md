@@ -7,8 +7,9 @@ This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. 
 ## V2: all Lab connections, one personal secret
 
 The separate `tools/coworker-marketplace-v2` marketplace packages General and
-all 19 focused Lab connections in plugin **AEP Lab v2**, version **0.2.0**.
-It preserves the installed pilot's marketplace/plugin identities and its
+all 19 focused Lab connections in plugin **AEP-Orchestration-Lab-v2**, version
+**0.2.0**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
+It preserves the installed pilot's plugin identity and its
 `lab-v2-entry` and `lab-v2-demo` connection names. It does not replace v1 or the
 root Claude marketplace, and it contains no workflow skill.
 
@@ -61,8 +62,9 @@ Setup, after the package is published to an approved GitHub ref:
    sandbox-scoped Portal MCP key as `aep_lab_mcp_key`. Never put the key in Git,
    chat, the marketplace's GitHub-token field, or an organization-wide secret.
 2. Add repository `adampadobe/AEP-Orchestration-Lab`, the published v2 ref,
-   subdirectory `tools/coworker-marketplace-v2`, and a distinct marketplace name.
-   Install **AEP Lab v2** (`aep-lab-v2`), leaving v1 unchanged. If a newly added
+   subdirectory `tools/coworker-marketplace-v2`, and marketplace name
+   `AEP-Orchestration-Lab-v2`.
+   Install **AEP-Orchestration-Lab-v2** (`aep-lab-v2`), leaving v1 unchanged. If a newly added
    marketplace initially shows Ready with zero plugins, let discovery finish;
    one explicit **Sync** resolved this during the pilot.
 3. Use **Test** on each connection and start a fresh chat. Verify access information

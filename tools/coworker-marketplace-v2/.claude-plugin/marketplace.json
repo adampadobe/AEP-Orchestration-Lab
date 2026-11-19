@@ -1,5 +1,5 @@
 {
-  "name": "aep-lab-v2-pilot",
+  "name": "aep-orchestration-lab-v2",
   "owner": { "name": "Adam Palmer" },
   "metadata": {
     "description": "AEP Lab shared-secret MCP connections for CX Coworker"
@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "aep-lab-v2",
-      "displayName": "AEP Lab v2",
+      "displayName": "AEP-Orchestration-Lab-v2",
       "description": "General and all 19 focused Lab connections using one personal secret. Entry and Demo Prep authentication verified in Coworker.",
       "source": "./aep-lab-v2"
     }
