@@ -2,7 +2,8 @@
   'use strict';
   var auth, snapshot = null, scenario = null, stepIndex = 0, timer = null;
   var generation = 0, controller = null, schedulerGeneration = 0, schedulerController = null;
-  var schedulerSnapshot = null, schedulerFailed = false, zoom = 1, graphWidth = 1000, graphHeight = 600;
+  var schedulerSnapshot = null, schedulerFailed = false, scheduledProfilesGeneration = 0, scheduledProfilesController = null;
+  var scheduledProfilesSnapshot = null, scheduledProfilesFailed = false, zoom = 1, graphWidth = 1000, graphHeight = 600;
   var autoFit = true;
   var overview = true, subsystem = null, monitorMode = false, selectedNode = null, liveFailed = false;
   var packets = [], freshnessTimer = null;
@@ -75,6 +76,12 @@
     schedulerController = null;
     schedulerSnapshot = null;
     schedulerFailed = false;
+    scheduledProfilesGeneration += 1;
+    if (scheduledProfilesController) scheduledProfilesController.abort();
+    scheduledProfilesController = null;
+    scheduledProfilesSnapshot = null;
+    scheduledProfilesFailed = false;
+    el('flowsScheduledProfilesResults').replaceChildren();
     snapshot = null;
     scenario = null;
     stepIndex = 0;
@@ -94,6 +101,8 @@
       'flowsOverview', 'flowsMobileStages', 'flowsMonitorSummary', 'flowsScheduleResults', 'flowsSubsystemName'].forEach(function (id) { el(id).replaceChildren(); });
     el('flowsScheduleStatus').textContent = 'No scheduler read requested. Refresh is owner-only and on demand.';
     el('flowsSchedule').disabled = false;
+    el('flowsScheduledProfilesStatus').textContent = 'No scheduled profiles read. Choose a day and read explicitly.';
+    el('flowsScheduledProfilesRead').disabled = false;
     el('flowsGraph').dataset.expanded = 'false';
     el('flowsExpand').setAttribute('aria-expanded', 'false');
     el('flowsExpand').textContent = 'Expand diagram';
@@ -956,6 +965,313 @@
       }
     }
   }
+  function riyadhDay(date) {
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Riyadh', year: 'numeric', month: '2-digit', day: '2-digit',
+    }).formatToParts(date);
+    var values = {};
+    parts.forEach(function (part) { if (part.type !== 'literal') values[part.type] = part.value; });
+    return values.year + '-' + values.month + '-' + values.day;
+  }
+  function scheduledProfileDayBounds() {
+    var today = riyadhDay(new Date()), todayDate = new Date(today + 'T00:00:00Z');
+    todayDate.setUTCDate(todayDate.getUTCDate() - 6);
+    return { min: todayDate.toISOString().slice(0, 10), max: today };
+  }
+  function initializeScheduledProfileDay() {
+    var input = el('flowsScheduledProfilesDay'), bounds = scheduledProfileDayBounds();
+    input.min = bounds.min; input.max = bounds.max;
+    if (!input.value) input.value = bounds.max;
+  }
+  function validScheduledProfileDay(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+    var parsed = new Date(value + 'T00:00:00Z');
+    if (!Number.isFinite(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== value) return false;
+    var bounds = scheduledProfileDayBounds();
+    return value >= bounds.min && value <= bounds.max;
+  }
+  function validateScheduledProfilesEnvelope(data, day, verification) {
+    var envelope = data?.schedulerProfiles, profiles = envelope?.profiles;
+    if (data?.ok !== true || data.sandbox !== 'apalmer' || envelope?.ok !== true
+      || envelope.sandbox !== 'apalmer' || envelope.day !== day
+      || typeof envelope.configured !== 'boolean' || !Array.isArray(profiles)
+      || !Number.isInteger(envelope.total) || envelope.total < profiles.length
+      || profiles.length > 50 || (envelope.configured === false && profiles.length !== 0)) return null;
+    if (verification && (envelope.total !== 1 || profiles.length !== 1)) return null;
+    for (var i = 0; i < profiles.length; i += 1) {
+      var profile = profiles[i];
+      if (!profile || typeof profile.slotId !== 'string' || !Number.isInteger(profile.index) || profile.index < 0
+        || typeof profile.industry !== 'string' || typeof profile.state !== 'string') return null;
+      if (verification && (!profile.verification || typeof profile.verification.checkedAt !== 'string')) return null;
+    }
+    return envelope;
+  }
+  function profileStateLabel(value) {
+    return String(value || 'unknown').replace(/_/g, ' ');
+  }
+  function profileEvidenceBlock(parent, label, stage) {
+    var block = node('section', undefined, 'flows-profile-stage');
+    block.appendChild(node('h4', label));
+    if (!stage) {
+      block.appendChild(node('p', 'Not checked.'));
+      parent.appendChild(block);
+      return;
+    }
+    var statusLine = node('p', profileStateLabel(stage.state) + (stage.detail ? ' · ' + stage.detail : ''));
+    statusLine.dataset.profileReadback = stage.state || 'unknown';
+    block.appendChild(statusLine);
+    if (stage.evidence !== undefined && stage.evidence !== null) {
+      block.appendChild(node('pre', typeof stage.evidence === 'string' ? stage.evidence : JSON.stringify(stage.evidence, null, 2)));
+    }
+    parent.appendChild(block);
+  }
+  function profileVerificationDetails(profile, stale) {
+    var details = node('details', undefined, 'flows-profile-evidence');
+    details.appendChild(node('summary', profile.verification
+      ? 'Readback checked ' + text(profile.verification.checkedAt) + ' · evidence and details'
+      : 'Readback details'));
+    if (stale) details.appendChild(node('p', stale, 'flows-profile-stale'));
+    if (profile.verification) {
+      details.appendChild(node('p', 'Checked at ' + text(profile.verification.checkedAt)));
+      profileEvidenceBlock(details, 'Source readback', profile.verification.source);
+      profileEvidenceBlock(details, 'Snowflake REL readback', profile.verification.rel);
+      profileEvidenceBlock(details, 'AEP Profile visibility', profile.verification.aepProfile);
+      profileEvidenceBlock(details, 'AEP dataset / REL storage', profile.verification.aepStorage);
+      details.appendChild(node('p', 'AEP Profile visibility is not a full mapping-completeness check. A Snowflake REL read does not prove arrival in an AEP REL dataset.', 'flows-muted'));
+    } else {
+      profileEvidenceBlock(details, 'Source readback', null);
+      profileEvidenceBlock(details, 'Snowflake REL readback', null);
+      profileEvidenceBlock(details, 'AEP Profile visibility', null);
+      profileEvidenceBlock(details, 'AEP dataset / REL storage', { state: 'manual', detail: 'Requires separate dataset verification.' });
+    }
+    parentAppendFailure(details, profile.verificationFailure);
+    return details;
+  }
+  function parentAppendFailure(parent, failure) {
+    if (!failure) return;
+    parent.appendChild(node('p', failure.message + ' Failed at ' + text(failure.failedAt)
+      + '. Previous readback, if shown, is stale and was not replaced.', 'flows-profile-stale'));
+  }
+  function renderScheduledProfiles() {
+    var target = el('flowsScheduledProfilesResults');
+    target.replaceChildren();
+    var snapshotValue = scheduledProfilesSnapshot;
+    if (!snapshotValue) {
+      target.appendChild(node('p', scheduledProfilesFailed
+        ? 'No scheduled-profile observation is available. The read failed.'
+        : 'No scheduled profiles loaded. Use Read scheduled profiles to request a day.', 'flows-empty'));
+      return;
+    }
+    if (scheduledProfilesFailed) {
+      target.appendChild(node('p', 'The latest read failed. The saved observation below is stale and remains unchanged.', 'flows-profile-stale'));
+    }
+    if (el('flowsScheduledProfilesDay').value !== snapshotValue.day) {
+      target.appendChild(node('p', 'Showing the saved observation for ' + snapshotValue.day + '; read the selected day to replace it.', 'flows-muted'));
+    }
+    var listCount = snapshotValue.configured
+      ? snapshotValue.total + ' scheduled profile entr' + (snapshotValue.total === 1 ? 'y' : 'ies')
+        + (snapshotValue.profiles.length < snapshotValue.total ? ' · ' + snapshotValue.profiles.length + ' shown (limit 50)' : '')
+      : 'No schedule configured';
+    target.appendChild(node('p', listCount + ' · observed ' + text(snapshotValue.observedAt) + ' · day ' + snapshotValue.day, 'flows-muted'));
+    if (!snapshotValue.configured) {
+      target.appendChild(node('p', 'No profile-seeding schedule is configured for this owner and sandbox.', 'flows-empty'));
+      return;
+    }
+    if (!snapshotValue.profiles.length) {
+      target.appendChild(node('p', 'No scheduled profiles were recorded for this day.', 'flows-empty'));
+      return;
+    }
+    var wrap = node('div', undefined, 'flows-run-table-wrap');
+    wrap.tabIndex = 0; wrap.setAttribute('role', 'region'); wrap.setAttribute('aria-label', 'Scheduled profile results; scroll horizontally to view all columns');
+    var table = node('table', undefined, 'flows-run-table');
+    table.appendChild(node('caption', 'Prepared identities are not necessarily committed. Readback checks are explicit and read-only.'));
+    var head = node('thead'), heading = node('tr');
+    ['Slot / profile', 'Slot started', 'Industry', 'State', 'Issue', 'Email', 'ECID', 'CRM ID', 'Recipient ID', 'Source receipt', 'Source committed time', 'Source readback', 'Snowflake REL read', 'AEP Profile', 'AEP dataset / REL storage', 'Evidence', 'Action'].forEach(function (label) {
+      var th = node('th', label); th.scope = 'col'; heading.appendChild(th);
+    });
+    head.appendChild(heading); table.appendChild(head);
+    var body = node('tbody');
+    snapshotValue.profiles.forEach(function (profile) {
+      var row = node('tr');
+      row.dataset.slotId = profile.slotId;
+      row.dataset.profileIndex = String(profile.index);
+      var state = node('strong', profileStateLabel(profile.state), 'flows-profile-state');
+      state.dataset.state = profile.state;
+      var receipt = profile.state === 'committed' ? 'Committed' : 'Not confirmed · ' + profileStateLabel(profile.state);
+      var committedAt = profile.state === 'committed'
+        ? (profile.sourceCommittedAt || 'Commit time not recorded')
+        : 'Not committed';
+      var verification = profile.verification;
+      var sourceState = profile.verificationFailure && !verification ? 'Check failed' : verification?.source?.state || 'Not checked';
+      var relState = profile.verificationFailure && !verification ? 'Check failed' : verification?.rel?.state || 'Not checked';
+      var aepState = profile.verificationFailure && !verification ? 'Check failed' : verification?.aepProfile?.state || 'Not checked';
+      var storage = verification?.aepStorage;
+      var storageDetail = profileStateLabel(storage?.state || 'manual') + ' · '
+        + (storage?.detail || 'Requires separate dataset verification.');
+      var issueText = [profile.errorCode, profile.verificationFailure ? 'Verification recheck failed at ' + text(profile.verificationFailure.failedAt) : null]
+        .filter(Boolean).join(' · ') || 'None recorded';
+      row.append(node('td', profile.slotId + ' / ' + profile.index), node('td', profile.startedAt));
+      row.append(node('td', profile.industry));
+      var stateCell = node('td'); stateCell.appendChild(state); row.appendChild(stateCell);
+      row.append(node('td', issueText), node('td', profile.email), node('td', profile.ecid),
+        node('td', profile.crmId), node('td', profile.recipientId), node('td', receipt), node('td', committedAt));
+      var sourceCell = node('td', (profile.verificationFailure && verification ? 'Stale · ' : '') + profileStateLabel(sourceState));
+      sourceCell.dataset.profileReadback = sourceState;
+      var relCell = node('td', (profile.verificationFailure && verification ? 'Stale · ' : '') + profileStateLabel(relState));
+      relCell.dataset.profileReadback = relState;
+      var aepCell = node('td', (profile.verificationFailure && verification ? 'Stale · ' : '') + profileStateLabel(aepState));
+      aepCell.dataset.profileReadback = aepState;
+      if (profile.verificationFailure && verification) {
+        [sourceCell, relCell, aepCell].forEach(function (cell) { cell.dataset.stale = 'true'; });
+      }
+      row.append(sourceCell, relCell, aepCell, node('td', storageDetail));
+      var evidenceCell = node('td');
+      var staleMessage = profile.verificationFailure
+        ? 'Stale verification: ' + profile.verificationFailure.message : '';
+      evidenceCell.appendChild(profileVerificationDetails(profile, staleMessage));
+      row.appendChild(evidenceCell);
+      var actionCell = node('td'), verifyButton = node('button', 'Verify stored data', 'flows-profile-verify');
+      verifyButton.type = 'button'; verifyButton.disabled = !!scheduledProfilesController;
+      verifyButton.setAttribute('aria-label', 'Verify stored data for slot ' + profile.slotId + ', profile ' + profile.index);
+      verifyButton.addEventListener('click', function () {
+        verifyScheduledProfile(snapshotValue.day, profile.slotId, profile.index);
+      });
+      actionCell.appendChild(verifyButton); row.appendChild(actionCell);
+      body.appendChild(row);
+    });
+    table.appendChild(body); wrap.appendChild(table); target.appendChild(wrap);
+  }
+  function scheduledProfilesDenied(statusCode) {
+    clear();
+    el('flowsControls').hidden = true;
+    el('flowsSignIn').hidden = statusCode !== 401;
+    status('Access denied or sign-in expired. No private observations are retained.', true);
+  }
+  async function loadScheduledProfiles() {
+    var user = auth?.currentUser, epoch = generation, day = el('flowsScheduledProfilesDay').value;
+    if (!current(user, epoch)) return;
+    if (!validScheduledProfileDay(day)) {
+      renderScheduledProfiles();
+      el('flowsScheduledProfilesStatus').textContent = 'Choose a valid date from the last seven Asia/Riyadh calendar days.';
+      return;
+    }
+    scheduledProfilesGeneration += 1;
+    var requestId = scheduledProfilesGeneration;
+    if (scheduledProfilesController) scheduledProfilesController.abort();
+    var requestController = scheduledProfilesController = new AbortController();
+    var timeout = setTimeout(function () { requestController.abort(); }, 30000);
+    el('flowsScheduledProfilesRead').disabled = true;
+    el('flowsScheduledProfilesStatus').textContent = 'Reading scheduled profiles for ' + day + '…';
+    try {
+      var token = await user.getIdToken();
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      var query = new URLSearchParams({ sandbox: 'apalmer', scheduledProfiles: 'list', day: day });
+      var response = await fetch('/api/architecture/my-data-flows?' + query.toString(), {
+        method: 'GET', headers: { Authorization: 'Bearer ' + token }, credentials: 'omit',
+        cache: 'no-store', signal: requestController.signal,
+      });
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      if (response.status === 401 || response.status === 403) {
+        scheduledProfilesDenied(response.status); return;
+      }
+      if (!response.ok) throw new Error('Scheduled profiles read failed (HTTP ' + response.status + ').');
+      var data = await response.json();
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      var envelope = validateScheduledProfilesEnvelope(data, day, false);
+      if (!envelope) throw new Error('Scheduled profiles returned an invalid observation.');
+      scheduledProfilesSnapshot = envelope;
+      scheduledProfilesSnapshot.profiles = envelope.profiles.map(function (profile) {
+        return Object.assign({}, profile, { verificationFailure: null });
+      });
+      scheduledProfilesFailed = false;
+      renderScheduledProfiles();
+      el('flowsScheduledProfilesStatus').textContent = 'Owner-scoped scheduled-profile read completed for ' + day + '.';
+    } catch (error) {
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      scheduledProfilesFailed = true;
+      renderScheduledProfiles();
+      el('flowsScheduledProfilesStatus').textContent = error.name === 'AbortError'
+        ? 'Scheduled-profile read timed out. Previous evidence, if any, is retained and marked stale.'
+        : error.message + (scheduledProfilesSnapshot ? ' Previous evidence is retained and marked stale.' : '');
+    } finally {
+      clearTimeout(timeout);
+      if (scheduledProfilesGeneration === requestId && current(user, epoch)) {
+        scheduledProfilesController = null;
+        el('flowsScheduledProfilesRead').disabled = false;
+        renderScheduledProfiles();
+      }
+    }
+  }
+  async function verifyScheduledProfile(day, slotId, index) {
+    var user = auth?.currentUser, epoch = generation;
+    if (!current(user, epoch) || !scheduledProfilesSnapshot) return;
+    if (!validScheduledProfileDay(day)) {
+      el('flowsScheduledProfilesStatus').textContent = 'This observation is outside the supported seven-day verification window. Read a current day first.';
+      return;
+    }
+    scheduledProfilesGeneration += 1;
+    var requestId = scheduledProfilesGeneration;
+    if (scheduledProfilesController) scheduledProfilesController.abort();
+    var requestController = scheduledProfilesController = new AbortController();
+    var timeout = setTimeout(function () { requestController.abort(); }, 30000);
+    el('flowsScheduledProfilesRead').disabled = true;
+    renderScheduledProfiles();
+    el('flowsScheduledProfilesStatus').textContent = 'Verifying stored data for slot ' + slotId + ', profile ' + index + '…';
+    try {
+      var token = await user.getIdToken();
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      var query = new URLSearchParams({
+        sandbox: 'apalmer', scheduledProfiles: 'verify', day: day, slot: slotId, profile: String(index),
+      });
+      var response = await fetch('/api/architecture/my-data-flows?' + query.toString(), {
+        method: 'GET', headers: { Authorization: 'Bearer ' + token }, credentials: 'omit',
+        cache: 'no-store', signal: requestController.signal,
+      });
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      if (response.status === 401 || response.status === 403) {
+        scheduledProfilesDenied(response.status); return;
+      }
+      if (!response.ok) throw new Error('Stored-data verification failed (HTTP ' + response.status + ').');
+      var data = await response.json();
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      var envelope = validateScheduledProfilesEnvelope(data, day, true), checked = envelope?.profiles[0];
+      if (!checked || checked.slotId !== slotId || checked.index !== index) {
+        throw new Error('Stored-data verification returned an invalid observation.');
+      }
+      var existing = scheduledProfilesSnapshot.profiles.find(function (profile) {
+        return profile.slotId === slotId && profile.index === index;
+      });
+      if (!existing) throw new Error('The selected scheduled profile is no longer in the saved observation.');
+      ['industry', 'email', 'ecid', 'crmId', 'recipientId'].forEach(function (field) {
+        if (checked[field] !== existing[field]) throw new Error('Stored-data verification did not match the selected scheduled profile.');
+      });
+      existing.verification = checked.verification;
+      existing.verificationFailure = null;
+      renderScheduledProfiles();
+      el('flowsScheduledProfilesStatus').textContent = 'Read-only verification completed at ' + text(checked.verification.checkedAt)
+        + '. Source receipt, Snowflake REL, AEP Profile, and dataset storage remain separate evidence.';
+    } catch (error) {
+      if (scheduledProfilesGeneration !== requestId || !current(user, epoch)) return;
+      var existing = scheduledProfilesSnapshot.profiles.find(function (profile) {
+        return profile.slotId === slotId && profile.index === index;
+      });
+      if (existing) existing.verificationFailure = {
+        message: error.name === 'AbortError' ? 'Verification timed out.' : error.message,
+        failedAt: new Date().toISOString(),
+      };
+      renderScheduledProfiles();
+      el('flowsScheduledProfilesStatus').textContent = error.name === 'AbortError'
+        ? 'Verification timed out. Previous readback, if any, is retained and marked stale.'
+        : error.message + ' Previous readback, if any, is retained and marked stale.';
+    } finally {
+      clearTimeout(timeout);
+      if (scheduledProfilesGeneration === requestId && current(user, epoch)) {
+        scheduledProfilesController = null;
+        el('flowsScheduledProfilesRead').disabled = false;
+        renderScheduledProfiles();
+      }
+    }
+  }
   function renderLive(live) {
     var target = el('flowsLiveResults');
     target.replaceChildren();
@@ -1182,6 +1498,8 @@
   el('flowsReload').addEventListener('click', function () { load(false); });
   el('flowsLive').addEventListener('click', function () { load(true); });
   el('flowsSchedule').addEventListener('click', loadScheduler);
+  el('flowsScheduledProfilesRead').addEventListener('click', loadScheduledProfiles);
+  el('flowsScheduledProfilesDay').addEventListener('change', renderScheduledProfiles);
   el('flowsSimulationMode').addEventListener('click', function () { setTraceMode(false); });
   el('flowsMonitorMode').addEventListener('click', function () { setMode('monitor'); });
   el('flowsTraceMode').addEventListener('click', function () { setTraceMode(true); });
@@ -1291,7 +1609,7 @@
     if (!window.firebase || !firebase.auth) throw new Error('Firebase sign-in could not load. Reload this page or open the lab sign-in.');
     if (!firebase.apps.length) firebase.initializeApp(window.firebaseDatabaseConfig);
     auth = firebase.auth();
-    auth.onAuthStateChanged(function () { load(false); }, function () {
+    auth.onAuthStateChanged(function () { initializeScheduledProfileDay(); load(false); }, function () {
       generation += 1; if (controller) controller.abort(); clear();
       el('flowsControls').hidden = true; el('flowsSignIn').hidden = false;
       status('Unable to check your sign-in. Open the lab sign-in and try again.', true);
