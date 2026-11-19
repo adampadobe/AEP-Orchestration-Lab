@@ -6,14 +6,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Lloyds | Loyalty</title>
   <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="home.css?v=20261119-loyalty-palette">
   <link rel="stylesheet" href="mod-demo.css">
   <link rel="stylesheet" href="tui-decisioning-drawer.css?v=20261104-tui-events">
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261118-profile-layout">
-  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261119-rewards-app">
+  <link rel="stylesheet" href="aep-theme.css?v=20261119-loyalty-palette">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page">
   <div class="mod-demo-top-anchor">
@@ -46,30 +46,126 @@
         <div class="loyalty-section-heading"><h2 id="loyaltyTasksTitle">Challenge progress</h2><span id="loyaltyUpdated">Not loaded</span></div>
         <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile, then select Get task status.</p></div>
       </section>
-      <section class="loyalty-mobile-preview" aria-labelledby="loyaltyMobileTitle">
+      <section class="loyalty-mobile-preview" aria-label="Lloyds mobile banking app">
         <div class="loyalty-phone">
+          <svg class="loyalty-app-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <symbol id="loyaltyIconHome" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9h-6v-6H9v6H3z"/></symbol>
+            <symbol id="loyaltyIconCard" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></symbol>
+            <symbol id="loyaltyIconMoney" viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+            <symbol id="loyaltyIconStar" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+            <symbol id="loyaltyIconPerson" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+            <symbol id="loyaltyIconSearch" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+            <symbol id="loyaltyIconBell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></symbol>
+            <symbol id="loyaltyIconArrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+            <symbol id="loyaltyIconTransfer" viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+            <symbol id="loyaltyIconPlus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+            <symbol id="loyaltyIconTrophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></symbol>
+            <symbol id="loyaltyIconGift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 13h18M12 8c-2-4-6-4-6-1.5S10 8 12 8zm0 0c2-4 6-4 6-1.5S14 8 12 8z"/></symbol>
+            <symbol id="loyaltyIconTool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.2-.5-.5-2.2z"/></symbol>
+            <symbol id="loyaltyIconTicket" viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3zM14 6v12"/></symbol>
+          </svg>
           <div class="loyalty-phone-status" aria-hidden="true"><span>9:41</span><span>LLOYDS</span></div>
           <div class="loyalty-phone-scroll" tabindex="0" aria-label="Scroll mobile app content">
-            <header class="loyalty-phone-heading"><span aria-hidden="true">&#8592;</span><h2 id="loyaltyMobileTitle">Challenges</h2><span aria-hidden="true">&#9734;</span></header>
-            <div class="loyalty-phone-segments" role="group" aria-label="Challenge participation">
-              <button type="button" data-loyalty-participation="active" aria-pressed="true">Active</button>
-              <button type="button" data-loyalty-participation="complete" aria-pressed="false">Completed</button>
-            </div>
-            <h3 id="loyaltyPhoneTitle">In progress</h3>
-            <p class="loyalty-phone-subtitle">The challenges you've started.</p>
-            <section id="loyaltyPartnerOffers" class="loyalty-phone-challenge" aria-label="Joined challenge partner offers" aria-live="polite" hidden></section>
-            <div id="loyaltyPhoneTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to see its challenges.</p></div>
-            <section class="loyalty-promotion" aria-labelledby="loyaltyPromotionTitle" data-ajo-insert-section="Loyalty content card">
-              <h3 id="loyaltyPromotionTitle">Available for you</h3>
-              <p id="loyaltyCardHint">Your next challenge will appear here.</p>
-              <div id="ContentCardContainer" class="ContentCardContainer">
-                <div id="ContentCardContainerLoyalty" class="ContentCardLoyalty" aria-live="polite"></div>
+            <section id="loyaltyViewHome" class="loyalty-app-view" aria-label="Home">
+              <header class="loyalty-home-head">
+                <span id="loyaltyHomeAvatar" class="loyalty-avatar" aria-hidden="true">L</span>
+                <div class="loyalty-home-hello"><span>Welcome back</span><b id="loyaltyHomeName" tabindex="-1">Your banking</b></div>
+                <button class="loyalty-icon-button" type="button" aria-label="Search" data-phone-preview="Search"><svg aria-hidden="true"><use href="#loyaltyIconSearch"/></svg></button>
+                <button class="loyalty-icon-button" type="button" aria-label="Notifications" data-phone-preview="Notifications"><svg aria-hidden="true"><use href="#loyaltyIconBell"/></svg><i></i></button>
+              </header>
+              <section class="loyalty-balance-card" aria-label="Illustrative current account">
+                <div class="loyalty-balance-row"><span>Everyday Current Account</span><span class="loyalty-account-chip">&#8226;&#8226; 4821</span></div>
+                <b class="loyalty-balance-amount">&#163;4,286.35</b>
+                <div class="loyalty-balance-row"><span>Sort code 20-45-67</span><span>Available to spend</span></div>
+              </section>
+              <nav class="loyalty-quicknav" aria-label="Quick actions">
+                <button type="button" data-phone-preview="Payments"><span><svg aria-hidden="true"><use href="#loyaltyIconArrow"/></svg></span>Pay</button>
+                <button type="button" data-phone-preview="Transfers"><span><svg aria-hidden="true"><use href="#loyaltyIconTransfer"/></svg></span>Transfer</button>
+                <button type="button" data-phone-preview="Top ups"><span><svg aria-hidden="true"><use href="#loyaltyIconPlus"/></svg></span>Top up</button>
+                <button type="button" data-phone-preview="Cards"><span><svg aria-hidden="true"><use href="#loyaltyIconCard"/></svg></span>Cards</button>
+              </nav>
+              <button class="loyalty-rewards-teaser" type="button" data-phone-view="rewards" aria-controls="loyaltyViewRewards">
+                <span class="loyalty-teaser-icon"><svg aria-hidden="true"><use href="#loyaltyIconStar"/></svg></span>
+                <span><small>Rewards</small><b>&#163;85.00 earned this year</b><em>+&#163;12.50 today &#183; discover your offers</em></span><span aria-hidden="true">&#8250;</span>
+              </button>
+              <h3 class="loyalty-app-section-title">Your accounts</h3>
+              <section class="loyalty-app-list" aria-label="Illustrative accounts">
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo" data-art="waitrose">IS</span><div><b>Instant Saver</b><small>&#8226;&#8226; 7730 &#183; 4.10% AER</small></div><strong>&#163;12,450.00</strong></div>
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo" data-art="sky">CC</span><div><b>Rewards Credit Card</b><small>&#8226;&#8226; 9012</small></div><strong>-&#163;1,300.40</strong></div>
+              </section>
+              <h3 class="loyalty-app-section-title">Spending this month</h3>
+              <section class="loyalty-spending" aria-label="Illustrative monthly spending">
+                <div><b>&#163;1,142.80</b><span>of &#163;1,600 budget</span></div>
+                <div class="loyalty-spend-bar" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+                <dl><div><dt>Groceries</dt><dd>&#163;312.40</dd></div><div><dt>Transport</dt><dd>&#163;148.90</dd></div><div><dt>Eating out</dt><dd>&#163;176.20</dd></div><div><dt>Shopping</dt><dd>&#163;505.30</dd></div></dl>
+              </section>
+              <h3 class="loyalty-app-section-title">Recent transactions</h3>
+              <section class="loyalty-app-list" aria-label="Illustrative transactions">
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo" data-art="waitrose">W</span><div><b>Waitrose</b><small>Groceries &#183; Today</small></div><strong>-&#163;42.18<small>+&#163;0.63 cashback</small></strong></div>
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo" data-art="uber">Uber</span><div><b>Uber</b><small>Transport &#183; Today</small></div><strong>-&#163;14.90</strong></div>
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo" data-art="tkmaxx">TK</span><div><b>TK Maxx</b><small>Shopping &#183; Yesterday</small></div><strong>-&#163;68.00<small>+&#163;6.80 cashback</small></strong></div>
+              </section>
+              <p class="loyalty-app-note">Illustrative banking figures, not your AEP profile's balances.</p>
+            </section>
+            <section id="loyaltyViewRewards" class="loyalty-app-view" aria-labelledby="loyaltyMobileTitle" hidden>
+              <h2 id="loyaltyMobileTitle" class="loyalty-app-title" tabindex="-1">Rewards</h2>
+              <section class="loyalty-rewards-summary" aria-label="Illustrative rewards summary">
+                <b class="loyalty-summary-amount">&#163;85.00</b><p>So far this year</p>
+                <div class="loyalty-added"><span aria-hidden="true">&#8593;</span><div>You've added &#163;12.50 today<div class="loyalty-added-bar"><i></i></div></div></div>
+                <button id="loyaltyBreakdownButton" type="button" aria-expanded="false" aria-controls="loyaltyBreakdown">Show breakdown <span aria-hidden="true">&#8594;</span></button>
+                <dl id="loyaltyBreakdown" hidden><div><dt>Cashback</dt><dd>&#163;54.20</dd></div><div><dt>Challenges</dt><dd>&#163;18.30</dd></div><div><dt>Bonus &amp; draws</dt><dd>&#163;12.50</dd></div></dl>
+              </section>
+              <nav class="loyalty-quicknav" aria-label="Rewards navigation">
+                <button type="button" data-phone-section="loyaltyFeaturedTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconMoney"/></svg></span>Cashback</button>
+                <button type="button" data-phone-section="loyaltyPromotionTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconTrophy"/></svg></span>Challenges</button>
+                <button type="button" data-phone-section="loyaltyReadyTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconGift"/></svg></span>My benefits</button>
+                <button type="button" data-phone-preview="Rewards tools"><span><svg aria-hidden="true"><use href="#loyaltyIconTool"/></svg></span>Tools</button>
+              </nav>
+              <section id="loyaltyPrizeDraw" class="loyalty-prize-draw" aria-labelledby="loyaltyPrizeDrawTitle">
+                <h3 id="loyaltyPrizeDrawTitle">Win &#163;1 million and other cash prizes in our super draw</h3>
+                <button type="button" class="loyalty-app-dark-button" data-phone-preview="Prize draw entries">Claim bonus entry</button>
+              </section>
+              <section class="loyalty-promotion" aria-labelledby="loyaltyPromotionTitle" data-ajo-insert-section="Loyalty content card">
+                <h3 id="loyaltyPromotionTitle" tabindex="-1">Your next challenge</h3>
+                <p id="loyaltyCardHint">Your next challenge will appear here.</p>
+                <div id="ContentCardContainer" class="ContentCardContainer">
+                  <div id="ContentCardContainerLoyalty" class="ContentCardLoyalty" aria-live="polite"></div>
+                </div>
+              </section>
+              <h3 id="loyaltyFeaturedTitle" class="loyalty-app-section-title" tabindex="-1">Featured offers</h3>
+              <div id="loyaltyOfferCarousel" class="loyalty-offer-carousel" role="region" aria-roledescription="carousel" aria-label="Featured offers" tabindex="0">
+                <div id="loyaltyFeaturedOffers" class="loyalty-featured-track" role="list"></div>
               </div>
+              <div class="loyalty-carousel-controls" aria-label="Featured offer controls">
+                <button id="loyaltyPreviousOffer" type="button" aria-label="Previous featured offer" aria-controls="loyaltyOfferCarousel">&#8592;</button>
+                <div id="loyaltyOfferDots" class="loyalty-offer-dots" role="group" aria-label="Choose a featured offer"></div>
+                <button id="loyaltyNextOffer" type="button" aria-label="Next featured offer" aria-controls="loyaltyOfferCarousel">&#8594;</button>
+              </div>
+              <h3 id="loyaltyReadyTitle" class="loyalty-app-section-title" tabindex="-1">Ready to use</h3>
+              <section class="loyalty-plus-banner"><span>PLUS</span><b>Offers that stay active for longer</b></section>
+              <section class="loyalty-recent-offers" aria-label="Saved preview offers"><p>Your saved offers</p><div id="loyaltySavedOffers" aria-live="polite"></div></section>
+              <div class="loyalty-ticket"><span><svg aria-hidden="true"><use href="#loyaltyIconTicket"/></svg></span><div><b>Vue Cinema Tickets</b><small>Explore your cinema benefits</small></div><button type="button" aria-label="Preview cinema benefits" data-phone-preview="Cinema benefits">&#8250;</button></div>
+              <section class="loyalty-app-challenges" aria-labelledby="loyaltyPhoneTitle">
+                <div class="loyalty-phone-segments" role="group" aria-label="Challenge participation">
+                  <button type="button" data-loyalty-participation="active" aria-pressed="true">Active</button>
+                  <button type="button" data-loyalty-participation="complete" aria-pressed="false">Completed</button>
+                </div>
+                <h3 id="loyaltyPhoneTitle" tabindex="-1">In progress</h3>
+                <p class="loyalty-phone-subtitle">Your live Adobe challenge progress.</p>
+                <section id="loyaltyPartnerOffers" class="loyalty-phone-challenge" aria-label="Joined challenge partner offers" aria-live="polite" hidden></section>
+                <div id="loyaltyPhoneTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to see its challenges.</p></div>
+              </section>
+              <p class="loyalty-app-note">Rewards amounts and featured offers are illustrative. Saving a preview offer does not activate cashback or complete a challenge.</p>
             </section>
           </div>
           <nav class="loyalty-phone-nav" aria-label="Mobile preview sections">
-            <span>Home</span><span aria-current="page">Rewards</span><span>Pay</span><span>Account</span>
+            <button type="button" data-phone-view="home" aria-controls="loyaltyViewHome" aria-current="page"><svg aria-hidden="true"><use href="#loyaltyIconHome"/></svg>Home</button>
+            <button type="button" data-phone-preview="Payments"><svg aria-hidden="true"><use href="#loyaltyIconCard"/></svg>Payments</button>
+            <button type="button" data-phone-preview="Money"><svg aria-hidden="true"><use href="#loyaltyIconMoney"/></svg>Money</button>
+            <button type="button" data-phone-view="rewards" aria-controls="loyaltyViewRewards"><svg aria-hidden="true"><use href="#loyaltyIconStar"/></svg>Rewards</button>
+            <button type="button" data-phone-preview="Profile tools"><svg aria-hidden="true"><use href="#loyaltyIconPerson"/></svg>Profile</button>
           </nav>
+          <div id="loyaltyAppToast" class="loyalty-app-toast" role="status" aria-live="polite" hidden></div>
           <div id="loyaltyOfferSheet" class="loyalty-offer-overlay" hidden></div>
         </div>
       </section>
@@ -119,7 +215,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261118-api-signup'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261119-rewards-app'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

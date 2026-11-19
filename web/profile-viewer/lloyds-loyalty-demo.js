@@ -15,6 +15,17 @@
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
+  const savedPreviewOffers = new Set();
+  const featuredOffers = [
+    { key: 'waitrose', merchant: 'Waitrose', initials: 'W', reward: '15% cashback', channel: 'Online', expiry: '01 Dec 26', badge: true },
+    { key: 'tkmaxx', merchant: 'TK Maxx', initials: 'TK', reward: '10% cashback', channel: 'In store', expiry: '14 Dec 26' },
+    { key: 'uber', merchant: 'Uber', initials: 'Uber', reward: '8% cashback', channel: 'Online', expiry: '31 Jan 27', badge: true },
+    { key: 'ms', merchant: 'M&S', initials: 'M&S', reward: '12% cashback', channel: 'In store & online', expiry: '20 Dec 26' },
+    { key: 'sky', merchant: 'Sky', initials: 'sky', reward: '15% cashback', channel: 'Online', expiry: '28 Feb 27', badge: true },
+    { key: 'vue', merchant: 'Vue', initials: 'VUE', reward: '10% cashback', channel: 'In store', expiry: '01 Mar 27' },
+  ];
+  let phoneView = 'home', toastTimer;
+  const phoneScrollPositions = { home: 0, rewards: 0 };
   const signupScope = (ctx, member) => JSON.stringify([ctx.sandbox, ctx.region || 'va7', member]);
   const signupKey = (ctx, member, challenge) => JSON.stringify([signupScope(ctx, member), challenge]);
   const context = () => ({
@@ -43,9 +54,17 @@
   function closeConfiguration() {
     if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
   }
-  const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
+  const publish = () => {
+    const first = loaded?.rows.find(row => row.path === 'person.name.firstName');
+    const name = first ? global.TuiDecisioningProfile.scalar(first) : '';
+    $('loyaltyHomeName').textContent = typeof name === 'string' && name.trim() ? name : 'Your banking';
+    $('loyaltyHomeAvatar').textContent = typeof name === 'string' && name.trim() ? name.trim()[0].toUpperCase() : 'L';
+    global.dispatchEvent(new CustomEvent('tui-profile-changed'));
+  };
   function clearResults() {
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
+    savedPreviewOffers.clear(); renderSavedOffers();
+    clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
     displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
@@ -69,6 +88,146 @@
     if (value !== undefined) element.textContent = String(value);
     if (cls) element.className = cls;
     return element;
+  }
+  const phoneMotion = () => global.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+  function showPhoneView(name) {
+    if (!['home', 'rewards'].includes(name) || name === phoneView) return;
+    const scroll = document.querySelector('.loyalty-phone-scroll');
+    const moveFocus = document.activeElement.closest('.loyalty-app-view');
+    phoneScrollPositions[phoneView] = scroll.scrollTop;
+    phoneView = name;
+    $('loyaltyViewHome').hidden = name !== 'home'; $('loyaltyViewRewards').hidden = name !== 'rewards';
+    document.querySelectorAll('.loyalty-phone-nav [data-phone-view]').forEach(button => {
+      if (button.dataset.phoneView === name) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+    scroll.scrollTo({ top: phoneScrollPositions[name], behavior: 'instant' });
+    if (moveFocus) $(name === 'home' ? 'loyaltyHomeName' : 'loyaltyMobileTitle').focus({ preventScroll: true });
+  }
+  function scrollPhoneSection(id) {
+    showPhoneView('rewards');
+    const scroll = document.querySelector('.loyalty-phone-scroll'), target = $(id);
+    scroll.scrollTo({ top: scroll.scrollTop + target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12,
+      behavior: phoneMotion() });
+    target.focus({ preventScroll: true });
+  }
+  function phoneToast(text) {
+    clearTimeout(toastTimer);
+    $('loyaltyAppToast').textContent = text; $('loyaltyAppToast').hidden = false;
+    toastTimer = setTimeout(() => { $('loyaltyAppToast').hidden = true; }, 4000);
+  }
+  function renderSavedOffers() {
+    const fragment = document.createDocumentFragment();
+    for (const key of savedPreviewOffers) {
+      const offer = featuredOffers.find(item => item.key === key);
+      const logo = node('span', offer.initials, 'loyalty-merchant-logo');
+      logo.dataset.art = key; logo.setAttribute('role', 'img'); logo.setAttribute('aria-label', offer.merchant + ' saved preview offer');
+      fragment.append(logo);
+    }
+    if (!savedPreviewOffers.size) fragment.append(node('span', undefined, 'loyalty-saved-empty'),
+      node('span', undefined, 'loyalty-saved-empty'), node('small', 'Save a featured offer to see it here.'));
+    $('loyaltySavedOffers').replaceChildren(fragment);
+    document.querySelectorAll('[data-save-preview-offer]').forEach(button => {
+      const saved = savedPreviewOffers.has(button.dataset.savePreviewOffer);
+      button.setAttribute('aria-pressed', String(saved)); button.textContent = saved ? '\u2713' : '+';
+      const offer = featuredOffers.find(item => item.key === button.dataset.savePreviewOffer);
+      button.setAttribute('aria-label', (saved ? 'Unsave' : 'Save') + ' ' + offer.merchant + ' preview offer');
+    });
+  }
+  function initPhoneApp() {
+    document.querySelectorAll('[data-phone-view]').forEach(button => {
+      button.addEventListener('click', () => showPhoneView(button.dataset.phoneView));
+    });
+    document.querySelectorAll('[data-phone-section]').forEach(button => {
+      button.addEventListener('click', () => scrollPhoneSection(button.dataset.phoneSection));
+    });
+    document.querySelectorAll('[data-phone-preview]').forEach(button => {
+      button.addEventListener('click', () => phoneToast('Preview only: ' + button.dataset.phonePreview + '. No banking action or prize entry was submitted.'));
+    });
+    $('loyaltyBreakdownButton').addEventListener('click', () => {
+      const open = $('loyaltyBreakdown').hidden;
+      $('loyaltyBreakdown').hidden = !open;
+      $('loyaltyBreakdownButton').setAttribute('aria-expanded', String(open));
+      $('loyaltyBreakdownButton').firstChild.textContent = open ? 'Hide breakdown ' : 'Show breakdown ';
+    });
+    const carousel = $('loyaltyOfferCarousel'), track = $('loyaltyFeaturedOffers'), dots = $('loyaltyOfferDots');
+    let active = 0;
+    const updateCarousel = () => {
+      if (!carousel.clientWidth) return;
+      const cards = Array.from(track.children);
+      const step = cards[1].offsetLeft - cards[0].offsetLeft;
+      const end = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 3;
+      active = end ? cards.length - 1 : Math.max(0, Math.min(cards.length - 1, Math.round(carousel.scrollLeft / step)));
+      Array.from(dots.children).forEach((dot, index) => {
+        if (index === active) dot.setAttribute('aria-current', 'true');
+        else dot.removeAttribute('aria-current');
+      });
+      $('loyaltyPreviousOffer').disabled = active === 0;
+      $('loyaltyNextOffer').disabled = active === cards.length - 1;
+    };
+    const move = index => {
+      const target = Math.max(0, Math.min(featuredOffers.length - 1, index));
+      carousel.scrollTo({ left: track.children[target].offsetLeft - track.children[0].offsetLeft, behavior: phoneMotion() });
+    };
+    featuredOffers.forEach((offer, index) => {
+      const card = node('article', undefined, 'loyalty-featured-offer');
+      card.dataset.art = offer.key; card.setAttribute('role', 'listitem');
+      card.setAttribute('aria-label', (index + 1) + ' of ' + featuredOffers.length + ': ' + offer.merchant);
+      const art = node('div', undefined, 'loyalty-featured-art'); art.setAttribute('aria-hidden', 'true');
+      if (offer.badge) art.append(node('span', 'NEW', 'loyalty-featured-badge'));
+      const logo = node('span', offer.initials, 'loyalty-merchant-logo'); logo.setAttribute('aria-hidden', 'true');
+      const body = node('div', undefined, 'loyalty-featured-body');
+      body.append(node('span', offer.merchant), node('h4', offer.reward),
+        node('p', 'Channel: ' + offer.channel), node('p', 'Expires: ' + offer.expiry));
+      const save = node('button', '+', 'loyalty-featured-save'); save.type = 'button'; save.dataset.savePreviewOffer = offer.key;
+      save.addEventListener('click', () => {
+        if (savedPreviewOffers.has(offer.key)) savedPreviewOffers.delete(offer.key);
+        else savedPreviewOffers.add(offer.key);
+        renderSavedOffers();
+        phoneToast(savedPreviewOffers.has(offer.key) ? 'Saved for this preview only. Cashback is not activated.' : 'Preview offer removed.');
+      });
+      body.append(save); card.append(art, logo, body); track.append(card);
+      const dot = node('button'); dot.type = 'button';
+      dot.setAttribute('aria-label', 'Show ' + offer.merchant + ' offer'); dot.setAttribute('aria-controls', carousel.id);
+      dot.addEventListener('click', () => move(index)); dots.append(dot);
+    });
+    $('loyaltyPreviousOffer').addEventListener('click', () => move(active - 1));
+    $('loyaltyNextOffer').addEventListener('click', () => move(active + 1));
+    carousel.addEventListener('scroll', updateCarousel, { passive: true });
+    carousel.addEventListener('keydown', event => {
+      if (event.target !== carousel || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      move(event.key === 'Home' ? 0 : event.key === 'End' ? featuredOffers.length - 1 : active + (event.key === 'ArrowRight' ? 1 : -1));
+    });
+    let drag = null, suppressClick = false;
+    carousel.addEventListener('pointerdown', event => {
+      suppressClick = false;
+      if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button')) return;
+      drag = { id: event.pointerId, x: event.clientX, scroll: carousel.scrollLeft };
+      carousel.setPointerCapture(event.pointerId);
+    });
+    carousel.addEventListener('pointermove', event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      const distance = event.clientX - drag.x;
+      if (Math.abs(distance) > 5) { suppressClick = true; carousel.style.scrollSnapType = 'none'; }
+      if (suppressClick) { event.preventDefault(); carousel.scrollLeft = drag.scroll - distance; }
+    });
+    const endDrag = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      drag = null; carousel.style.scrollSnapType = '';
+      updateCarousel();
+      if (suppressClick) move(active);
+    };
+    carousel.addEventListener('pointerup', endDrag); carousel.addEventListener('pointercancel', endDrag);
+    carousel.addEventListener('lostpointercapture', endDrag);
+    carousel.addEventListener('click', event => {
+      if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; }
+    }, true);
+    const resize = new ResizeObserver(updateCarousel); resize.observe(carousel);
+    global.addEventListener('pagehide', event => {
+      clearTimeout(toastTimer); if (!event.persisted) resize.disconnect();
+    });
+    renderSavedOffers(); updateCarousel();
   }
   const repr = value => value === undefined || value === null ? 'Not reported' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   async function json(url, options) {
@@ -173,7 +332,6 @@
     same(ctx, token);
     joinedChallenge = { id: challengeId, title: candidate.content.title?.content || 'Your challenge', confirmed: true };
     purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge(); syncSignupButtons();
-    document.querySelector('.loyalty-phone-scroll').scrollTo({ top: 0, behavior: 'smooth' });
     const evidence = { sandbox: ctx.sandbox, signup: result, enrollmentVerified: true,
       journeyEntryVerified: false, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId, interactionAccepted: false };
@@ -197,6 +355,7 @@
     $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
     message((receipt.state === 'already' ? 'Challenge Already Joined.' : 'Challenge Joined.') +
       ' Journey entry is not verified. ' + warnings.join(' '), warnings.length > 0);
+    scrollPhoneSection('loyaltyPhoneTitle');
   }
   function memberId(ctx, config) {
     if (!config || typeof config.namespace !== 'string' || !config.namespace.trim()) throw new Error('Adobe Loyalty has not reported its member namespace.');
@@ -701,6 +860,7 @@
     $('loyaltyPhoneTitle').textContent = participation === 'complete' ? 'Completed challenges' : 'In progress';
   }
   async function init() {
+    initPhoneApp();
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     const panel = $('aepLabEnvOverlayPanel');
     panel.prepend($('aepDemoProfileSection'));
@@ -761,7 +921,7 @@
       closeConfiguration();
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
-    $('loyaltyRun').addEventListener('click', () => void work(run));
+    $('loyaltyRun').addEventListener('click', () => { scrollPhoneSection('loyaltyPromotionTitle'); void work(run); });
     $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendAbandonedSearch); });
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }
