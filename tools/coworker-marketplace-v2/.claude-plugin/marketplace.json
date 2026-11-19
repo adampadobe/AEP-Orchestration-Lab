@@ -8,7 +8,7 @@
     {
       "name": "aep-lab-v2",
       "displayName": "AEP-Orchestration-Lab-v2",
-      "description": "General and all 19 focused Lab connections using one personal secret. Entry and Demo Prep authentication verified in Coworker.",
+      "description": "The Lab workflow skill and all 20 MCP connections using one personal secret.",
       "source": "./aep-lab-v2"
     }
   ]

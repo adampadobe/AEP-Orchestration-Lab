@@ -8,10 +8,11 @@ This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. 
 
 The separate `tools/coworker-marketplace-v2` marketplace packages General and
 all 19 focused Lab connections in plugin **AEP-Orchestration-Lab-v2**, version
-**0.2.0**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
+**0.3.0**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
 It preserves the installed pilot's plugin identity and its
 `lab-v2-entry` and `lab-v2-demo` connection names. It does not replace v1 or the
-root Claude marketplace, and it contains no workflow skill.
+root Claude marketplace. It includes the existing `aep-lab-profile-mcp` workflow
+skill and full playbook, adapted for v2 connection names and personal-secret auth.
 
 Every server references `${user_secrets.aep_lab_mcp_key}` in the
 `X-AEP-Lab-Mcp-Key` header, without an IMS passthrough provider. One personal key
@@ -25,8 +26,9 @@ inspection. Both identified Adam Palmer with sandbox `apalmer`; both connections
 remained Connected after a browser refresh. Before the key was configured, Test
 returned HTTP 502; an incorrectly entered key produced a generic HTTP 403, and
 correcting the saved secret resolved it. These observations do not constitute a
-dedicated key-revocation test, nor live verification of the other 18 connections.
-The expanded bundle remains experimental until its live checks are completed.
+dedicated key-revocation test. The expanded 0.2.0 bundle subsequently passed
+native read-only discovery on all 20 connections, including General's 252 tools.
+This does not prove downstream service permissions for every operation.
 
 | Connection | Context |
 |---|---|
@@ -56,7 +58,12 @@ including an optional `mcp__` namespace, within 64 characters. Endpoint URLs and
 timeouts match v1. Local packaging checks cover all 20 contexts but do not prove
 live availability or downstream Adobe-service permissions.
 
-Setup, after the package is published to an approved GitHub ref:
+The simplest install uses the dedicated distribution repository:
+**`adampadobe/AEP-Orchestration-Lab-v2`**, default ref, **no subdirectory**,
+marketplace name **`AEP-Orchestration-Lab-v2`**. See the
+[v2 installation guide](../coworker-marketplace-v2/README.md).
+
+Alternatively, install from this authoring repository after publishing an approved ref:
 
 1. In Coworker **App settings > Secrets > Your secrets**, save a personal,
    sandbox-scoped Portal MCP key as `aep_lab_mcp_key`. Never put the key in Git,
@@ -87,10 +94,11 @@ the exact sanitized error for Coworker development; do not embed a key or fall
 back to forwarding IMS tokens. Remove only the v2 plugin/marketplace to undo the
 update, and remove its personal secret only if no other connection uses it.
 
-Removing the subdirectory requirement needs a separate distribution location.
-The repository root already serves Claude and must not be repointed to Coworker.
-No new distribution repository is created by this update. No Firebase or
-Cloud Run deployment is needed for this package-only change.
+The dedicated v2 repository contains only this credential-free package at its
+root. The original repository root still serves Claude and is not repointed.
+Publish changes from `tools/coworker-marketplace-v2` to the distribution
+repository after packaging validation. No Firebase or Cloud Run deployment is
+needed for this package-only change.
 
 ## Add this marketplace in Coworker
 

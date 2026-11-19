@@ -1,8 +1,9 @@
 {
   "name": "aep-lab-v2",
-  "version": "0.2.0",
-  "description": "General and all 19 focused Lab connections using one personal Lab API key saved in Coworker Secrets",
+  "version": "0.3.0",
+  "description": "Lab workflow skill, General and all 19 focused connections using one personal Lab API key saved in Coworker Secrets",
   "author": { "name": "Adam Palmer" },
+  "skills": ["./skills/aep-lab-profile-mcp/"],
   "metadata": {
     "lifecycle": "experimental"
   }
