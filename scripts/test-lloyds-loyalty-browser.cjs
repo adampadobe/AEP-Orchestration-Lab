@@ -15,6 +15,7 @@ async function main() {
     let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
     let consentGate, releaseConsent, consentRequests = 0, rejectConsent = false;
     let stateChallengeId = 'challenge-fixture', optedIn = false;
+    let challengeListOverride, stateHasName = true, metadataMode = 'success', metadataGate;
     let signupMode = 'success', signupGate, releaseSignup;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
@@ -85,11 +86,22 @@ async function main() {
         reads.push(Object.fromEntries(url.searchParams));
         if (unavailableState) return route.fulfill({ status: 404, contentType: 'text/html', body: 'Not Found' });
         if (url.searchParams.get('action') === 'config') data = { ok: true, data: { namespace } };
+        else if (url.searchParams.get('action') === 'challenge_get') {
+          if (metadataGate) await metadataGate;
+          const id = url.searchParams.get('challenge_id');
+          if (metadataMode === 'failure' && id === 'coffee-challenge-fixture') {
+            return route.fulfill({ status: 404, json: { ok: false, error: 'Fixture: challenge metadata unavailable' } });
+          }
+          data = { ok: true, data: {
+            [id === 'coffee-challenge-fixture' ? 'get_id' : '_id']: metadataMode === 'mismatch' ? 'different-challenge' : id,
+            name: id === 'coffee-challenge-fixture' ? 'Coffee rewards (Adobe metadata fixture)  ' : '  Everyday rewards (Adobe metadata fixture)',
+          } };
+        }
         else {
           if (holdState) await new Promise(resolve => { releaseState = resolve; stateStarted(); });
           if (rejectState) return route.fulfill({ status: 403, json: { ok: false, error: 'Fixture: no active enrollment for this sandbox' } });
-          data = { ok: true, data: missingState ? {} : { challengeList: [{
-            challenge_id: stateChallengeId, challengeName: 'Everyday rewards (offline fixture)', state: 'active',
+          data = { ok: true, data: missingState ? {} : { challengeList: challengeListOverride || [{
+            challenge_id: stateChallengeId, ...(stateHasName ? { challengeName: 'Everyday rewards (offline fixture)' } : {}), state: 'active',
             optedIn, tasksToComplete: 2, challengeCompletions: [],
             tasks: [
               { taskId: 'purchase', taskName: 'Make three purchases', taskState: quantity === 3 ? 'completed' : 'incomplete',
@@ -285,7 +297,59 @@ async function main() {
     assert.ok(reads.some(read => read.action === 'profile_state' && !Object.hasOwn(read, 'region')),
       'Without an override, use the backend documented va7 default instead of requiring setup or probing regions');
     assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).region, 'va7');
+    challengeListOverride = ['challenge-fixture', 'coffee-challenge-fixture'].map(id => ({
+      challenge_id: id, challengeName: id === 'challenge-fixture' ? id : '  ',
+      state: 'active', optedIn: false, tasksToComplete: 1,
+      tasks: [{ taskId: 'purchase', taskName: 'Make three purchases', taskState: 'incomplete' }],
+    }));
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    const metadataNames = ['Everyday rewards (Adobe metadata fixture)', 'Coffee rewards (Adobe metadata fixture)'];
+    assert.deepEqual(await page.locator('#loyaltyTasks .loyalty-progress-summary h3').allTextContents(), metadataNames,
+      'All returned nameless challenges resolve metadata, without requiring a challenge filter');
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), metadataNames);
+    assert.match(await page.locator('#loyaltyTasks .loyalty-task-details').first().textContent(), /Challenge ID: challenge-fixture/,
+      'Technical IDs remain available in API details');
+    metadataMode = 'failure';
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(),
+      [metadataNames[0], 'Challenge name unavailable']);
+    assert.match(await page.locator('#loyaltyTasks').textContent(), /challenge metadata unavailable/);
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-task').count(), 2,
+      'An individual metadata failure does not hide Adobe-reported task progress');
+    metadataMode = 'mismatch';
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(),
+      ['Challenge name unavailable', 'Challenge name unavailable'], 'Never apply another challenge identity\'s name');
+    metadataMode = 'success';
     await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('coffee-challenge-fixture');
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), [metadataNames[1]]);
+    await page.locator('[data-loyalty-participation="complete"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), [metadataNames[1]],
+      'Completed participation resolves the same exact challenge name');
+    await page.locator('[data-loyalty-participation="active"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    let releaseMetadata;
+    metadataGate = new Promise(resolve => { releaseMetadata = resolve; });
+    const pendingMetadata = page.waitForRequest(request => new URL(request.url()).searchParams.get('action') === 'challenge_get');
+    await page.locator('#loyaltyRefresh').click();
+    await pendingMetadata;
+    await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('challenge-fixture');
+    releaseMetadata(); metadataGate = undefined;
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-challenge').count(), 0,
+      'Delayed metadata cannot refill progress after its challenge context changes');
+    assert.equal(await page.locator('#loyaltyPhoneTasks h4').count(), 0);
+    challengeListOverride = undefined;
+    await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('');
     await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#loyaltyTenant').fill('_ownTenant');
     await page.locator('#loyaltyRefresh').click();
@@ -900,7 +964,7 @@ async function main() {
     assert.equal(signupRequests.length, signupsAfterTrackingFailure, 'Never repeat accepted signup to retry tracking');
     assert.equal(await joinButton.isDisabled(), true);
     signupMode = 'duplicate';
-    unavailableState = false; stateChallengeId = 'challenge-three-fixture';
+    unavailableState = false; stateChallengeId = 'challenge-three-fixture'; stateHasName = false;
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-three-fixture'; window.__deliverSignupCard(); });
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge Already Joined.'));
@@ -909,6 +973,9 @@ async function main() {
     assert.equal(signupRequests.at(-1).challenge_id, 'challenge-three-fixture');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).test, 'false');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).profile_id, 'loyalty-fixture-123');
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-summary h3').textContent(), metadataNames[0],
+      'The automatic post-signup refresh also resolves the challenge name');
+    stateHasName = true;
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Duplicate enrollment and task refresh do not complete tasks');
     signupMode = 'network';
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-network-fixture'; window.__deliverSignupCard(); });

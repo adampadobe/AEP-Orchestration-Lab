@@ -32,6 +32,84 @@ function loadEvents() {
   return buildEventsPayload(ecid, 'ecid', 'test', 'token', 'client', 'org');
 }
 
+const missingEntity = { title: 'Entity not found.', 'error-code': 'UPLIB-201001-404', status: 404 };
+
+for (const profileIndexed of [true, false]) {
+  test(`returns no indexed events for a new email profile (profile indexed: ${profileIndexed})`, async () => {
+    await withFetch((url) => {
+      const request = new URL(url);
+      if (request.pathname.endsWith('/queries')) return response({ message: 'Query Service unavailable' }, 403);
+      if (request.searchParams.get('schema.name') === '_xdm.context.profile' && profileIndexed) {
+        return response({ 'profile-1': { entity: { testProfile: true } } });
+      }
+      return response(missingEntity, 404);
+    }, async () => {
+      const result = await buildEventsPayload('new@example.test', 'email', 'test', 'token', 'client', 'org');
+      assert.deepEqual(result.events, []);
+      assert.equal(result.source, 'experience_events_empty');
+    });
+  });
+}
+
+test('still reads indexed events when the profile-plus-events lookup reports entity absence', async () => {
+  await withFetch((url) => {
+    const request = new URL(url);
+    if (request.pathname.endsWith('/queries')) return response({ message: 'Query Service unavailable' }, 403);
+    if (request.searchParams.get('schema.name') === '_xdm.context.profile') return response(missingEntity, 404);
+    return response({ children: [{ id: 'event-1', entity: { eventType: 'test.event' } }] });
+  }, async () => {
+    const result = await buildEventsPayload('new@example.test', 'email', 'test', 'token', 'client', 'org');
+    assert.equal(result.source, 'experience_events_paginated');
+    assert.equal(result.events[0].entityId, 'event-1');
+  });
+});
+
+test('does not hide a failed profile namespace behind another namespace reporting entity absence', async () => {
+  await withFetch((url) => {
+    const request = new URL(url);
+    if (request.pathname.endsWith('/queries')) return response({ message: 'Query Service unavailable' }, 403);
+    return request.searchParams.get('entityIdNS') === 'email'
+      ? response({ message: 'Profile access forbidden' }, 403)
+      : response(missingEntity, 404);
+  }, async () => {
+    await assert.rejects(
+      buildEventsPayload('new@example.test', 'email', 'test', 'token', 'client', 'org'),
+      /Profile access forbidden/,
+    );
+  });
+});
+
+test('requires the complete Adobe entity-absence signature before treating event 404s as empty', async () => {
+  for (const [status, data] of [
+    [404, { title: 'Entity not found.' }],
+    [404, { ...missingEntity, 'error-code': 'OTHER-404' }],
+    [404, { ...missingEntity, status: 503 }],
+    [503, missingEntity],
+  ]) {
+    await withFetch(profileOrEvents(() => response(data, status)), async () => {
+      await assert.rejects(loadEvents(), /Entity not found/);
+    });
+  }
+});
+
+test('reports an uncertain namespace failure after a confirmed missing event entity', async () => {
+  await withFetch(profileOrEvents((params) =>
+    params.get('relatedEntityIdNS') === 'ECID'
+      ? response(missingEntity, 404)
+      : response({ message: 'Profile unavailable' }, 503)), async () => {
+    await assert.rejects(loadEvents(), /Profile unavailable/);
+  });
+});
+
+test('does not treat a missing later event page as a successful empty history', async () => {
+  await withFetch(profileOrEvents((params) =>
+    params.has('cursor')
+      ? response(missingEntity, 404)
+      : response({ children: [{ id: 'event-1' }], _links: { next: { href: '/access/entities?cursor=next' } } })), async () => {
+    await assert.rejects(loadEvents(), /page 2 failed: Entity not found/);
+  });
+});
+
 test('reports the Profile API error if every event namespace fails', async () => {
   await withFetch(profileOrEvents(() => response({ message: 'Profile unavailable' }, 503)), async () => {
     await assert.rejects(loadEvents(), /Profile unavailable/);
