@@ -16,6 +16,14 @@ const INCIDENTS = Object.freeze([
     updatedAt: '2026-11-15T13:10:16.924Z',
     slotKeys: ['count', 'dueAt', 'errorCode', 'id', 'identities', 'industry',
       'ingestion', 'startedAt', 'state', 'updatedAt'] },
+  { day: '2026-11-17', slotId: '14', industry: 'sports', count: 3,
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY', attemptedCount: 31,
+    dueAt: '2026-11-17T13:37:00.000Z', startedAt: '2026-11-17T13:40:15.679Z',
+    updatedAt: '2026-11-17T13:40:22.003Z',
+    slotKeys: ['count', 'dueAt', 'errorCode', 'flowHealth', 'id', 'identities', 'industry',
+      'ingestion', 'startedAt', 'state', 'updatedAt'],
+    failureFlowId: '065f3b53-df40-43d1-9d91-c42f031996d6',
+    failureObservedAt: '2026-11-17T13:40:22.001Z' },
 ]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
@@ -56,7 +64,17 @@ function targetState({ config, dispatcher, day }, target) {
   const hasNoPreparedIdentities = slots.length === 1
     && Array.isArray(slot.identities) && slot.identities.length === 0
     && (!incident.slotKeys || JSON.stringify(Object.keys(slot).sort()) === JSON.stringify(incident.slotKeys));
+  const failureFlows = incident.failureFlowId && Array.isArray(slot?.flowHealth?.flows)
+    ? slot.flowHealth.flows.filter((flow) => flow?.flowId === incident.failureFlowId) : null;
+  const failureMatches = !incident.failureFlowId || (
+    slot?.flowHealth?.healthy === false && slot.flowHealth.complete === true
+    && slot.flowHealth.observedAt === incident.failureObservedAt && slot.flowHealth.flowCount === 13
+    && failureFlows?.length === 1 && failureFlows[0].lastRun?.state === 'inProgress'
+    && failureFlows[0].lastRun.readCount === 2 && failureFlows[0].lastRun.completedAt === null
+    && failureFlows[0].lastRun.failedCount === null
+  );
   if (!hasNoPreparedIdentities || slot.state !== 'needs_attention'
+    || !failureMatches
     || slot.errorCode !== incident.errorCode
     || (incident.dueAt && slot.dueAt !== incident.dueAt)
     || slot.industry !== incident.industry || slot.count !== incident.count || day.attemptedCount < slot.count
