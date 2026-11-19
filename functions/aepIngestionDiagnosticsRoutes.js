@@ -17,7 +17,7 @@ function validateSkipInput(body, query = {}) {
     return typeof body.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.day)
       && Number.isFinite(Date.parse(`${body.day}T00:00:00Z`))
       && new Date(`${body.day}T00:00:00Z`).toISOString().slice(0, 10) === body.day
-      && ['15', '01'].includes(body.slot_id)
+      && ['15', '01', '14'].includes(body.slot_id)
       && (body.allow_verified_idle_runs === undefined || typeof body.allow_verified_idle_runs === 'boolean');
   }
   return typeof body.plan_id === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(body.plan_id)

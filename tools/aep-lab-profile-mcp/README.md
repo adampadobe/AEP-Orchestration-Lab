@@ -82,6 +82,11 @@ prewrite with an empty persisted `identities` array. The media and travel cases 
 exact saved timestamps and attempted budgets (3 and 6 respectively); the travel
 slot also requires the scheduler's exact saved field shape. Empty identities
 alone do not allow arbitrary interrupted slots to be skipped.
+It additionally covers the exact **2026-11-17 / slot 14 / sports / count 3**
+prewrite health failure: attempted budget 31, exact due/start/update timestamps,
+zero prepared identities, and the saved 13-flow snapshot with only the shared
+base-profile flow marked in-progress. The backend checks that failure snapshot,
+including its three health reasons, before issuing a recovery receipt.
 The backend enforces each reviewed day/slot pair and prewrite attempt despite
 the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.

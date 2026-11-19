@@ -69,6 +69,15 @@
               </div>
               <p id="flowsMonitorSummary" role="status" aria-live="polite">No live status requested.</p>
               <p class="flows-muted">A run observation is not proof that a particular record arrived. No automatic refresh or pipeline repair.</p>
+              <section class="flows-scheduler" aria-labelledby="flowsSchedulerHeading">
+                <div class="flows-toolbar">
+                  <h3 id="flowsSchedulerHeading">Scheduled profile seeding</h3>
+                  <button type="button" id="flowsSchedule">Read scheduler health</button>
+                </div>
+                <p id="flowsScheduleStatus" role="status" aria-live="polite">No scheduler read requested. Refresh is owner-only and on demand.</p>
+                <div id="flowsScheduleResults"></div>
+                <p class="flows-muted">Committed counts mean the scheduler recorded its Snowflake source transaction. This summary does not verify AEP Profile or REL arrival; use a profile-specific trace and readback for that.</p>
+              </section>
             </section>
           <section id="flowsTracePanel" class="flows-trace-controls" aria-labelledby="flowsTraceHeading" hidden>
             <h2 id="flowsTraceHeading">Create and trace a profile</h2>
