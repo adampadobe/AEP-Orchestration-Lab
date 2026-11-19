@@ -1,7 +1,8 @@
 (function () {
   'use strict';
   var auth, snapshot = null, scenario = null, stepIndex = 0, timer = null;
-  var generation = 0, controller = null, zoom = 1, graphWidth = 1000, graphHeight = 600;
+  var generation = 0, controller = null, schedulerGeneration = 0, schedulerController = null;
+  var schedulerSnapshot = null, schedulerFailed = false, zoom = 1, graphWidth = 1000, graphHeight = 600;
   var autoFit = true;
   var overview = true, subsystem = null, monitorMode = false, selectedNode = null, liveFailed = false;
   var packets = [], freshnessTimer = null;
@@ -69,6 +70,11 @@
     stop();
     resetTrace();
     closeFullscreen();
+    schedulerGeneration += 1;
+    if (schedulerController) schedulerController.abort();
+    schedulerController = null;
+    schedulerSnapshot = null;
+    schedulerFailed = false;
     snapshot = null;
     scenario = null;
     stepIndex = 0;
@@ -85,7 +91,9 @@
     ['flowsReferenceTitle', 'flowsSummary', 'flowsAsOf', 'flowsGraph', 'flowsInspect', 'flowsEdges',
       'flowsScenarios', 'flowsScenarioDescription', 'flowsStep', 'flowsTimeline', 'flowsProgress',
       'flowsIndustries', 'flowsLiveStatus', 'flowsLiveResults', 'flowsEvidence', 'flowsNotes', 'flowsMotionNote',
-      'flowsOverview', 'flowsMobileStages', 'flowsMonitorSummary', 'flowsSubsystemName'].forEach(function (id) { el(id).replaceChildren(); });
+      'flowsOverview', 'flowsMobileStages', 'flowsMonitorSummary', 'flowsScheduleResults', 'flowsSubsystemName'].forEach(function (id) { el(id).replaceChildren(); });
+    el('flowsScheduleStatus').textContent = 'No scheduler read requested. Refresh is owner-only and on demand.';
+    el('flowsSchedule').disabled = false;
     el('flowsGraph').dataset.expanded = 'false';
     el('flowsExpand').setAttribute('aria-expanded', 'false');
     el('flowsExpand').textContent = 'Expand diagram';
@@ -799,6 +807,155 @@
     }
     return { state: 'unknown', label: run ? 'Run state: ' + text(run.state) : 'No run observation' };
   }
+  function renderScheduler(diagnostic) {
+    var target = el('flowsScheduleResults');
+    target.replaceChildren();
+    if (!diagnostic) {
+      target.appendChild(node('p', schedulerFailed
+        ? 'No previous scheduler snapshot is available.'
+        : 'No scheduler data loaded yet.', 'flows-empty'));
+      return;
+    }
+    if (diagnostic.configured !== true) {
+      target.appendChild(node('p', 'No profile-seeding schedule is configured for this owner and sandbox.', 'flows-empty'));
+      return;
+    }
+
+    var dispatcher = diagnostic.dispatcher || {};
+    var focus = diagnostic.focus;
+    var health = focus?.liveFlowHealth;
+    var healthSummary = health
+      ? (health.healthy === true ? 'Healthy' : health.healthy === false ? 'Needs attention' : 'Unknown')
+        + ' · ' + (health.complete === true ? 'complete' : 'partial')
+        + ' · ' + text(health.flowCount) + ' flows · observed ' + text(health.observedAt)
+      : 'No focused live flow health was available.';
+    var summary = node('dl', undefined, 'flows-scheduler-summary');
+    fields(summary, [
+      ['Dispatcher', dispatcher.blocked
+        ? 'Blocked' + (dispatcher.attention ? ' at ' + text(dispatcher.attention.day) + ' / slot ' + text(dispatcher.attention.id) : '')
+        : 'Not blocked'],
+      ['Schedule', (diagnostic.schedule?.enabled ? 'Enabled' : 'Disabled')
+        + ' · ' + text(diagnostic.schedule?.timeZone) + ' · ' + text(diagnostic.schedule?.startHour)
+        + ':00–' + text(diagnostic.schedule?.endHour) + ':00'],
+      ['Focused slot', focus?.slot
+        ? text(focus.day) + ' / ' + text(focus.slot.industry) + ' / slot ' + text(focus.slot.id)
+        : 'No focused slot'],
+      ['Current AEP flow health', healthSummary],
+      ['Current flow-health issues', health?.issues?.length
+        ? health.issues.map(function (issue) { return issue.code; }).join(', ')
+        : health ? 'None reported' : 'Unknown'],
+    ]);
+    target.appendChild(summary);
+
+    var days = Array.isArray(diagnostic.days) ? diagnostic.days : [];
+    if (!days.length) {
+      target.appendChild(node('p', 'No saved schedule-day plans were found in the recent window.', 'flows-empty'));
+    } else {
+      var wrap = node('div', undefined, 'flows-run-table-wrap'), table = node('table', undefined, 'flows-run-table');
+      table.appendChild(node('caption', 'Recent schedule-day outcomes. Committed counts are source-side Snowflake commits, not AEP arrival counts.'));
+      var head = node('thead'), heading = node('tr');
+      ['Day', 'Slots', 'Snowflake-committed profiles', 'Committed by industry', 'Needs attention', 'Skipped', 'Pending'].forEach(function (label) {
+        var th = node('th', label); th.scope = 'col'; heading.appendChild(th);
+      });
+      head.appendChild(heading); table.appendChild(head);
+      var body = node('tbody');
+      days.forEach(function (day) {
+        var slots = Array.isArray(day.slots) ? day.slots : [];
+        var industryCounts = new Map();
+        var committed = slots.reduce(function (total, slot) {
+          if (slot.state !== 'committed' || !Number.isInteger(slot.count) || slot.count < 0) return total;
+          industryCounts.set(slot.industry, (industryCounts.get(slot.industry) || 0) + slot.count);
+          return total + slot.count;
+        }, 0);
+        var byIndustry = Array.from(industryCounts.entries()).map(function (entry) {
+          return entry[0] + ' ' + entry[1];
+        }).join(', ') || 'None';
+        var tr = node('tr');
+        tr.append(node('td', day.day), node('td', slots.length), node('td', committed), node('td', byIndustry),
+          node('td', slots.filter(function (slot) { return slot.state === 'needs_attention'; }).length),
+          node('td', slots.filter(function (slot) { return slot.state === 'skipped'; }).length),
+          node('td', slots.filter(function (slot) { return slot.state === 'pending'; }).length));
+        body.appendChild(tr);
+      });
+      table.appendChild(body); wrap.appendChild(table); target.appendChild(wrap);
+    }
+
+    var attentionSlots = days.flatMap(function (day) {
+      return (day.slots || []).filter(function (slot) {
+        return slot.state === 'needs_attention' || !!slot.errorCode;
+      }).map(function (slot) { return { day: day.day, slot: slot }; });
+    });
+    if (attentionSlots.length) {
+      var failures = node('section', undefined, 'flows-scheduler-failures');
+      failures.appendChild(node('h4', 'Slots requiring attention'));
+      attentionSlots.forEach(function (entry) {
+        var slot = entry.slot, details = node('details', undefined, 'flows-scheduler-failure');
+        details.appendChild(node('summary', entry.day + ' · ' + slot.industry + ' · slot ' + slot.id
+          + ' · ' + text(slot.errorCode || slot.state)));
+        fields(details, [
+          ['State', slot.state], ['Scheduled count', slot.count],
+          ['Prepared identities', slot.preparedIdentityCount],
+          ['Source / ingestion status', slot.ingestion],
+          ['Failure-snapshot reasons', (slot.flowHealthAtFailure?.issues || []).map(function (issue) { return issue.code; }).join(', ') || 'None recorded'],
+        ]);
+        failures.appendChild(details);
+      });
+      target.appendChild(failures);
+    } else {
+      target.appendChild(node('p', 'No slots are marked as needing attention in the displayed plans.', 'flows-empty'));
+    }
+    target.appendChild(node('p', 'This read does not expose saved profile identities and does not verify AEP Profile or REL storage. A healthy flow check is not a record-level delivery receipt.', 'flows-muted'));
+  }
+  async function loadScheduler() {
+    var user = auth?.currentUser, epoch = generation;
+    if (!current(user, epoch)) return;
+    schedulerGeneration += 1;
+    var requestId = schedulerGeneration;
+    if (schedulerController) schedulerController.abort();
+    var requestController = schedulerController = new AbortController();
+    var timeout = setTimeout(function () { requestController.abort(); }, 30000);
+    el('flowsSchedule').disabled = true;
+    el('flowsScheduleStatus').textContent = 'Reading recent schedule outcomes and live flow health…';
+    try {
+      var token = await user.getIdToken();
+      if (schedulerGeneration !== requestId || !current(user, epoch)) return;
+      var response = await fetch('/api/architecture/my-data-flows?sandbox=apalmer&scheduler=true', {
+        method: 'GET', headers: { Authorization: 'Bearer ' + token }, credentials: 'omit',
+        cache: 'no-store', signal: requestController.signal,
+      });
+      if (schedulerGeneration !== requestId || !current(user, epoch)) return;
+      if ([401, 403].includes(response.status)) {
+        clear(); el('flowsControls').hidden = true; el('flowsSignIn').hidden = response.status !== 401;
+        status('Access denied or sign-in expired. No private observations are retained.', true); return;
+      }
+      if (!response.ok) throw new Error('Scheduler status read failed (HTTP ' + response.status + ').');
+      var data = await response.json();
+      if (schedulerGeneration !== requestId || !current(user, epoch)) return;
+      if (data.ok !== true || data.sandbox !== 'apalmer' || data.scheduler?.ok !== true
+        || data.scheduler.sandbox !== 'apalmer'
+        || (data.scheduler.configured === true && !Array.isArray(data.scheduler.days))) {
+        throw new Error('Scheduler status returned an invalid observation.');
+      }
+      schedulerSnapshot = data.scheduler;
+      schedulerFailed = false;
+      renderScheduler(schedulerSnapshot);
+      el('flowsScheduleStatus').textContent = 'Owner-scoped read completed at ' + text(data.scheduler.observedAt)
+        + (schedulerSnapshot.dispatcher?.blocked ? '. Dispatcher remains blocked; no recovery action was performed.' : '.');
+    } catch (error) {
+      if (schedulerGeneration !== requestId || !current(user, epoch)) return;
+      schedulerFailed = true;
+      renderScheduler(schedulerSnapshot);
+      el('flowsScheduleStatus').textContent = error.name === 'AbortError'
+        ? 'Scheduler read timed out. Previous evidence, if any, is retained and marked.'
+        : error.message + (schedulerSnapshot ? ' Previous evidence is retained and marked.' : '');
+    } finally {
+      clearTimeout(timeout);
+      if (schedulerGeneration === requestId && current(user, epoch)) {
+        schedulerController = null;
+        el('flowsSchedule').disabled = false;
+      }
+    }
+  }
   function renderLive(live) {
     var target = el('flowsLiveResults');
     target.replaceChildren();
@@ -1024,6 +1181,7 @@
   }
   el('flowsReload').addEventListener('click', function () { load(false); });
   el('flowsLive').addEventListener('click', function () { load(true); });
+  el('flowsSchedule').addEventListener('click', loadScheduler);
   el('flowsSimulationMode').addEventListener('click', function () { setTraceMode(false); });
   el('flowsMonitorMode').addEventListener('click', function () { setMode('monitor'); });
   el('flowsTraceMode').addEventListener('click', function () { setTraceMode(true); });

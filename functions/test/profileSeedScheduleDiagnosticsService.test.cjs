@@ -15,8 +15,9 @@ const config = {
 };
 const day = '2026-11-11';
 
-function fixture() {
+function fixture(currentTime = '2026-11-11T13:00:00.000Z') {
   let flowReads = 0;
+  const dayReads = [];
   const savedPlan = {
     day, plannedCount: 30, attemptedCount: 2,
     slots: [{
@@ -28,11 +29,14 @@ function fixture() {
     }],
   };
   const service = createProfileSeedScheduleDiagnosticsService({
-    now: () => new Date('2026-11-11T13:00:00.000Z'),
+    now: () => new Date(currentTime),
     store: {
       getConfig: async () => config,
       getDispatcher: async () => ({ blocked: true, active: null, attention: { day, id: '15' } }),
-      getDay: async (requestedDay) => requestedDay === day ? savedPlan : null,
+      getDay: async (requestedDay) => {
+        dayReads.push(requestedDay);
+        return requestedDay === day ? savedPlan : null;
+      },
     },
     flowSnapshot: async (industry) => {
       flowReads++;
@@ -46,7 +50,7 @@ function fixture() {
       };
     },
   });
-  return { service, get flowReads() { return flowReads; } };
+  return { service, get flowReads() { return flowReads; }, dayReads };
 }
 
 test('owner diagnostics return slot and live flow reasons without profile identity or schedule preferences', async () => {
@@ -62,6 +66,18 @@ test('owner diagnostics return slot and live flow reasons without profile identi
   for (const secret of [privateEmail, privatePhone, privateUid, 'private-ecid', 'private-crm', 'private-recipient']) {
     assert.equal(serialized.includes(secret), false);
   }
+});
+
+test('diagnostics include seven recent business days and retain an older dispatcher focus', async () => {
+  const f = fixture('2026-11-19T13:00:00.000Z');
+  const result = await f.service.diagnose({ principalUid: privateUid, sandbox: 'apalmer', historyDays: 7 });
+  assert.deepEqual(f.dayReads, [
+    '2026-11-19', '2026-11-18', '2026-11-17', '2026-11-16',
+    '2026-11-15', '2026-11-14', '2026-11-13', '2026-11-11',
+  ]);
+  assert.equal(result.days.length, 1);
+  assert.equal(result.days[0].day, day);
+  assert.equal(result.focus.day, day);
 });
 
 test('non-owner or wrong-sandbox requests fail before querying Adobe flow health', async () => {

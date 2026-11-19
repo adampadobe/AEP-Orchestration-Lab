@@ -32,8 +32,15 @@ function planSummary(plan) {
   };
 }
 
+function recentBusinessDays(day, count = 7) {
+  const [year, month, date] = day.split('-').map(Number);
+  return Array.from({ length: count }, (_, offset) =>
+    new Date(Date.UTC(year, month - 1, date - offset)).toISOString().slice(0, 10));
+}
+
 function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now = () => new Date() }) {
-  async function diagnose({ principalUid, sandbox }) {
+  async function diagnose({ principalUid, sandbox, historyDays = 2 }) {
+    if (![2, 7].includes(historyDays)) throw fail(400, 'Profile schedule history window is invalid.');
     const config = await store.getConfig();
     if (!config) return { ok: true, sandbox, configured: false };
     if (sandbox !== config.sandbox || principalUid !== config.ownerUid) {
@@ -45,7 +52,7 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
     const dispatcher = await store.getDispatcher();
     const focus = dispatcher.attention || dispatcher.active || null;
     const focusDay = focus?.day || currentDay;
-    const days = [...new Set([currentDay, focusDay])];
+    const days = [...new Set([...recentBusinessDays(currentDay, historyDays), focusDay])];
     const plans = await Promise.all(days.map((day) => store.getDay(day)));
     const daySummaries = plans.filter(Boolean).map(planSummary);
     const focusedPlan = plans[days.indexOf(focusDay)];

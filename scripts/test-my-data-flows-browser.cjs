@@ -149,6 +149,19 @@ async function main() {
         window.fixtureStatus = options.status || 200;
         window.traceRequests = [];
         window.fixtureLive = structuredClone(live);
+        window.fixtureScheduler = {
+          ok: true, sandbox: 'apalmer', configured: true, observedAt: '2026-11-19T02:45:43.631Z',
+          schedule: { enabled: true, timeZone: 'Asia/Riyadh', startHour: 8, endHour: 18 },
+          dispatcher: { blocked: true, attention: { day: '2026-11-17', id: '14' } },
+          days: [{ day: '2026-11-17', plannedCount: 35, attemptedCount: 31, slots: [
+            { id: '00', industry: 'retail', count: 2, state: 'committed', ingestion: 'pending', preparedIdentityCount: 2 },
+            { id: '14', industry: 'sports', count: 3, state: 'needs_attention', errorCode: 'SEED_INGESTION_NOT_HEALTHY',
+              ingestion: 'unverified', preparedIdentityCount: 0,
+              flowHealthAtFailure: { issues: [{ code: 'last_run_completion_missing' }] } },
+          ] }],
+          focus: { day: '2026-11-17', slot: { id: '14', industry: 'sports' },
+            liveFlowHealth: { healthy: true, complete: true, flowCount: 13, observedAt: '2026-11-19T02:45:43.631Z', issues: [] } },
+        };
         window.fixtureTraceRun = options.run ? structuredClone(traceFixture) : null;
         if (options.manual && window.fixtureTraceRun) window.fixtureTraceRun.stages.forEach(stage => {
           if (['aepXdm', 'aepRel'].includes(stage.id)) { stage.state = 'unavailable'; stage.verification = 'manual'; }
@@ -193,6 +206,7 @@ async function main() {
           if (window.rejectRead) throw new TypeError('Fixture offline');
           const response = structuredClone(fixture);
           if (String(url).includes('refresh=true')) response.live = structuredClone(window.fixtureLive);
+          if (String(url).includes('scheduler=true')) response.scheduler = structuredClone(window.fixtureScheduler);
           if (window.invalidReference) response.reference = null;
           return { ok: window.fixtureStatus === 200, status: window.fixtureStatus, json: async () => response };
         };
@@ -284,6 +298,16 @@ async function main() {
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Observed last run/);
     assert.match(await page.locator('#flowsLiveResults').textContent(), /Unknown/);
     assert.equal((await page.evaluate(() => window.requests))[1].url, '/api/architecture/my-data-flows?sandbox=apalmer&refresh=true');
+    await page.locator('#flowsSchedule').click();
+    await page.waitForFunction(() => document.getElementById('flowsScheduleStatus').textContent.includes('Owner-scoped read completed'));
+    const schedulerText = await page.locator('#flowsScheduleResults').textContent();
+    assert.match(schedulerText, /Blocked at 2026-11-17 \/ slot 14/);
+    assert.match(schedulerText, /Healthy · complete · 13 flows/);
+    assert.match(schedulerText, /Snowflake-committed profiles/);
+    assert.match(schedulerText, /last_run_completion_missing/);
+    assert.match(schedulerText, /does not verify AEP Profile or REL storage/);
+    assert.equal((await page.evaluate(() => window.requests))[2].url, '/api/architecture/my-data-flows?sandbox=apalmer&scheduler=true');
+    assert.equal((await page.evaluate(() => window.requests))[2].method, 'GET', 'Scheduler health performs no mutation');
     await page.locator('#flowsReload').click();
     await page.waitForFunction(() => document.getElementById('flowsLiveStatus').textContent.includes('not been requested'));
     assert.equal(await page.locator('#flowsMonitorMode').getAttribute('aria-pressed'), 'true', 'The task preference survives a reference reload');

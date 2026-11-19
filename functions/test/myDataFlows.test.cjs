@@ -28,6 +28,8 @@ const claims = { uid: owner.uid, email: owner.email, firebase: { sign_in_provide
 
 function route(overrides = {}) {
   let apiCalls = 0;
+  let schedulerCalls = 0;
+  const schedulerRequests = [];
   const handler = registerMyDataFlowsRoutes({
     onRequest: (_, h) => h, fnOpts: {}, setCors() {}, logger: { error() {}, warn() {} },
     getServices: () => ({
@@ -36,6 +38,11 @@ function route(overrides = {}) {
         getUserByEmail: async () => owner, ...overrides.auth,
       },
       getAdobeAuth: async () => { apiCalls++; return auth; },
+      getSchedulerDiagnostics: overrides.getSchedulerDiagnostics || (async (input) => {
+        schedulerCalls++;
+        schedulerRequests.push(input);
+        return { ok: true, sandbox: input.sandbox, configured: false };
+      }),
       service: { snapshot: overrides.snapshot || (async () => ({ complete: true, limitations: [], flows: [] })) },
     }),
   }).myDataFlows;
@@ -50,7 +57,7 @@ function route(overrides = {}) {
     await handler(req, res);
     return res;
   }
-  return { invoke, calls: () => apiCalls };
+  return { invoke, calls: () => apiCalls, schedulerCalls: () => schedulerCalls, schedulerRequests };
 }
 
 test('reference requires owner token and current enabled UID; no protected data on denial', async () => {
@@ -88,10 +95,32 @@ test('owner reference does not access Adobe, uses no-store, and accepts only fix
   assert.equal(r.calls(), 0);
   for (const query of [
     { sandbox: 'other' }, { refresh: ['true'] }, { refresh: 'yes' },
-    { sandbox: ['apalmer'] }, { url: 'https://attacker.example' },
+    { sandbox: ['apalmer'] }, { scheduler: 'yes' }, { scheduler: ['true'] }, { url: 'https://attacker.example' },
   ]) assert.equal((await r.invoke({ query })).statusCode, 400);
+  assert.equal(r.schedulerCalls(), 0);
   assert.equal((await r.invoke({ method: 'POST' })).statusCode, 405);
   assert.equal((await r.invoke({ method: 'OPTIONS', headers: {} })).statusCode, 204);
+});
+
+test('scheduler diagnostics are on-demand, owner-scoped and use the fixed sandbox', async () => {
+  const r = route();
+  const response = await r.invoke({ query: { scheduler: 'true' } });
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.scheduler, { ok: true, sandbox: 'apalmer', configured: false });
+  assert.deepEqual(r.schedulerRequests, [{ principalUid: 'owner', sandbox: 'apalmer' }]);
+  assert.equal(r.calls(), 0);
+
+  const denied = route({ auth: { verifyIdToken: async () => ({ ...claims, email: 'other@adobe.com' }) } });
+  assert.equal((await denied.invoke({ query: { scheduler: 'true' } })).statusCode, 403);
+  assert.equal(denied.schedulerCalls(), 0);
+});
+
+test('scheduler diagnostic failures are explicit without exposing backend errors', async () => {
+  const r = route({ getSchedulerDiagnostics: async () => { throw new Error('private token and raw response'); } });
+  const response = await r.invoke({ query: { scheduler: 'true' } });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.body.error, 'Scheduler diagnostics are unavailable. Retry the scheduler health read.');
+  assert.equal(JSON.stringify(response.body).includes('private token'), false);
 });
 
 test('read-only refresh coalesces, caches complete metadata and still authenticates every request', async () => {

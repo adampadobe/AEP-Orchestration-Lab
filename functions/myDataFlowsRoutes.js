@@ -23,10 +23,11 @@ function registerMyDataFlowsRoutes({ onRequest, fnOpts, setCors, getServices, lo
           ok: false, error: owner.status === 401 ? owner.error : 'This architecture is available only to the lab owner.',
         });
         const query = req.query || {};
-        if (Object.keys(query).some((key) => !['sandbox', 'refresh'].includes(key))
+        if (Object.keys(query).some((key) => !['sandbox', 'refresh', 'scheduler'].includes(key))
           || (query.sandbox !== undefined && query.sandbox !== 'apalmer')
-          || (query.refresh !== undefined && !['true', 'false'].includes(query.refresh))) {
-          return res.status(400).json({ ok: false, error: 'Only sandbox=apalmer and refresh=true|false are supported.' });
+          || (query.refresh !== undefined && !['true', 'false'].includes(query.refresh))
+          || (query.scheduler !== undefined && !['true', 'false'].includes(query.scheduler))) {
+          return res.status(400).json({ ok: false, error: 'Only sandbox=apalmer, refresh=true|false, and scheduler=true|false are supported.' });
         }
         let live = null;
         if (query.refresh === 'true') {
@@ -51,7 +52,19 @@ function registerMyDataFlowsRoutes({ onRequest, fnOpts, setCors, getServices, lo
             }
           }
         }
-        return res.status(200).json({ ok: true, sandbox: 'apalmer', reference, live });
+        let scheduler = null;
+        if (query.scheduler === 'true') {
+          if (typeof services.getSchedulerDiagnostics !== 'function') {
+            return res.status(503).json({ ok: false, error: 'Scheduler diagnostics are unavailable.' });
+          }
+          try {
+            scheduler = await services.getSchedulerDiagnostics({ principalUid: owner.uid, sandbox: 'apalmer' });
+          } catch (error) {
+            logger.error('[my-data-flows] Scheduler diagnostics unavailable', { code: error.code || 'unavailable' });
+            return res.status(503).json({ ok: false, error: 'Scheduler diagnostics are unavailable. Retry the scheduler health read.' });
+          }
+        }
+        return res.status(200).json({ ok: true, sandbox: 'apalmer', reference, live, scheduler });
       } catch (error) {
         logger.error('[my-data-flows] Unable to read architecture', { code: error.code || 'unavailable' });
         return res.status(503).json({ ok: false, error: 'Architecture data is unavailable. Retry without refresh to read the reference.' });
