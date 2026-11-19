@@ -11,7 +11,7 @@ Firebase in this repo proxies **health** and **ledger** reads for the Tools UI. 
 The read-only Loyalty MCP workflow below also uses a dedicated authenticated
 Firebase backend for metadata and member-state **GETs only**. This does not change
 the terminal-only policy for registering providers, creating or editing challenges.
-The backend also supports Portal-only, server-verified test-member signup;
+The backend also supports server-verified test-member signup;
 that mutation is not exposed to MCP. The Lloyds page's Join button uses that
 protected enrollment endpoint, with Adobe authentication held server-side.
 
@@ -62,11 +62,20 @@ There is no second body setup panel: **Loyalty API options** lives in the existi
 top configuration gear alongside the shared SDK configuration. This is a Web SDK mobile
 preview, not a native Mobile SDK integration or journey authoring interface.
 
-1. Sign in to the Portal with an Adobe account and an active sandbox-scoped
-   MCP enrollment. The page sends its Firebase ID token, not an Adobe token
-   or a pasted MCP key. The server verifies the Firebase UID and its active
-   enrollment for the exact requested sandbox. Anonymous sessions cannot read
-   Loyalty state.
+1. **No Portal sign-in is required for `kirkham` or `apalmer`.** These are the
+   exact server-side demo allowlist, not a browser-supplied authorization flag.
+   The page sends neither a Portal token nor Adobe credentials in this mode.
+   Before every member-state read or signup, the backend independently reads
+   the configured Loyalty namespace and strictly resolves one AEP test profile
+   by `loyaltyid`. Its scalar tenant `identification.core.loyaltyId` must match
+   exactly, and every reported root test-profile marker must be boolean `true`.
+   Missing, ambiguous, conflicting or non-test profiles are rejected before any
+   Loyalty member operation. Configuration summaries and one-challenge metadata
+   reads are available to this demo; challenge catalogue listing is not.
+   Outside these two sandboxes, the existing signed-in Adobe Portal account and
+   active sandbox-scoped MCP enrollment remain required. MCP access itself is
+   still authenticated, sandbox-scoped and read-only; invalid MCP credentials
+   never fall back to no-login demo access.
 2. Select your sandbox and look up a profile. This loads the shared profile drawer
    independently of the Loyalty API or SDK. A profile loaded through the drawer
    also hydrates the Loyalty page's table model and enables its actions, without
@@ -185,7 +194,8 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    `profile_id`, `challenge_id`, `region`, `test: false` and `confirmed: true`.
    The member is always the selected AEP profile's loaded scalar Loyalty ID,
    never the Portal operator, a manual member override or a standard Loyalty ID array.
-   The backend independently verifies Portal enrollment, the Loyalty namespace,
+   The backend independently verifies demo sandbox scope (or Portal enrollment
+   outside the demo allowlist), the Loyalty namespace,
    the exact member identity and AEP `testProfile: true` before calling
    `POST /ajo/loyalty/challenges/signup/{challengeId}` on the confirmed regional
    host (documented default va7). Adobe receives only
@@ -260,10 +270,13 @@ settings so the previous sandbox's configuration is not silently reused.
 
 Release Hosting through the normal PR/Validate/merge workflow for the API Join
 handler and partner offer changes. **Get task status and Join Challenge require the updated
-existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite** and Portal authentication; an optional region override
+existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite**. No-login
+access for `kirkham`/`apalmer` also requires the updated Function; Hosting alone
+cannot remove the former backend Portal check. Other sandboxes still require
+Portal authentication. An optional region override
 is needed only when the documented va7 default is unsuitable. Rendering a card does not
 enable that backend. The earlier MCP release alone does not enable Firebase
-browser authentication or the separate Portal-only signup route.
+browser access or the separate test-member signup route.
 The Functions release requires an authorized release owner; an IAM-blocked
 release must not be bypassed or mistaken for a Hosting fix. Local browser checks use
 synthetic fixtures and do not prove live Adobe access or reward delivery:
@@ -344,6 +357,9 @@ The two authentication hops have different purposes:
 1. **Client to lab:** the existing `lab-decisioning` connection supplies its
    sandbox-scoped MCP key, or Coworker forwards its Adobe IMS session. The
    backend independently verifies the Portal principal and exact sandbox.
+   Browser demo calls in `kirkham`/`apalmer` instead use the explicit no-login
+   test-profile boundary described above; they do not borrow a Portal/MCP
+   identity. Other browser sandboxes retain UID-bound Portal enrollment.
 2. **Lab to Adobe:** the Loyalty handler uses the existing `createAdobeAuth()` to obtain/cache a
    server-to-server IMS token. `aepHeaders()` supplies `Authorization`,
    `x-api-key` and `x-gw-ims-org-id`; the route sets the principal's
