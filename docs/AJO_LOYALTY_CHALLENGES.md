@@ -38,10 +38,37 @@ immediately below that banner, before the featured-offer carousel. Switching
 tabs preserves the delivered card, subscription, signup receipt and task state
 without sending any new events. The carousel supports native touch scrolling,
 mouse dragging, previous/next controls, pagination dots and keyboard arrows /
-Home / End. Its six authored offers are visual previews: saving one updates
-only the current page's saved-offers row, never Adobe activation or task state.
+Home / End. Featured offers arrive from the Data Collection rule's
+`CustomEvent("ajo:featured-offers", { detail: { offers } })`, after it processes
+the Experience Decisioning `hero-banner` response. The page makes no additional
+SDK request for this carousel. It accepts non-empty object entries with string
+`id`, `merchant` and `title`, keeps the first five valid offers in strategy order,
+and replaces the cards through `renderFeaturedOffers(items)`. Media uses the
+HTTP(S) URL and CSS URL guards; copy remains text. Complete offer objects,
+including proposition IDs/scope and details, remain available to the unchanged
+preview-save action. Display/interaction tracking is deliberately not added yet.
+The listener is registered before app initialization and retains an early response.
+Repeated AJO ID/order signatures preserve the existing cards and scroll position;
+changed IDs or order rerender. The carousel initially shows **Loading personalised
+offers…**, with no mock cards. After five seconds without valid AJO offers, its
+six authored development previews appear with an explicit preview label. A valid
+late response replaces them and cancels the fallback. The rest of the app,
+including Ready to use, does not wait for AJO.
+Saving an offer updates only the current page's saved-offers row, never Adobe
+activation or task state. This live app's existing control remains the `+`
+preview-save button, not a new activation API or navigation flow.
 Context changes clear these saved previews. Prize-draw and banking placeholders
 explicitly perform no real action.
+Identity/sandbox changes also clear the prior personalised carousel result and
+restart its wait, so another profile does not inherit the previous result.
+The rule still owns request/identity correlation because its event contract has
+no profile or sandbox token.
+
+An explicit Content Card refresh with an empty proposition array removes the
+previous card instead of leaving obsolete content visible. A newer ruleset
+subscription update delivered during the request takes precedence over that
+empty direct response. Repeated subscription callbacks still deduplicate display
+tracking; Content Card SDK behavior is separate from the carousel CustomEvent.
 
 Live participation controls, joined-challenge partner offers and the mobile task
 rail remain below the Rewards benefits. They and the desktop rail render the
@@ -113,6 +140,13 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    Adobe's returned `taskState` marks a task complete. Numeric progress requires
    both a reported goal/type and the corresponding numeric accumulator.
    Zero, false, missing counters and previous-cycle completions remain distinct.
+   Adobe advances completed tasks and challenges from `complete` to `sent`
+   after completion processing. Both states (and `completed`) count as complete
+   in the desktop and phone displays; `sent` is not an unfinished purchase.
+   Raw states remain in API details. An incomplete or unknown current task state
+   is never completed merely because `taskCompletions` contains history.
+   A completed challenge is labelled explicitly, but neither this label nor
+   `sent` proves that points were credited to the profile's balance.
    Automatic reads pause when hidden, after an error or after configuration changes;
    a successful manual task read resumes them. Polling is off by default and profile
    lookup does not start it. No task-completion events are
