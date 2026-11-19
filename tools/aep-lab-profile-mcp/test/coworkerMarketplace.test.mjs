@@ -119,30 +119,31 @@ test('Coworker MCP manifest uses Integration schema for General and all focused 
   assert.deepEqual([...remainingEndpoints], []);
 });
 
+const registrars = new Map([
+  ['/mcp/snowflake', registrations.registerFocusedSnowflakeTools],
+  ['/mcp', registrations.registerProfileTools],
+  ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
+  ['/mcp/profile', registrations.registerFocusedProfileTools],
+  ['/mcp/demo-prep', registrations.registerFocusedDemoPrepTools],
+  ['/mcp/pdf', registrations.registerFocusedPdfTools],
+  ['/mcp/audiences', registrations.registerFocusedAudienceTools],
+  ['/mcp/decisioning', registrations.registerFocusedDecisioningTools],
+  ['/mcp/ajo-cleanup', registrations.registerFocusedAjoCleanupTools],
+  ['/mcp/ajo-oc-datasets', registrations.registerFocusedAjoOcDatasetTools],
+  ['/mcp/command-centre', registrations.registerFocusedCommandCentreTools],
+  ['/mcp/weather', registrations.registerFocusedWeatherTools],
+  ['/mcp/geo-insights', registrations.registerFocusedGeoInsightsTools],
+  ['/mcp/commerce', registrations.registerFocusedCommerceTools],
+  ['/mcp/commerce-optimizer', registrations.registerFocusedCommerceOptimizerTools],
+  ['/mcp/firefly', registrations.registerFocusedFireflyTools],
+  ['/mcp/creativity', registrations.registerFocusedCreativityTools],
+  ['/mcp/adobe-capabilities', registrations.registerFocusedAdobeCapabilityTools],
+  ['/mcp/measurement-quality', registrations.registerFocusedMeasurementQualityTools],
+  ['/mcp/figma', registrations.registerFocusedFigmaTools],
+]);
+
 test('Coworker connection prefixes keep every catalog tool within the 64-character qualified-name budget', async () => {
   const config = await readJson(join(pluginRoot, '.mcp.json'));
-  const registrars = new Map([
-    ['/mcp/snowflake', registrations.registerFocusedSnowflakeTools],
-    ['/mcp', registrations.registerProfileTools],
-    ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
-    ['/mcp/profile', registrations.registerFocusedProfileTools],
-    ['/mcp/demo-prep', registrations.registerFocusedDemoPrepTools],
-    ['/mcp/pdf', registrations.registerFocusedPdfTools],
-    ['/mcp/audiences', registrations.registerFocusedAudienceTools],
-    ['/mcp/decisioning', registrations.registerFocusedDecisioningTools],
-    ['/mcp/ajo-cleanup', registrations.registerFocusedAjoCleanupTools],
-    ['/mcp/ajo-oc-datasets', registrations.registerFocusedAjoOcDatasetTools],
-    ['/mcp/command-centre', registrations.registerFocusedCommandCentreTools],
-    ['/mcp/weather', registrations.registerFocusedWeatherTools],
-    ['/mcp/geo-insights', registrations.registerFocusedGeoInsightsTools],
-    ['/mcp/commerce', registrations.registerFocusedCommerceTools],
-    ['/mcp/commerce-optimizer', registrations.registerFocusedCommerceOptimizerTools],
-    ['/mcp/firefly', registrations.registerFocusedFireflyTools],
-    ['/mcp/creativity', registrations.registerFocusedCreativityTools],
-    ['/mcp/adobe-capabilities', registrations.registerFocusedAdobeCapabilityTools],
-    ['/mcp/measurement-quality', registrations.registerFocusedMeasurementQualityTools],
-    ['/mcp/figma', registrations.registerFocusedFigmaTools],
-  ]);
   const contexts = listMcpContexts({ includeAdobe: false });
   const reportedOmissions = new Map([
     ['aep-lab-general', ['lab_decisioning_attach_offer_eligibility_preview']],
@@ -183,7 +184,7 @@ test('Coworker connection prefixes keep every catalog tool within the 64-charact
   }
 });
 
-test('v2 pilot resolves an isolated plugin and two existing contexts using one personal secret', async () => {
+test('v2 resolves an isolated plugin and every existing context using one personal secret', async () => {
   const marketplaceRoot = join(repoRoot, 'tools', 'coworker-marketplace-v2');
   const marketplace = await readJson(join(marketplaceRoot, '.claude-plugin', 'marketplace.json'));
   const v1Marketplace = await readJson(join(repoRoot, 'tools', 'coworker-marketplace', '.claude-plugin', 'marketplace.json'));
@@ -199,13 +200,12 @@ test('v2 pilot resolves an isolated plugin and two existing contexts using one p
   assert.equal(config.auth_providers, undefined);
   assert.equal(manifest.mcpServers, undefined);
   const v1 = await readJson(join(pluginRoot, '.mcp.json'));
-  const contexts = new Map([
-    ['/mcp/entry', registrations.registerFocusedMcpGuideTools],
-    ['/mcp/demo-prep', registrations.registerFocusedDemoPrepTools],
-  ]);
+  const contexts = new Map(registrars);
   const servers = config.mcp_servers.servers;
   assert.equal(servers.length, contexts.size);
   assert.equal(new Set(servers.map((server) => server.name)).size, servers.length);
+  assert.equal(servers.find((server) => new URL(server.source).pathname === '/mcp/entry')?.name, 'lab-v2-entry');
+  assert.equal(servers.find((server) => new URL(server.source).pathname === '/mcp/demo-prep')?.name, 'lab-v2-demo');
   for (const server of servers) {
     const original = v1.mcp_servers.servers.find((candidate) => candidate.source === server.source);
     assert.ok(original, server.source);
@@ -222,7 +222,7 @@ test('v2 pilot resolves an isolated plugin and two existing contexts using one p
     register({
       registerTool: (name) => {
         const qualifiedName = `mcp__${server.name}__${name}`;
-        assert.ok(qualifiedName.length <= 64, qualifiedName);
+        assert.ok(qualifiedName.length <= 64, `${qualifiedName}: ${qualifiedName.length} > 64`);
       },
     });
     contexts.delete(path);

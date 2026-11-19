@@ -4,43 +4,91 @@ A Claude/Cowork-format plugin marketplace so Adobe CX Coworker users can install
 
 This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. Claude uses the repository-root marketplace and the separate `tools/claude-marketplace` package, which prompts for a sandbox-scoped Portal MCP key.
 
-## Experimental v2: one personal secret
+## V2: all Lab connections, one personal secret
 
-The separate `tools/coworker-marketplace-v2` marketplace contains only
-`lab-v2-entry` and `lab-v2-demo`. It does not replace v1 or the root Claude
-marketplace. It contains no workflow skill; this pilot tests authentication only.
+The separate `tools/coworker-marketplace-v2` marketplace packages General and
+all 19 focused Lab connections in plugin **AEP Lab v2**, version **0.2.0**.
+It preserves the installed pilot's marketplace/plugin identities and its
+`lab-v2-entry` and `lab-v2-demo` connection names. It does not replace v1 or the
+root Claude marketplace, and it contains no workflow skill.
 
-Both servers reference `${user_secrets.aep_lab_mcp_key}` in the
-`X-AEP-Lab-Mcp-Key` header, without an IMS passthrough provider. This uses the
-secret-backed header syntax exposed by Coworker's Add Server UI. Resolution of
-that syntax from a **plugin** remains unverified until the live pilot succeeds;
-local packaging checks do not prove Coworker runtime compatibility.
+Every server references `${user_secrets.aep_lab_mcp_key}` in the
+`X-AEP-Lab-Mcp-Key` header, without an IMS passthrough provider. One personal key
+therefore authenticates the entire bundle; access is still constrained by that
+key's sandbox allowlist and each tool's authorization requirements.
 
-Pilot setup, after the package is published to an approved GitHub ref:
+**Live evidence, 19 November 2026:** Coworker's two-connection 0.1.0 pilot
+resolved the personal secret, discovered Entry (5 tools) and Demo Prep (24 tools),
+and successfully called access information on both plus read-only demo-config
+inspection. Both identified Adam Palmer with sandbox `apalmer`; both connections
+remained Connected after a browser refresh. Before the key was configured, Test
+returned HTTP 502; an incorrectly entered key produced a generic HTTP 403, and
+correcting the saved secret resolved it. These observations do not constitute a
+dedicated key-revocation test, nor live verification of the other 18 connections.
+The expanded bundle remains experimental until its live checks are completed.
+
+| Connection | Context |
+|---|---|
+| `lab-v2-entry` | Entry and context discovery |
+| `lv2-all` | General / full Lab |
+| `lab-v2-snow` | Snowflake |
+| `lab-v2-profiles` | Profiles and events |
+| `lab-v2-demo` | Demo preparation and branding |
+| `lab-v2-pdf` | PDF preparation |
+| `lab-v2-audiences` | Audiences |
+| `lv2-dps` | Decisioning |
+| `lab-v2-ajo-clean` | AJO cleanup |
+| `lab-v2-ajo-oc` | AJO Orchestrated Campaign datasets |
+| `lab-v2-command` | Command Centre |
+| `lab-v2-weather` | Weather |
+| `lab-v2-geo` | Geographic insights |
+| `lab-v2-commerce` | Commerce |
+| `lab-v2-aco` | Commerce Optimizer |
+| `lab-v2-firefly` | Firefly |
+| `lab-v2-creative` | Creativity |
+| `lab-v2-catalog` | Adobe capabilities |
+| `lab-v2-measure` | Measurement quality |
+| `lab-v2-figma` | Figma |
+
+General and Decisioning use shorter prefixes to keep every qualified tool name,
+including an optional `mcp__` namespace, within 64 characters. Endpoint URLs and
+timeouts match v1. Local packaging checks cover all 20 contexts but do not prove
+live availability or downstream Adobe-service permissions.
+
+Setup, after the package is published to an approved GitHub ref:
 
 1. In Coworker **App settings > Secrets > Your secrets**, save a personal,
    sandbox-scoped Portal MCP key as `aep_lab_mcp_key`. Never put the key in Git,
    chat, the marketplace's GitHub-token field, or an organization-wide secret.
-2. Add repository `adampadobe/AEP-Orchestration-Lab`, the published pilot ref,
+2. Add repository `adampadobe/AEP-Orchestration-Lab`, the published v2 ref,
    subdirectory `tools/coworker-marketplace-v2`, and a distinct marketplace name.
-   Install **AEP Lab v2 authentication pilot**, leaving v1 unchanged.
-3. Test both connections and start a fresh chat. Verify access information
+   Install **AEP Lab v2** (`aep-lab-v2`), leaving v1 unchanged. If a newly added
+   marketplace initially shows Ready with zero plugins, let discovery finish;
+   one explicit **Sync** resolved this during the pilot.
+3. Use **Test** on each connection and start a fresh chat. Verify access information
    identifies the intended user and sandbox, then perform only a read-only demo
    config inspection. Do not scrape, back up, switch customers, or generate data
    as part of this authentication test. The demo-prep connection still exposes
    mutation tools; this package is not a read-only security boundary.
-4. Verify a fresh chat after refreshing the plugin still authenticates both
+4. Verify a fresh chat after refreshing the plugin still authenticates the
    contexts. Confirm missing/invalid credentials fail without exposing their
    values, using a dedicated test key rather than revoking an in-use key.
 
-If either connection cannot resolve the saved secret, stop the pilot and retain
+For an existing pilot install pinned to a commit SHA, **Sync does not advance
+that pin**. Update the marketplace to the newly approved ref before refreshing
+or updating the plugin. If the UI has no ref editor, remove only the v2 plugin
+and its marketplace, then re-add at the new ref and reinstall. Keep the existing
+personal secret; the expanded bundle references the same name. Start a new chat.
+
+If a connection cannot resolve the saved secret, stop the update and retain
 the exact sanitized error for Coworker development; do not embed a key or fall
 back to forwarding IMS tokens. Remove only the v2 plugin/marketplace to undo the
-pilot, and remove its personal secret only if no other connection uses it.
+update, and remove its personal secret only if no other connection uses it.
 
-Removing the subdirectory requirement is deferred until this proof succeeds.
+Removing the subdirectory requirement needs a separate distribution location.
 The repository root already serves Claude and must not be repointed to Coworker.
-No Firebase or Cloud Run deployment is needed for this package-only pilot.
+No new distribution repository is created by this update. No Firebase or
+Cloud Run deployment is needed for this package-only change.
 
 ## Add this marketplace in Coworker
 
