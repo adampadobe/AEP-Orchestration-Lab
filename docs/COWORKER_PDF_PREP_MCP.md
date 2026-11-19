@@ -4,6 +4,14 @@ The focused PDF context exposes the existing Firebase PDF Personalisation worksp
 
 ## Coworker configuration
 
+**Recommended:** install the [v2 marketplace](COWORKER_MARKETPLACE_V2.md) once.
+It supplies `lab-v2-pdf` with a 650-second timeout and your existing personal
+`aep_lab_mcp_key` secret; do not add another PDF server or enter another key.
+The full catalog is also available on v2 General, `lv2-all`.
+
+The following is a manual API-key client configuration reference, not an
+additional step required by the marketplace install:
+
 | Field | Copy value |
 |---|---|
 | Name | `aep-lab-pdf-prep` |
