@@ -33,6 +33,29 @@ function generate(index, hero = false) {
 }
 
 describe('snowflakeRelationalGenerator travel model', () => {
+  it('recent booking time and related REL dates agree across midnight without changing historical mode', () => {
+    const runStamp = '2026-11-15T00:00:01.000Z';
+    for (let index = 0; index < 20; index++) {
+      const profile = { CRMID: `CRM${index}`, ECID: `ecid-${index}`, EMAIL: 'offline@example.test' };
+      const recipient = createRecipient({ industry: 'travel', crmId: profile.CRMID, email: profile.EMAIL });
+      const input = { recipient, profile, index, asOfDate: '2026-11-15', runStamp };
+      const recent = generateTravelRelationalRecords({ ...input, eventTimeMode: 'recent' });
+      const age = Date.parse(runStamp) - Date.parse(recent.bookingEvent.TIMESTAMP);
+      assert.ok(age >= 0 && age <= 6 * 3600_000);
+      assert.equal(recent.bookingEvent.BOOKINGDATE, recent.bookingEvent.TIMESTAMP.slice(0, 10));
+      assert.equal(recent.reservation.booking_date, recent.bookingEvent.BOOKINGDATE);
+      for (const ancillary of recent.ancillaries) {
+        assert.ok(Date.parse(ancillary.purchased_at) >= Date.parse(recent.bookingEvent.TIMESTAMP));
+        assert.ok(Date.parse(ancillary.purchased_at) <= Date.parse(runStamp));
+      }
+      for (const event of recent.disruptionEvents) {
+        assert.ok(Date.parse(event.TIMESTAMP) <= Date.parse(runStamp));
+      }
+      assert.deepEqual(generateTravelRelationalRecords(input),
+        generateTravelRelationalRecords({ ...input, eventTimeMode: 'historical' }));
+    }
+  });
+
   it('uses stable parent and ordinal child keys for idempotent merges', () => {
     const first = generate(1);
     const again = generate(1);

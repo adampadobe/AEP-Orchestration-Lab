@@ -180,7 +180,8 @@ test('TUI and CP opt into the compatible manual runtime; other demos retain the 
   assert.ok(chain.includes('tui-decisioning-runtime.js'));
   assert.ok(!chain.includes('decisioning-profile-module/decisioning-profile-runtime.js'));
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes("runtimeScript: 'tui-decisioning-runtime.js'"), file);
   }
 });
@@ -196,7 +197,8 @@ test('TUI and CP load the decisioning drawer with offer/strategy event cards', (
   }
   assert.ok(fs.readFileSync(path.join(root, 'tui-decisioning-drawer.css'), 'utf8').includes('.aep-profile-drawer-event-decision-detail'));
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-drawer.'), file);
   }
 });
@@ -228,6 +230,30 @@ test('manual decisions capture the original SDK, browser identity and datastream
   assert.equal(result.manualDisplay.identityMap, payload.xdm.identityMap);
   assert.equal(result.manualDisplay.eventXdm._demoemea, payload.xdm._demoemea);
   assert.equal(result.propositions, f.propositions);
+});
+
+test('explicit Loyalty content-card surfaces replace hero defaults without applying or displaying propositions', async () => {
+  const f = fixture();
+  await f.runtime.runProfileLookup({ skipHydrate: true, throwOnError: true });
+  const surface = 'web://example.test/rewards#ContentCardContainer';
+  await f.runtime.runContentDecision({
+    manualDisplay: true, useBrowserEcid: true, eventTenantNamespace: '_demoemea', surfaces: [surface],
+  });
+  assert.deepEqual(Array.from(f.calls[1].payload.personalization.surfaces), [surface]);
+  assert.equal(f.calls[1].payload.personalization.sendDisplayEvent, false);
+  const sent = f.calls.filter(call => call.command === 'sendEvent').length;
+  for (const surfaces of [[], ['javascript:alert(1)'], [surface, surface]]) {
+    await assert.rejects(f.runtime.runContentDecision({ surfaces }), /one explicit web surface/);
+  }
+  assert.equal(f.calls.filter(call => call.command === 'sendEvent').length, sent);
+  const changed = fixture();
+  await changed.runtime.runProfileLookup({ skipHydrate: true, throwOnError: true });
+  let checks = 0;
+  await assert.rejects(changed.runtime.runContentDecision({
+    manualDisplay: true, useBrowserEcid: true, eventTenantNamespace: '_demoemea', surfaces: [surface],
+    validateContext: () => { if (++checks > 1) throw new Error('Identity changed during SDK lookup'); },
+  }), /Identity changed/);
+  assert.deepEqual(changed.calls.map(call => call.command), ['getIdentity'], 'Context is rechecked before sending to Edge');
 });
 
 test('missing browser identity or a conflicting selected ECID blocks sending a decision', async () => {

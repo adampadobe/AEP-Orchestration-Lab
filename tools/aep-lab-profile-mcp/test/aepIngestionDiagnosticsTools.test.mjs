@@ -51,8 +51,10 @@ test('recovery schemas require bounded receipts and explicit acknowledgement; sa
   const previewSchema = z.object(preview.inputSchema).strict();
   const applySchema = z.object(apply.inputSchema).strict();
   assert.equal(previewSchema.safeParse(skipPreview).success, true);
+  assert.equal(previewSchema.safeParse({ ...skipPreview, day: '2026-11-15', slot_id: '01' }).success, true);
   assert.equal(applySchema.safeParse(skipApply).success, true);
-  for (const bad of [{ ...skipPreview, day: '2026-02-30' }, { ...skipPreview, slot_id: '16' }, { ...skipPreview, principalUid: 'spoofed' }]) {
+  for (const bad of [{ ...skipPreview, day: '2026-02-30' }, { ...skipPreview, slot_id: '16' },
+    { ...skipPreview, slot_id: '02' }, { ...skipPreview, principalUid: 'spoofed' }]) {
     assert.equal(previewSchema.safeParse(bad).success, false);
   }
   for (const bad of [

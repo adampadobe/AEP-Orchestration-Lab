@@ -15,7 +15,7 @@ import { fromLabApi, toolError } from './helpers.mjs';
 import { hasPlaceParams, placeInputSchema, summarizePlaceAttributes, validatePlaceParams } from '../framework/placeParams.mjs';
 import { buildPlaceContextPersonaAttributes, hasPlaceContextAttributes } from '../personaBuilder/placeContext.mjs';
 import { requireUserMcpKeyForSnowflake } from './snowflakeTools.mjs';
-import { snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
+import { checkRecentEventMode, snowflakeEnrichProfiles, snowflakeInsertProfileFromAep } from '../labApiClient.mjs';
 import { snowflakeProfileTableForIndustry } from '../snowflakeIndustry.mjs';
 import { generationTargetSchema, generateSnowflakeProfiles } from './snowflakeProfileGeneration.mjs';
 import { resolveProfileEmailForGenerate, applyStoredPrefsMobileToAttributes } from './generationPrefs.mjs';
@@ -45,6 +45,8 @@ export function registerGenerateProfileTool(mcpServer) {
         'See the parameter descriptions and lab_get_execution_framework for advanced options.',
       inputSchema: {
         target: generationTargetSchema,
+        event_time_mode: z.enum(['historical', 'recent']).optional()
+          .describe('Snowflake seed/activity timing: historical default or recent (past six UTC hours). On target aep, requires non-travel dual_load_snowflake + snowflake_enrichment.'),
         email: z
           .string()
           .email()
@@ -135,6 +137,11 @@ export function registerGenerateProfileTool(mcpServer) {
     },
     async (params) => {
       if (params.target !== 'aep') return generateSnowflakeProfiles(params, 'lab_generate_profile');
+      if (params.event_time_mode !== undefined
+        && (params.dual_load_snowflake !== true || params.snowflake_enrichment !== true
+          || !['fsi', 'retail', 'telecom', 'media', 'sports'].includes(normalizeIndustry(params.industry).industry))) {
+        return toolError('event_time_mode on target aep requires non-travel dual_load_snowflake:true and snowflake_enrichment:true. Use Snowflake seeding or lab_snowflake_enrich_profiles for travel.');
+      }
       const {
         email,
         sandbox,
@@ -188,6 +195,10 @@ export function registerGenerateProfileTool(mcpServer) {
         return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
       }
 
+      if (params.event_time_mode === 'recent') {
+        const blocked = await checkRecentEventMode({ ...params, sandbox: allowed.sandbox });
+        if (blocked) return fromLabApi(blocked, { profile_created: false });
+      }
       const emailResolved = await resolveProfileEmailForGenerate({
         sandbox: allowed.sandbox,
         email,
@@ -397,6 +408,7 @@ export function registerGenerateProfileTool(mcpServer) {
                   crmId: sfResult.data?.result?.crmId || undefined,
                 }],
                 event_types: snowflake_event_types,
+                event_time_mode: params.event_time_mode,
               });
               snowflakeDualLoad.enrichment = {
                 requested: true,
@@ -442,13 +454,15 @@ export function registerGenerateProfileTool(mcpServer) {
           (apiResult.ok && failedFollowUps.length > 0)
           || apiResult.partialSuccess === true,
         no_retry_guidance:
-          (apiResult.ok && failedFollowUps.length > 0)
+          apiResult.outcomeUnknown
+            ? 'The profile write outcome is unknown. Inspect the existing identity and request before retrying generation.'
+            : (apiResult.ok && failedFollowUps.length > 0)
             ? `AEP profile generation succeeded but ${failedFollowUps.join(' and ')} failed. Do not regenerate this identity; inspect the returned email and correlation_id before repair.`
             : (apiResult.partialSuccess === true
               ? 'The generic base was accepted but the industry overlay was not completed. Inspect the Snowflake and recent-profile results separately. Do not regenerate this identity; completion requires approval.'
               : undefined),
         target: 'aep',
-        generation_status: apiResult.ok ? 'accepted' : apiResult.partialSuccess ? 'overlay_pending' : 'failed',
+        generation_status: apiResult.ok ? 'accepted' : apiResult.outcomeUnknown ? 'unknown' : apiResult.partialSuccess ? 'overlay_pending' : 'failed',
         sandbox: allowed.sandbox,
         industry: norm.industry,
         normalizedFrom: norm.normalizedFrom,

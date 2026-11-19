@@ -11,10 +11,10 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').url.endsWith('/mcp/ajo-oc-datasets'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 247);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 252);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').toolCount, 4);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 23);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 24);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 29);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-weather').url.endsWith('/mcp/weather'), true);
@@ -52,6 +52,7 @@ test('recommender selects narrow contexts and reports cross-context work', () =>
   assert.equal(recommendMcpContexts('generate a Firefly image').primary.id, 'aep-lab-firefly');
   assert.equal(recommendMcpContexts('apply Lightroom edits in Photoshop').primary.id, 'aep-lab-creativity');
   assert.equal(recommendMcpContexts('inspect the Adobe API scope inventory').primary.id, 'aep-lab-adobe-capabilities');
+  assert.equal(recommendMcpContexts('inspect AJO loyalty challenge progress').primary.id, 'aep-lab-decisioning');
 });
 
 test('workflow plans retain confirmation gates', () => {

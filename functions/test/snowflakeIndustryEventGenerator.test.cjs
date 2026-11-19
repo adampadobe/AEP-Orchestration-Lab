@@ -8,6 +8,7 @@ const {
   listIndustryEventTypes,
 } = require('../snowflakeIndustryEventRegistry');
 const { generateIndustryEventRows } = require('../snowflakeIndustryEventGenerator');
+const { resolveEventTimeMode } = require('../snowflakeEventTimeMode');
 
 const identity = { EMAIL: 'profile@example.com', ECID: '123456789', CRMID: 'CRM42' };
 const profiles = {
@@ -19,7 +20,56 @@ const profiles = {
 };
 
 describe('Snowflake industry event registry and generators', () => {
+  it('rejects unknown/null/conflicting timing modes and invalid generation clocks', () => {
+    for (const eventTimeMode of ['RECENT', '', 'yesterday', null, false, 6]) {
+      assert.throws(() => generateIndustryEventRows('fsi', profiles.fsi, { eventTimeMode }), /historical or recent/);
+    }
+    assert.throws(() => resolveEventTimeMode({ eventTimeMode: 'historical', event_time_mode: 'recent' }), /must agree/);
+    assert.throws(() => generateIndustryEventRows('fsi', profiles.fsi, { now: 'invalid' }), /valid timestamp/);
+    assert.equal(resolveEventTimeMode({ event_time_mode: 'recent' }), 'recent');
+  });
+
   for (const industry of Object.keys(profiles)) {
+    it(`${industry} recent events stay within six UTC hours across cohorts and preserve separate historical IDs`, () => {
+      const now = '2026-11-15T00:00:01.000Z';
+      for (let index = 0; index < 50; index++) {
+        const profile = { ...profiles[industry], ECID: `recent-${industry}-${index}` };
+        const recent = generateIndustryEventRows(industry, profile, { now, eventTimeMode: 'recent' });
+        const historical = generateIndustryEventRows(industry, profile, { now });
+        assert.notEqual(recent.generationId, historical.generationId);
+        assert.deepEqual(historical, generateIndustryEventRows(industry, profile, { now, eventTimeMode: 'historical' }));
+        assert.deepEqual(recent, generateIndustryEventRows(industry, profile, { now, eventTimeMode: 'recent' }));
+        for (const table of listIndustryEventTables(industry).filter(({ kind }) => kind === 'event')) {
+          for (const row of recent.rowsByType[table.key]) {
+            const age = Date.parse(now) - Date.parse(row.TIMESTAMP);
+            assert.ok(age >= 0 && age <= 6 * 3600_000, `${industry}/${table.key}: ${row.TIMESTAMP}`);
+            assert.equal(row._RECORDCREATEDTIMESTAMP, now);
+            assert.equal(row.EMAIL, profile.EMAIL);
+            assert.equal(row.ECID, profile.ECID);
+            assert.equal(row.CRMID, profile.CRMID);
+            if (industry === 'sports' && table.key === 'attendance') assert.equal(row.GATE_SCAN_TIME, row.TIMESTAMP);
+          }
+        }
+        if (industry === 'fsi') {
+          assert.equal(recent.rowsByType.transaction.filter(({ TRANSACTION_TYPE }) => TRANSACTION_TYPE === 'salary').length, 1);
+          const transactions = recent.rowsByType.transaction;
+          assert.deepEqual(transactions.map(({ TIMESTAMP }) => TIMESTAMP), transactions.map(({ TIMESTAMP }) => TIMESTAMP).sort());
+          const stages = new Map();
+          for (const row of recent.rowsByType.application) {
+            assert.ok(!stages.has(row.APPLICATION_ID) || row.TIMESTAMP >= stages.get(row.APPLICATION_ID));
+            stages.set(row.APPLICATION_ID, row.TIMESTAMP);
+          }
+        }
+        if (industry === 'retail') {
+          const orders = new Map(recent.rowsByType.order.map((row) => [row.ORDER_ID, row]));
+          for (const row of recent.rowsByType.return) {
+            assert.ok(Date.parse(row.TIMESTAMP) - Date.parse(orders.get(row.ORDER_ID).TIMESTAMP) >= 2 * 3600_000);
+          }
+        }
+        if (industry === 'telecom' || industry === 'media') assert.equal(recent.rowsByType.billing.length, 1);
+      }
+    });
+
     it(`${industry} exposes exactly five governed event/enrichment tables`, () => {
       const tables = listIndustryEventTables(industry);
       assert.equal(tables.length, 5);

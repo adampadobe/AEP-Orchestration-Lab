@@ -92,6 +92,9 @@ jobs:
       - name: Verify AEP ingestion diagnostics and governed scheduler recovery (offline)
         run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/aepIngestionDiagnostics*.test.cjs tools/aep-lab-profile-mcp/test/aepIngestionDiagnosticsTools.test.mjs
 
+      - name: Verify read-only AJO Loyalty authentication and API contracts (offline)
+        run: AEP_LAB_MCP_FIRESTORE=off node --test functions/test/ajoLoyalty*.test.cjs tools/aep-lab-profile-mcp/test/ajoLoyaltyTools.test.mjs scripts/test-lloyds-loyalty.cjs
+
       - name: Verify Snowflake setup and generation contracts (offline)
         run: |
           AEP_LAB_MCP_FIRESTORE=off node --test functions/test/snowflake*.test.cjs functions/test/generateRelationalSnowflakeCli.test.cjs tools/aep-lab-profile-mcp/test/imsPassthroughAdapters.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileGeneration.test.mjs tools/aep-lab-profile-mcp/test/snowflakeProfileBundle.test.mjs tools/aep-lab-profile-mcp/test/snowflakeApiTransport.test.mjs tools/aep-lab-profile-mcp/test/snowflakeWorkspace.test.mjs
@@ -148,5 +151,7 @@ jobs:
         run: npm run test:riyadh-air
       - name: Exercise CP decisioning, attribution and profile refresh (local fixtures)
         run: node scripts/test-cp-decisioning-browser.cjs
+      - name: Exercise Lloyds Loyalty mobile journey and task state (local fixtures)
+        run: npm run test:lloyds-loyalty
       - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
         run: npm run test:vuse-italia

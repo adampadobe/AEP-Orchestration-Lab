@@ -6,6 +6,7 @@ const {
   listIndustryEventTypes,
 } = require('./snowflakeIndustryEventRegistry');
 const { getRecipientId } = require('./snowflakeRecipientFactory');
+const { RECENT_EVENT_WINDOW_MS, resolveEventTimeMode } = require('./snowflakeEventTimeMode');
 
 const DAY_MS = 86400000;
 
@@ -19,15 +20,24 @@ function seededRandom(seed) {
   };
 }
 
-function context(industry, profile, generationId, now) {
+function context(industry, profile, generationId, now, eventTimeMode) {
   const random = seededRandom(`${industry}:${profile.ECID || profile.EMAIL}:${generationId}`);
   const int = (min, max) => Math.floor(random() * (max - min + 1)) + min;
   const number = (min, max, digits = 2) => Number((min + random() * (max - min)).toFixed(digits));
   const pick = (values) => values[int(0, values.length - 1)];
   const chance = (probability) => random() < probability;
-  const timestamp = (maxDays = 90, offsetMs = 0) =>
+  const historicalTimestamp = (maxDays = 90, offsetMs = 0) =>
     new Date(now.getTime() - int(0, maxDays * DAY_MS) - offsetMs).toISOString();
-  const date = (maxDays = 90) => timestamp(maxDays).slice(0, 10);
+  const recent = eventTimeMode === 'recent';
+  const timestamp = (maxDays = 90, offsetMs = 0) => {
+    if (!recent) return historicalTimestamp(maxDays, offsetMs);
+    if (offsetMs < 0 || offsetMs > RECENT_EVENT_WINDOW_MS) {
+      throw new Error('Recent event offset is outside the six-hour window');
+    }
+    const age = offsetMs + (maxDays === 0 ? 0 : int(0, RECENT_EVENT_WINDOW_MS - offsetMs));
+    return new Date(now.getTime() - age).toISOString();
+  };
+  const date = (maxDays = 90) => historicalTimestamp(maxDays).slice(0, 10);
   const futureDate = (minDays, maxDays) =>
     new Date(now.getTime() + int(minDays, maxDays) * DAY_MS).toISOString().slice(0, 10);
   const identity = {
@@ -49,7 +59,7 @@ function context(industry, profile, generationId, now) {
     ...values,
     _RECORDCREATEDTIMESTAMP: now.toISOString(),
   });
-  return { now, random, int, number, pick, chance, timestamp, date, futureDate, event, enrichment };
+  return { now, recent, random, int, number, pick, chance, timestamp, date, futureDate, event, enrichment };
 }
 
 function generateFsi(profile, ctx) {
@@ -155,11 +165,13 @@ function generateFsi(profile, ctx) {
       ACCOUNT_ID: cardTransaction ? null : id,
       CARD_ID: cardTransaction ? id : null,
       REFERENCE: reference,
-    }, new Date(ctx.now.getTime() - (monthAgo * 30 + (30 - day)) * DAY_MS).toISOString()));
+    }, ctx.recent
+      ? ctx.timestamp(0, (30 - day) * 10 * 60 * 1000)
+      : new Date(ctx.now.getTime() - (monthAgo * 30 + (30 - day)) * DAY_MS).toISOString()));
     return nextBalance;
   };
 
-  for (let monthAgo = 5; monthAgo >= 0; monthAgo -= 1) {
+  for (let monthAgo = ctx.recent ? 0 : 5; monthAgo >= 0; monthAgo -= 1) {
     if (current) {
       addTransaction({
         type: 'salary', direction: 'credit', amount: monthlySalary, product: current,
@@ -263,7 +275,10 @@ function generateFsi(profile, ctx) {
     const product = ctx.pick(['mortgage', 'personal_loan', 'credit_card', 'savings_account', 'investment_isa']);
     const finalStage = ctx.chance(0.72) ? 'completed' : ctx.pick(['declined', 'withdrawn']);
     const stages = ['started', 'identity_verified', 'income_verified', finalStage];
-    const baseOffset = ctx.int(2, 80) * DAY_MS;
+    const stageInterval = ctx.recent ? 60 * 1000 : DAY_MS;
+    const baseOffset = ctx.recent
+      ? ctx.int(3, 360) * 60 * 1000
+      : ctx.int(2, 80) * DAY_MS;
     stages.forEach((stage, index) => application.push(ctx.event('application', {
       APPLICATION_ID: id,
       PRODUCT_TYPE: product,
@@ -272,7 +287,7 @@ function generateFsi(profile, ctx) {
       TERM_MONTHS: ['mortgage', 'personal_loan'].includes(product) ? ctx.pick([12, 24, 36, 60, 240, 300]) : null,
       CHANNEL: ctx.pick(['web', 'branch', 'phone', 'broker']),
       DECISION_REASON: ['declined', 'completed'].includes(stage) ? (stage === 'completed' ? 'affordability_passed' : 'affordability_failed') : null,
-    }, new Date(ctx.timestamp(0, baseOffset - index * DAY_MS)).toISOString())));
+    }, new Date(ctx.timestamp(0, baseOffset - index * stageInterval)).toISOString())));
   }
 
   const advisory = Array.from({ length: ctx.int(0, 5) }, () => ctx.event('advisory', {
@@ -417,10 +432,12 @@ function generateTelecom(profile, ctx) {
       PEAK_FLAG: ctx.chance(0.35),
     }, ctx.timestamp(30));
   });
-  const billing = Array.from({ length: ctx.int(3, 12) }, (_, index) => {
+  const billing = Array.from({ length: ctx.recent ? 1 : ctx.int(3, 12) }, (_, index) => {
     const periodEnd = new Date(ctx.timestamp(0, index * 30 * DAY_MS));
     const periodStart = new Date(periodEnd.getTime() - 30 * DAY_MS);
-    const status = ctx.pick(['paid', 'paid', 'paid', 'pending', 'overdue', 'failed']);
+    const status = ctx.pick(ctx.recent
+      ? ['paid', 'pending', 'failed']
+      : ['paid', 'paid', 'paid', 'pending', 'overdue', 'failed']);
     return ctx.event('billing', {
       INVOICE_ID: `INV-${ctx.int(100000, 999999)}`,
       AMOUNT: ctx.number(Number(profile.MONTHLYSPEND || 35) * 0.96, Number(profile.MONTHLYSPEND || 35) * 1.08),
@@ -512,7 +529,7 @@ function generateMedia(profile, ctx) {
       SHARE_PLATFORM: action === 'share' ? ctx.pick(['twitter', 'whatsapp', 'imessage']) : null,
     });
   });
-  const billing = Array.from({ length: ctx.int(3, 12) }, () => ctx.event('billing', {
+  const billing = Array.from({ length: ctx.recent ? 1 : ctx.int(3, 12) }, () => ctx.event('billing', {
     EVENT_TYPE: ctx.pick(['charge', 'charge', 'charge', 'refund', 'upgrade', 'downgrade']),
     PLAN: profile.SUBSCRIPTIONTIER || 'standard',
     AMOUNT: Number(profile.MONTHLYFEE || 10.99),
@@ -668,6 +685,11 @@ function normalizeProfile(profile) {
   );
 }
 
+function industryEventGenerationId(industry, ecid, eventTimeMode = 'historical') {
+  const version = eventTimeMode === 'recent' ? 'industry-events-recent-v1' : 'industry-events-v1';
+  return createHash('sha256').update(`${industry}:${ecid}:${version}`).digest('hex').slice(0, 32);
+}
+
 function generateIndustryEventRows(industry, profileInput, options = {}) {
   const key = String(industry || '').trim().toLowerCase();
   if (!getIndustryEventConfig(key) || !GENERATORS[key]) {
@@ -678,11 +700,13 @@ function generateIndustryEventRows(industry, profileInput, options = {}) {
     throw new Error('Profile EMAIL, ECID, and CRMID are required for enrichment');
   }
   const now = options.now instanceof Date ? options.now : new Date(options.now || Date.now());
+  if (!Number.isFinite(now.getTime())) throw new Error('Event generation now must be a valid timestamp');
+  const eventTimeMode = resolveEventTimeMode(options);
   const generationId = String(
     options.generationId ||
-      createHash('sha256').update(`${key}:${profile.ECID}:industry-events-v1`).digest('hex').slice(0, 32),
+      industryEventGenerationId(key, profile.ECID, eventTimeMode),
   );
-  const generated = GENERATORS[key](profile, context(key, profile, generationId, now));
+  const generated = GENERATORS[key](profile, context(key, profile, generationId, now, eventTimeMode));
   linkGeneratedRows(key, generated);
   const requested = Array.isArray(options.eventTypes) && options.eventTypes.length
     ? options.eventTypes.map((value) => String(value).trim().toLowerCase())
@@ -694,10 +718,11 @@ function generateIndustryEventRows(industry, profileInput, options = {}) {
       ? generated[type].map((row, index) => ({ ...row, GENERATIONID: `${generationId}-${index}` }))
       : generated[type];
   }
-  return { industry: key, generationId, rowsByType };
+  return { industry: key, generationId, eventTimeMode, rowsByType };
 }
 
 module.exports = {
   generateIndustryEventRows,
+  industryEventGenerationId,
   seededRandom,
 };

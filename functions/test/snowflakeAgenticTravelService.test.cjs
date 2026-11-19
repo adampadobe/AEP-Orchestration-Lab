@@ -15,7 +15,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const { createRequire } = require('node:module');
 
-function guardedService({ rows = [], error, connectError } = {}) {
+function guardedService({ rows = [], error, connectError, runnerResponse } = {}) {
   const queries = [];
   const runnerCalls = [];
   let destroyed = false;
@@ -27,7 +27,7 @@ function guardedService({ rows = [], error, connectError } = {}) {
     process: { env: { AGENTIC_TRAVEL_RUNNER_URL: 'https://runner.example.invalid', AGENTIC_TRAVEL_RUNNER_HMAC_SECRET: 'offline-fixture' } },
     fetch: async (url, init) => {
       runnerCalls.push({ url, init });
-      return { ok: true, status: 200, json: async () => ({ ok: true }) };
+      return { ok: true, status: 200, json: async () => runnerResponse ? runnerResponse(url) : ({ ok: true }) };
     },
     require(id) {
       if (id === './snowflakeConnectionStore') return { resolveConnection: async () => ({
@@ -49,6 +49,28 @@ function guardedService({ rows = [], error, connectError } = {}) {
 }
 
 describe('legacy full generation allocator guard', () => {
+  it('recent travel enrichment blocks old runners before any write and preflights without credentials', async () => {
+    const input = { labUser: 'test', sandbox: 'test', profiles: [{ crmId: 'CRM42', email: 'offline@example.test' }],
+      eventTypes: ['website'], eventTimeMode: 'recent' };
+    const old = guardedService();
+    const blocked = await old.service.handleAgenticEnrich(input);
+    assert.equal(blocked.ok, false);
+    assert.equal(blocked.error.code, 'RECENT_EVENT_MODE_UNAVAILABLE');
+    assert.equal(old.runnerCalls.length, 1);
+    assert.match(old.runnerCalls[0].url, /internal\/capabilities$/);
+    assert.deepEqual(JSON.parse(old.runnerCalls[0].init.body).snowflake, {});
+    const fresh = guardedService({ runnerResponse: (url) => url.endsWith('/capabilities')
+      ? { event_time_modes: ['historical', 'recent'] } : { success: true } });
+    const accepted = await fresh.service.handleAgenticEnrich(input);
+    assert.equal(accepted.ok, true);
+    assert.equal(fresh.runnerCalls.length, 2);
+    assert.match(fresh.runnerCalls[1].url, /internal\/enrich$/);
+    assert.equal(JSON.parse(fresh.runnerCalls[1].init.body).event_time_mode, 'recent');
+    const invalid = guardedService();
+    await assert.rejects(invalid.service.handleAgenticEnrich({ ...input, eventTimeMode: null }), /historical or recent/);
+    assert.equal(invalid.runnerCalls.length, 0);
+  });
+
   it('blocks the Python runner when the actual saved target has an allocator', async () => {
     const fixture = guardedService({ rows: [{ SEQUENCE_NAME: 'AEP_LAB_RECIPIENT_CRM_SEQUENCE' }] });
     const result = await fixture.service.handleAgenticGenerateFull({ labUser: 'test', sandbox: 'test', count: 2 });

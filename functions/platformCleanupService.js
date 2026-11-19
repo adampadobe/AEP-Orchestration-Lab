@@ -1,7 +1,7 @@
 'use strict';
 
 const { createHash } = require('node:crypto');
-const { bindings: reviewedFlowBindings, retiredBindings } = require('./myDataFlowsRegistry');
+const { bindings: reviewedFlowBindings, protectedLegacyFlowIds, retiredBindings } = require('./myDataFlowsRegistry');
 
 const BASE = 'https://platform.adobe.io';
 const CATALOG = '/data/foundation/catalog/dataSets';
@@ -17,7 +17,7 @@ const BATCH_TYPES = new Set([
   'targetConnection', 'baseConnection', 'account', 'mappingSet', 'ajoChannel',
 ]);
 const MUTATION_ADAPTERS_ENABLED = true;
-const REVIEWED_FLOW_IDS = new Set(reviewedFlowBindings.map((binding) => binding.id));
+const REVIEWED_FLOW_IDS = new Set([...reviewedFlowBindings.map((binding) => binding.id), ...protectedLegacyFlowIds]);
 const REQUIRED_REL_FLOW_IDS = reviewedFlowBindings.filter((binding) => binding.nodeIds.includes('rel-flow')).map((binding) => binding.id);
 const UUID = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const CATALOG_DATASET_ID = /^(?:[a-f0-9]{24}|[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12})$/i;

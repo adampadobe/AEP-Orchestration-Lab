@@ -23,6 +23,11 @@ test('scheduler scopes exclude retired travel destinations without replacing cur
   assert.ok(relevantBindings('travel').some((binding) => binding.id === '4faef7e2-8ad3-459c-b8b8-34c8be5e0ac1'));
 });
 
+test('FSI scheduler scope uses the replacement transaction flow, not the disabled predecessor', () => {
+  const transactionBindings = relevantBindings('fsi').filter((binding) => binding.table === 'REL.REL_FSI_TRANSACTION');
+  assert.deepEqual(transactionBindings.map((binding) => binding.id), ['e8862542-cfb2-4574-b9d6-d2844f037922']);
+});
+
 const settings = {
   enabled: true, ownerUid: 'owner', sandbox: 'apalmer',
   expectedBaseEmail: 'demo@example.test', expectedMobilePhone: '+447700900111',
@@ -189,6 +194,28 @@ test('only one plan and writer survive duplicate and concurrent ticks', async ()
   assert.equal(f.calls.generate, 1);
   assert.equal(JSON.stringify(f.logs).includes(settings.expectedBaseEmail), false);
   assert.equal(JSON.stringify(f.logs).includes(settings.expectedMobilePhone), false);
+});
+
+test('future non-travel scheduled seeds use recent activity while travel keeps ongoing history', async () => {
+  for (const industry of INDUSTRIES) {
+    const f = fixture({ snowflake: {
+      async generate(input) {
+        assert.equal(input.industry, industry);
+        assert.equal(input.eventTimeMode, industry === 'travel' ? 'historical' : 'recent');
+        assert.equal(input.samplingMode, 'ongoing');
+        await input.onPrepared({
+          profiles: Array.from({ length: input.count }, (_, index) => ({
+            email: `demo+11112026-${index + 1}@example.test`,
+            ecid: String(index + 1).repeat(38), crmId: `CRM${1000 + index}`, recipientId: `R-${index}`,
+          })),
+          runStamp: f.now().toISOString(),
+        });
+        return { ok: true };
+      },
+    } });
+    f.db.data.get(dayKey()).slots[0].industry = industry;
+    assert.equal((await f.service.tick()).state, 'committed', industry);
+  }
 });
 
 test('disabled, out-of-hours, Saturday, and changed owner never invoke the generator', async () => {

@@ -12,7 +12,7 @@ export function registerGetExecutionFrameworkTool(mcpServer) {
     {
       title: 'Get lab execution framework',
       description:
-        'Returns structured JSON for how the AEP Orchestration Lab executes profiles: criticalRules (testProfile, language, sandbox preflight) at top, ' +
+        'Returns structured JSON for how the AEP Orchestration Lab executes profiles: criticalRules (testProfile, language, sandbox preflight, recent-event timing and Profile expiry verification) at top, ' +
         'workflows (onboard → generate → full-snapshot update → events), ' +
         'dataflow pattern (schema→dataset→HTTP flow→Firestore connection), email/mobile/testProfile conventions, segment_hint catalog, ' +
         'when to use generate vs update vs edge event. Call this FIRST in Coworker sessions — no manual retraining needed. ' +

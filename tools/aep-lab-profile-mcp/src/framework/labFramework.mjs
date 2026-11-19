@@ -132,6 +132,22 @@ export const CRITICAL_RULES = [
     ui: 'web/profile-viewer/event-generator.js + event-tool.js — strip requires email or browser ECID.',
   },
   {
+    id: 'profile_event_time_bounds',
+    rule:
+      'For fresh synthetic Profile-delivery tests, omit timestamp on lab_send_profile_event / batch steps to use current UTC. ' +
+      'For Snowflake seeding or enrichment explicitly select event_time_mode:"recent": new events use the past six UTC hours, ' +
+      'with chronological transactions/applications, order-relative returns and matching sports scan times. Historical is the unchanged default. ' +
+      'This is a synthetic-data window, NOT a discovered Profile TTL; event time and record-created time are distinct. ' +
+      'Never rewrite stored timestamps, replay expired records or change retention/dataflows to hide rejection. ' +
+      'Use the same confirmed Email, ECID and CRMID; wait for natural ingestion and compare exact event ID, timestamp, identities and mapped values ' +
+      'in Snowflake source, source-specific AEP XDM and Profile. Verify required REL projections separately. ' +
+      'Successful readiness, empty flow runs, inlet acceptance or unrelated existing rows are not delivery proof. ' +
+      'On timestampExpired, inspect the exact batch and effective dataset-level Profile expiry; never guess a fixed retention duration. ' +
+      'Writes still require exact-scope approval. Never automatically retry uncertain writes or invoke the scheduler to force delivery.',
+    tools: ['lab_generate_profile', 'lab_generate_profiles_batch', 'lab_snowflake_enrich_profiles',
+      'lab_send_profile_event', 'lab_send_profile_events_batch', 'lab_profile_activity', 'lab_aep_batch_diagnose'],
+  },
+  {
     id: 'coworker_event_governed_params',
     rule:
       'NEVER pass custom XDM, schema $refs, mixin definitions, descriptors, or tenant field-group blobs to event tools. ' +
@@ -429,6 +445,11 @@ function dataflowPlaybook(industry) {
 }
 
 const COMMON_FAILURE_MODES = [
+  {
+    symptom: 'Source/lake ingestion succeeds but Profile reports timestampExpired',
+    cause: 'The event timestamp is outside the effective dataset-level Profile expiration window; record-created time does not replace event time.',
+    fix: 'For separately approved new synthetic activity, use event_time_mode:"recent" for Snowflake or omit timestamp on event-send tools. Preserve historical data; diagnose exact batches and verify exact new events in Profile. Do not infer TTL from blank retention dialogs or change retention/flows.',
+  },
   {
     symptom: '400 missing streaming.datasetId/schemaId',
     cause: 'Firestore connection incomplete — HTTP API dataflow not saved after schema/dataset provision',
@@ -1054,6 +1075,7 @@ export function getLabConventions() {
       mcp_param: 'lab_generate_profile test_profile (defaults true; false needs test_profile_override_reason)',
     },
     preferredLanguage: LANGUAGE_PLAYBOOK,
+    event_timing: CRITICAL_RULES.find(({ id }) => id === 'profile_event_time_bounds').rule,
     identity_stitching: {
       profile_stream: 'Email is primary identity on generate/update; ECID in identityMap when append_if_existing or from prior generate.',
       anonymous_edge:
@@ -1415,5 +1437,8 @@ export function frameworkConventionsMarkdown() {
     '## Known-profile events',
     c.identity_stitching.known_profile_event,
     `Default target: **${LAB_EVENT_TOOL_TARGET_ID}**`,
+    '',
+    '## Profile event timing',
+    c.event_timing,
   ].join('\n');
 }

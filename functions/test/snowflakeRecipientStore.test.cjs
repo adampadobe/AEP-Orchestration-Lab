@@ -25,7 +25,8 @@ describe('snowflakeRecipientStore', () => {
     const statements = recipientTableStatements('DEMO_DB', 'CUSTOM_SCHEMA');
     assert.match(statements[0], /CREATE TABLE IF NOT EXISTS DEMO_DB\.CUSTOM_SCHEMA\.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE/);
     assert.match(statements[0], /BIRTHDATE DATE/);
-    assert.match(statements.at(-1), /CREATE VIEW IF NOT EXISTS DEMO_DB\.REL\.RECIPIENT/);
+    assert.match(statements.at(-1), /CREATE VIEW IF NOT EXISTS DEMO_DB\.REL\.RECIPIENT AS SELECT \* REPLACE/);
+    assert.match(statements.at(-1), /COALESCE\(ADDRESSSTREET, HOMEADDRESS_STREET1\) AS ADDRESSSTREET/);
     assert.doesNotMatch(statements.join('\n'), /CREATE OR REPLACE|DROP|CREATE TABLE.*REL\.RECIPIENT/);
     const sql = fs.readFileSync(path.resolve(__dirname, '../sql/rel/00_recipient.sql'), 'utf8');
     const additions = statements.filter((statement) => statement.startsWith('ALTER TABLE'))
@@ -57,7 +58,21 @@ describe('snowflakeRecipientStore', () => {
   it('stops before mutations when a physical or incompatible recipient object already exists', async () => {
     for (const object of [
       { TABLE_TYPE: 'BASE TABLE', VIEW_DEFINITION: null },
-      { TABLE_TYPE: 'VIEW', VIEW_DEFINITION: 'SELECT * FROM OTHER_DB.OTHER_SCHEMA.OTHER_RECIPIENT' },
+      {
+        TABLE_TYPE: 'VIEW',
+        VIEW_DEFINITION: 'SELECT * FROM OTHER_DB.OTHER_SCHEMA.OTHER_RECIPIENT',
+        IS_SECURE: false,
+      },
+      {
+        TABLE_TYPE: 'VIEW',
+        VIEW_DEFINITION: 'SELECT * FROM DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE WHERE TESTPROFILE = TRUE',
+        IS_SECURE: false,
+      },
+      {
+        TABLE_TYPE: 'VIEW',
+        VIEW_DEFINITION: 'SELECT * FROM DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE',
+        IS_SECURE: true,
+      },
     ]) {
       const calls = [];
       await assert.rejects(ensureRecipientTable(async (sql) => {
@@ -76,12 +91,56 @@ describe('snowflakeRecipientStore', () => {
       if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{
         TABLE_TYPE: 'VIEW',
         VIEW_DEFINITION: 'SELECT * FROM "DEMO_DB"."CUSTOM_SCHEMA"."AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE"',
+        IS_SECURE: false,
       }];
       if (sql.includes('HAVING COUNT(*)')) return [{ ECID: 'conflicting-identity' }];
       return [];
     }, 'DEMO_DB', 'CUSTOM_SCHEMA'), /Review identity migration/);
     assert.equal(calls.some((sql) => sql.startsWith('UPDATE')), false);
     assert.equal(calls.some((sql) => sql.startsWith('CREATE VIEW')), false);
+    assert.equal(calls.some((sql) => sql.startsWith('CREATE OR REPLACE VIEW')), false);
+  });
+
+  it('migrates only the known shared-base star view while preserving its columns', async () => {
+    const calls = [];
+    await ensureRecipientTable(async (sql) => {
+      calls.push(sql);
+      if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{
+        TABLE_TYPE: 'VIEW',
+        VIEW_DEFINITION: 'SELECT * FROM "DEMO_DB"."CUSTOM_SCHEMA"."AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE"',
+        IS_SECURE: false,
+      }];
+      return [];
+    }, 'DEMO_DB', 'CUSTOM_SCHEMA');
+
+    const migration = calls.find((sql) => sql.startsWith('CREATE OR REPLACE VIEW'));
+    assert.match(migration, /COPY = \(COMMENTS, TAGS, GRANTS\)/);
+    assert.match(migration, /SELECT \* REPLACE/);
+    assert.match(migration, /COALESCE\(ADDRESSSTREET, HOMEADDRESS_STREET1\) AS ADDRESSSTREET/);
+    assert.match(migration, /COALESCE\(ADDRESSCITY, HOMEADDRESS_CITY\) AS ADDRESSCITY/);
+    assert.match(migration, /COALESCE\(ADDRESSPOSTALCODE, HOMEADDRESS_POSTALCODE\) AS ADDRESSPOSTALCODE/);
+    assert.match(migration, /COALESCE\(ADDRESSCOUNTRY, HOMEADDRESS_COUNTRY\) AS ADDRESSCOUNTRY/);
+    assert.ok(calls.indexOf(migration) > calls.findIndex((sql) => sql.includes('HAVING COUNT(*)')));
+  });
+
+  it('migrates the known explicit recipient projection without widening its schema', async () => {
+    const calls = [];
+    await ensureRecipientTable(async (sql) => {
+      calls.push(sql);
+      if (sql.includes('INFORMATION_SCHEMA.TABLES')) return [{
+        TABLE_TYPE: 'VIEW',
+        VIEW_DEFINITION: `SELECT ${RECIPIENT_COLUMNS.join(', ')} FROM DEMO_DB.CUSTOM_SCHEMA.AGENTIC_TRAVEL_PROFILE_CUSTOMER_BASE_PROFILE`,
+        IS_SECURE: false,
+      }];
+      return [];
+    }, 'DEMO_DB', 'CUSTOM_SCHEMA');
+
+    const migration = calls.find((sql) => sql.startsWith('CREATE OR REPLACE VIEW'));
+    assert.ok(migration);
+    assert.match(migration, /COPY = \(COMMENTS, TAGS, GRANTS\)/);
+    assert.match(migration, /COALESCE\(ADDRESSSTREET, HOMEADDRESS_STREET1\) AS ADDRESSSTREET/);
+    assert.doesNotMatch(migration, /SELECT \* REPLACE/);
+    assert.equal((migration.match(/ AS ADDRESSSTREET/g) || []).length, 1);
   });
 
   it('verifies a hidden definition using exact dependencies without recreating the existing view', async () => {

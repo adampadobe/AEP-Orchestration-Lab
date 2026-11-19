@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lloyds | Loyalty</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="tui-decisioning-drawer.css?v=20261104-tui-events">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css">
+  <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
+  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261118-profile-layout">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+</head>
+<body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="Shared site configuration">
+      <div class="aep-demo-id-inner" data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum" data-demo-env-strip-prefix="lloydsLoyalty"
+        data-demo-env-strip-title="Lloyds Loyalty" data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-message-id="lloydsLoyaltyMessage"
+        data-demo-env-strip-disclaimer="Demo only. Task progress is read from Adobe, never simulated by a card click. Sign in to the Portal with enrollment for your selected sandbox."></div>
+    </section>
+  </div>
+  <header class="tui-live-actions" aria-label="Loyalty demo controls">
+    <div class="tui-lab-brand"><strong class="lloyds-wordmark">LLOYDS</strong><span>Loyalty lab</span></div>
+    <div class="tui-action-controls">
+      <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
+      <button id="loyaltyRun" type="button" disabled>Refresh content card</button>
+      <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
+      <button id="loyaltyAbandon" type="button" disabled title="Send a live abandoned.search event for the loaded test profile. This may trigger a configured AJO journey.">Send abandoned.search</button>
+    </div>
+  </header>
+  <main class="loyalty-workspace">
+    <section id="TopRibbon" aria-label="Personalized ribbon"></section>
+    <section id="hero-banner" class="loyalty-hero" data-hero-mount data-ajo-insert-section="Loyalty welcome">
+      <div><h1>Loyalty Challenge</h1>
+      <p>Your everyday favourites. A little more rewarding.</p></div>
+    </section>
+    <div class="loyalty-columns">
+      <section id="loyalty-challenges" class="loyalty-challenges" aria-labelledby="loyaltyTasksTitle" data-ajo-insert-section="Member task progress">
+        <div class="loyalty-section-heading"><h2 id="loyaltyTasksTitle">Challenge progress</h2><span id="loyaltyUpdated">Not loaded</span></div>
+        <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile, then select Get task status.</p></div>
+      </section>
+      <section class="loyalty-mobile-preview" aria-labelledby="loyaltyMobileTitle">
+        <div class="loyalty-phone">
+          <div class="loyalty-phone-status" aria-hidden="true"><span>9:41</span><span>LLOYDS</span></div>
+          <div class="loyalty-phone-scroll" tabindex="0" aria-label="Scroll mobile app content">
+            <header class="loyalty-phone-heading"><span aria-hidden="true">&#8592;</span><h2 id="loyaltyMobileTitle">Challenges</h2><span aria-hidden="true">&#9734;</span></header>
+            <div class="loyalty-phone-segments" role="group" aria-label="Challenge participation">
+              <button type="button" data-loyalty-participation="active" aria-pressed="true">Active</button>
+              <button type="button" data-loyalty-participation="complete" aria-pressed="false">Completed</button>
+            </div>
+            <h3 id="loyaltyPhoneTitle">In progress</h3>
+            <p class="loyalty-phone-subtitle">The challenges you've started.</p>
+            <section id="loyaltyPartnerOffers" class="loyalty-phone-challenge" aria-label="Joined challenge partner offers" aria-live="polite" hidden></section>
+            <div id="loyaltyPhoneTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to see its challenges.</p></div>
+            <section class="loyalty-promotion" aria-labelledby="loyaltyPromotionTitle" data-ajo-insert-section="Loyalty content card">
+              <h3 id="loyaltyPromotionTitle">Available for you</h3>
+              <p id="loyaltyCardHint">Your next challenge will appear here.</p>
+              <div id="ContentCardContainer" class="ContentCardContainer">
+                <div id="ContentCardContainerLoyalty" class="ContentCardLoyalty" aria-live="polite"></div>
+              </div>
+            </section>
+          </div>
+          <nav class="loyalty-phone-nav" aria-label="Mobile preview sections">
+            <span>Home</span><span aria-current="page">Rewards</span><span>Pay</span><span>Account</span>
+          </nav>
+          <div id="loyaltyOfferSheet" class="loyalty-offer-overlay" hidden></div>
+        </div>
+      </section>
+    </div>
+    <details class="loyalty-evidence"><summary>Last successful response / proposition evidence</summary><pre id="loyaltyEvidence">No live response yet.</pre></details>
+  </main>
+  <template id="loyaltyApiOptions">
+    <details class="loyalty-settings">
+      <summary>Loyalty API options</summary>
+      <p>Task status and challenge signup use Adobe's default State API region (va7). Only override it if your sandbox uses another confirmed region. Adobe credentials stay on the server. Join Challenge uses the Loyalty Signup API with test: false; it does not send a signup event through Web SDK or prove journey entry.</p>
+      <div class="loyalty-settings-grid">
+        <label>State region override<select id="loyaltyRegion"><option value="">Adobe default (va7)</option><option value="va7">va7</option><option value="nld2">nld2</option><option value="aus5">aus5</option><option value="can2">can2</option><option value="ind2">ind2</option><option value="global">Global (platform.adobe.io)</option></select></label>
+        <label>Member identifier<input id="loyaltyMember" autocomplete="off" placeholder="Resolved when namespaces match"></label>
+        <label>Challenge ID (optional)<input id="loyaltyChallenge" autocomplete="off" placeholder="All active challenges"></label>
+        <label>Event tenant namespace<input id="loyaltyTenant" autocomplete="off" placeholder="_yourTenant"></label>
+        <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
+        <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
+      </div>
+      <p><strong>Send abandoned.search</strong> uses the injected Web SDK and selected datastream, just like TUI / Center Parcs. Kirkham automatically uses the same <code>_demoemea</code> event tenant; other sandboxes need their reviewed event tenant above. The event may trigger a configured AJO journey. It does not update profile attributes or complete tasks.</p>
+      <div class="loyalty-options">
+        <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
+        <label><input id="loyaltyAuto" type="checkbox"> Refresh task state every 30 seconds after a successful read</label>
+        <span id="loyaltyNamespace">Loyalty namespace not yet read</span>
+      </div>
+    </details>
+  </template>
+  <div class="dashboard-shell"><aside class="dashboard-sidebar" aria-label="Lab navigation"></aside><div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div></div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js"></script>
+  <script src="tui-decisioning-attribution.js?v=20261111-selected-offer"></script>
+  <script src="tui-decisioning-drawer.js?v=20261118-lookup-coalescing"></script>
+  <script src="aep-demo-generator-targets.js"></script>
+  <script src="lloyds-loyalty-model.js?v=20261118-partner-offers"></script>
+  <script src="tui-decisioning-profile.js?v=20261109-hospitality"></script>
+  <script src="tui-profile-hero.js?v=20261117-loyalty-labels"></script>
+  <script>
+    window.envBarConfig = {
+      prefix: 'lloydsLoyalty', variant: 'spectrum', localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
+        runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261118-api-signup'
+    };
+  </script>
+  <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
+  <script src="aep-lab-nav.js?v=20261117-lloyds-loyalty"></script>
+  <script src="aep-theme.js" defer></script>
+</body>
+</html>

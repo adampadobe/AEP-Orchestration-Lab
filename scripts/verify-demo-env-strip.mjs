@@ -58,6 +58,7 @@ const SANDBOX_ONLY_ENV_BAR_HTML = [
 ];
 
 const SITE_CLONE_DEMO_HTML = [
+  'lloyds-loyalty-demo.html',
   'sky-demo.html',
   'jlr-demo.html',
   'mod-demo.html',
@@ -89,6 +90,7 @@ const SITE_CLONE_DEMO_HTML = [
 ];
 
 const SITE_CLONE_DEMO_JS = [
+  'lloyds-loyalty-demo.js',
   'sky-demo.js',
   'jlr-demo.js',
   'mod-demo.js',

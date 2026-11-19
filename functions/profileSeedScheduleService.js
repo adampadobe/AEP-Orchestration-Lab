@@ -191,6 +191,7 @@ function createProfileSeedScheduleService({
         || ready.mobilePhone !== config.expectedMobilePhone) throw fail('SEED_PREFERENCES_CHANGED');
       const result = await snowflake.generate({
         uid: owner.uid, industry: slot.industry, count: slot.count, samplingMode: 'ongoing',
+        eventTimeMode: slot.industry === 'travel' ? 'historical' : 'recent',
         expectedBaseEmail: config.expectedBaseEmail, expectedMobilePhone: config.expectedMobilePhone,
         onPrepared: async (plan) => {
           if (prepared || plan.profiles?.length !== slot.count

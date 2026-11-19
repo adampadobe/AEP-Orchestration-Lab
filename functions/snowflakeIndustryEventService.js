@@ -1,6 +1,5 @@
 'use strict';
 
-const { createHash } = require('crypto');
 const { withSnowflakeConnection } = require('./snowflakeIndustryCatalogService');
 const { getIndustryProfileConfig } = require('./snowflakeIndustryProfileRegistry');
 const {
@@ -9,7 +8,8 @@ const {
   listIndustryEventTables,
   listIndustryEventTypes,
 } = require('./snowflakeIndustryEventRegistry');
-const { generateIndustryEventRows } = require('./snowflakeIndustryEventGenerator');
+const { generateIndustryEventRows, industryEventGenerationId } = require('./snowflakeIndustryEventGenerator');
+const { resolveEventTimeMode } = require('./snowflakeEventTimeMode');
 const { fullyQualified } = require('./snowflakeProvisionRecipes');
 const { readSnowflakeCell } = require('./snowflakeRow');
 const { buildSportsEventCatalog, mergeRows, withTransaction } = require('./snowflakeSeedStore');
@@ -162,6 +162,7 @@ async function handleIndustryEnrich(input) {
   const profiles = Array.isArray(input.profiles) ? input.profiles : [];
   if (!profiles.length) throw new Error('profiles must contain at least one profile selector');
   const eventTypes = validateIndustryAndTypes(industry, input.eventTypes || input.event_types);
+  const eventTimeMode = resolveEventTimeMode(input);
 
   return withSnowflakeConnection(labUser, sandbox, async (conn, cfg) => {
     const profileResults = [];
@@ -175,13 +176,11 @@ async function handleIndustryEnrich(input) {
         });
         continue;
       }
-      const generationId = createHash('sha256')
-        .update(`${industry}:${profile.ECID}:industry-events-v1`)
-        .digest('hex')
-        .slice(0, 32);
+      const generationId = industryEventGenerationId(industry, profile.ECID, eventTimeMode);
       const generated = generateIndustryEventRows(industry, profile, {
         generationId,
         eventTypes,
+        eventTimeMode,
       });
       const tableResults = [];
       for (const eventType of eventTypes) {
@@ -247,6 +246,7 @@ WHERE GENERATIONID = ? OR STARTSWITH(GENERATIONID, ?)`,
       ok: profileResults.every((result) => result.ok),
       sandbox,
       industry,
+      eventTimeMode,
       eventTypes,
       profileResults,
       insertedRowCount: profileResults.reduce(

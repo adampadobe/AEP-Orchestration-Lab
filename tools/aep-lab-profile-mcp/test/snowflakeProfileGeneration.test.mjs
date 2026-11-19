@@ -5,7 +5,7 @@ import { getRecentProfiles } from '../src/labApiClient.mjs';
 import { registerGenerateProfileTool } from '../src/tools/generateProfile.mjs';
 import { registerGenerateProfilesBatchTool } from '../src/tools/generateProfilesBatch.mjs';
 import { registerPreflightProfileGenerateTool } from '../src/tools/preflightProfileGenerate.mjs';
-import { getExecutionFramework } from '../src/framework/labFramework.mjs';
+import { getExecutionFramework, getIndustryPlaybook, frameworkOverviewMarkdown, frameworkConventionsMarkdown } from '../src/framework/labFramework.mjs';
 import { registerSnowflakeTools } from '../src/tools/snowflakeTools.mjs';
 import { assessIndustrySandboxConfig, buildOnboardingPlan, buildSandboxProfileConfigReport } from '../src/sandboxConfig.mjs';
 
@@ -22,6 +22,30 @@ registerSnowflakeTools({
 const decoded = result => JSON.parse(result.content[0].text);
 let key = 0;
 
+test('recent timing guidance reaches framework, every industry playbook and rendered resources', () => {
+  const framework = getExecutionFramework();
+  const rule = framework.criticalRules.find(({ id }) => id === 'profile_event_time_bounds');
+  assert.ok(rule);
+  assert.match(rule.rule, /event_time_mode:"recent"/);
+  assert.match(rule.rule, /NOT a discovered Profile TTL/);
+  for (const industry of ['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']) {
+    const { playbook } = getIndustryPlaybook(industry);
+    assert.ok(playbook.criticalRules.some(({ id }) => id === rule.id), industry);
+    assert.equal(playbook.conventions.event_timing, rule.rule);
+  }
+  assert.match(frameworkOverviewMarkdown(), /profile_event_time_bounds/);
+  assert.match(frameworkConventionsMarkdown(), /event_time_mode:"recent"/);
+});
+
+test('recent mode is exposed for seeding but rejected before writes when AEP enrichment is not selected', async () => {
+  for (const name of ['lab_generate_profile', 'lab_generate_profiles_batch', 'lab_preflight_profile_generate']) {
+    assert.equal(tools.get(name).config.inputSchema.event_time_mode.parse('recent'), 'recent');
+    const result = await tools.get(name).callback({ target: 'aep', sandbox: 'apalmer', industry: 'fsi', event_time_mode: 'recent' });
+    assert.equal(result.isError, true);
+    assert.match(decoded(result).error, /event_time_mode/);
+  }
+});
+
 test('existing-person workflow preserves identity and separate stored-data acceptance gates', () => {
   const workflow = getExecutionFramework().workflows.extend_existing_person;
   assert.ok(workflow.tools.includes('lab_snowflake_create_profile'));
@@ -29,6 +53,19 @@ test('existing-person workflow preserves identity and separate stored-data accep
   assert.equal(workflow.tools.includes('lab_generate_profile'), false);
   assert.ok(workflow.steps.some((step) => step.includes('record_updated')));
   assert.match(workflow.boundaries, /No automatic flow\/schema changes/);
+});
+
+test('unsupported recent enrichment blocks AEP generation and batch identity reservation', async () => {
+  for (const name of ['lab_generate_profile', 'lab_generate_profiles_batch']) {
+    const { body, calls } = await invoke(name, {
+      target: 'aep', sandbox: 'apalmer', industry: 'fsi', count: 1,
+      event_time_mode: 'recent', dual_load_snowflake: true, snowflake_enrichment: true,
+    }, () => ({ ok: true, result: { eventTimeModes: ['historical'] } }));
+    assert.equal(body.ok, false);
+    assert.match(body.error, /No generation\/enrichment request/);
+    assert.equal(calls.length, 1);
+    assert.match(calls[0].path, /snowflakeIndustryCatalog/);
+  }
 });
 
 test('same-person CRM tool returns allocated/reused recipient identity without an AEP generation call', async () => {
@@ -81,6 +118,9 @@ async function invoke(name, params, respond, source = 'firestore', allowedSandbo
       };
     } else {
       response = respond(request);
+    }
+    if (response?.invalidJson) {
+      return new Response('invalid json', { headers: { 'Content-Type': 'application/json' } });
     }
     return {
       ok: response?.httpOk ?? true,
@@ -255,6 +295,17 @@ test('explicit AEP target retains streaming and never invokes the Snowflake seed
   assert.equal(body.ok, true);
   assert.ok(calls.some(({ path }) => path === '/api/profile/generate'));
   assert.ok(calls.every(({ path }) => path !== '/snowflakeGenerateIndustryProfiles'));
+});
+
+test('AEP generation reports a malformed write response as unknown rather than failed', async () => {
+  const { result, body, calls } = await invoke('lab_generate_profile', {
+    sandbox: 'apalmer', industry: 'generic', target: 'aep',
+    email: profile.email, use_stored_prefs: false, randomize: false,
+  }, () => ({ invalidJson: true }));
+  assert.equal(result.isError, true);
+  assert.equal(body.detail.generation_status, 'unknown');
+  assert.match(body.detail.no_retry_guidance, /unknown.*before retrying/);
+  assert.equal(calls.filter(call => call.path === '/api/profile/generate').length, 1);
 });
 
 test('dual-stream AEP generation passes the signed continuation token to the industry overlay', async () => {

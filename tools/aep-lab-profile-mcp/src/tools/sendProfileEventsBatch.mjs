@@ -13,7 +13,7 @@ import { jsonResult, toolError } from './helpers.mjs';
 const eventStepSchema = z.object({
   event_type: z.string().describe('Any XDM eventType string — server builds XDM; do not pass xdm blobs'),
   channel: z.string().optional().describe('Interaction channel (web, mobile, …) — server adds interactionDetails.core.channel'),
-  timestamp: z.string().optional(),
+  timestamp: z.string().optional().describe('Omit for current UTC in fresh synthetic tests. Historical event time can expire in Profile.'),
   industry: z
     .string()
     .optional()
@@ -40,6 +40,7 @@ export function registerSendProfileEventsBatchTool(mcpServer) {
         'Industry steps are validated, nested under public.{industry}, and sent as full XDM. ' +
         'NEVER pass view_name, view_url, custom xdm, schema refs, mixin definitions, or tenant field groups. ' +
         'Requires email + ecid from lab_generate_profile for reliable stitching. ' +
+        'For fresh synthetic delivery tests omit each step timestamp for current UTC; do not replay expired events or infer delivery from acceptance alone. ' +
         'Place context: top-level place_mode/place_area apply to every step without its own place (each step samples a point in that area); ' +
         'steps may set place_area or event_place individually. ' +
         'Results: requestId for Edge transport (eventId is null for lab-event-tool-edge). Verify with lab_profile_activity after 30–60s UPS lag.',

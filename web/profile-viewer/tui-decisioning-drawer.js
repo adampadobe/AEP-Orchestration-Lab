@@ -4159,6 +4159,39 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
   });
 }
 
+let profileLookupInFlight = null;
+
+function loadProfileDataForDrawer(email, options) {
+  const opts = options || {};
+  const identifier = String(email || '').trim();
+  if (!identifier || isVisitorResetBlocked()) return loadProfileDataForDrawerInner(email, opts);
+  const key = JSON.stringify([identifier, getNamespaceForDrawer(identifier), getSandboxParam(), drawerVisitorRevision]);
+  if (profileLookupInFlight && profileLookupInFlight.key === key &&
+      profileLookupInFlight.version === profileContextVersion) {
+    labLog('info', 'joining pending profile lookup', { namespace: getNamespaceForDrawer(identifier) });
+    profileLookupInFlight.callers.push(opts);
+    return profileLookupInFlight.promise;
+  }
+  const operation = { key, callers: [opts], version: null, promise: null };
+  const promise = loadProfileDataForDrawerInner(email, {
+    ...opts,
+    onUserMessage: (text, type) => {
+      const notified = new Set();
+      for (const caller of operation.callers) {
+        const notify = typeof caller.onUserMessage === 'function' ? caller.onUserMessage
+          : caller.updateMessage && typeof _config.messageSetter === 'function' ? _config.messageSetter : null;
+        if (notify && !notified.has(notify)) { notified.add(notify); notify(text, type); }
+      }
+    },
+  });
+  operation.version = profileContextVersion;
+  operation.promise = promise.finally(() => {
+    if (profileLookupInFlight === operation) profileLookupInFlight = null;
+  });
+  profileLookupInFlight = operation;
+  return operation.promise;
+}
+
 /**
  * Load consent + audiences + events and refresh the bottom drawer (and ECID hint).
  * @param {string} email
@@ -4169,7 +4202,7 @@ function sendApplicationLoginExperienceEvent(email, getSelectedGeneratorTarget) 
  * }} [options]
  * @returns {Promise<boolean>} Resolves true after a successful consent response (demo pages).
  */
-async function loadProfileDataForDrawer(email, options) {
+async function loadProfileDataForDrawerInner(email, options) {
   const opts = options || {};
   if (isVisitorResetBlocked()) {
     const message = 'Visitor identity is being reset or has changed. Reload or finish reset before profile lookup.';

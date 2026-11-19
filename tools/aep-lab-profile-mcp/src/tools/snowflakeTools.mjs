@@ -348,6 +348,8 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: z.enum(['travel', 'fsi', 'retail', 'telecom', 'media', 'sports']).optional()
           .describe('Seed shared recipients plus linked data for this industry; omit only for legacy BASE_PROFILES'),
+        event_time_mode: z.enum(['historical', 'recent']).optional()
+          .describe('Explicit industry only: historical default, or recent synthetic activity in the past six UTC hours. No stored events are rewritten.'),
         count: z.number().int().min(1).max(1000).optional().describe('Profiles to generate (default 10)'),
         table: z.string().optional().describe('Target table (default BASE_PROFILES for batch generator)'),
         use_generation_prefs: z
@@ -359,7 +361,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
           ),
       },
     },
-    async ({ sandbox, industry, count, table, use_generation_prefs }) => {
+    async ({ sandbox, industry, count, table, use_generation_prefs, event_time_mode }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -379,6 +381,9 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       if (industry && (table || use_generation_prefs === false)) {
         return toolError('Industry CRM generation requires the governed table and shared generation preferences; omit table and use_generation_prefs:false.');
       }
+      if (event_time_mode !== undefined && !industry) {
+        return toolError('event_time_mode requires an explicit industry, not legacy BASE_PROFILES.');
+      }
 
       const apiResult = await snowflakeGenerateBaseProfiles({
         sandbox: allowed.sandbox,
@@ -386,6 +391,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         count,
         table,
         use_generation_prefs,
+        event_time_mode,
       });
       writeAuditLog({
         keyId,
@@ -924,10 +930,15 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
       description:
         'POST /api/snowflake/agentic/enrich-profiles — add event/enrichment rows for existing CRM profiles. ' +
         'Travel uses the Python runner; fsi, retail, telecom, media, and sports use governed Firebase generators. ' +
+        'Set event_time_mode:"recent" for new synthetic activity in the past six UTC hours; historical remains the default. ' +
+        'Recent non-travel enrichment has separate deterministic IDs and skips completed tables on repeated calls; it never retimestamps historical rows. ' +
+        'Travel recent mode requires runner capability preflight. Read source rows and exact Profile events; readiness is not delivery proof. ' +
         'Requires a user MCP key or validated Adobe IMS Portal enrollment. event_types must belong to the selected industry manifest.',
       inputSchema: {
         sandbox: z.string().describe('AEP sandbox name'),
         industry: snowflakeProfileIndustryInputSchema(),
+        event_time_mode: z.enum(['historical', 'recent']).optional()
+          .describe('historical (default) or recent (past six UTC hours). Existing rows, retention and flow configuration are unchanged.'),
         profiles: z
           .array(
             z.object({
@@ -946,7 +957,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
           .min(1),
       },
     },
-    async ({ sandbox, industry, profiles, event_types }) => {
+    async ({ sandbox, industry, profiles, event_types, event_time_mode }) => {
       const started = Date.now();
       const keyId = getRequestKeyId();
       const rate = checkSnowflakeGenerateRate(keyId);
@@ -979,6 +990,7 @@ export function registerSnowflakeTools(mcpServer, { include } = {}) {
         industry,
         profiles,
         event_types,
+        event_time_mode,
       });
       writeAuditLog({
         keyId,

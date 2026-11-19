@@ -68,9 +68,12 @@ schema migration, flow recreation or repair**. Ordinary source/REL row writes
 and shared catalog upserts still occur through the existing transactional seed
 writer. Travel uses an opt-in ongoing mode with identity-based scenario
 sampling and nearer-term departures; manual/demo and hero defaults are
-unchanged. Other industries retain their correlated generators. Activity is
-synthetic history, not a promise that every event occurred at the creation
-instant or that every table gets rows.
+unchanged. Future non-travel scheduled seeds use `eventTimeMode:"recent"`:
+their correlated activity falls within the past six UTC hours, preserving
+event ordering and identity links. Manual generators still default to historical
+activity. Existing rows are never retimestamped or replayed, and optional tables
+can still have no rows. Neither recent timestamps nor source commits prove AEP
+XDM/Profile or REL arrival; verify the exact naturally scheduled identities.
 
 Receipts live under `days/{Riyadh-date}` and include planned slots, counts,
 prepared email/ECID/CRMID/recipient identities and per-table commit counts.

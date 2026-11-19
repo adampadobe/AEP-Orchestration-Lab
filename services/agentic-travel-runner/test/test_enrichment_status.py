@@ -2,14 +2,16 @@
 
 import ast
 import contextlib
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 from pathlib import Path
 import random
+import sys
 import unittest
 from unittest.mock import Mock
 
 PY = Path(__file__).resolve().parents[1] / "py"
+sys.path.insert(0, str(PY))
 EVENTS = {
     "mobile": ("phase2", "generate_mobile_events", "insert_mobile_events", "mobile_events"),
     "checkin": ("phase2", "generate_checkin_events", "insert_checkin_events", "checkin_events"),
@@ -69,6 +71,26 @@ class EnrichmentStatus(unittest.TestCase):
         for phase, _, insert, counter in EVENTS.values():
             getattr(self.phases[phase], insert).assert_called_once_with([("event",)])
             self.assertEqual(result[counter], 1)
+
+    def test_recent_mode_reaches_every_phase_and_website_session_before_insertion(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.env["enrich_profiles_background"](PROFILES, ["website", "booking", *EVENTS], "recent")
+        result = self.env["enrichment_status"]["last_result"]
+        self.assertTrue(result["success"])
+        self.assertEqual(result["event_time_mode"], "recent")
+        clock = self.generator.event_clock
+        self.assertEqual(clock.mode, "recent")
+        for phase in self.phases.values():
+            self.assertIs(phase.event_clock, clock)
+        events = self.env["insert_rows"].call_args.args[2]
+        sessions = {}
+        for event in events:
+            stamp = datetime.fromisoformat(event[11])
+            self.assertLessEqual(stamp, clock.now)
+            self.assertGreaterEqual(stamp, clock.now - timedelta(hours=6))
+            sessions.setdefault(event[34], []).append(stamp)
+        for stamps in sessions.values():
+            self.assertEqual(stamps, sorted(stamps))
 
     def test_each_insert_failure_returns_failure_not_zero_row_success(self):
         for event_type in ["website", "booking", *EVENTS]:

@@ -409,6 +409,7 @@ async function handleIndustryCatalog(input) {
       manifest,
       supportedIndustries: listSupportedIndustries(),
       tableCheckSkipped: true,
+      eventTimeModes: ['historical', 'recent'],
     };
   }
 
@@ -423,6 +424,7 @@ async function handleIndustryCatalog(input) {
       database: cfg.database || null,
       schema: cfg.schema || null,
       tableCheck,
+      eventTimeModes: ['historical', 'recent'],
     };
   });
 }

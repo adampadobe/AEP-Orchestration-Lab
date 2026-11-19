@@ -2,11 +2,34 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.56.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.57.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 247-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics and the governed cleanup additions require deployment of both their Firebase function and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 252-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics, governed cleanup, and AJO Loyalty additions require deployment of their Firebase functions and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+
+### Read-only AJO Loyalty inspection
+
+General and the existing Decisioning endpoint include five Loyalty reads:
+`lab_ajo_loyalty_config`, `lab_ajo_loyalty_challenge_list`,
+`lab_ajo_loyalty_challenge_get`, `lab_ajo_loyalty_profile_state`, and
+`lab_ajo_loyalty_profile_challenges`. No new MCP connection is required.
+See [the Loyalty workflow](../../docs/AJO_LOYALTY_CHALLENGES.md#read-only-loyalty-mcp-workflow)
+for identity, region, response and release boundaries.
+
+The backend independently validates the caller's user-generated MCP key or Adobe
+IMS Portal enrollment and exact sandbox, then uses its existing server-held Adobe
+credentials. This is not a token-export or arbitrary API proxy. Only GET is
+supported; signup, withdrawal, events, authoring and fulfillment are absent.
+Configuration returns an allowlisted identity/event summary, excluding provider
+and completion-sink definitions that can contain credentials. Member IDs, bodies
+and credentials are not included in the tool's audit entries.
+
+These tools require a normal reviewed update of the existing `aepProxy` Function (direct path `/aepProxy/api/ajo-loyalty`) and the MCP
+service, followed by a connection refresh/new chat. Hosting's
+`/api/ajo-loyalty` rewrite is available after its separate normal Hosting release;
+MCP calls the named Function directly. Source registration and mocked tests do
+not prove live Loyalty entitlement or member-state access.
 
 ### Read-only ingestion diagnostics
 
@@ -52,8 +75,15 @@ and [flow run monitoring](https://experienceleague.adobe.com/en/docs/experience-
 ### Owner-reviewed scheduled seed skip (General only)
 
 Recovery is incident-scoped to **2026-11-11 / slot 15 / retail / count 2**
-only, not arbitrary future days, industries or generation counts. The backend
-enforces this exact target despite the unchanged receipt interface;
+only, not arbitrary future days, industries or generation counts. It also
+covers the reviewed **2026-11-15 / slot 01 / media / count 1** preparation
+failure and the exact **2026-11-15 / slot 15 / travel / count 1** interrupted
+prewrite with an empty persisted `identities` array. The media and travel cases require
+exact saved timestamps and attempted budgets (3 and 6 respectively); the travel
+slot also requires the scheduler's exact saved field shape. Empty identities
+alone do not allow arbitrary interrupted slots to be skipped.
+The backend enforces each reviewed day/slot pair and prewrite attempt despite
+the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.
 
 `lab_profile_seed_schedule_skip_preview` and
@@ -110,7 +140,7 @@ does not relax health; see [the relational-layer recovery boundary](../../docs/S
 | `/mcp/audiences` | 4 | Access check plus governed list → audit → delete |
 | `/mcp/ajo-cleanup` | 7 | Access check plus governed journey and campaign list → audit → one exact delete |
 | `/mcp/ajo-oc-datasets` | 4 | Access check plus read-only Orchestrated Campaign dataset status, eligibility validation, and owned job status; use `/mcp` for preview/apply |
-| `/mcp/decisioning` | 24 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, and bulk tagging |
+| `/mcp/decisioning` | 29 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, bulk tagging, and five read-only AJO Loyalty configuration/challenge/member-state tools |
 | `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
 | `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
@@ -320,6 +350,45 @@ On the General integration, call **`lab_get_execution_framework`** before advanc
 | `lab://framework/overview.json` | Same as execution framework tool (JSON) |
 
 Implementation: `src/framework/labFramework.mjs` (canonical MCP copy; UI sources in `web/profile-viewer/profile-generation-*.js`, `functions/industryAttributeMap.js`).
+
+### Recent synthetic activity and Profile expiry
+
+For a fresh synthetic delivery test, use `event_time_mode:"recent"` on
+`lab_generate_profile` / `lab_generate_profiles_batch` with `target:"snowflake"`,
+an explicitly selected industry, or on `lab_snowflake_enrich_profiles` for
+approved existing identities. `lab_snowflake_generate_base_profiles` also
+accepts it with an explicit industry. The API accepts `eventTimeMode` or
+`event_time_mode` (conflicting aliases fail). Historical mode remains the
+default for manual generation and travel scheduled runs. Future non-travel
+scheduled runs explicitly select recent mode; no existing events, retention or
+flows are changed or replayed.
+
+Recent mode generates new activity in the past six UTC hours, not six months of
+salary or billing merely stamped as today. It preserves transaction/application
+ordering, order-relative returns and sports scan times; travel booking dates
+match the REL reservation. Operational dates such as account opening and future
+travel remain separate. Non-travel recent generations have separate,
+deterministic IDs and skip completed tables rather than append another copy.
+This does not authorize automatic retries; travel enrichment can be partial
+and must be inspected after any uncertain outcome.
+
+Travel enrichment requires the reviewed runner's signed capability preflight;
+an old runner blocks recent mode before an enrichment request is sent. Deploy
+the affected Functions, travel runner and MCP through the normal release gates,
+then refresh client tool schemas. MCP checks the deployed industry catalog for
+recent support before requesting any recent Snowflake generation/enrichment.
+On `target:"aep"`, this option requires non-travel
+`dual_load_snowflake:true` plus `snowflake_enrichment:true`; it does not change
+the AEP profile persona itself.
+
+Event-send tools already default omitted `timestamp` to current UTC. The
+six-hour window is **not** a discovered or guaranteed Profile TTL. Confirm
+actual source-specific XDM and Profile arrival by exact event ID, UTC time,
+Email/ECID/CRMID and mapped values; verify required REL projections separately.
+Readiness, empty source runs, accepted sends and existing unrelated rows are
+not proof. On `timestampExpired`, inspect the exact Profile batch and effective
+dataset-level expiration policy; never rewrite/replay old records or change
+retention to hide rejection.
 
 ## Tools
 

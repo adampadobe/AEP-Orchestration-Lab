@@ -143,6 +143,61 @@ test('scheduled batches reuse the pinned no-provisioning adapter with opt-in ong
   assert.equal(input.sandbox, 'apalmer');
 });
 
+test('scheduled recent timing reaches linked source records without changing ordinary generation defaults', async () => {
+  const { generateIndustryProfileRow } = require('../snowflakeIndustryProfileGenerator');
+  const { buildSeedRecord } = require('../snowflakeSeedStore');
+  const { RECENT_EVENT_WINDOW_MS } = require('../snowflakeEventTimeMode');
+  const stamp = '2026-11-16T05:10:00.000Z';
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    const f = fixture({ industry, generateProfiles: async (input) => {
+      assert.equal(input.eventTimeMode, 'recent', industry);
+      const { rowObject } = generateIndustryProfileRow(industry, {
+        idx: 2000, email: identity.email, ecid: identity.ecid, crmId: identity.crmId, runStamp: stamp,
+      });
+      const record = buildSeedRecord(industry, rowObject, {
+        index: 0, runStamp: stamp, eventTimeMode: input.eventTimeMode,
+      });
+      const events = listIndustryEventTables(industry).filter(({ kind }) => kind === 'event')
+        .flatMap(({ key }) => record.events.rowsByType[key]);
+      assert.ok(events.length, industry);
+      for (const event of events) {
+        const age = Date.parse(stamp) - Date.parse(event.TIMESTAMP);
+        assert.ok(age >= 0 && age <= RECENT_EVENT_WINDOW_MS, `${industry}: ${event.TIMESTAMP}`);
+        assert.equal(event.EMAIL, record.parent.EMAIL);
+        assert.equal(event.ECID, record.parent.ECID);
+        assert.equal(event.CRMID, record.parent.CRMID);
+      }
+      return { ok: true };
+    } });
+    await f.adapter.generate({ uid: 'owner', industry, eventTimeMode: 'recent' });
+  }
+  const ordinary = fixture();
+  await ordinary.adapter.generate({ uid: 'owner', industry: 'retail' });
+  assert.equal(ordinary.generated().eventTimeMode, undefined);
+});
+
+test('non-travel preflight accepts deployed 64-character recipient columns and rejects narrower ones', async () => {
+  for (const industry of ['fsi', 'retail', 'telecom', 'media', 'sports']) {
+    for (const width of [64, 320, 33]) {
+      const f = fixture({ industry, changeMetadata: (rows) => rows.map((row) =>
+        row.TABLE_NAME === INDUSTRY_CONFIG[industry].table && row.COLUMN_NAME === 'RECIPIENT_ID'
+          ? { ...row, CHARACTER_MAXIMUM_LENGTH: width } : row) });
+      if (width >= 64) {
+        const result = await f.adapter.preflight({ uid: 'owner', industry });
+        assert.equal(result.ready, true, `${industry}: ${width}`);
+      } else {
+        await assert.rejects(f.adapter.preflight({ uid: 'owner', industry }), (error) =>
+          error.code === 'SNOWFLAKE_NOT_READY' && error.evidence.some((entry) =>
+            entry.table.endsWith(INDUSTRY_CONFIG[industry].table)
+            && entry.incompatibleColumns?.includes('RECIPIENT_ID')));
+      }
+      assert.equal(f.closed(), 1);
+      assert.ok(f.calls.every(({ sql }) => sql.startsWith('SELECT ')));
+      assert.equal(f.generated(), undefined);
+    }
+  }
+});
+
 test('preflight fails closed on missing columns, wrong types, narrow columns and wrong object kinds', async () => {
   for (const changeMetadata of [
     (rows) => rows.filter((row) => row.COLUMN_NAME !== 'PHONENUMBER'),

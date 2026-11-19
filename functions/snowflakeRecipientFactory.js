@@ -77,6 +77,10 @@ function getCountryCode(country) {
 }
 
 function recipientRow(recipient, profile, timestamp, testProfile = true) {
+  const addressStreet = profile.ADDRESSSTREET || profile.HOMEADDRESS_STREET1 || null;
+  const addressCity = profile.ADDRESSCITY || profile.HOMEADDRESS_CITY || null;
+  const addressPostalCode = profile.ADDRESSPOSTALCODE || profile.HOMEADDRESS_POSTALCODE || null;
+  const addressCountry = profile.ADDRESSCOUNTRY || profile.HOMEADDRESS_COUNTRY || null;
   const row = {
     RECIPIENT_ID: recipient.recipientId,
     INDUSTRY: recipient.industry,
@@ -97,11 +101,11 @@ function recipientRow(recipient, profile, timestamp, testProfile = true) {
     NATIONALITY: profile.NATIONALITY || null,
     PRIMARYEMAIL: profile.PRIMARYEMAIL || profile.EMAIL || recipient.email || null,
     PRIMARYPHONE: profile.PRIMARYPHONE || profile.PHONENUMBER || null,
-    ADDRESSSTREET: profile.ADDRESSSTREET || null,
-    ADDRESSCITY: profile.ADDRESSCITY || null,
-    ADDRESSPOSTALCODE: profile.ADDRESSPOSTALCODE || null,
-    ADDRESSCOUNTRY: profile.ADDRESSCOUNTRY || null,
-    COUNTRYCODE: getCountryCode(profile.ADDRESSCOUNTRY),
+    ADDRESSSTREET: addressStreet,
+    ADDRESSCITY: addressCity,
+    ADDRESSPOSTALCODE: addressPostalCode,
+    ADDRESSCOUNTRY: addressCountry,
+    COUNTRYCODE: getCountryCode(addressCountry),
     PREFERREDLANGUAGE: recipient.preferredLanguage,
     TIMEZONE: recipient.timezone,
     CUSTOMERSEGMENT: profile.CUSTOMERSEGMENT || null,
