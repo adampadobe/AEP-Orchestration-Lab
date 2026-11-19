@@ -1,4 +1,4 @@
-# AEP Orchestration Lab MCP — full workflow playbook
+# AEP Orchestration Lab MCP v2 — full workflow playbook
 
 Detailed numbered workflows and copy-ready example Coworker prompts, referenced from the parent `SKILL.md`. Load this file when a task matches one of the areas below.
 

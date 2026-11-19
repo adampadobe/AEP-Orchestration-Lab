@@ -8,11 +8,12 @@ This directory is the Adobe CX Coworker package and uses Adobe IMS passthrough. 
 
 The separate `tools/coworker-marketplace-v2` marketplace packages General and
 all 19 focused Lab connections in plugin **AEP-Orchestration-Lab-v2**, version
-**0.3.0**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
+**0.3.1**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
 It preserves the installed pilot's plugin identity and its
 `lab-v2-entry` and `lab-v2-demo` connection names. It does not replace v1 or the
-root Claude marketplace. It includes the existing `aep-lab-profile-mcp` workflow
-skill and full playbook, adapted for v2 connection names and personal-secret auth.
+root Claude marketplace. It includes the existing workflow skill and full
+playbook as `aep-lab-profile-mcp-v2`, adapted for v2 connection names and
+personal-secret auth. The distinct skill name lets v1 and v2 coexist.
 
 Every server references `${user_secrets.aep_lab_mcp_key}` in the
 `X-AEP-Lab-Mcp-Key` header, without an IMS passthrough provider. One personal key

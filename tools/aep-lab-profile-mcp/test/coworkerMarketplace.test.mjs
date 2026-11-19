@@ -57,8 +57,8 @@ test('profile workflow prompts explicitly select AEP and require complete stored
     join(repoRoot, '.agents', 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
     join(pluginRoot, 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
     join(pluginRoot, 'skills', 'aep-lab-profile-mcp', 'references', 'workflows.md'),
-    join(repoRoot, 'tools', 'coworker-marketplace-v2', 'aep-lab-v2', 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
-    join(repoRoot, 'tools', 'coworker-marketplace-v2', 'aep-lab-v2', 'skills', 'aep-lab-profile-mcp', 'references', 'workflows.md'),
+    join(repoRoot, 'tools', 'coworker-marketplace-v2', 'aep-lab-v2', 'skills', 'aep-lab-profile-mcp-v2', 'SKILL.md'),
+    join(repoRoot, 'tools', 'coworker-marketplace-v2', 'aep-lab-v2', 'skills', 'aep-lab-profile-mcp-v2', 'references', 'workflows.md'),
     join(repoRoot, 'tools', 'copilot-marketplace', 'aep-lab', 'skills', 'aep-lab-profile-mcp', 'SKILL.md'),
   ];
   for (const path of paths) {
@@ -198,10 +198,11 @@ test('v2 resolves an isolated plugin and every existing context using one person
   assert.ok(relative(marketplaceRoot, root).startsWith('aep-lab-v2'));
   const manifest = await readJson(join(root, '.claude-plugin', 'plugin.json'));
   assert.equal(manifest.name, entry.name);
-  assert.deepEqual(manifest.skills, ['./skills/aep-lab-profile-mcp/']);
-  const skillRoot = join(root, 'skills', 'aep-lab-profile-mcp');
+  assert.deepEqual(manifest.skills, ['./skills/aep-lab-profile-mcp-v2/']);
+  const skillRoot = join(root, 'skills', 'aep-lab-profile-mcp-v2');
   const skill = await readFile(join(skillRoot, 'SKILL.md'), 'utf8');
   const workflows = await readFile(join(skillRoot, 'references', 'workflows.md'), 'utf8');
+  assert.match(skill, /^name: aep-lab-profile-mcp-v2$/m);
   assert.match(skill, /\$\{user_secrets\.aep_lab_mcp_key\}/);
   assert.match(skill, /references\/workflows\.md/);
   assert.doesNotMatch(skill, /Coworker forwards `Authorization`|Coworker does not use it|signed-in user's Adobe IMS session/);

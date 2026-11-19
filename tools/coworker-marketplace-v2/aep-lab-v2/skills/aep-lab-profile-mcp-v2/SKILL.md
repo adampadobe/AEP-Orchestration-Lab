@@ -1,5 +1,5 @@
 ---
-name: aep-lab-profile-mcp
+name: aep-lab-profile-mcp-v2
 description: >-
   Workflows and example prompts for the AEP Orchestration Lab MCP
   (Streamable HTTP on Cloud Run). Use when choosing an MCP context, generating test profiles, sending
@@ -7,10 +7,10 @@ description: >-
   setting up event infrastructure (schema/dataset), checking infra, batch seeding, segment personas, brand scraping,
   provisioning profile pipelines, using Adobe Firefly media or Photoshop, InDesign, Substance 3D, Express, and Illustrator production workflows, audience geo-insights, or reading lab execution framework / industry playbooks.
 metadata:
-  version: "0.3.0"
+  version: "0.3.1"
 ---
 
-# AEP Orchestration Lab MCP — Coworker workflows
+# AEP Orchestration Lab MCP v2 — Coworker workflows
 
 MCP server: **AEP Orchestration Lab MCP**. [Server documentation](https://github.com/adampadobe/AEP-Orchestration-Lab/tree/main/tools/aep-lab-profile-mcp).
 

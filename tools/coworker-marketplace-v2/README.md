@@ -25,8 +25,9 @@ marketplace's GitHub-token field. All servers reference
 
 ## Included
 
-Version **0.3.0** includes skill `aep-lab-profile-mcp` with its full workflow
-playbook, adapted for v2 names and personal-secret authentication. The 20
+Version **0.3.1** includes skill `aep-lab-profile-mcp-v2` with its full workflow
+playbook, adapted for v2 names and personal-secret authentication. Its distinct
+name avoids ambiguity when v1 is also installed. The 20
 connections cover Entry, General, Snowflake, Profiles, Demo Prep, PDF, Audiences,
 Decisioning, AJO cleanup, Orchestrated Campaign datasets, Command Centre, Weather,
 Geo Insights, Commerce, Commerce Optimizer, Firefly, Creativity, Adobe
@@ -42,7 +43,7 @@ uncertain write, inspect its operation status instead of retrying.
 The 0.2.0 bundle passed Coworker's native read-only connection discovery on all
 20 endpoints on 19 November 2026. The earlier Entry/Demo Prep pilot also passed
 authenticated access checks and read-only demo-config inspection. The 0.3.0
-skill addition does not change endpoints or authentication.
+skill addition and 0.3.1 skill-name fix do not change endpoints or authentication.
 
 ## Updates and rollback
 
