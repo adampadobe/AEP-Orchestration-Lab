@@ -768,7 +768,7 @@
       try {
         result = await captured.alloy('sendEvent', {
           ...captured.edgeOptions, renderDecisions: false,
-          personalization: { surfaces: ['#featured-offers'] },
+          personalization: { surfaces: ['web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers'] },
           xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
             web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } },
         });

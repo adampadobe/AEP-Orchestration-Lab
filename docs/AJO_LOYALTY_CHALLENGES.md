@@ -47,7 +47,9 @@ and `renderFeaturedOffers(items)` remain the presentation layer.
 
 `requestFeaturedOffers()` now explicitly requests that experience through the
 configured Web SDK: `sendEvent` with `renderDecisions: false` and
-`personalization: { surfaces: ["#featured-offers"] }`. Like the Center Parcs
+`personalization: { surfaces: ["web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers"] }`.
+This is the existing shared AJO surface, not a relative fragment or a surface
+derived from the Rewards document URL. Like the Center Parcs
 decision request, it first resolves the browser ECID, combines it with the
 selected test profile's identity, and preserves the configured datastream
 overrides and reviewed tenant identification fields. It is attached to the
