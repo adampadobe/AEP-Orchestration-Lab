@@ -43,11 +43,34 @@ Home / End. Featured offers arrive from the Data Collection rule's
 propositionScope, propositionScopeDetails } })`, after it processes the AJO
 Code-based Experience at location **`featured-offers`**. This is the Adobe
 personalization location, not a replacement DOM ID: the existing carousel
-and `renderFeaturedOffers(items)` remain the presentation layer. The tag owns
-requesting that experience with the correct profile; profile lookup alone
-does not prove that a decision was requested or that this event was dispatched.
-The page makes no additional
-SDK request for this carousel. It accepts non-empty object entries with string
+and `renderFeaturedOffers(items)` remain the presentation layer.
+
+`requestFeaturedOffers()` now explicitly requests that experience through the
+configured Web SDK: `sendEvent` with `renderDecisions: false` and
+`personalization: { surfaces: ["#featured-offers"] }`. Like the Center Parcs
+decision request, it first resolves the browser ECID, combines it with the
+selected test profile's identity, and preserves the configured datastream
+overrides and reviewed tenant identification fields. It is attached to the
+existing `tui-profile-changed` event emitted by `lookup()` only after profile
+table and drawer setup succeed. The existing operation queue delays dispatch
+until that setup finishes. If SDK injection happens later, the existing
+`aep-demo-tags-injected` lifecycle also schedules the request. Failed/missing
+profile setup, non-test profiles, changed context and mismatched ECIDs block
+dispatch. No offer ranking or eligibility logic is added.
+
+The function logs the complete SDK response and `result.propositions` separately,
+but never renders them or dispatches the offers event itself. Data Collection
+still processes the AJO response and dispatches `ajo:featured-offers`; no received
+event means no live carousel result, even if the SDK request succeeded.
+`window.requestFeaturedOffers()` exposes the same guarded request for console
+testing. Repeated calls/loads coalesce while busy and suppress duplicate
+submissions for the same selected profile, browser identity, SDK instance,
+tenant and datastream context. A submitted request is reserved before awaiting
+its response, so an uncertain result is not automatically replayed. A profile,
+sandbox or visitor change resets that reservation; a new SDK/datastream context
+also permits a new request. The console entry point obeys the same protection.
+
+The existing event listener accepts non-empty object entries with string
 `id`, `merchant` and `title`, keeps the first five valid offers in strategy order,
 and replaces the cards through `renderFeaturedOffers(items)`. Media uses the
 HTTP(S) URL and CSS URL guards; copy remains text. Complete offer objects,
