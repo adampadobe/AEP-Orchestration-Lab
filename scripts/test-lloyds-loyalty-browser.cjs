@@ -20,7 +20,13 @@ async function main() {
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
-      if (url.origin !== origin) return route.fulfill({ contentType: 'text/javascript', body: '' });
+      if (url.origin !== origin) {
+        if (url.hostname === 'example.invalid' && /\.(png|jpg)$/.test(url.pathname)) {
+          return route.fulfill({ contentType: 'image/svg+xml', body:
+            '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="300" viewBox="0 0 600 300"><rect width="600" height="300" fill="#d8e9dd"/><circle cx="410" cy="70" r="170" fill="#9ec7ac"/><circle cx="200" cy="270" r="130" fill="#729983"/><text x="28" y="65" fill="#173729" font-size="24" font-family="sans-serif">OFFLINE OFFER FIXTURE</text></svg>' });
+        }
+        return route.fulfill({ contentType: 'text/javascript', body: '' });
+      }
       if (!url.pathname.startsWith('/api/')) return route.continue();
       let data = { ok: true };
       if (url.pathname === '/api/aep') {
@@ -250,6 +256,12 @@ async function main() {
       'Unsafe incoming images never reach CSS URLs');
     assert.equal(await page.locator('.loyalty-featured-offer > .loyalty-merchant-logo').nth(1).getAttribute('style'), null,
       'Unsafe incoming logos never reach CSS URLs');
+    assert.deepEqual(await page.locator('#loyaltyReturnedOffers .loyalty-returned-offer').evaluateAll(cards =>
+      cards.map(card => card.dataset.offerId)), ajoOffers.slice(0, 5).map(offer => offer.id),
+    'The inspector below challenge progress shows only the ranked AJO items');
+    assert.equal(await page.locator('#loyaltyReturnedOffers img').count(), 1, 'Offer inspector uses the same safe media policy');
+    assert.deepEqual(JSON.parse(await page.locator('#loyaltyReturnedOffers pre').first().textContent()), ajoOffers[0],
+      'Offer response details preserve item and proposition attribution without inventing priorities');
     const originalAjoCard = await page.locator('.loyalty-featured-offer').first().elementHandle();
     await page.locator('#loyaltyNextOffer').click();
     await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
@@ -617,6 +629,42 @@ async function main() {
     assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '1 / 2');
     assert.equal(await page.locator('.loyalty-phone-count').textContent(), '1 / 2 tasks complete');
     assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 1);
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), ajoOffers);
+    const originalLiveMount = await page.locator('#ContentCardContainerLoyalty').elementHandle();
+    const originalCarousel = await page.locator('#loyaltyOfferCarousel').elementHandle();
+    const sdkCallsBeforeSwitch = await page.evaluate(() => window.__sdkCalls.length);
+    await page.locator('[data-loyalty-preview="web"]').click();
+    assert.ok(await page.locator('#loyaltyWebPreview').isVisible());
+    assert.equal(await page.locator('#loyaltyMobilePreview').isVisible(), false);
+    assert.equal(await page.locator('#loyaltyWebChallenge #ContentCardContainerLoyalty').count(), 1);
+    assert.equal(await page.locator('#loyaltyWebOffers .loyalty-featured-offer').count(), 5);
+    assert.equal(await originalLiveMount.evaluate(mount => mount === document.querySelector('#loyaltyWebChallenge #ContentCardContainerLoyalty')), true,
+      'Web preview moves the original subscription mount instead of cloning or rebuilding its content');
+    assert.equal(await originalCarousel.evaluate(mount => mount === document.querySelector('#loyaltyWebOffers #loyaltyOfferCarousel')), true);
+    await page.locator('#loyaltyWebOffers [data-save-preview-offer="ajo-offer-0"]').click();
+    assert.match(await page.locator('#loyaltyWebNotice').textContent(), /preview only/);
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'true');
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+      assert.ok(await page.locator('#loyaltyWebPreview').isVisible());
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+      if (process.env.AEP_LOYALTY_SCREENSHOT) {
+        const style = '.mod-demo-top-anchor, .tui-live-actions, #profileDrawer, #profileHoverZone { visibility: hidden !important; }';
+        await page.locator('#loyaltyWebPreview').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-web-' + theme + '.png'), style });
+        await page.locator('.loyalty-challenges').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-progress-' + theme + '.png'), style });
+        await page.locator('.loyalty-offer-inspector').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-inspector-' + theme + '.png'), style });
+      }
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), 'Web preview also fits a narrow browser');
+    await page.setViewportSize({ width: 1500, height: 1100 });
+    await page.locator('[data-loyalty-preview="mobile"]').click();
+    assert.equal(await originalLiveMount.evaluate(mount => mount === document.querySelector('#loyaltyViewRewards #ContentCardContainerLoyalty')), true);
+    assert.equal(await originalCarousel.evaluate(mount => mount === document.querySelector('#loyaltyViewRewards #loyaltyOfferCarousel')), true);
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'true',
+      'Switching presentation preserves the existing preview-save state');
+    assert.equal(await page.evaluate(() => window.__sdkCalls.length), sdkCallsBeforeSwitch,
+      'Switching channel and preview-saving never request decisions, track displays or send journey events');
     const extent = await page.evaluate(() => ({
       height: document.scrollingElement.scrollHeight, viewport: innerHeight,
       bottom: document.querySelector('.loyalty-workspace').getBoundingClientRect().bottom + scrollY,
@@ -1383,6 +1431,8 @@ async function main() {
     await featuredLookup('featured-second@example.invalid');
     await requestPage.waitForFunction(() => window.__featuredCalls.length === 2 && !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await requestPage.evaluate(() => window.__featuredCalls.at(-1).xdm.identityMap.Email[0].id), 'featured-second@example.invalid');
+    assert.equal(await requestPage.locator('#loyaltyReturnedOffers .loyalty-returned-offer').count(), 0,
+      'Changing profile clears the previous profile offer inspector; development fallback is not a live result');
     await requestPage.evaluate(() => { window.__heldFeaturedAlloy = window.alloy; window.alloy = undefined; });
     await featuredLookup('featured-delayed-sdk@example.invalid');
     await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);

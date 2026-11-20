@@ -60,6 +60,7 @@
     // ID order is the strategy ranking; duplicate deliveries must not reset carousel state.
     if (signature === lastAjoSignature) return;
     renderFeaturedOffers(pendingFeaturedOffers);
+    renderReturnedOffers(pendingFeaturedOffers);
     lastAjoSignature = signature;
     $('loyaltyFeaturedStatus').textContent = 'Personalised offers';
   }
@@ -67,6 +68,8 @@
     clearTimeout(featuredFallbackTimer);
     $('loyaltyFeaturedOffers').replaceChildren(); $('loyaltyOfferDots').replaceChildren();
     currentItems = []; updateFeaturedCarousel();
+    $('loyaltyReturnedCount').textContent = 'Waiting for AJO';
+    $('loyaltyReturnedOffers').replaceChildren(node('p', 'No personalised offers received for this context.', 'loyalty-empty'));
     $('loyaltyFeaturedStatus').textContent = 'Loading personalised offers\u2026';
     $('loyaltyOfferCarousel').setAttribute('aria-busy', 'true');
     // Five-second development fallback; a later valid AJO delivery always replaces these previews.
@@ -118,6 +121,7 @@
     // Add proposition display tracking here later; identifiers remain intact in currentItems.
   }
   let phoneView = 'home', toastTimer;
+  let previewMode = 'mobile', previewMounts = [];
   const phoneScrollPositions = { home: 0, rewards: 0 };
   const signupScope = (ctx, member) => JSON.stringify([ctx.sandbox, ctx.region || 'va7', member]);
   const signupKey = (ctx, member, challenge) => JSON.stringify([signupScope(ctx, member), challenge]);
@@ -158,6 +162,7 @@
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
     savedPreviewOffers.clear(); renderSavedOffers();
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
+    $('loyaltyWebNotice').textContent = '';
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
     displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
@@ -185,6 +190,64 @@
     if (cls) element.className = cls;
     return element;
   }
+  function renderReturnedOffers(offers) {
+    const fragment = document.createDocumentFragment();
+    offers.forEach((offer, index) => {
+      const card = node('article', undefined, 'loyalty-returned-offer');
+      card.dataset.offerId = offer.id;
+      const heading = node('div', undefined, 'loyalty-returned-heading');
+      heading.append(node('span', 'Decision item ' + (index + 1)), node('b', offer.merchant));
+      card.append(heading);
+      const url = safeUrl(offer.image);
+      if (url) {
+        const image = node('img'); image.src = url; image.alt = offer.merchant + ' offer'; image.loading = 'lazy';
+        card.append(image);
+      }
+      card.append(node('h3', offer.title));
+      const fields = node('dl', undefined, 'loyalty-returned-fields');
+      for (const [label, value] of [['Description', offer.detailDescription], ['Channel', offer.channel],
+        ['Expires', offer.expiry || offer.endDate], ['Button label', offer.cta], ['Item priority', offer.priority]]) {
+        if (value == null || value === '') continue;
+        const row = node('div'); row.append(node('dt', label), node('dd', value)); fields.append(row);
+      }
+      card.append(fields);
+      const details = node('details', undefined, 'loyalty-task-details');
+      details.append(node('summary', 'Show response'), node('pre', JSON.stringify(offer, null, 2)));
+      card.append(details); fragment.append(card);
+    });
+    $('loyaltyReturnedCount').textContent = offers.length + (offers.length === 1 ? ' returned item' : ' returned items');
+    $('loyaltyReturnedOffers').replaceChildren(fragment);
+  }
+  function initPreviewMode() {
+    // Reparent the live mounts, never clone them: subscriptions and card actions keep their original DOM.
+    previewMounts = [
+      { element: document.querySelector('.loyalty-promotion'), target: $('loyaltyWebChallenge') },
+      ...[$('loyaltyFeaturedTitle'), $('loyaltyOfferCarousel'), document.querySelector('.loyalty-carousel-controls')]
+        .map(element => ({ element, target: $('loyaltyWebOffers') })),
+    ].map(mount => {
+      const marker = document.createComment('Mobile preview mount');
+      mount.element.before(marker);
+      return { ...mount, marker };
+    });
+    document.querySelectorAll('[data-loyalty-preview]').forEach(button => {
+      button.addEventListener('click', () => {
+        const mode = button.dataset.loyaltyPreview;
+        if (mode === previewMode) return;
+        previewMode = mode;
+        for (const { element, target, marker } of previewMounts) {
+          if (mode === 'web') target.append(element);
+          else marker.after(element);
+        }
+        $('loyaltyMobilePreview').hidden = mode === 'web';
+        $('loyaltyWebPreview').hidden = mode !== 'web';
+        document.body.dataset.loyaltyPreview = mode;
+        document.querySelectorAll('[data-loyalty-preview]').forEach(control => {
+          control.setAttribute('aria-pressed', String(control.dataset.loyaltyPreview === mode));
+        });
+        updateFeaturedCarousel();
+      });
+    });
+  }
   const phoneMotion = () => global.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
   function showPhoneView(name) {
     if (!['home', 'rewards'].includes(name) || name === phoneView) return;
@@ -201,6 +264,7 @@
     if (moveFocus) $(name === 'home' ? 'loyaltyHomeName' : 'loyaltyMobileTitle').focus({ preventScroll: true });
   }
   function scrollPhoneSection(id) {
+    if (previewMode === 'web') { $(id).scrollIntoView({ behavior: phoneMotion(), block: 'center' }); $(id).focus({ preventScroll: true }); return; }
     showPhoneView('rewards');
     const scroll = document.querySelector('.loyalty-phone-scroll'), target = $(id);
     scroll.scrollTo({ top: scroll.scrollTop + target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12,
@@ -210,6 +274,7 @@
   function phoneToast(text) {
     clearTimeout(toastTimer);
     $('loyaltyAppToast').textContent = text; $('loyaltyAppToast').hidden = false;
+    $('loyaltyWebNotice').textContent = text;
     toastTimer = setTimeout(() => { $('loyaltyAppToast').hidden = true; }, 4000);
   }
   function renderSavedOffers() {
@@ -504,6 +569,7 @@
       const completed = challenge.tasks.filter(complete).length, total = challenge.tasks.length;
       const summary = node('div', undefined, 'loyalty-progress-summary');
       const ring = node('div', undefined, 'loyalty-progress-ring');
+      ring.setAttribute('role', 'img'); ring.setAttribute('aria-label', completed + ' of ' + total + ' tasks complete');
       ring.style.setProperty('--loyalty-progress', (total ? completed / total * 100 : 0) + '%');
       ring.append(node('b', completed + ' / ' + total), node('span', 'tasks complete'));
       const title = node('div');
@@ -568,6 +634,7 @@
         mobile.append(row);
       }
       const outcome = node('div', undefined, 'loyalty-outcome');
+      outcome.dataset.complete = String(completedState(challenge.state));
       const remainingCount = total - completed;
       outcome.append(node('b', completedState(challenge.state) ? 'Challenge completed' :
         !total ? 'No tasks reported' : remaining ? remainingCount + (remainingCount === 1 ? ' task remaining' : ' tasks remaining') : 'All returned tasks complete'),
@@ -1060,6 +1127,7 @@
   }
   async function init() {
     initPhoneApp();
+    initPreviewMode();
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     const panel = $('aepLabEnvOverlayPanel');
     panel.prepend($('aepDemoProfileSection'));
