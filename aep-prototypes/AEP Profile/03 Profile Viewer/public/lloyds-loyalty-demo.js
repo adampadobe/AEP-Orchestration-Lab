@@ -16,6 +16,7 @@
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
+  let featuredRequest = null, pendingFeaturedRequest = false;
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
   const savedPreviewOffers = new Map();
@@ -171,6 +172,7 @@
     global.DecisioningProfileRuntime?.invalidateProfileLookupCache();
     if (clearProfile) {
       loaded = null; $('loyaltyMember').value = '';
+      featuredRequest = null; pendingFeaturedRequest = false;
       pendingFeaturedOffers = null; lastAjoSignature = null;
       if (featuredReady) waitForFeaturedOffers();
       global.DemoProfileDrawer.clearDrawerVisitorState(); publish();
@@ -708,12 +710,12 @@
     });
     message('Loading...');
     // Aborting fetch alone cannot release queued SDK commands or shared drawer promises.
-    try { await Promise.race([operation(ctx, token), cancelled]); }
+    try { return await Promise.race([operation(ctx, token), cancelled]); }
     catch (error) {
       if (token === version) {
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
-        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; }
+        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; pendingFeaturedRequest = false; }
       }
     } finally {
       controller.signal.removeEventListener('abort', onAbort);
@@ -722,7 +724,8 @@
         const detail = pendingProfile; pendingProfile = null;
         adoptDrawerProfile(detail);
       }
-      if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
+      if (pendingFeaturedRequest) { pendingFeaturedRequest = false; void requestFeaturedOffers(); }
+      else if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
     }
   }
   function adoptDrawerProfile(detail) {
@@ -737,6 +740,51 @@
     if (busy) { pendingCard = true; return; }
     void work(run);
   }
+  async function requestFeaturedOffers() {
+    if (!loaded) {
+      console.error('[Rewards] featured-offers request requires a loaded test profile');
+      message('Look up a test profile before requesting Featured Offers.', true); return;
+    }
+    if (busy) { pendingFeaturedRequest = true; return; }
+    return work(async (ctx, token) => {
+      const captured = await prepareProfileEvent(ctx, token, 'featured-offers decision');
+      same(ctx, token);
+      if (global.alloy !== captured.alloy ||
+          JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
+        throw new Error('SDK or datastream changed while preparing Featured Offers. No request sent.');
+      }
+      const key = JSON.stringify([ctx.sandbox, ctx.namespace, ctx.identifier, ctx.tenant,
+        captured.identityMap, captured.edgeOptions]);
+      if (featuredRequest?.key === key && featuredRequest.alloy === captured.alloy) {
+        console.log('[Rewards] featured-offers request already submitted for this profile context');
+        message('Featured Offers already requested for this profile context. No duplicate request sent.');
+        return featuredRequest.result;
+      }
+      // Reserve before submission: repeated profile-ready notifications cannot replay an uncertain request.
+      const request = { key, alloy: captured.alloy };
+      featuredRequest = request;
+      message('Requesting Featured Offers from Adobe...');
+      let result;
+      try {
+        result = await captured.alloy('sendEvent', {
+          ...captured.edgeOptions, renderDecisions: false,
+          personalization: { surfaces: ['#featured-offers'] },
+          xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
+            web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } },
+        });
+      } catch (error) {
+        console.error('[Rewards] featured-offers Web SDK request failed', error);
+        throw error;
+      }
+      console.log('[Rewards] featured-offers Web SDK response', result);
+      console.log('[Rewards] featured-offers propositions', result?.propositions);
+      same(ctx, token);
+      request.result = result;
+      message('Featured Offers request completed. Data Collection processes the response and dispatches ajo:featured-offers.');
+      return result;
+    });
+  }
+  global.requestFeaturedOffers = requestFeaturedOffers;
   async function lookup(ctx, token, drawerReady = false) {
     loaded = null; clearResults();
     if (!drawerReady) global.DemoProfileDrawer.clearDrawerVisitorState();
@@ -1045,6 +1093,9 @@
     email.addEventListener('input', identityChanged); email.addEventListener('change', identityChanged);
     $(prefix + 'Ns').addEventListener('change', identityChanged);
     global.addEventListener('aep-profile-drawer-loaded', event => adoptDrawerProfile(event.detail));
+    global.addEventListener('tui-profile-changed', () => {
+      if (loaded && typeof global.alloy === 'function') void requestFeaturedOffers();
+    });
     global.addEventListener('aep-global-sandbox-change', () => {
       if (selectedProfileKey === profileKey()) return;
       selectedProfileKey = profileKey();
@@ -1053,7 +1104,11 @@
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
     });
-    global.addEventListener('aep-demo-tags-injected', () => { invalidate(false); requestAutomaticCard(); });
+    global.addEventListener('aep-demo-tags-injected', () => {
+      invalidate(false);
+      if (loaded && typeof global.alloy === 'function') void requestFeaturedOffers();
+      requestAutomaticCard();
+    });
     global.addEventListener('aep-demo-visitor-reset-start', () => invalidate(true));
     global.addEventListener('aep-demo-visitor-invalidated', () => invalidate(true));
     for (const id of ['loyaltyRegion', 'loyaltyMember', 'loyaltyChallenge', 'loyaltyTenant', 'loyaltySurface', 'loyaltyParticipation', 'loyaltyTest', 'generatorTarget']) {

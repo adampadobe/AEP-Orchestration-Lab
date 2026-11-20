@@ -505,6 +505,7 @@ async function main() {
           return {};
         }
         if (payload.xdm?.eventType?.startsWith('decisioning.proposition')) return {};
+        if (payload.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
         if (window.__emptyCardResponse) return { propositions: [] };
         const proposition = (id, scope, rank) => ({ id, scope, scopeDetails: { decisionProvider: 'CJM', rank }, items: [{
           id: 'item-' + id, name: 'Loyalty offer fixture', itemSelection: { selectionDetail: { strategyID: 'strategy-fixture' } },
@@ -567,7 +568,7 @@ async function main() {
     assert.equal(display.edgeConfigOverrides.datastreamId, 'reviewed-fixture-stream');
     assert.equal(display.xdm.identityMap.Email[0].id, 'fixture@example.invalid');
     assert.equal(display.xdm._ownTenant.identification.core.ecid, display.xdm.identityMap.ECID[0].id);
-    const decision = calls.find(call => call.payload?.personalization?.surfaces)?.payload;
+    const decision = calls.find(call => call.payload?.personalization?.surfaces?.[0]?.endsWith('#ContentCardContainerLoyalty'))?.payload;
     const sharedCardSurface = origin.replace('http:', 'web:') + '/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty';
     assert.deepEqual(decision.personalization.surfaces, [sharedCardSurface],
       'Request the configured shared AJO channel, not the Lloyds document URL');
@@ -831,8 +832,9 @@ async function main() {
       window.__journeyTracking = [];
       window.__journeyCommands = [];
       window.alloy = async (command, options) => {
-        window.__journeyCommands.push(command);
+        window.__journeyCommands.push(options?.personalization?.surfaces?.[0] === '#featured-offers' ? 'featured-sendEvent' : command);
         if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
         if (command === 'subscribeRulesetItems') { window.__journeySubscriptions.push(options); return; }
         if (command === 'sendEvent' && options.personalization?.surfaces) {
           if (options.renderDecisions !== true || options.personalization.schemas !== undefined) {
@@ -964,6 +966,7 @@ async function main() {
         }
         if (command === 'subscribeRulesetItems') { window.__loyaltySubscription = options; return; }
         if (command !== 'sendEvent') throw new Error('Unexpected SDK command: ' + command);
+        if (options.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
         if (options.personalization?.surfaces) {
           window.__deliverSignupCard = () => window.__loyaltySubscription.callback({ propositions: [{
             id: 'signup-proposition', scope: window.__loyaltySubscription.surfaces[0],
@@ -1279,6 +1282,136 @@ async function main() {
     assert.deepEqual(await earlyPage.locator('.loyalty-featured-body h4').allTextContents(), ['Early ranked offer'],
       'The five-second fallback cannot overwrite a valid early AJO delivery');
     await earlyPage.close();
+    const requestPage = await context.newPage();
+    const featuredLookup = async identifier => {
+      if (!await requestPage.locator('#customerEmail').isVisible()) await requestPage.locator('#aepLabEnvMinimizeBtn').click();
+      if (identifier) await requestPage.locator('#customerEmail').fill(identifier);
+      await requestPage.locator('#queryProfileBtn').click();
+    };
+    requestPage.on('pageerror', error => errors.push(error.message));
+    const featuredLogs = [];
+    requestPage.on('console', entry => {
+      if (entry.text().startsWith('[Rewards] featured-offers')) featuredLogs.push(entry.text());
+    });
+    await requestPage.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
+    await requestPage.waitForFunction(() => typeof window.requestFeaturedOffers === 'function');
+    await requestPage.evaluate(() => {
+      window.AepGlobalSandbox.setSelected('kirkham');
+      window.__featuredCalls = [];
+      window.__holdFeaturedResponse = true;
+      window.__featuredStream = 'featured-fixture-stream';
+      window.__featuredResult = { propositions: [{
+        id: 'featured-response-fixture', scope: '#featured-offers', items: [{ id: 'returned-item-not-rendered-directly' }],
+      }] };
+      window.alloy = async (command, options) => {
+        if (command === 'getIdentity') {
+          if (window.__pauseFeaturedIdentity) await new Promise(resolve => { window.__releaseFeaturedIdentity = resolve; });
+          return { identity: { ECID: '12345678901234567890123456789012345678' } };
+        }
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === '#featured-offers') {
+          window.__featuredCalls.push(options);
+          if (window.__holdFeaturedResponse) await new Promise(resolve => { window.__releaseFeaturedResponse = resolve; });
+          if (window.__rejectFeaturedRequest) throw new Error('Fixture: interrupted featured-offers response');
+          return window.__featuredResult;
+        }
+        return command === 'sendEvent' ? { propositions: [] } : undefined;
+      };
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.__featuredStream } });
+    });
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 0,
+      'No Featured Offers decision request is sent before profile setup');
+    await requestPage.evaluate(() => window.requestFeaturedOffers());
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 0, 'Manual requests also require a loaded profile');
+    consentGate = new Promise(resolve => { releaseConsent = resolve; });
+    const featuredConsent = requestPage.waitForRequest(request => new URL(request.url()).pathname === '/api/profile/consent');
+    await featuredLookup('featured-first@example.invalid');
+    await featuredConsent;
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 0,
+      'Profile table data alone does not trigger decisioning while drawer/profile setup is pending');
+    releaseConsent(); consentGate = null;
+    await requestPage.waitForFunction(() => typeof window.__releaseFeaturedResponse === 'function');
+    await requestPage.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('tui-profile-changed'));
+      window.dispatchEvent(new CustomEvent('tui-profile-changed'));
+      void window.requestFeaturedOffers();
+    });
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 1,
+      'Overlapping profile-ready and console requests coalesce while the SDK response is pending');
+    await requestPage.evaluate(() => { window.__holdFeaturedResponse = false; window.__releaseFeaturedResponse(); });
+    await requestPage.waitForFunction(() => window.__featuredCalls.length === 1 && !document.getElementById('queryProfileBtn').disabled);
+    const featuredPayload = await requestPage.evaluate(() => window.__featuredCalls[0]);
+    assert.equal(featuredPayload.renderDecisions, false);
+    assert.deepEqual(featuredPayload.personalization, { surfaces: ['#featured-offers'] });
+    assert.deepEqual(featuredPayload.edgeConfigOverrides, { datastreamId: 'featured-fixture-stream' });
+    assert.equal(featuredPayload.xdm.identityMap.Email[0].id, 'featured-first@example.invalid');
+    assert.equal(featuredPayload.xdm.identityMap.Email[0].primary, true);
+    assert.equal(featuredPayload.xdm.identityMap.ECID[0].id, '12345678901234567890123456789012345678');
+    assert.equal(featuredPayload.xdm._demoemea.identification.core.email, 'featured-first@example.invalid');
+    assert.equal(await requestPage.locator('[data-art="returned-item-not-rendered-directly"]').count(), 0,
+      'The request does not render returned propositions or dispatch the offers event itself');
+    assert.ok(featuredLogs.some(line => line.startsWith('[Rewards] featured-offers Web SDK response')));
+    assert.ok(featuredLogs.some(line => line.startsWith('[Rewards] featured-offers propositions')));
+    await featuredLookup();
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 1,
+      'Repeated lookup of the same selected profile does not resend the decision request');
+    assert.deepEqual(await requestPage.evaluate(() => window.requestFeaturedOffers()),
+      await requestPage.evaluate(() => window.__featuredResult), 'The manual console entry point returns the existing result without duplicating requests');
+    await requestPage.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [{
+      id: 'rule-mapped-offer', merchant: 'Waitrose', title: 'Rule-mapped cashback',
+    }] } })));
+    assert.deepEqual(await requestPage.locator('.loyalty-featured-body h4').allTextContents(), ['Rule-mapped cashback'],
+      'Only the existing Data Collection event bridge populates the carousel');
+    await featuredLookup('featured-second@example.invalid');
+    await requestPage.waitForFunction(() => window.__featuredCalls.length === 2 && !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.at(-1).xdm.identityMap.Email[0].id), 'featured-second@example.invalid');
+    await requestPage.evaluate(() => { window.__heldFeaturedAlloy = window.alloy; window.alloy = undefined; });
+    await featuredLookup('featured-delayed-sdk@example.invalid');
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 2);
+    await requestPage.evaluate(() => {
+      window.alloy = window.__heldFeaturedAlloy;
+      window.dispatchEvent(new CustomEvent('aep-demo-tags-injected'));
+    });
+    await requestPage.waitForFunction(() => window.__featuredCalls.length === 3 && !document.getElementById('queryProfileBtn').disabled);
+    await requestPage.evaluate(() => window.dispatchEvent(new CustomEvent('aep-demo-tags-injected')));
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 3,
+      'Repeated SDK-ready notifications reuse the same profile/SDK/datastream request');
+    await requestPage.evaluate(() => {
+      window.__featuredStream = 'changed-featured-fixture-stream';
+      window.dispatchEvent(new CustomEvent('aep-demo-tags-injected'));
+    });
+    await requestPage.waitForFunction(() => window.__featuredCalls.length === 4 && !document.getElementById('queryProfileBtn').disabled);
+    await requestPage.evaluate(() => { window.__pauseFeaturedIdentity = true; });
+    await featuredLookup('featured-stale@example.invalid');
+    await requestPage.waitForFunction(() => typeof window.__releaseFeaturedIdentity === 'function');
+    await requestPage.locator('#customerEmail').fill('featured-current@example.invalid');
+    await requestPage.evaluate(async () => {
+      window.__pauseFeaturedIdentity = false; window.__releaseFeaturedIdentity();
+      await new Promise(resolve => setTimeout(resolve, 20));
+    });
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 4,
+      'An identity change during SDK setup blocks stale decision dispatch');
+    testProfile = false;
+    await featuredLookup();
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 4, 'Only selected test profiles request decisions');
+    testProfile = true;
+    await requestPage.evaluate(() => { window.__rejectFeaturedRequest = true; });
+    await featuredLookup();
+    await requestPage.waitForFunction(() => window.__featuredCalls.length === 5 && !document.getElementById('queryProfileBtn').disabled);
+    await featuredLookup();
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 5,
+      'Repeated profile loads cannot automatically retry an uncertain submitted decision request');
+    if (!await requestPage.locator('#customerEmail').isVisible()) await requestPage.locator('#aepLabEnvMinimizeBtn').click();
+    await requestPage.locator('#lloydsLoyaltyNs').selectOption('ecid');
+    await featuredLookup('99999999999999999999999999999999999999');
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 5,
+      'A selected ECID different from the active SDK visitor cannot request Featured Offers');
+    await requestPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');
