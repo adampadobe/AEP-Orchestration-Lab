@@ -60,9 +60,12 @@ until that setup finishes. If SDK injection happens later, the existing
 profile setup, non-test profiles, changed context and mismatched ECIDs block
 dispatch. No offer ranking or eligibility logic is added.
 
-The function logs the complete SDK response and `result.propositions` separately,
-but never renders them or dispatches the offers event itself. Data Collection
-still processes the AJO response and dispatches `ajo:featured-offers`; no received
+Immediately after a successful SDK response, the function dispatches
+`CustomEvent("ajo:featured-offers-response", { detail: result })` with the raw
+result for a Data Collection Core Custom Event rule, and logs that dispatch.
+The function also logs the complete SDK response and `result.propositions`
+separately, but never renders them or dispatches the offers event itself.
+Data Collection processes that raw response and dispatches `ajo:featured-offers`; no received
 event means no live carousel result, even if the SDK request succeeded.
 `window.requestFeaturedOffers()` exposes the same guarded request for console
 testing. Repeated calls/loads coalesce while busy and suppress duplicate

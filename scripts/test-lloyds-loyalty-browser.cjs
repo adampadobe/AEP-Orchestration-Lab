@@ -1303,6 +1303,12 @@ async function main() {
       window.__featuredResult = { propositions: [{
         id: 'featured-response-fixture', scope: 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers', items: [{ id: 'returned-item-not-rendered-directly' }],
       }] };
+      window.__featuredResult.decisions = window.__featuredResult.propositions;
+      window.__featuredResponses = [];
+      window.addEventListener('ajo:featured-offers-response', event => {
+        window.__featuredResponses.push(event.detail);
+        window.__featuredResponseIsOriginal = event.detail === window.__featuredResult;
+      });
       window.alloy = async (command, options) => {
         if (command === 'getIdentity') {
           if (window.__pauseFeaturedIdentity) await new Promise(resolve => { window.__releaseFeaturedIdentity = resolve; });
@@ -1337,8 +1343,15 @@ async function main() {
     });
     assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 1,
       'Overlapping profile-ready and console requests coalesce while the SDK response is pending');
+    assert.equal(await requestPage.evaluate(() => window.__featuredResponses.length), 0,
+      'No raw response event is dispatched before the SDK request succeeds');
     await requestPage.evaluate(() => { window.__holdFeaturedResponse = false; window.__releaseFeaturedResponse(); });
     await requestPage.waitForFunction(() => window.__featuredCalls.length === 1 && !document.getElementById('queryProfileBtn').disabled);
+    assert.deepEqual(await requestPage.evaluate(() => window.__featuredResponses), [
+      await requestPage.evaluate(() => window.__featuredResult),
+    ], 'Tags receives the complete unmodified SDK result, including propositions and decisions');
+    assert.equal(await requestPage.evaluate(() => window.__featuredResponseIsOriginal), true,
+      'The bridge passes the original result object as event.detail');
     const featuredPayload = await requestPage.evaluate(() => window.__featuredCalls[0]);
     assert.equal(featuredPayload.renderDecisions, false);
     assert.deepEqual(featuredPayload.personalization, {
@@ -1353,12 +1366,15 @@ async function main() {
       'The request does not render returned propositions or dispatch the offers event itself');
     assert.ok(featuredLogs.some(line => line.startsWith('[Rewards] featured-offers Web SDK response')));
     assert.ok(featuredLogs.some(line => line.startsWith('[Rewards] featured-offers propositions')));
+    assert.ok(featuredLogs.some(line => line.startsWith('[Rewards] featured-offers-response dispatched')));
     await featuredLookup();
     await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 1,
       'Repeated lookup of the same selected profile does not resend the decision request');
     assert.deepEqual(await requestPage.evaluate(() => window.requestFeaturedOffers()),
       await requestPage.evaluate(() => window.__featuredResult), 'The manual console entry point returns the existing result without duplicating requests');
+    assert.equal(await requestPage.evaluate(() => window.__featuredResponses.length), 1,
+      'Duplicate requests do not redispatch the cached raw response');
     await requestPage.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [{
       id: 'rule-mapped-offer', merchant: 'Waitrose', title: 'Rule-mapped cashback',
     }] } })));
@@ -1407,6 +1423,8 @@ async function main() {
     await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 5,
       'Repeated profile loads cannot automatically retry an uncertain submitted decision request');
+    assert.equal(await requestPage.evaluate(() => window.__featuredResponses.length), 4,
+      'A rejected SDK request does not dispatch a raw response event');
     if (!await requestPage.locator('#customerEmail').isVisible()) await requestPage.locator('#aepLabEnvMinimizeBtn').click();
     await requestPage.locator('#lloydsLoyaltyNs').selectOption('ecid');
     await featuredLookup('99999999999999999999999999999999999999');

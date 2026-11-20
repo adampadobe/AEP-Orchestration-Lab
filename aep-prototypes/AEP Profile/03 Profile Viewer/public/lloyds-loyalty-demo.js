@@ -772,6 +772,15 @@
           xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
             web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } },
         });
+        window.dispatchEvent(
+          new CustomEvent("ajo:featured-offers-response", {
+            detail: result
+          })
+        );
+        console.log(
+          "[Rewards] featured-offers-response dispatched",
+          result
+        );
       } catch (error) {
         console.error('[Rewards] featured-offers Web SDK request failed', error);
         throw error;
