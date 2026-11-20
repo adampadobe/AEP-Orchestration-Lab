@@ -25,6 +25,18 @@ const INCIDENTS = Object.freeze([
       flowCount: 13,
       flowId: '065f3b53-df40-43d1-9d91-c42f031996d6',
       issueCodes: ['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown'],
+      lastRun: { state: 'inProgress', completedAt: null, readCount: 2, writtenCount: null, failedCount: null },
+    } },
+  { day: '2026-11-19', slotId: '01', industry: 'retail', count: 3,
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY', attemptedCount: 4,
+    dueAt: '2026-11-19T05:29:00.000Z', startedAt: '2026-11-19T05:30:19.585Z',
+    updatedAt: '2026-11-19T05:30:25.871Z',
+    failureSnapshot: {
+      observedAt: '2026-11-19T05:30:25.869Z', flowCount: 13,
+      flowId: 'e51db6ee-70ef-4705-a913-f6f8eba4fb96', issueCodes: ['last_run_stale'],
+      lastRun: { state: 'success', completedAt: '2026-11-19T02:07:17.320Z',
+        ageMs: 12188549, readCount: 0, writtenCount: null, failedCount: null },
+      idleRunId: '5b126cfe-7691-4d41-b046-b6590022f234',
     } },
 ]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
@@ -50,10 +62,12 @@ function matchesFailureSnapshot(slot, expected) {
     && health.flows?.length === expected.flowCount
     && health.flows.filter((item) => item.healthy === false).length === 1
     && JSON.stringify(issueCodes) === JSON.stringify(expectedIssueCodes)
+    && health.issues.every((issue) => issue.flowId === expected.flowId)
     && flow?.healthy === false && flow.state === 'enabled'
-    && flow.lastRun?.state === 'inProgress' && flow.lastRun.completedAt === null
-    && flow.lastRun.readCount === 2 && flow.lastRun.writtenCount === null
-    && flow.lastRun.failedCount === null
+    && Object.entries(expected.lastRun).every(([key, value]) => flow.lastRun?.[key] === value)
+    && (!expected.idleRunId || (flow.verifiedIdleEvidence?.runId === expected.idleRunId
+      && flow.verifiedIdleEvidence.policy === IDLE_POLICY
+      && flow.verifiedIdleEvidence.inputRecordCount === 0 && flow.verifiedIdleEvidence.inputBytes === 0))
     && JSON.stringify([...(flow.reasons || [])].sort()) === JSON.stringify(expectedIssueCodes);
 }
 

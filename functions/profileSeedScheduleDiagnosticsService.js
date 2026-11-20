@@ -1,8 +1,9 @@
 'use strict';
 
-const { businessTime, diagnoseFlowHealth, INDUSTRIES } = require('./profileSeedScheduleService');
+const { businessTime, diagnoseFlowHealth, INDUSTRIES, SLOT_FAILURE_STAGES } = require('./profileSeedScheduleService');
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
+const failureStages = new Set(Object.values(SLOT_FAILURE_STAGES));
 
 function slotSummary(slot) {
   return {
@@ -15,6 +16,7 @@ function slotSummary(slot) {
     state: slot.state,
     reason: slot.reason || null,
     errorCode: slot.errorCode || null,
+    failureStage: failureStages.has(slot.failureStage) ? slot.failureStage : null,
     ingestion: slot.ingestion || null,
     preparedIdentityCount: Array.isArray(slot.identities) ? slot.identities.length : 0,
     flowHealthAtFailure: slot.flowHealth || null,
@@ -64,11 +66,31 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
     }
 
     let flowHealth = null;
+    let liveFlowHealthError = null;
     if (targetSlot) {
       if (!INDUSTRIES.includes(targetSlot.industry)) {
         throw fail(500, 'The saved profile schedule slot has an invalid industry.');
       }
-      flowHealth = diagnoseFlowHealth(await flowSnapshot(targetSlot.industry), now(), config);
+      let snapshot;
+      try {
+        snapshot = await flowSnapshot(targetSlot.industry);
+      } catch {
+        liveFlowHealthError = {
+          code: 'SEED_FLOW_SNAPSHOT_UNAVAILABLE', stage: SLOT_FAILURE_STAGES.flowSnapshot,
+          message: 'Current flow health is unknown. Check Adobe authentication and Flow Service access, then rerun diagnostics.',
+        };
+      }
+      if (!liveFlowHealthError) {
+        try {
+          flowHealth = diagnoseFlowHealth(snapshot, now(), config);
+        } catch (error) {
+          if (error?.code !== 'SEED_HEALTH_POLICY_INVALID') throw error;
+          liveFlowHealthError = {
+            code: 'SEED_HEALTH_POLICY_INVALID', stage: SLOT_FAILURE_STAGES.flowHealth,
+            message: 'Current flow health is unknown. Inspect the saved scheduler health policy and its review metadata.',
+          };
+        }
+      }
     }
 
     return {
@@ -102,8 +124,9 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
         slot: slotSummary(targetSlot),
         liveFlowHealthObservedAt: flowHealth?.observedAt || null,
         liveFlowHealth: flowHealth,
+        liveFlowHealthError,
       } : null,
-      note: 'Live flow health is a fresh read and does not reconstruct the health snapshot from the original slot attempt.',
+      note: 'Saved failure evidence is historical. Live flow health is a separate read; it does not clear a dispatcher block or establish AEP arrival. Do not replay generation.',
     };
   }
 

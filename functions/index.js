@@ -943,26 +943,31 @@ exports.profileSeedSchedule = onSchedule({
   ...SNOWFLAKE_VPC_OPTS,
   environmentVariables: consentStoreRuntimeEnv(),
 }, async () => {
-  const { getAdminFirestore } = require('./adminFirestore');
-  const db = getAdminFirestore();
-  const { createProfileSeedScheduleRuntime } = require('./profileSeedScheduleRuntime');
+  const logger = require('firebase-functions/logger');
+  let runtime;
   try {
-    await createProfileSeedScheduleRuntime({
+    const { getAdminFirestore } = require('./adminFirestore');
+    const db = getAdminFirestore();
+    const { createProfileSeedScheduleRuntime } = require('./profileSeedScheduleRuntime');
+    runtime = createProfileSeedScheduleRuntime({
       db,
+      logger,
       auth: require('firebase-admin').auth(),
       getAdobeAuth: async () => ({
         accessToken: await getAdobeAccessToken(),
         clientId: ADOBE_CLIENT_ID.value(), orgId: ADOBE_IMS_ORG.value(),
       }),
-    }).tick();
-  } catch (error) {
-    const errorCode = typeof error?.code === 'string' && /^SEED_[A-Z_]{1,60}$/.test(error.code)
-      ? error.code : 'SEED_DISPATCHER_FAILED';
-    const errorName = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(error.name)
-      ? error.name : 'Error';
-    console.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.', {
-      errorCode, errorName,
     });
+  } catch {
+    logger.error('[profile-seed-schedule] Dispatcher initialization failed.', {
+      event: 'profile_seed_dispatcher_failed', stage: 'initialize', errorCode: 'SEED_DISPATCHER_FAILED',
+    });
+    throw new Error('Profile seed dispatcher failed. Inspect its durable state; do not replay generation.');
+  }
+  try {
+    await runtime.tick();
+  } catch {
+    // The scheduler already logged allowlisted diagnostic fields. Never forward upstream errors.
     throw new Error('Profile seed dispatcher failed. Inspect its durable state; do not replay generation.');
   }
 });
