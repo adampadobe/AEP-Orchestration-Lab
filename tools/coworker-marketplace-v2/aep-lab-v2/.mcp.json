@@ -1,0 +1,186 @@
+{
+  "mcp_servers": {
+    "servers": [
+      {
+        "name": "lab-v2-entry",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/entry",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 60
+      },
+      {
+        "name": "lab-v2-demo",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/demo-prep",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 650
+      },
+      {
+        "name": "lab-v2-snow",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/snowflake",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 180
+      },
+      {
+        "name": "lv2-all",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 650
+      },
+      {
+        "name": "lab-v2-profiles",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/profile",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 300
+      },
+      {
+        "name": "lab-v2-pdf",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/pdf",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 650
+      },
+      {
+        "name": "lab-v2-audiences",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/audiences",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 300
+      },
+      {
+        "name": "lv2-dps",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/decisioning",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 300
+      },
+      {
+        "name": "lab-v2-ajo-clean",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-cleanup",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 300
+      },
+      {
+        "name": "lab-v2-ajo-oc",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/ajo-oc-datasets",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 180
+      },
+      {
+        "name": "lab-v2-command",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 300
+      },
+      {
+        "name": "lab-v2-weather",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 60
+      },
+      {
+        "name": "lab-v2-geo",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/geo-insights",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 180
+      },
+      {
+        "name": "lab-v2-commerce",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-aco",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/commerce-optimizer",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-firefly",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/firefly",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-creative",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/creativity",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-catalog",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/adobe-capabilities",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-measure",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/measurement-quality",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      },
+      {
+        "name": "lab-v2-figma",
+        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/figma",
+        "transport": "streamable_http",
+        "headers": {
+          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
+        },
+        "tool_timeout_seconds": 120
+      }
+    ]
+  }
+}

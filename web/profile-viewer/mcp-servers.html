@@ -34,7 +34,7 @@
             <header class="dashboard-hero-header">
               <h2 id="mcpBannerHeading" class="dashboard-hero-title">MCP servers</h2>
               <p class="dashboard-hero-subtitle">
-                Find the right MCP connection for your task. AEP Lab marketplace plugins are available for Adobe CX Coworker, Claude, and GitHub Copilot CLI.
+                Find the right MCP connection for your task. Install the AEP Lab marketplace for Adobe CX Coworker or GitHub Copilot CLI.
               </p>
             </header>
           </div>
@@ -61,11 +61,11 @@
                 <span class="mcp-lab-version">v3.55.0</span>
               </h4>
               <p class="mcp-lab-overview-lead">
-                Sandbox-scoped tools for AEP demos: profiles, events, brand preparation, creative assets, Commerce, decisioning, PDFs, governed cleanup, and owner-scoped schedule diagnostics. Coworker uses Adobe sign-in; key-based clients use a Portal key.
+                Sandbox-scoped tools for AEP demos: profiles, events, brand preparation, creative assets, Commerce, decisioning, PDFs, governed cleanup, and owner-scoped schedule diagnostics. Coworker v2 and GitHub Copilot CLI use your personal Portal key.
               </p>
 
               <p class="mcp-enrollment-note">
-                <strong>Before connecting:</strong> Select a sandbox and generate its Portal key. Coworker uses Adobe sign-in; create a key only to enroll the sandbox—never paste it into Coworker. Claude, Copilot CLI, and other key-based clients authenticate with the key.
+                <strong>Before connecting:</strong> Select your authorized sandbox, sign in to the Portal and generate a personal key. Save it once in Coworker's personal Secrets or Copilot's launch environment. Never paste it into chat, source files or the marketplace's GitHub-token field.
                 <a class="mcp-doc-link" href="#mcpLabKeyPanel">Generate or manage keys</a>
               </p>
 
@@ -75,38 +75,22 @@
                     <span class="mcp-client-guide-row">
                       <span class="mcp-connection-badge">Adobe CX Coworker</span>
                       <span class="mcp-client-guide-copy">
-                        <strong>Install the Lab marketplace plugin</strong>
-                        <span>Sign in with Adobe; create a Portal key once to enroll each sandbox.</span>
+                        <strong>Install AEP-Orchestration-Lab-v2</strong>
+                        <span>No subdirectory. One personal secret for all 20 connections and the workflow skill.</span>
                       </span>
                     </span>
                   </summary>
                   <div class="mcp-client-guide-content">
-                    <p>One marketplace installs General plus nineteen focused integrations. Coworker uses your signed-in Adobe identity; do not paste the plaintext Portal key into the plugin.</p>
+                    <p>V2 uses your personal Lab key, not Adobe IMS passthrough. Each colleague must use their own key and authorized sandbox.</p>
                     <ol>
-                      <li>In Coworker, open <strong>Marketplaces → + Add Marketplace</strong>.</li>
-                      <li>Set <strong>Source Type</strong> to GitHub and <strong>GitHub Repository</strong> to <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code>.</li>
-                      <li>Set <strong>Subdirectory</strong> to <code>tools/coworker-marketplace</code>.</li>
-                      <li>Select sandbox, sign in, and generate a Portal key below to establish enrollment. Then install the <strong>AEP Orchestration Lab</strong> plugin.</li>
+                      <li>Select your sandbox and <a class="mcp-doc-link" href="#mcpLabKeyPanel">generate a personal Portal key below</a>, or reuse an appropriate existing key.</li>
+                      <li>In Coworker, open <strong>Profile → App settings → Secrets → Your secrets</strong>. Save the key with name <code>aep_lab_mcp_key</code>. Keep an existing correct secret unchanged.</li>
+                      <li>Open <strong>Customizations → User → Marketplaces → Add marketplace</strong>. Set <strong>GitHub Repository</strong> to <code>adampadobe/AEP-Orchestration-Lab-v2</code>, ref to <code>main</code>, and name to <code>AEP-Orchestration-Lab-v2</code>.</li>
+                      <li><strong>Leave Subdirectory and GitHub token secret empty.</strong> The repository is public. Install <strong>AEP-Orchestration-Lab-v2</strong> (internal ID <code>aep-lab-v2</code>). If initial discovery shows zero plugins, wait and use <strong>Sync</strong> once.</li>
+                      <li>Reload settings if needed. Confirm skill <code>aep-lab-profile-mcp-v2</code> and use <strong>Test</strong> on the integrations. Start a new chat, load that skill, and call <code>lab_mcp_access_info</code> through <code>lab-v2-entry</code> to verify your principal and sandbox before changing data.</li>
                     </ol>
-                  </div>
-                </details>
-
-                <details class="mcp-marketplace-callout mcp-client-guide">
-                  <summary class="mcp-client-guide-summary">
-                    <span class="mcp-client-guide-row">
-                      <span class="mcp-connection-badge">Claude</span>
-                      <span class="mcp-client-guide-copy">
-                        <strong>Install the Lab plugin in Claude</strong>
-                        <span>Use a sandbox-scoped Portal key, stored as sensitive plugin configuration.</span>
-                      </span>
-                    </span>
-                  </summary>
-                  <div class="mcp-client-guide-content">
-                    <ol>
-                      <li>Add <code>https://github.com/adampadobe/AEP-Orchestration-Lab</code> as a marketplace with no subdirectory.</li>
-                      <li>Install <strong>AEP Orchestration Lab</strong> and enter your sandbox-scoped Portal MCP key when prompted.</li>
-                      <li>Claude stores the key as sensitive plugin configuration. Coworker continues to use your Adobe sign-in.</li>
-                    </ol>
+                    <p>Use <code>lv2-all</code> for General, <code>lab-v2-demo</code> for demo prep and <code>lv2-dps</code> for Decisioning. All connections reference the same personal secret; tool discovery does not prove downstream permissions.</p>
+                    <p>To migrate from v1, verify v2 first, then uninstall only the old <code>aep-lab</code> plugin before removing its marketplace. Keep your v2 secret. See the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab-v2#readme" target="_blank" rel="noopener noreferrer">full v2 setup, connection names and troubleshooting guide</a>.</p>
                   </div>
                 </details>
 
@@ -127,16 +111,17 @@
                       <li>Install the plugin: <code>copilot plugin install aep-lab@aep-orchestration-lab-copilot</code></li>
                       <li>Start a new CLI session, enable <code>aep-lab-entry</code>, then call <code>lab_mcp_access_info</code> to check sandbox access.</li>
                     </ol>
-                    <p>This is a GitHub Copilot CLI plugin, not a VS Code marketplace extension. Copilot uses the Portal key, not Coworker's Adobe sign-in.</p>
+                    <p>This is a GitHub Copilot CLI plugin, not a VS Code marketplace extension. Copilot reads the Portal key from its launch environment; Coworker v2 reads it from your personal Secrets.</p>
                   </div>
                 </details>
               </div>
 
               <details class="mcp-included-list">
                 <summary class="mcp-included-title">What the marketplace installs</summary>
+                <p class="mcp-included-note">Both marketplaces install General plus nineteen focused connections and workflow guidance. Names below are the GitHub Copilot CLI names; Coworker v2 uses its own short prefixes, listed in the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab-v2#readme" target="_blank" rel="noopener noreferrer">v2 connection guide</a>.</p>
                 <ul class="mcp-included-items">
                   <li><strong>Entry point</strong> <code>aep-lab-entry</code> — capability directory and workflow recommender</li>
-                  <li><strong>General</strong> <code>aep-lab-general</code> — complete 238-tool catalog for advanced and cross-domain work</li>
+                  <li><strong>General</strong> <code>aep-lab-general</code> — complete catalog for advanced and cross-domain work; discover current tools after connecting</li>
                   <li><strong>Snowflake workspace</strong> <code>aep-lab-snowflake</code> — policy-scoped SQL jobs, data checks, separately approved changes and Cortex Agent delegation</li>
                   <li><strong>Profiles</strong> <code>aep-lab-profiles</code> — shared generation defaults, profile lifecycle, industry events, Snowflake dual-load</li>
                   <li><strong>Demo prep</strong> <code>aep-lab-demo-prep</code> — brand scrape, customer switch, RTDB demo config</li>
@@ -156,7 +141,7 @@
                   <li><strong>Measurement quality</strong> <code>aep-lab-measurement-quality</code> — read-only Assurance metadata, Tags audits, and Adobe Status correlation</li>
                   <li><strong>Figma</strong> <code>aep-lab-figma</code> — Figma files, design context, renders, components, styles, variables, and comments through a server-held token</li>
                 </ul>
-                <p class="mcp-included-note">Use the focused integration that matches the task. Use <code>aep-lab-general</code> for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or tools absent from a focused catalog.</p>
+                <p class="mcp-included-note">Use the focused integration that matches the task. Use General (<code>lv2-all</code> in Coworker v2; <code>aep-lab-general</code> in Copilot) for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or tools absent from a focused catalog.</p>
               </details>
 
               <details class="mcp-advanced-details">
@@ -238,7 +223,7 @@
                 <details class="mcp-overview-detail">
                   <summary>Sandbox enrollment and API key</summary>
                   <div class="mcp-overview-detail-content">
-                    <p>Create one key per Adobe sandbox to establish enrollment. Coworker uses your Adobe sign-in to resolve that enrollment and Firebase user; it does not need the plaintext key. Claude, GitHub Copilot CLI, Codex, Cursor, and other key-based clients authenticate with <code>X-AEP-Lab-Mcp-Key</code>.</p>
+                    <p>Create a personal key for your authorized sandbox. Coworker v2 stores it under <code>aep_lab_mcp_key</code> in Your secrets; GitHub Copilot CLI reads <code>AEP_LAB_MCP_KEY</code> from its launch environment. Both authenticate with <code>X-AEP-Lab-Mcp-Key</code>. The key determines your Lab principal and sandbox permissions, not the public marketplace install.</p>
                   </div>
                 </details>
                 <details class="mcp-overview-detail">
@@ -272,10 +257,10 @@
                     <ol class="mcp-lab-overview-list mcp-lab-overview-list--ordered">
                       <li>Select your sandbox in the Profile Viewer nav.</li>
                       <li>Sign in and generate a key below; you do not need a workspace slug first.</li>
-                      <li>Open the marketplace guide for Adobe CX Coworker, Claude, or GitHub Copilot CLI. Use Advanced to connect individually.</li>
-                      <li>Start with <code>aep-lab-entry</code> and call <code>lab_mcp_access_info</code> to confirm sandbox access.</li>
+                      <li>Follow the Adobe CX Coworker v2 or GitHub Copilot CLI marketplace guide above. Use Advanced only to connect individually.</li>
+                      <li>Start with Entry (<code>lab-v2-entry</code> in Coworker; <code>aep-lab-entry</code> in Copilot) and call <code>lab_mcp_access_info</code> to confirm your principal and sandbox access.</li>
                       <li>Before generating profiles, run <code>lab_confirm_profile_generation</code> to review or update the shared base email and mobile.</li>
-                      <li>For infrastructure or full Snowflake workflows, use <code>aep-lab-general</code>. See the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming</a> and <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_EDGE_DATASTREAMS.md" target="_blank" rel="noopener noreferrer">Edge datastream</a> guides for Adobe setup handoffs.</li>
+                      <li>For infrastructure or full Snowflake workflows, use General (<code>lv2-all</code> in Coworker; <code>aep-lab-general</code> in Copilot). See the <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_HTTP_STREAMING_FLOWS.md" target="_blank" rel="noopener noreferrer">HTTP streaming</a> and <a class="mcp-doc-link" href="https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/docs/COWORKER_EDGE_DATASTREAMS.md" target="_blank" rel="noopener noreferrer">Edge datastream</a> guides for Adobe setup handoffs.</li>
                     </ol>
                   </div>
                 </details>
@@ -313,7 +298,7 @@
   </div>
 
   <script src="aep-global-sandbox.js"></script>
-  <script src="mcp-servers.js?v=20261112-governed-disable"></script>
+  <script src="mcp-servers.js?v=20261120-coworker-v2"></script>
   <script src="aep-access-scope.js"></script>
   <script src="firebase-database-config.js?v=20260527"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>

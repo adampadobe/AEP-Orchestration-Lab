@@ -1,0 +1,15 @@
+{
+  "name": "aep-orchestration-lab-v2",
+  "owner": { "name": "Adam Palmer" },
+  "metadata": {
+    "description": "AEP Lab shared-secret MCP connections for CX Coworker"
+  },
+  "plugins": [
+    {
+      "name": "aep-lab-v2",
+      "displayName": "AEP-Orchestration-Lab-v2",
+      "description": "The Lab workflow skill and all 20 MCP connections using one personal secret.",
+      "source": "./aep-lab-v2"
+    }
+  ]
+}

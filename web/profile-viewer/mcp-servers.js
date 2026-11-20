@@ -42,7 +42,7 @@
         'Preview and apply audited skip-only scheduler recovery',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins also install all nineteen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins also install all nineteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
       toolCount: 247,
       docUrl:
@@ -65,7 +65,7 @@
         'Plan a customer demo workflow across several Lab domains',
       ],
       configNotes:
-        'The Adobe CX Coworker, Claude, and GitHub Copilot CLI marketplace plugins install this directory, General, and all nineteen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
+        'The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins install this directory, General, and all nineteen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
       connectionKind: 'Focused · read-only entry point',
       toolCount: 5,
       docUrl:
@@ -89,7 +89,7 @@
         'Preview allowlisted RTDB customer values before applying them',
       ],
       configNotes:
-        'Choose this for cloud customer snapshots, exact-path image replacements and approved RTDB branding. Review one combined preview before confirming; shared assets stay untouched. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+        'Choose this for cloud customer snapshots, exact-path image replacements and approved RTDB branding. Review one combined preview before confirming; shared assets stay untouched. Coworker v2 and Copilot use a personal sandbox-scoped Portal key; v2 resolves it from Your secrets.',
       connectionKind: 'Focused',
       toolCount: 24,
       docUrl:
@@ -114,7 +114,7 @@
         'Verify and enrich Snowflake dual-loaded profiles',
       ],
       configNotes:
-        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Coworker IMS and user-generated keys resolve the same Firebase user preferences as Profile Viewer; omitting email transactionally reserves the next +DDMMYYYY-N address.',
+        'Choose this for profile creation through behavioural enrichment and Snowflake readback. Personal Portal keys resolve the same Firebase user preferences as Profile Viewer; omitting email transactionally reserves the next +DDMMYYYY-N address.',
       connectionKind: 'Focused',
       toolCount: 21,
       docUrl:
@@ -319,7 +319,7 @@
         'Analyse, validate, publish, and archive user-owned server templates',
       ],
       configNotes:
-        'Choose this for PDF demo preparation. Generated files are private for 14 days; publishing and archiving require explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
+        'Choose this for PDF demo preparation. Generated files are private for 14 days; publishing and archiving require explicit confirmation. Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key.',
       connectionKind: 'Focused · private PDF workspace',
       toolCount: 14,
       docUrl:
@@ -342,7 +342,7 @@
         'Delete one exact audience after explicit confirmation',
       ],
       configNotes:
-        'Choose this for audience inventory and cleanup. Destructive calls require an exact audience id and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
+        'Choose this for audience inventory and cleanup. Destructive calls require an exact audience id and explicit confirmation. Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key.',
       connectionKind: 'Focused · controlled delete',
       toolCount: 4,
       caution: true,
@@ -372,7 +372,7 @@
         'Attach or detach tags across many offers at once',
       ],
       configNotes:
-        'Choose this for Decision Lab, Edge decisioning, and catalog management work. Destructive deletes require an audit and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the same sandbox key.',
+        'Choose this for Decision Lab, Edge decisioning, and catalog management work. Destructive deletes require an audit and explicit confirmation. Coworker v2 and Copilot use a personal sandbox-scoped Portal key; v2 resolves it from Your secrets.',
       connectionKind: 'Focused · controlled delete',
       toolCount: 23,
       caution: true,
@@ -396,7 +396,7 @@
         'Delete one eligible journey or Draft campaign after explicit confirmation',
       ],
       configNotes:
-        'Choose this for AJO inventory and controlled cleanup. Deletes require an exact ID, name, status, and explicit confirmation. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
+        'Choose this for AJO inventory and controlled cleanup. Deletes require an exact ID, name, status, and explicit confirmation. Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key.',
       connectionKind: 'Focused · controlled delete',
       toolCount: 7,
       caution: true,
@@ -420,7 +420,7 @@
         'Track an owned enablement job',
       ],
       configNotes:
-        'Read-only focused connection. Use General for governed preview and confirmation-gated enablement. Coworker uses Adobe IMS; key-based clients reuse the sandbox key.',
+        'Read-only focused connection. Use General for governed preview and confirmation-gated enablement. Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key.',
       connectionKind: 'Focused · read-only',
       toolCount: 4,
       docUrl:
@@ -443,7 +443,7 @@
         'Add, update, or remove a task or meeting, optionally linked to a customer',
       ],
       configNotes:
-        'Scoped to your own Firebase uid. Coworker uses Adobe IMS; key-based clients require a user-generated key, not a shared ops key. Changes appear in the browser Command Centre on reload and vice versa.',
+        'Scoped to your own Firebase uid. Coworker v2 and Copilot require a personal Portal key, not a shared ops key. Changes appear in the browser Command Centre on reload and vice versa.',
       connectionKind: 'Focused',
       toolCount: 11,
       docUrl:
@@ -466,7 +466,7 @@
         'Render current conditions on a map image for a visual demo moment',
       ],
       configNotes:
-        'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. OpenWeatherMap and Google Maps keys stay server-side and are never configured in the plugin.',
+        'Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key. OpenWeatherMap and Google Maps keys stay server-side and are never configured in the plugin.',
       connectionKind: 'Focused',
       toolCount: 4,
       docUrl:
@@ -489,7 +489,7 @@
         'Seed demo data in any featured area or catalog city after explicit approval',
       ],
       configNotes:
-        'Coworker uses Adobe IMS; key-based clients reuse the sandbox key. The read-only hotspot query is rate-limited and audited; demo seeding generates test profiles and events.',
+        'Coworker v2 and Copilot reuse their personal sandbox-scoped Portal key. The read-only hotspot query is rate-limited and audited; demo seeding generates test profiles and events.',
       connectionKind: 'Focused · aggregate audience insights',
       toolCount: 4,
       docUrl:
@@ -662,7 +662,7 @@
         'Review offers and email, SMS, push, or WhatsApp channel configurations',
       ],
       configNotes:
-        'Standalone Beta endpoint remains documented for Claude Web/Desktop and Cursor. Browser-based Adobe sign-in; no static headers. View permissions are required and all tools are read-only. The unified CX Coworker Gateway is the recommended multi-product alternative.',
+        'Standalone Beta endpoint remains documented for compatible MCP clients. Browser-based Adobe sign-in; no static headers. View permissions are required and all tools are read-only. The unified CX Coworker Gateway is the recommended multi-product alternative.',
       docUrl:
         'https://experienceleague.adobe.com/en/docs/journey-optimizer/using/content-management/combine/ajo-mcp',
       docLabel: 'AJO MCP (Beta)',
