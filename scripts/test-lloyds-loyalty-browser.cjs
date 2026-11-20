@@ -505,7 +505,7 @@ async function main() {
           return {};
         }
         if (payload.xdm?.eventType?.startsWith('decisioning.proposition')) return {};
-        if (payload.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
+        if (payload.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers') return { propositions: [] };
         if (window.__emptyCardResponse) return { propositions: [] };
         const proposition = (id, scope, rank) => ({ id, scope, scopeDetails: { decisionProvider: 'CJM', rank }, items: [{
           id: 'item-' + id, name: 'Loyalty offer fixture', itemSelection: { selectionDetail: { strategyID: 'strategy-fixture' } },
@@ -832,9 +832,9 @@ async function main() {
       window.__journeyTracking = [];
       window.__journeyCommands = [];
       window.alloy = async (command, options) => {
-        window.__journeyCommands.push(options?.personalization?.surfaces?.[0] === '#featured-offers' ? 'featured-sendEvent' : command);
+        window.__journeyCommands.push(options?.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers' ? 'featured-sendEvent' : command);
         if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
-        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers') return { propositions: [] };
         if (command === 'subscribeRulesetItems') { window.__journeySubscriptions.push(options); return; }
         if (command === 'sendEvent' && options.personalization?.surfaces) {
           if (options.renderDecisions !== true || options.personalization.schemas !== undefined) {
@@ -966,7 +966,7 @@ async function main() {
         }
         if (command === 'subscribeRulesetItems') { window.__loyaltySubscription = options; return; }
         if (command !== 'sendEvent') throw new Error('Unexpected SDK command: ' + command);
-        if (options.personalization?.surfaces?.[0] === '#featured-offers') return { propositions: [] };
+        if (options.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers') return { propositions: [] };
         if (options.personalization?.surfaces) {
           window.__deliverSignupCard = () => window.__loyaltySubscription.callback({ propositions: [{
             id: 'signup-proposition', scope: window.__loyaltySubscription.surfaces[0],
@@ -1301,14 +1301,14 @@ async function main() {
       window.__holdFeaturedResponse = true;
       window.__featuredStream = 'featured-fixture-stream';
       window.__featuredResult = { propositions: [{
-        id: 'featured-response-fixture', scope: '#featured-offers', items: [{ id: 'returned-item-not-rendered-directly' }],
+        id: 'featured-response-fixture', scope: 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers', items: [{ id: 'returned-item-not-rendered-directly' }],
       }] };
       window.alloy = async (command, options) => {
         if (command === 'getIdentity') {
           if (window.__pauseFeaturedIdentity) await new Promise(resolve => { window.__releaseFeaturedIdentity = resolve; });
           return { identity: { ECID: '12345678901234567890123456789012345678' } };
         }
-        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === '#featured-offers') {
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers') {
           window.__featuredCalls.push(options);
           if (window.__holdFeaturedResponse) await new Promise(resolve => { window.__releaseFeaturedResponse = resolve; });
           if (window.__rejectFeaturedRequest) throw new Error('Fixture: interrupted featured-offers response');
@@ -1341,7 +1341,9 @@ async function main() {
     await requestPage.waitForFunction(() => window.__featuredCalls.length === 1 && !document.getElementById('queryProfileBtn').disabled);
     const featuredPayload = await requestPage.evaluate(() => window.__featuredCalls[0]);
     assert.equal(featuredPayload.renderDecisions, false);
-    assert.deepEqual(featuredPayload.personalization, { surfaces: ['#featured-offers'] });
+    assert.deepEqual(featuredPayload.personalization, {
+      surfaces: ['web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers'],
+    }, 'Request the exact shared AJO surface, never a relative fragment or the Rewards document surface');
     assert.deepEqual(featuredPayload.edgeConfigOverrides, { datastreamId: 'featured-fixture-stream' });
     assert.equal(featuredPayload.xdm.identityMap.Email[0].id, 'featured-first@example.invalid');
     assert.equal(featuredPayload.xdm.identityMap.Email[0].primary, true);
