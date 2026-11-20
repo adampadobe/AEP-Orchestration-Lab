@@ -178,6 +178,8 @@ async function main() {
     assert.equal(await page.locator('#loyaltyFeaturedOffers [role="listitem"]').count(), 0,
       'Do not immediately render local mock offers');
     assert.match(await page.locator('#loyaltyFeaturedStatus').textContent(), /Loading personalised offers/);
+    assert.equal(await carousel.locator('#loyaltyFeaturedStatus').count(), 1,
+      'The loading state is inside the existing carousel, not a new surface-named container');
     await page.evaluate(() => {
       for (const offers of [undefined, [], [null, {}, { id: 'empty' }]]) {
         window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } }));
@@ -223,11 +225,13 @@ async function main() {
     await page.locator('[data-save-preview-offer="waitrose"]').click();
     assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
     const ajoOffers = Array.from({ length: 6 }, (_, index) => ({
-      id: 'ajo-offer-' + index, merchant: 'Merchant ' + index, title: 'Cashback ' + index,
-      priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate',
+      id: 'ajo-offer-' + index, merchant: index ? 'Merchant ' + index : 'Waitrose', title: index ? 'Cashback ' + index : '15% cashback',
+      priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate offer',
       image: index ? 'javascript:alert(1)' : 'https://example.invalid/offer.png',
       logo: index ? 'data:image/svg+xml,test' : 'https://example.invalid/logo.png',
-      propositionId: 'original-proposition-' + index, propositionScope: 'hero-banner',
+      propositionId: 'original-proposition-' + index, propositionScope: 'featured-offers',
+      propositionScopeDetails: { decisionProvider: 'AJO', activity: { id: 'fixture-activity-' + index } },
+      endDate: '2026-12-01T23:59:59Z',
       propositionItemId: 'original-item-' + index, detailTitle: 'Original detail ' + index,
       detailSubtitle: 'Original subtitle', detailDescription: 'Original description',
       destination: 'https://example.invalid/offer', deepLink: 'app://offer/' + index,
@@ -237,6 +241,10 @@ async function main() {
     })), ajoOffers);
     assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(),
       ajoOffers.slice(0, 5).map(offer => offer.title), 'Filter invalid offers, cap at five and preserve AJO ranking rather than priority sorting');
+    assert.deepEqual(await page.locator('.loyalty-featured-body').first().locator('span,h4,p').allTextContents(),
+      ['Waitrose', '15% cashback', 'Channel: Online', 'Expires: 01 Dec 26']);
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('title'), 'Activate offer (preview save only)',
+      'The decision CTA is retained on the existing plus control without changing its preview behavior');
     assert.match(await page.locator('.loyalty-featured-art').first().getAttribute('style'), /https:\/\/example.invalid\/offer.png/);
     assert.equal(await page.locator('.loyalty-featured-art').nth(1).getAttribute('style'), null,
       'Unsafe incoming images never reach CSS URLs');
@@ -267,6 +275,22 @@ async function main() {
     assert.equal(await page.locator('#loyaltyPreviousOffer').isDisabled(), true);
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [] } })));
     assert.equal(await page.locator('.loyalty-featured-offer').count(), 1, 'Invalid later events do not discard valid offers');
+    const envelope = { propositionId: 'envelope-proposition', propositionScope: 'featured-offers',
+      propositionScopeDetails: { decisionProvider: 'AJO', activity: { id: 'envelope-activity' } } };
+    const envelopeOffers = [{ ...ajoOffers[0], id: 'item-metadata-wins' },
+      { id: 'envelope-metadata', merchant: 'TK Maxx', title: '10% cashback', cta: 'Activate offer',
+        detailTitle: 'Get 10% cashback at TK Maxx', detailSubtitle: 'Your next shop',
+        detailDescription: 'Fixture description', image: 'https://example.invalid/tk.png',
+        endDate: '2026-12-14T23:59:59Z', propositionItemId: 'envelope-item' }];
+    await page.evaluate(detail => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail })),
+      { ...envelope, offers: envelopeOffers });
+    assert.equal(await page.locator('.loyalty-featured-offer').count(), 2, 'One returned item produces one card');
+    await page.locator('[data-save-preview-offer="item-metadata-wins"]').click();
+    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), envelopeOffers[0],
+      'Item-level proposition metadata takes precedence over envelope metadata');
+    await page.locator('[data-save-preview-offer="envelope-metadata"]').click();
+    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), { ...envelopeOffers[1], ...envelope },
+      'Missing per-item attribution inherits the complete envelope without discarding detail fields');
     await page.locator('#loyaltyPrizeDraw button').click();
     assert.match(await page.locator('#loyaltyAppToast').textContent(), /No banking action or prize entry was submitted/);
     if (process.env.AEP_LOYALTY_SCREENSHOT) {
@@ -554,6 +578,11 @@ async function main() {
     await rewardsTab.click();
     assert.equal(await originalCard.evaluate(card => card.isConnected), true, 'Tab switches preserve the original live card and its handlers');
     assert.equal(await page.evaluate(() => window.__sdkCalls.length), sdkCallsBeforeTabs, 'Switching tabs does not resend a proposition, display or signup event');
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /unchanged/i,
+      'An unchanged direct card response completes the loading state without collecting display again');
+    assert.equal(await originalCard.evaluate(card => card.isConnected), true);
     await page.evaluate(() => { window.__emptyCardResponse = true; });
     await page.locator('#loyaltyRun').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('previous card was removed'));
@@ -686,8 +715,9 @@ async function main() {
       await window.DemoProfileDrawer.loadProfileDataForDrawer(
         document.getElementById('customerEmail').value, { updateMessage: false, sendApplicationLogin: false });
     });
-    assert.equal(await page.locator('#queryProfileBtn').isDisabled(), true,
-      'The previous SDK operation is still pending when the new drawer profile arrives');
+    await waitForProfile();
+    assert.equal(await page.locator('#queryProfileBtn').isDisabled(), false,
+      'A new drawer profile is not blocked by an abandoned SDK promise from the previous identity');
     await page.evaluate(() => { window.__pauseIdentity = false; window.__releaseDecision(); });
     await waitForProfile();
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), false,
@@ -814,7 +844,7 @@ async function main() {
               schema: 'https://ns.adobe.com/personalization/message/content-card',
               data: { content: { title: window.__journeyTitle || 'Delivered by the journey', body: 'Native AJO card',
                 actionUrl: '#loyalty-challenges' }, meta: { buttonLabel: 'View tasks' } } }] }];
-          window.__deliverJourney = () => subscription.callback({ propositions }, async (type, selected) => {
+          window.__deliverJourney = () => subscription.callback({ propositions: window.__emptyJourneySubscription ? [] : propositions }, async (type, selected) => {
             window.__journeyTracking.push({ type, selected });
           });
           window.__deliverJourney();
@@ -847,6 +877,11 @@ async function main() {
     assert.equal(journey.tracking.length, 1);
     assert.equal(journey.tracking[0].type, 'display');
     assert.equal(journey.tracking[0].selected[0].items[0].id, 'native-card');
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /unchanged/i,
+      'An unchanged subscription update completes the loading state');
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1);
     await page.evaluate(() => window.__deliverJourney());
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1,
       'Repeated ruleset callbacks cannot loop display collection');
@@ -861,6 +896,14 @@ async function main() {
     });
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
       'A ruleset update with no eligible cards removes previously qualified content');
+    await page.evaluate(() => { window.__emptyJourneySubscription = true; });
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /No eligible.*card/i,
+      'An empty subscription update completes the loading state even when direct responses are suppressed');
+    assert.doesNotMatch(await page.locator('#loyaltyEvidence').textContent(), /No response for this context/,
+      'An empty successful response is recorded rather than appearing as a request that never returned');
+    await page.evaluate(() => { window.__emptyJourneySubscription = false; });
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('aep-demo-tags-injected')));
     await page.waitForFunction(() => window.__journeySubscriptions.length === 2 &&
       !document.getElementById('queryProfileBtn').disabled);
@@ -869,6 +912,35 @@ async function main() {
     await page.locator('#ContentCardContainerLoyalty button').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
     assert.equal(await page.evaluate(() => window.__journeyTracking.at(-1).type), 'interact');
+    await page.evaluate(() => {
+      window.__timeoutAlloy = window.alloy;
+      window.alloy = (command, options) => command === 'getIdentity'
+        ? new Promise(resolve => { window.__releaseStalledIdentity = resolve; })
+        : window.__timeoutAlloy(command, options);
+      window.__normalSetTimeout = window.setTimeout;
+      window.setTimeout = (callback, delay, ...args) =>
+        window.__normalSetTimeout(callback, delay === 120000 ? 50 : delay, ...args);
+    });
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Request timed out after 120 seconds'));
+    assert.equal(await page.locator('#queryProfileBtn').isDisabled(), false,
+      'A queued SDK promise cannot hold the page busy after the request deadline');
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /may still finish.*No automatic retry/);
+    const commandsBeforeRelease = await page.evaluate(() => window.__journeyCommands.length);
+    await page.evaluate(() => {
+      window.setTimeout = window.__normalSetTimeout;
+      window.alloy = window.__timeoutAlloy;
+    });
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    await page.evaluate(async () => {
+      window.__releaseStalledIdentity({ identity: { ECID: '12345678901234567890123456789012345678' } });
+      await new Promise(resolve => setTimeout(resolve, 20));
+    });
+    assert.equal(await page.evaluate(() => window.__journeyCommands.length), commandsBeforeRelease,
+      'A late SDK resolution from a timed-out request cannot continue into a new request context');
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /Task state refreshed/,
+      'Late timed-out work cannot overwrite the latest result');
     await openConfiguration();
     await changeIdentifier('another-fixture@example.invalid');
     await page.evaluate(() => window.__deliverJourney());
