@@ -176,7 +176,7 @@ test('Firebase browser authentication cannot use anonymous, missing, revoked or 
   }
 });
 
-test('only an enrolled Portal user can sign up a server-verified test profile in the configured Loyalty namespace', async () => {
+test('outside demo sandboxes an enrolled Portal user can sign up only a server-verified test profile', async () => {
   const signups = [], profileReads = [];
   let entity = { testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'member-1' } } } };
   let namespace = 'loyaltyId', entities, profileError;
@@ -230,6 +230,111 @@ test('only an enrolled Portal user can sign up a server-verified test profile in
   namespace = 'Email';
   assert.equal((await app.invoke(request)).status, 409);
   assert.equal(signups.length, 1, 'No unauthorized, unverified or malformed request reaches the mutation');
+});
+
+test('approved demo sandboxes need no Portal login for exact test-member reads and signup', async () => {
+  for (const sandbox of ['kirkham', 'apalmer']) {
+    const calls = [], profileReads = [];
+    const app = setup({
+      labUserSandboxStore: { verifyIdTokenClaimsFromRequest: async () => { throw new Error('Demo must not depend on Portal authentication'); } },
+      mcpApiKeyStore: {
+        listKeysForUser: async () => { throw new Error('Demo must not depend on MCP enrollment'); },
+        validateUserApiKey: async () => ({ ok: false }),
+      },
+      profileTableHelpers: { fetchUpsProfileEntities: async (...args) => {
+        profileReads.push(args);
+        return { profile: { entity: {
+          testProfile: true, 'xdm:testProfile': true,
+          _demoemea: { identification: { core: { loyaltyId: 'member-1' } } },
+        } } };
+      } },
+      loyaltyService: {
+        read: async (headers, input) => {
+          calls.push({ headers, input });
+          return { ok: true, data: input.action === 'config' ? { namespace: 'loyaltyId' } : { challengeList: [] } };
+        },
+        signup: async (headers, input) => {
+          calls.push({ headers, input });
+          return { ok: true, accepted: true };
+        },
+      },
+    });
+    for (const query of [
+      { sandbox, action: 'config' },
+      { sandbox, action: 'challenge_get', challenge_id: 'challenge-1' },
+    ]) assert.equal((await app.invoke({ headers: {}, query })).status, 200);
+    assert.equal(profileReads.length, 0, 'Safe setup metadata does not require a selected member or Portal login');
+    const query = { sandbox, profile_id: 'member-1' };
+    for (const action of ['profile_state', 'profile_challenges']) {
+      assert.equal((await app.invoke({ headers: {}, query: { ...query, action } })).status, 200);
+      assert.equal(calls.at(-1).input.action, action);
+    }
+    assert.equal((await app.invoke({
+      method: 'POST', headers: { 'content-type': 'application/json' }, query: { sandbox },
+      body: { action: 'signup', profile_id: 'member-1', challenge_id: 'challenge-1', region: 'va7', test: false, confirmed: true },
+    })).status, 200);
+    assert.equal(profileReads.length, 3, 'Every member read and signup independently verifies UPS');
+    assert.deepEqual(profileReads[0], ['member-1', sandbox, 'server-only-token', 'server-client', 'test@AdobeOrg', 'loyaltyid', { strictRead: true }]);
+    assert.ok(calls.every(call => call.headers.Authorization === 'Bearer server-only-token' && call.headers['x-sandbox-name'] === sandbox));
+    const before = app.tokenCalls();
+    assert.equal((await app.invoke({ headers: {}, query: { sandbox, action: 'challenge_list' } })).status, 403);
+    assert.equal((await app.invoke({ headers: {}, query: { ...query, action: 'profile_state', path: '/arbitrary' } })).status, 400);
+    assert.equal((await app.invoke({ headers: { 'x-aep-lab-mcp-key': 'invalid' }, query: { sandbox, action: 'config' } })).status, 403,
+      'Invalid MCP credentials never fall back to demo access');
+    assert.equal((await app.invoke({ method: 'POST', headers: { 'x-aep-lab-mcp-key': 'invalid' }, query: { sandbox } })).status, 403);
+    assert.equal(app.tokenCalls(), before, 'Demo catalogue and MCP mutations are rejected before Adobe access');
+  }
+});
+
+test('no-login demo access rejects non-test, missing, ambiguous and mismatched members before member operations', async () => {
+  let entities, namespace = 'loyaltyId', failProfileRead = false;
+  const memberCalls = [];
+  const app = setup({
+    profileTableHelpers: { fetchUpsProfileEntities: async () => {
+      if (failProfileRead) throw new Error('Strict UPS read failed');
+      return entities;
+    } },
+    loyaltyService: {
+      read: async (_headers, input) => {
+        if (input.action === 'config') return { data: { namespace } };
+        memberCalls.push(input);
+        return { ok: true };
+      },
+      signup: async (_headers, input) => { memberCalls.push(input); return { ok: true }; },
+    },
+  });
+  const requests = [
+    { headers: {}, query: { sandbox: 'kirkham', action: 'profile_state', profile_id: 'member-1' } },
+    { headers: {}, query: { sandbox: 'apalmer', action: 'profile_challenges', profile_id: 'member-1', state: 'complete' } },
+    { method: 'POST', headers: { 'content-type': 'application/json' }, query: { sandbox: 'kirkham' },
+      body: { action: 'signup', profile_id: 'member-1', challenge_id: 'challenge-1', region: 'va7', test: false, confirmed: true } },
+  ];
+  const valid = { testProfile: true, _demoemea: { identification: { core: { loyaltyId: 'member-1' } } } };
+  for (const entity of [
+    {}, { testProfile: true, loyalty: { loyaltyID: ['member-1'] } },
+    { ...valid, testProfile: false }, { ...valid, testProfile: 'true' },
+    { ...valid, 'xdm:testProfile': false },
+    { ...valid, _demoemea: { identification: { core: { loyaltyId: 'another-member' } } } },
+    { ...valid, _other: { identification: { core: { loyaltyId: 'another-member' } } } },
+  ]) {
+    entities = { profile: { entity } };
+    for (const request of requests) assert.equal((await app.invoke(request)).status, 403);
+  }
+  for (const invalid of [{}, { profile1: { entity: valid }, profile2: { entity: valid } }]) {
+    entities = invalid;
+    for (const request of requests) assert.equal((await app.invoke(request)).status, 403);
+  }
+  entities = { profile: { entity: valid } };
+  namespace = 'Email';
+  for (const request of requests) assert.equal((await app.invoke(request)).status, 409);
+  namespace = 'loyaltyId'; failProfileRead = true;
+  for (const request of requests) assert.equal((await app.invoke(request)).status, 502);
+  assert.equal(memberCalls.length, 0, 'No unverified identity can read Loyalty member state or enroll');
+  const before = app.tokenCalls();
+  for (const sandbox of ['foreign', 'Kirkham', 'kirkham-extra']) {
+    assert.equal((await app.invoke({ headers: {}, query: { sandbox, action: 'config' } })).status >= 400, true);
+  }
+  assert.equal(app.tokenCalls(), before, 'No-login access cannot expand the exact sandbox allowlist');
 });
 
 test('signup errors distinguish Adobe signup conflicts, preflight conflicts and unknown submitted outcomes', async () => {

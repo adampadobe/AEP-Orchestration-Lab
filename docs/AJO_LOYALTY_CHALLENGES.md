@@ -11,7 +11,7 @@ Firebase in this repo proxies **health** and **ledger** reads for the Tools UI. 
 The read-only Loyalty MCP workflow below also uses a dedicated authenticated
 Firebase backend for metadata and member-state **GETs only**. This does not change
 the terminal-only policy for registering providers, creating or editing challenges.
-The backend also supports Portal-only, server-verified test-member signup;
+The backend also supports server-verified test-member signup;
 that mutation is not exposed to MCP. The Lloyds page's Join button uses that
 protected enrollment endpoint, with Adobe authentication held server-side.
 
@@ -26,8 +26,102 @@ is the first configuration row, above environment settings, so the identifier
 and lookup button are visible without scrolling through SDK options. It is not
 pinned to an owner's sandbox.
 
-The body uses the updated combined progress-ring / compact task-rail design beside
-a scrollable phone preview. Both views render the same Adobe task response.
+The desktop progress-ring / compact task rail sits beside a scrollable banking
+app adapted from the supplied Rewards mockup. **Home** opens first, with a
+current-account card, quick actions, a Rewards teaser, accounts, spending and
+transactions. The greeting uses the loaded profile's first name; the banking
+amounts are explicitly illustrative, not AEP balances.
+
+The **Rewards** tab contains the summary/breakdown, quick navigation and
+**Win £1 million** banner. The original live journey Content Card mount is
+immediately below that banner, before the featured-offer carousel. Switching
+tabs preserves the delivered card, subscription, signup receipt and task state
+without sending any new events. The carousel supports native touch scrolling,
+mouse dragging, previous/next controls, pagination dots and keyboard arrows /
+Home / End. Featured offers arrive from the Data Collection rule's
+`CustomEvent("ajo:featured-offers", { detail: { offers, propositionId,
+propositionScope, propositionScopeDetails } })`, after it processes the AJO
+Code-based Experience at location **`featured-offers`**. This is the Adobe
+personalization location, not a replacement DOM ID: the existing carousel
+and `renderFeaturedOffers(items)` remain the presentation layer.
+
+`requestFeaturedOffers()` now explicitly requests that experience through the
+configured Web SDK: `sendEvent` with `renderDecisions: false` and
+`personalization: { surfaces: ["web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers"] }`.
+This is the existing shared AJO surface, not a relative fragment or a surface
+derived from the Rewards document URL. Like the Center Parcs
+decision request, it first resolves the browser ECID, combines it with the
+selected test profile's identity, and preserves the configured datastream
+overrides and reviewed tenant identification fields. It is attached to the
+existing `tui-profile-changed` event emitted by `lookup()` only after profile
+table and drawer setup succeed. The existing operation queue delays dispatch
+until that setup finishes. If SDK injection happens later, the existing
+`aep-demo-tags-injected` lifecycle also schedules the request. Failed/missing
+profile setup, non-test profiles, changed context and mismatched ECIDs block
+dispatch. No offer ranking or eligibility logic is added.
+
+Immediately after a successful SDK response, the function dispatches
+`CustomEvent("ajo:featured-offers-response", { detail: result })` with the raw
+result for a Data Collection Core Custom Event rule, and logs that dispatch.
+The function also logs the complete SDK response and `result.propositions`
+separately, but never renders them or dispatches the offers event itself.
+Data Collection processes that raw response and dispatches `ajo:featured-offers`; no received
+event means no live carousel result, even if the SDK request succeeded.
+`window.requestFeaturedOffers()` exposes the same guarded request for console
+testing. Repeated calls/loads coalesce while busy and suppress duplicate
+submissions for the same selected profile, browser identity, SDK instance,
+tenant and datastream context. A submitted request is reserved before awaiting
+its response, so an uncertain result is not automatically replayed. A profile,
+sandbox or visitor change resets that reservation; a new SDK/datastream context
+also permits a new request. The console entry point obeys the same protection.
+
+The existing event listener accepts non-empty object entries with string
+`id`, `merchant` and `title`, keeps the first five valid offers in strategy order,
+and replaces the cards through `renderFeaturedOffers(items)`. Media uses the
+HTTP(S) URL and CSS URL guards; copy remains text. Complete offer objects,
+including `detailTitle`, `detailSubtitle`, `detailDescription`, `image`, `cta`,
+`endDate`, `propositionId`, `propositionScope`, `propositionScopeDetails` and
+`propositionItemId`, remain available to the unchanged preview-save action and
+future detail popup. Missing per-item proposition ID/scope/scope-details inherit
+the event-level values; explicit item metadata takes precedence. The AJO CTA is
+the existing `+` button's preview-labelled tooltip; neither activation behavior
+nor the popup is changed. Display/interaction tracking is deliberately not added yet.
+The listener is registered before app initialization and retains an early response.
+Repeated AJO ID/order signatures preserve the existing cards and scroll position;
+changed IDs or order rerender. The carousel initially shows **Loading personalised
+offers…**, with no mock cards. After five seconds without valid AJO offers, its
+six authored development previews appear with an explicit preview label. A valid
+late response replaces them and cancels the fallback. The rest of the app,
+including Ready to use, does not wait for AJO.
+Saving an offer updates only the current page's saved-offers row, never Adobe
+activation or task state. This live app's existing control remains the `+`
+preview-save button, not a new activation API or navigation flow.
+Context changes clear these saved previews. Prize-draw and banking placeholders
+explicitly perform no real action.
+Identity/sandbox changes also clear the prior personalised carousel result and
+restart its wait, so another profile does not inherit the previous result.
+The rule still owns request/identity correlation because its event contract has
+no profile or sandbox token.
+
+An explicit Content Card refresh with an empty proposition array removes the
+previous card instead of leaving obsolete content visible. A newer ruleset
+subscription update delivered during the request takes precedence over an
+older direct response. Unchanged cards and successful empty responses finish
+with an explicit status; empty responses are recorded in proposition evidence.
+SDK preparation, identity, subscription, decision request and display collection
+have separate status messages. The existing 120-second request deadline releases
+the UI even when an SDK/shared-drawer promise does not settle. A late resolution
+cannot continue into a new request context. This does not cancel an Adobe
+operation already submitted; inspect its state before retrying, and do not
+automatically retry. Repeated subscription callbacks still deduplicate display
+tracking; Content Card SDK behavior is separate from the carousel CustomEvent.
+
+Live participation controls, joined-challenge partner offers and the mobile task
+rail remain below the Rewards benefits. They and the desktop rail render the
+same Adobe task response. A successful Join scrolls to the live challenge area;
+the lab's Refresh content card action opens Rewards at the delivered-card slot.
+Both themes use the shared `--dash-*` palette, with page-scoped Loyalty accent
+tokens in `home.css` and `aep-theme.css`.
 There are no local task-completion buttons, invented progress, countdowns,
 lock ordering or reward-unlock claims. After challenge signup the phone also shows
 the authored Waitrose, TK Maxx and PureGym partner offers from the combined design;
@@ -41,11 +135,20 @@ There is no second body setup panel: **Loyalty API options** lives in the existi
 top configuration gear alongside the shared SDK configuration. This is a Web SDK mobile
 preview, not a native Mobile SDK integration or journey authoring interface.
 
-1. Sign in to the Portal with an Adobe account and an active sandbox-scoped
-   MCP enrollment. The page sends its Firebase ID token, not an Adobe token
-   or a pasted MCP key. The server verifies the Firebase UID and its active
-   enrollment for the exact requested sandbox. Anonymous sessions cannot read
-   Loyalty state.
+1. **No Portal sign-in is required for `kirkham` or `apalmer`.** These are the
+   exact server-side demo allowlist, not a browser-supplied authorization flag.
+   The page sends neither a Portal token nor Adobe credentials in this mode.
+   Before every member-state read or signup, the backend independently reads
+   the configured Loyalty namespace and strictly resolves one AEP test profile
+   by `loyaltyid`. Its scalar tenant `identification.core.loyaltyId` must match
+   exactly, and every reported root test-profile marker must be boolean `true`.
+   Missing, ambiguous, conflicting or non-test profiles are rejected before any
+   Loyalty member operation. Configuration summaries and one-challenge metadata
+   reads are available to this demo; challenge catalogue listing is not.
+   Outside these two sandboxes, the existing signed-in Adobe Portal account and
+   active sandbox-scoped MCP enrollment remain required. MCP access itself is
+   still authenticated, sandbox-scoped and read-only; invalid MCP credentials
+   never fall back to no-login demo access.
 2. Select your sandbox and look up a profile. This loads the shared profile drawer
    independently of the Loyalty API or SDK. A profile loaded through the drawer
    also hydrates the Loyalty page's table model and enables its actions, without
@@ -69,12 +172,27 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    basic name/contact fields arrive. Identity/sandbox changes still discard
    older requests. Genuine drawer API failures retain their underlying message;
    they are not retried automatically or treated as a successful profile load.
+   A newly created profile can exist before any experience events are indexed.
+   The shared `profileEventsProxy` treats only Adobe's explicit entity-absence
+   response (`UPLIB-201001-404`, HTTP 404, `Entity not found.`) as no indexed
+   events, after the remaining event lookup. This is not a failed profile lookup
+   or proof that an event was never sent. Authentication, other API failures and
+   missing later pages remain errors. This correction requires a Functions
+   release of `profileEventsProxy`; changing Hosting or `aepProxy` alone is not
+   sufficient.
 3. Select **Get task status**. SDK injection, Decisioning enablement and the event
    tenant are not prerequisites for this read. Optionally enable the 30-second
    state refresh in the top-bar API options after a successful manual read. Only
    Adobe's returned `taskState` marks a task complete. Numeric progress requires
    both a reported goal/type and the corresponding numeric accumulator.
    Zero, false, missing counters and previous-cycle completions remain distinct.
+   Adobe advances completed tasks and challenges from `complete` to `sent`
+   after completion processing. Both states (and `completed`) count as complete
+   in the desktop and phone displays; `sent` is not an unfinished purchase.
+   Raw states remain in API details. An incomplete or unknown current task state
+   is never completed merely because `taskCompletions` contains history.
+   A completed challenge is labelled explicitly, but neither this label nor
+   `sent` proves that points were credited to the profile's balance.
    Automatic reads pause when hidden, after an error or after configuration changes;
    a successful manual task read resumes them. Polling is off by default and profile
    lookup does not start it. No task-completion events are
@@ -164,7 +282,8 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    `profile_id`, `challenge_id`, `region`, `test: false` and `confirmed: true`.
    The member is always the selected AEP profile's loaded scalar Loyalty ID,
    never the Portal operator, a manual member override or a standard Loyalty ID array.
-   The backend independently verifies Portal enrollment, the Loyalty namespace,
+   The backend independently verifies demo sandbox scope (or Portal enrollment
+   outside the demo allowlist), the Loyalty namespace,
    the exact member identity and AEP `testProfile: true` before calling
    `POST /ajo/loyalty/challenges/signup/{challengeId}` on the confirmed regional
    host (documented default va7). Adobe receives only
@@ -230,8 +349,14 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    a purchase for a different context. The supplied combined design's Gymshark
    row is intentionally PureGym here, matching the reviewed campaign and events.
 
-The optional challenge ID filters active state and reads that exact metadata
-definition for names, joined by challenge/task IDs. **Completed** uses Adobe's
+When state omits a usable challenge name, the page reads each displayed challenge's
+exact-ID Adobe metadata, including in the all-challenges view and after signup.
+Desktop and phone headings show the trimmed name; technical IDs remain in
+**Challenge API details**. Metadata identity must match the requested challenge.
+A failed name read shows **Challenge name unavailable** and an explicit details
+warning without hiding Adobe-reported task progress or inventing a name.
+The optional challenge ID filters state and reads that exact metadata definition
+for challenge/task names, joined by IDs. **Completed** uses Adobe's
 separate completed-participation endpoint; it cannot be combined with State API
 test mode. Returned pagination is identified explicitly, not presented as full
 history. Changing sandbox clears the profile, region, tenant and challenge
@@ -239,10 +364,13 @@ settings so the previous sandbox's configuration is not silently reused.
 
 Release Hosting through the normal PR/Validate/merge workflow for the API Join
 handler and partner offer changes. **Get task status and Join Challenge require the updated
-existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite** and Portal authentication; an optional region override
+existing `aepProxy` Function and `/api/ajo-loyalty` Hosting rewrite**. No-login
+access for `kirkham`/`apalmer` also requires the updated Function; Hosting alone
+cannot remove the former backend Portal check. Other sandboxes still require
+Portal authentication. An optional region override
 is needed only when the documented va7 default is unsuitable. Rendering a card does not
 enable that backend. The earlier MCP release alone does not enable Firebase
-browser authentication or the separate Portal-only signup route.
+browser access or the separate test-member signup route.
 The Functions release requires an authorized release owner; an IAM-blocked
 release must not be bypassed or mistaken for a Hosting fix. Local browser checks use
 synthetic fixtures and do not prove live Adobe access or reward delivery:
@@ -323,6 +451,9 @@ The two authentication hops have different purposes:
 1. **Client to lab:** the existing `lab-decisioning` connection supplies its
    sandbox-scoped MCP key, or Coworker forwards its Adobe IMS session. The
    backend independently verifies the Portal principal and exact sandbox.
+   Browser demo calls in `kirkham`/`apalmer` instead use the explicit no-login
+   test-profile boundary described above; they do not borrow a Portal/MCP
+   identity. Other browser sandboxes retain UID-bound Portal enrollment.
 2. **Lab to Adobe:** the Loyalty handler uses the existing `createAdobeAuth()` to obtain/cache a
    server-to-server IMS token. `aepHeaders()` supplies `Authorization`,
    `x-api-key` and `x-gw-ims-org-id`; the route sets the principal's

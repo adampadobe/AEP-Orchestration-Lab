@@ -9,12 +9,116 @@
     const page = new URL('content-decision-live-edge.html', location.href);
     return 'web://' + page.host + page.pathname + '#ContentCardContainerLoyalty';
   };
-  const complete = task => /^(complete|completed)$/i.test(String(task.taskState));
+  const completedState = state => /^(complete|completed|sent)$/i.test(String(state));
+  const complete = task => completedState(task.taskState);
+  const stateChallengeName = challenge => typeof challenge?.challengeName === 'string' &&
+    challenge.challengeName.trim() !== challenge.challenge_id ? challenge.challengeName.trim() : '';
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
+  let featuredRequest = null, pendingFeaturedRequest = false;
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
+  const savedPreviewOffers = new Map();
+  const decisionItems = [
+    { key: 'waitrose', merchant: 'Waitrose', initials: 'W', reward: '15% cashback', channel: 'Online', expiry: '01 Dec 26', badge: true },
+    { key: 'tkmaxx', merchant: 'TK Maxx', initials: 'TK', reward: '10% cashback', channel: 'In store', expiry: '14 Dec 26' },
+    { key: 'uber', merchant: 'Uber', initials: 'Uber', reward: '8% cashback', channel: 'Online', expiry: '31 Jan 27', badge: true },
+    { key: 'ms', merchant: 'M&S', initials: 'M&S', reward: '12% cashback', channel: 'In store & online', expiry: '20 Dec 26' },
+    { key: 'sky', merchant: 'Sky', initials: 'sky', reward: '15% cashback', channel: 'Online', expiry: '28 Feb 27', badge: true },
+    { key: 'vue', merchant: 'Vue', initials: 'VUE', reward: '10% cashback', channel: 'In store', expiry: '01 Mar 27' },
+  ].map(item => ({ ...item, id: item.key, title: item.reward }));
+  let currentItems = [], pendingFeaturedOffers = null, lastAjoSignature = null, featuredFallbackTimer;
+  let featuredReady = false, updateFeaturedCarousel = () => {}, moveFeaturedOffer = () => {};
+  const safeUrl = raw => model.safeUrl(raw, location.href);
+  const cssUrl = raw => {
+    const url = safeUrl(raw);
+    return url ? 'url("' + url.replace(/["\\\n\r\f]/g, character => '\\' + character.charCodeAt(0).toString(16) + ' ') + '")' : '';
+  };
+  // Data Collection owns the featured-offers Code-based Experience; consume its ranked items only.
+  global.addEventListener('ajo:featured-offers', event => {
+    const detail = event.detail, items = detail?.offers;
+    if (!Array.isArray(items) || !items.length) {
+      console.log('[Rewards App] No valid AJO Featured Offers received'); return;
+    }
+    const offers = items.filter(item => item && typeof item === 'object' && !Array.isArray(item) &&
+      ['id', 'merchant', 'title'].every(key => typeof item[key] === 'string' && item[key].trim())).slice(0, 5).map(item => ({
+        ...item,
+        ...Object.fromEntries(['propositionId', 'propositionScope', 'propositionScopeDetails']
+          .filter(key => item[key] == null && detail[key] != null).map(key => [key, detail[key]])),
+      }));
+    if (!offers.length) {
+      console.log('[Rewards App] No valid AJO Featured Offers received'); return;
+    }
+    console.log('[Rewards App] Rendering AJO Featured Offers', offers);
+    clearTimeout(featuredFallbackTimer);
+    pendingFeaturedOffers = offers;
+    if (featuredReady) renderAjoFeaturedOffers();
+  });
+  function renderAjoFeaturedOffers() {
+    const signature = JSON.stringify(pendingFeaturedOffers.map(offer => offer.id));
+    // ID order is the strategy ranking; duplicate deliveries must not reset carousel state.
+    if (signature === lastAjoSignature) return;
+    renderFeaturedOffers(pendingFeaturedOffers);
+    lastAjoSignature = signature;
+    $('loyaltyFeaturedStatus').textContent = 'Personalised offers';
+  }
+  function waitForFeaturedOffers() {
+    clearTimeout(featuredFallbackTimer);
+    $('loyaltyFeaturedOffers').replaceChildren(); $('loyaltyOfferDots').replaceChildren();
+    currentItems = []; updateFeaturedCarousel();
+    $('loyaltyFeaturedStatus').textContent = 'Loading personalised offers\u2026';
+    $('loyaltyOfferCarousel').setAttribute('aria-busy', 'true');
+    // Five-second development fallback; a later valid AJO delivery always replaces these previews.
+    featuredFallbackTimer = setTimeout(() => {
+      renderFeaturedOffers(decisionItems);
+      $('loyaltyFeaturedStatus').textContent = 'Preview offers: no personalised offers received after 5 seconds.';
+    }, 5000);
+  }
+  function activateOffer(offer) {
+    // Add proposition interaction tracking here later, using the complete selected offer.
+    if (savedPreviewOffers.has(offer.id)) savedPreviewOffers.delete(offer.id);
+    else savedPreviewOffers.set(offer.id, offer);
+    renderSavedOffers();
+    phoneToast(savedPreviewOffers.has(offer.id) ? 'Saved for this preview only. Cashback is not activated.' : 'Preview offer removed.');
+  }
+  function renderFeaturedOffers(items) {
+    currentItems = [...items];
+    const carousel = $('loyaltyOfferCarousel'), track = $('loyaltyFeaturedOffers'), dots = $('loyaltyOfferDots');
+    const cards = document.createDocumentFragment(), pagination = document.createDocumentFragment();
+    currentItems.forEach((offer, index) => {
+      const card = node('article', undefined, 'loyalty-featured-offer');
+      card.dataset.art = offer.key || offer.id; card.setAttribute('role', 'listitem');
+      card.setAttribute('aria-label', (index + 1) + ' of ' + currentItems.length + ': ' + offer.merchant);
+      const art = node('div', undefined, 'loyalty-featured-art'); art.setAttribute('aria-hidden', 'true');
+      const image = cssUrl(offer.image);
+      if (image) { art.style.backgroundImage = image; art.style.backgroundSize = 'cover'; art.style.backgroundPosition = 'center'; }
+      if (offer.badge) art.append(node('span', typeof offer.badge === 'string' ? offer.badge : 'NEW', 'loyalty-featured-badge'));
+      const logo = node('span', offer.initials || offer.merchant.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join(''), 'loyalty-merchant-logo');
+      logo.setAttribute('aria-hidden', 'true');
+      const logoImage = cssUrl(offer.logo);
+      if (logoImage) {
+        logo.textContent = ''; logo.style.backgroundImage = logoImage;
+        logo.style.backgroundSize = 'contain'; logo.style.backgroundPosition = 'center'; logo.style.backgroundRepeat = 'no-repeat';
+      }
+      const body = node('div', undefined, 'loyalty-featured-body');
+      body.append(node('span', offer.merchant), node('h4', offer.title),
+        node('p', 'Channel: ' + (offer.channel || 'Not specified')), node('p', 'Expires: ' + (offer.expiry || 'Not specified')));
+      const save = node('button', '+', 'loyalty-featured-save'); save.type = 'button'; save.dataset.savePreviewOffer = offer.id;
+      save.title = typeof offer.cta === 'string' && offer.cta.trim() ? offer.cta + ' (preview save only)' : 'Save preview offer';
+      save.addEventListener('click', () => activateOffer(offer));
+      body.append(save); card.append(art, logo, body); cards.append(card);
+      const dot = node('button'); dot.type = 'button';
+      dot.setAttribute('aria-label', 'Show ' + offer.merchant + ' offer'); dot.setAttribute('aria-controls', carousel.id);
+      dot.addEventListener('click', () => moveFeaturedOffer(index)); pagination.append(dot);
+    });
+    track.replaceChildren(cards); dots.replaceChildren(pagination);
+    carousel.scrollTo({ left: 0, behavior: 'instant' }); carousel.setAttribute('aria-busy', 'false');
+    renderSavedOffers(); updateFeaturedCarousel();
+    // Add proposition display tracking here later; identifiers remain intact in currentItems.
+  }
+  let phoneView = 'home', toastTimer;
+  const phoneScrollPositions = { home: 0, rewards: 0 };
   const signupScope = (ctx, member) => JSON.stringify([ctx.sandbox, ctx.region || 'va7', member]);
   const signupKey = (ctx, member, challenge) => JSON.stringify([signupScope(ctx, member), challenge]);
   const context = () => ({
@@ -43,9 +147,17 @@
   function closeConfiguration() {
     if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
   }
-  const publish = () => global.dispatchEvent(new CustomEvent('tui-profile-changed'));
+  const publish = () => {
+    const first = loaded?.rows.find(row => row.path === 'person.name.firstName');
+    const name = first ? global.TuiDecisioningProfile.scalar(first) : '';
+    $('loyaltyHomeName').textContent = typeof name === 'string' && name.trim() ? name : 'Your banking';
+    $('loyaltyHomeAvatar').textContent = typeof name === 'string' && name.trim() ? name.trim()[0].toUpperCase() : 'L';
+    global.dispatchEvent(new CustomEvent('tui-profile-changed'));
+  };
   function clearResults() {
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
+    savedPreviewOffers.clear(); renderSavedOffers();
+    clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
     displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
@@ -60,6 +172,9 @@
     global.DecisioningProfileRuntime?.invalidateProfileLookupCache();
     if (clearProfile) {
       loaded = null; $('loyaltyMember').value = '';
+      featuredRequest = null; pendingFeaturedRequest = false;
+      pendingFeaturedOffers = null; lastAjoSignature = null;
+      if (featuredReady) waitForFeaturedOffers();
       global.DemoProfileDrawer.clearDrawerVisitorState(); publish();
     }
     message(clearProfile ? 'Context changed. Look up the selected profile.' : 'Configuration changed. Refresh tasks or request a new card.');
@@ -69,6 +184,127 @@
     if (value !== undefined) element.textContent = String(value);
     if (cls) element.className = cls;
     return element;
+  }
+  const phoneMotion = () => global.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
+  function showPhoneView(name) {
+    if (!['home', 'rewards'].includes(name) || name === phoneView) return;
+    const scroll = document.querySelector('.loyalty-phone-scroll');
+    const moveFocus = document.activeElement.closest('.loyalty-app-view');
+    phoneScrollPositions[phoneView] = scroll.scrollTop;
+    phoneView = name;
+    $('loyaltyViewHome').hidden = name !== 'home'; $('loyaltyViewRewards').hidden = name !== 'rewards';
+    document.querySelectorAll('.loyalty-phone-nav [data-phone-view]').forEach(button => {
+      if (button.dataset.phoneView === name) button.setAttribute('aria-current', 'page');
+      else button.removeAttribute('aria-current');
+    });
+    scroll.scrollTo({ top: phoneScrollPositions[name], behavior: 'instant' });
+    if (moveFocus) $(name === 'home' ? 'loyaltyHomeName' : 'loyaltyMobileTitle').focus({ preventScroll: true });
+  }
+  function scrollPhoneSection(id) {
+    showPhoneView('rewards');
+    const scroll = document.querySelector('.loyalty-phone-scroll'), target = $(id);
+    scroll.scrollTo({ top: scroll.scrollTop + target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12,
+      behavior: phoneMotion() });
+    target.focus({ preventScroll: true });
+  }
+  function phoneToast(text) {
+    clearTimeout(toastTimer);
+    $('loyaltyAppToast').textContent = text; $('loyaltyAppToast').hidden = false;
+    toastTimer = setTimeout(() => { $('loyaltyAppToast').hidden = true; }, 4000);
+  }
+  function renderSavedOffers() {
+    const fragment = document.createDocumentFragment();
+    for (const offer of savedPreviewOffers.values()) {
+      const logo = node('span', offer.initials || offer.merchant.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join(''), 'loyalty-merchant-logo');
+      logo.dataset.art = offer.key || offer.id; logo.setAttribute('role', 'img'); logo.setAttribute('aria-label', offer.merchant + ' saved preview offer');
+      fragment.append(logo);
+    }
+    if (!savedPreviewOffers.size) fragment.append(node('span', undefined, 'loyalty-saved-empty'),
+      node('span', undefined, 'loyalty-saved-empty'), node('small', 'Save a featured offer to see it here.'));
+    $('loyaltySavedOffers').replaceChildren(fragment);
+    document.querySelectorAll('[data-save-preview-offer]').forEach(button => {
+      const saved = savedPreviewOffers.has(button.dataset.savePreviewOffer);
+      button.setAttribute('aria-pressed', String(saved)); button.textContent = saved ? '\u2713' : '+';
+      const offer = currentItems.find(item => item.id === button.dataset.savePreviewOffer);
+      button.setAttribute('aria-label', (saved ? 'Unsave' : 'Save') + ' ' + offer.merchant + ' preview offer');
+    });
+  }
+  function initPhoneApp() {
+    document.querySelectorAll('[data-phone-view]').forEach(button => {
+      button.addEventListener('click', () => showPhoneView(button.dataset.phoneView));
+    });
+    document.querySelectorAll('[data-phone-section]').forEach(button => {
+      button.addEventListener('click', () => scrollPhoneSection(button.dataset.phoneSection));
+    });
+    document.querySelectorAll('[data-phone-preview]').forEach(button => {
+      button.addEventListener('click', () => phoneToast('Preview only: ' + button.dataset.phonePreview + '. No banking action or prize entry was submitted.'));
+    });
+    $('loyaltyBreakdownButton').addEventListener('click', () => {
+      const open = $('loyaltyBreakdown').hidden;
+      $('loyaltyBreakdown').hidden = !open;
+      $('loyaltyBreakdownButton').setAttribute('aria-expanded', String(open));
+      $('loyaltyBreakdownButton').firstChild.textContent = open ? 'Hide breakdown ' : 'Show breakdown ';
+    });
+    const carousel = $('loyaltyOfferCarousel'), track = $('loyaltyFeaturedOffers'), dots = $('loyaltyOfferDots');
+    let active = 0;
+    const updateCarousel = updateFeaturedCarousel = () => {
+      if (!carousel.clientWidth) return;
+      const cards = Array.from(track.children);
+      const step = cards.length > 1 ? cards[1].offsetLeft - cards[0].offsetLeft : 0;
+      const end = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 3;
+      active = cards.length < 2 ? 0 : end ? cards.length - 1 : Math.max(0, Math.min(cards.length - 1, Math.round(carousel.scrollLeft / step)));
+      Array.from(dots.children).forEach((dot, index) => {
+        if (index === active) dot.setAttribute('aria-current', 'true');
+        else dot.removeAttribute('aria-current');
+      });
+      $('loyaltyPreviousOffer').disabled = !cards.length || active === 0;
+      $('loyaltyNextOffer').disabled = !cards.length || active === cards.length - 1;
+    };
+    const move = moveFeaturedOffer = index => {
+      if (!currentItems.length) return;
+      const target = Math.max(0, Math.min(currentItems.length - 1, index));
+      carousel.scrollTo({ left: track.children[target].offsetLeft - track.children[0].offsetLeft, behavior: phoneMotion() });
+    };
+    $('loyaltyPreviousOffer').addEventListener('click', () => move(active - 1));
+    $('loyaltyNextOffer').addEventListener('click', () => move(active + 1));
+    carousel.addEventListener('scroll', updateCarousel, { passive: true });
+    carousel.addEventListener('keydown', event => {
+      if (event.target !== carousel || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      move(event.key === 'Home' ? 0 : event.key === 'End' ? currentItems.length - 1 : active + (event.key === 'ArrowRight' ? 1 : -1));
+    });
+    let drag = null, suppressClick = false;
+    carousel.addEventListener('pointerdown', event => {
+      suppressClick = false;
+      if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button')) return;
+      drag = { id: event.pointerId, x: event.clientX, scroll: carousel.scrollLeft };
+      carousel.setPointerCapture(event.pointerId);
+    });
+    carousel.addEventListener('pointermove', event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      const distance = event.clientX - drag.x;
+      if (Math.abs(distance) > 5) { suppressClick = true; carousel.style.scrollSnapType = 'none'; }
+      if (suppressClick) { event.preventDefault(); carousel.scrollLeft = drag.scroll - distance; }
+    });
+    const endDrag = event => {
+      if (!drag || drag.id !== event.pointerId) return;
+      drag = null; carousel.style.scrollSnapType = '';
+      updateCarousel();
+      if (suppressClick) move(active);
+    };
+    carousel.addEventListener('pointerup', endDrag); carousel.addEventListener('pointercancel', endDrag);
+    carousel.addEventListener('lostpointercapture', endDrag);
+    carousel.addEventListener('click', event => {
+      if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; }
+    }, true);
+    const resize = new ResizeObserver(updateCarousel); resize.observe(carousel);
+    global.addEventListener('pagehide', event => {
+      clearTimeout(toastTimer); clearTimeout(featuredFallbackTimer); if (!event.persisted) resize.disconnect();
+    });
+    featuredReady = true;
+    if (pendingFeaturedOffers) renderAjoFeaturedOffers();
+    else waitForFeaturedOffers();
+    renderSavedOffers(); updateCarousel();
   }
   const repr = value => value === undefined || value === null ? 'Not reported' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   async function json(url, options) {
@@ -82,9 +318,11 @@
     if (!response.ok || data.ok === false || data.error) throw new Error(typeof data.error === 'string' ? data.error : data.message || 'HTTP ' + response.status);
     return data;
   }
+  function loyaltyAuthHeaders(ctx) {
+    return ['kirkham', 'apalmer'].includes(ctx.sandbox) ? Promise.resolve({}) : global.AepLabSandboxSync.getAuthHeaders();
+  }
   async function loyalty(ctx, input) {
-    const headers = await global.AepLabSandboxSync.getAuthHeaders();
-    if (!headers.Authorization) throw new Error('Sign in to the Portal before reading Loyalty state. Anonymous sessions cannot access member state.');
+    const headers = await loyaltyAuthHeaders(ctx);
     const result = await json('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox, ...input }), { headers });
     return result.data;
   }
@@ -110,9 +348,8 @@
     syncSignupButtons();
   }
   async function submitSignup(ctx, token, challengeId, member) {
-    const headers = await global.AepLabSandboxSync.getAuthHeaders();
+    const headers = await loyaltyAuthHeaders(ctx);
     same(ctx, token);
-    if (!headers.Authorization) throw new Error('Sign in to the Portal before joining a challenge.');
     const key = signupKey(ctx, member, challengeId);
     const receipt = { id: challengeId, scope: signupScope(ctx, member), state: 'pending' };
     signupReceipts.set(key, receipt); syncSignupButtons();
@@ -151,7 +388,10 @@
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing.');
     const stateContext = { ...ctx, challenge: challengeId, participation: 'active', test: false };
     reconcileSignupState(state, stateContext, member);
-    if (!ctx.test && ctx.participation === 'active') renderTasks(state, null, stateContext, true);
+    if (!ctx.test && ctx.participation === 'active') {
+      const metadata = await readChallengeMetadata(state, ctx, token, challengeId);
+      renderTasks(state, metadata, stateContext, true);
+    }
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyNamespace').textContent = 'State member: loyaltyId / ' + member;
     return state;
@@ -173,7 +413,6 @@
     same(ctx, token);
     joinedChallenge = { id: challengeId, title: candidate.content.title?.content || 'Your challenge', confirmed: true };
     purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge(); syncSignupButtons();
-    document.querySelector('.loyalty-phone-scroll').scrollTo({ top: 0, behavior: 'smooth' });
     const evidence = { sandbox: ctx.sandbox, signup: result, enrollmentVerified: true,
       journeyEntryVerified: false, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId, interactionAccepted: false };
@@ -197,6 +436,7 @@
     $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
     message((receipt.state === 'already' ? 'Challenge Already Joined.' : 'Challenge Joined.') +
       ' Journey entry is not verified. ' + warnings.join(' '), warnings.length > 0);
+    scrollPhoneSection('loyaltyPhoneTitle');
   }
   function memberId(ctx, config) {
     if (!config || typeof config.namespace !== 'string' || !config.namespace.trim()) throw new Error('Adobe Loyalty has not reported its member namespace.');
@@ -205,6 +445,30 @@
     if (config.namespace.toLowerCase() === 'ecid' && typeof loaded.ecid === 'string' && loaded.ecid) return loaded.ecid;
     if (config.namespace.toLowerCase() === 'loyaltyid' && loaded.profileLoyaltyId) return loaded.profileLoyaltyId;
     throw new Error('Loyalty uses namespace "' + config.namespace + '". Enter this profile\'s member identifier in that namespace; it cannot be inferred from ' + ctx.namespace + '.');
+  }
+  async function readChallengeMetadata(state, ctx, token, filter = ctx.challenge) {
+    const ids = [...new Set(state.challengeList.filter(challenge => challenge &&
+      (!filter || challenge.challenge_id === filter) && (filter || !stateChallengeName(challenge)))
+      .map(challenge => challenge.challenge_id))];
+    const entries = await Promise.all(ids.map(async id => {
+      try {
+        const definition = await loyalty(ctx, { action: 'challenge_get', challenge_id: id });
+        const returnedIds = [definition?._id, definition?.get_id, definition?.challenge_id].filter(value => value != null);
+        if (!returnedIds.length || returnedIds.some(value => value !== id)) {
+          throw new Error('Adobe challenge metadata does not match the requested challenge.');
+        }
+        if (typeof definition.name !== 'string' || !definition.name.trim()) {
+          throw new Error('Adobe challenge metadata has no challenge name.');
+        }
+        return [id, { definition }];
+      } catch (error) {
+        same(ctx, token);
+        console.error('Loyalty challenge metadata lookup failed', { challenge_id: id, error: error.message });
+        return [id, { error: error.message }];
+      }
+    }));
+    same(ctx, token);
+    return new Map(entries);
   }
   async function readTasks(ctx, token) {
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
@@ -218,12 +482,11 @@
     const state = await loyalty(ctx, input); same(ctx, token);
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     reconcileSignupState(state, ctx, member);
-    let metadata = null;
-    if (ctx.challenge) { metadata = await loyalty(ctx, { action: 'challenge_get', challenge_id: ctx.challenge }); same(ctx, token); }
+    const metadata = await readChallengeMetadata(state, ctx, token);
     renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
-      member, region: ctx.region || 'va7', state, metadata }, null, 2);
+      member, region: ctx.region || 'va7', state, metadata: Object.fromEntries(metadata) }, null, 2);
   }
   function renderTasks(state, metadata, ctx, selectedMember) {
     const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
@@ -235,9 +498,9 @@
     for (const challenge of challenges) {
       if (!challenge || typeof challenge !== 'object' || !Array.isArray(challenge.tasks)) throw new Error('Malformed challenge: tasks must be an array.');
       if (challenge.tasks.some(task => !task || typeof task !== 'object')) throw new Error('Malformed task in Loyalty state.');
-      const definition = metadata?.challenge_id === challenge.challenge_id || (metadata?._id || metadata?.get_id) === challenge.challenge_id ? metadata : null;
+      const { definition, error } = metadata.get(challenge.challenge_id) || {};
       const section = node('article', undefined, 'loyalty-challenge');
-      const name = challenge.challengeName || definition?.name || challenge.challenge_id || 'Unnamed challenge';
+      const name = stateChallengeName(challenge) || definition?.name.trim() || 'Challenge name unavailable';
       const completed = challenge.tasks.filter(complete).length, total = challenge.tasks.length;
       const summary = node('div', undefined, 'loyalty-progress-summary');
       const ring = node('div', undefined, 'loyalty-progress-ring');
@@ -250,8 +513,13 @@
       summary.append(ring, title); section.append(summary);
       const mobile = node('article', undefined, 'loyalty-phone-challenge');
       const mobileTop = node('div', undefined, 'loyalty-phone-challenge-top');
-      mobileTop.append(node('h4', name), node('span', repr(challenge.state), 'loyalty-task-state'));
+      mobileTop.append(node('h4', name), node('span', completedState(challenge.state) ? 'Completed' : repr(challenge.state), 'loyalty-task-state'));
       mobile.append(mobileTop, node('p', completed + ' / ' + total + ' tasks complete', 'loyalty-phone-count'));
+      if (error) {
+        const warning = node('p', 'Challenge details unavailable: ' + error, 'loyalty-empty');
+        warning.setAttribute('role', 'status');
+        section.append(warning); mobile.append(warning.cloneNode(true));
+      }
       if (total) {
         const meter = node('progress'); meter.max = total; meter.value = completed;
         meter.setAttribute('aria-label', name + ' completed tasks'); mobile.append(meter);
@@ -273,7 +541,8 @@
         const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
         const progress = model.progress(task), taskCopy = node('div', undefined, 'loyalty-task-copy');
         taskCopy.append(node('strong', taskName),
-          node('small', progress ? progress.value + ' of ' + progress.goal : 'Progress not yet reported'));
+          node('small', progress ? progress.value + ' of ' + progress.goal :
+            complete(task) ? 'Completion reported by Adobe' : 'Progress not yet reported'));
         heading.append(step, logo, taskCopy,
           node('span', complete(task) ? 'Completed' : task === remaining ? 'Up next' : 'To do', 'loyalty-task-state'));
         card.append(heading);
@@ -285,21 +554,23 @@
         const taskDetails = node('div');
         taskDetails.append(node('b', taskName), node('small', 'Goal: ' + repr(task.variables?.goal) + ' / Goal type: ' + repr(task.variables?.type)),
           node('small', 'Accumulators: ' + repr(task.accumulators)));
-        if (Array.isArray(task.taskCompletions)) taskDetails.append(node('small', 'Previous task completions: ' + task.taskCompletions.length));
+        taskDetails.append(node('small', 'Task state: ' + repr(task.taskState)));
+        if (Array.isArray(task.taskCompletions)) taskDetails.append(node('small', 'Reported task completions: ' + task.taskCompletions.length));
         taskDetails.append(node('small', 'Task ID: ' + repr(task.taskId))); diagnostic.append(taskDetails);
         section.append(card);
         const row = node('div', undefined, 'loyalty-phone-task');
         row.dataset.complete = String(complete(task));
         const initials = node('span', initialsText, 'loyalty-phone-task-icon');
         initials.setAttribute('aria-hidden', 'true');
-        const text = node('div'); text.append(node('b', taskName), node('span', repr(task.taskState)));
+        const text = node('div'); text.append(node('b', taskName), node('span', complete(task) ? 'Completed' : repr(task.taskState)));
         row.append(initials, text);
         if (complete(task)) row.append(node('span', '\u2713', 'loyalty-phone-tick'));
         mobile.append(row);
       }
       const outcome = node('div', undefined, 'loyalty-outcome');
       const remainingCount = total - completed;
-      outcome.append(node('b', !total ? 'No tasks reported' : remaining ? remainingCount + (remainingCount === 1 ? ' task remaining' : ' tasks remaining') : 'All returned tasks complete'),
+      outcome.append(node('b', completedState(challenge.state) ? 'Challenge completed' :
+        !total ? 'No tasks reported' : remaining ? remainingCount + (remainingCount === 1 ? ' task remaining' : ' tasks remaining') : 'All returned tasks complete'),
         node('span', 'Task completion is reported by Adobe. Reward delivery is not verified by this page.'));
       section.append(outcome, diagnostic); phone.append(mobile);
       fragment.append(section);
@@ -428,21 +699,33 @@
   async function work(operation) {
     if (busy) return;
     busy = true; aborter = new AbortController();
-    const timeout = setTimeout(() => aborter.abort(), 120000), ctx = context(), token = version;
+    const controller = aborter, ctx = context(), token = version;
+    const timeout = setTimeout(() => controller.abort(new Error(
+      'Request timed out after 120 seconds. Any submitted Adobe operation may still finish; inspect its state before retrying.'
+    )), 120000);
+    let onAbort;
+    const cancelled = new Promise((resolve, reject) => {
+      onAbort = () => reject(controller.signal.reason);
+      controller.signal.addEventListener('abort', onAbort, { once: true });
+    });
     message('Loading...');
-    try { await operation(ctx, token); }
+    // Aborting fetch alone cannot release queued SDK commands or shared drawer promises.
+    try { return await Promise.race([operation(ctx, token), cancelled]); }
     catch (error) {
       if (token === version) {
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
+        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; pendingFeaturedRequest = false; }
       }
     } finally {
+      controller.signal.removeEventListener('abort', onAbort);
       clearTimeout(timeout); busy = false; message($('loyaltyStatus').textContent, $('loyaltyStatus').dataset.error === 'true');
       if (pendingProfile) {
         const detail = pendingProfile; pendingProfile = null;
         adoptDrawerProfile(detail);
       }
-      if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
+      if (pendingFeaturedRequest) { pendingFeaturedRequest = false; void requestFeaturedOffers(); }
+      else if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
     }
   }
   function adoptDrawerProfile(detail) {
@@ -457,6 +740,60 @@
     if (busy) { pendingCard = true; return; }
     void work(run);
   }
+  async function requestFeaturedOffers() {
+    if (!loaded) {
+      console.error('[Rewards] featured-offers request requires a loaded test profile');
+      message('Look up a test profile before requesting Featured Offers.', true); return;
+    }
+    if (busy) { pendingFeaturedRequest = true; return; }
+    return work(async (ctx, token) => {
+      const captured = await prepareProfileEvent(ctx, token, 'featured-offers decision');
+      same(ctx, token);
+      if (global.alloy !== captured.alloy ||
+          JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
+        throw new Error('SDK or datastream changed while preparing Featured Offers. No request sent.');
+      }
+      const key = JSON.stringify([ctx.sandbox, ctx.namespace, ctx.identifier, ctx.tenant,
+        captured.identityMap, captured.edgeOptions]);
+      if (featuredRequest?.key === key && featuredRequest.alloy === captured.alloy) {
+        console.log('[Rewards] featured-offers request already submitted for this profile context');
+        message('Featured Offers already requested for this profile context. No duplicate request sent.');
+        return featuredRequest.result;
+      }
+      // Reserve before submission: repeated profile-ready notifications cannot replay an uncertain request.
+      const request = { key, alloy: captured.alloy };
+      featuredRequest = request;
+      message('Requesting Featured Offers from Adobe...');
+      let result;
+      try {
+        result = await captured.alloy('sendEvent', {
+          ...captured.edgeOptions, renderDecisions: false,
+          personalization: { surfaces: ['web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers'] },
+          xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
+            web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } },
+        });
+        window.dispatchEvent(
+          new CustomEvent("ajo:featured-offers-response", {
+            detail: result
+          })
+        );
+        console.log(
+          "[Rewards] featured-offers-response dispatched",
+          result
+        );
+      } catch (error) {
+        console.error('[Rewards] featured-offers Web SDK request failed', error);
+        throw error;
+      }
+      console.log('[Rewards] featured-offers Web SDK response', result);
+      console.log('[Rewards] featured-offers propositions', result?.propositions);
+      same(ctx, token);
+      request.result = result;
+      message('Featured Offers request completed. Data Collection processes the response and dispatches ajo:featured-offers.');
+      return result;
+    });
+  }
+  global.requestFeaturedOffers = requestFeaturedOffers;
   async function lookup(ctx, token, drawerReady = false) {
     loaded = null; clearResults();
     if (!drawerReady) global.DemoProfileDrawer.clearDrawerVisitorState();
@@ -621,8 +958,10 @@
       throw new Error('Configure the reviewed event tenant namespace before requesting a content card.');
     }
     if (!/^web:\/\/[^?#\s]+#[A-Za-z][A-Za-z0-9_-]*$/.test(ctx.surface)) throw new Error('Provide one explicit web surface URI with a fragment.');
+    message('Connecting to Web SDK for the content card...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
+    message('Reading the active Web SDK visitor identity...');
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
     same(ctx, token);
     const ecid = identity?.identity?.ECID;
@@ -637,13 +976,16 @@
       JSON.stringify(captured.edgeOptions) === JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides());
     const subscriptionKey = JSON.stringify([token, ctx, captured.edgeOptions, identityMap]);
     if (!cardSubscription || cardSubscription.key !== subscriptionKey || cardSubscription.alloy !== alloy) {
-      const subscription = { key: subscriptionKey, alloy };
+      const subscription = { key: subscriptionKey, alloy, updates: 0 };
       cardSubscription = subscription;
       try {
+        message('Subscribing to journey content cards...');
         await alloy('subscribeRulesetItems', { surfaces: [ctx.surface], schemas: [cardSchema],
           callback: (result, collectEvent) => {
             if (cardSubscription !== subscription || !current()) return;
-            void showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true).catch(error => {
+            subscription.updates++;
+            subscription.rendering = showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true);
+            void subscription.rendering.catch(error => {
               if (current()) message('Journey card rendering failed: ' + error.message + ' No automatic retry.', true);
             });
           } });
@@ -651,16 +993,26 @@
     }
     same(ctx, token);
     if (!current()) throw new Error('Event datastream changed while preparing the card. No request sent.');
+    const subscriptionUpdates = cardSubscription.updates;
+    message('Requesting journey content from Adobe...');
     const result = await alloy('sendEvent', { ...captured.edgeOptions, renderDecisions: true,
       personalization: { surfaces: [ctx.surface], sendDisplayEvent: false },
       xdm: { ...captured.eventXdm, identityMap, web: { webPageDetails: {
         URL: location.origin + location.pathname, name: viewName, viewName } } } });
     same(ctx, token);
     if (!current()) throw new Error('Event datastream changed; previous card response discarded.');
+    if (cardSubscription.updates !== subscriptionUpdates) {
+      await cardSubscription.rendering; same(ctx, token); return;
+    }
     if (model.selectCard(result?.propositions, ctx.surface)) await showCard(result.propositions, captured, ctx, token);
-    else if (!cardMount().childElementCount) {
-      $('loyaltyCardHint').textContent = 'Waiting for a journey content-card proposition for this surface.';
-      message('Card request accepted. Journey cards render through the active ruleset subscription.');
+    else if (Array.isArray(result?.propositions)) {
+      await showCard(result.propositions, captured, ctx, token, true);
+    }
+    else {
+      if (!cardMount().childElementCount) $('loyaltyCardHint').textContent = 'Waiting for a journey content-card proposition for this surface.';
+      $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, surface: ctx.surface,
+        response: result, note: 'No direct content-card propositions returned; journey subscription remains active.' }, null, 2);
+      message('Card request accepted. No new direct content card returned; journey cards render through the active ruleset subscription.');
     }
   }
   async function showCard(propositions, captured, ctx, token, clearMissing) {
@@ -669,12 +1021,17 @@
     if (!candidate) {
       if (clearMissing) {
         cardMount().replaceChildren(); displayedCard = '';
+        deliveredChallenge = null; restoreParticipation();
         $('loyaltyCardHint').textContent = 'No eligible renderable journey card returned for this surface.';
+        $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, surface: ctx.surface, propositions }, null, 2);
+        message('No eligible content card returned. The previous card was removed; refresh does not change Adobe eligibility.');
       }
       return;
     }
     const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content, candidate.meta]);
-    if (displayedCard === cardKey) return;
+    if (displayedCard === cardKey) {
+      message('Content card unchanged. Adobe returned the same card; no duplicate display event sent.'); return;
+    }
     if (!candidate.item.id || typeof captured?.alloy !== 'function' || !captured.identityMap ||
         !Object.values(captured.identityMap).some(ids => Array.isArray(ids) && ids.some(id => typeof id?.id === 'string' && id.id))) {
       throw new Error('Original proposition request identity is missing. No display event sent.');
@@ -687,6 +1044,7 @@
     $('loyaltyCardHint').textContent = 'Chosen for you';
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId }, null, 2);
+    message('Content card displayed; collecting the original proposition display...');
     if (captured.collectEvent) await captured.collectEvent('display', [candidate.proposition]);
     else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
     same(ctx, token);
@@ -701,6 +1059,7 @@
     $('loyaltyPhoneTitle').textContent = participation === 'complete' ? 'Completed challenges' : 'In progress';
   }
   async function init() {
+    initPhoneApp();
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     const panel = $('aepLabEnvOverlayPanel');
     panel.prepend($('aepDemoProfileSection'));
@@ -743,6 +1102,9 @@
     email.addEventListener('input', identityChanged); email.addEventListener('change', identityChanged);
     $(prefix + 'Ns').addEventListener('change', identityChanged);
     global.addEventListener('aep-profile-drawer-loaded', event => adoptDrawerProfile(event.detail));
+    global.addEventListener('tui-profile-changed', () => {
+      if (loaded && typeof global.alloy === 'function') void requestFeaturedOffers();
+    });
     global.addEventListener('aep-global-sandbox-change', () => {
       if (selectedProfileKey === profileKey()) return;
       selectedProfileKey = profileKey();
@@ -751,7 +1113,11 @@
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
     });
-    global.addEventListener('aep-demo-tags-injected', () => { invalidate(false); requestAutomaticCard(); });
+    global.addEventListener('aep-demo-tags-injected', () => {
+      invalidate(false);
+      if (loaded && typeof global.alloy === 'function') void requestFeaturedOffers();
+      requestAutomaticCard();
+    });
     global.addEventListener('aep-demo-visitor-reset-start', () => invalidate(true));
     global.addEventListener('aep-demo-visitor-invalidated', () => invalidate(true));
     for (const id of ['loyaltyRegion', 'loyaltyMember', 'loyaltyChallenge', 'loyaltyTenant', 'loyaltySurface', 'loyaltyParticipation', 'loyaltyTest', 'generatorTarget']) {
@@ -761,7 +1127,7 @@
       closeConfiguration();
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
-    $('loyaltyRun').addEventListener('click', () => void work(run));
+    $('loyaltyRun').addEventListener('click', () => { scrollPhoneSection('loyaltyPromotionTitle'); void work(run); });
     $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendAbandonedSearch); });
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }

@@ -112,7 +112,11 @@ function fixture(overrides = {}) {
   const service = createProfileSeedScheduleService({
     store, snowflake, now: () => time,
     getOwner: async () => { calls.owner++; return { uid: 'owner', disabled: false, ...overrides.owner }; },
-    flowSnapshot: async () => { calls.flow++; return overrides.health || health(); },
+    flowSnapshot: async () => {
+      calls.flow++;
+      if (overrides.flowError) throw overrides.flowError;
+      return overrides.health || health();
+    },
     logger: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
   });
   return { db, store, service, calls, snowflake, logs, health,
@@ -229,6 +233,10 @@ test('disabled, out-of-hours, Saturday, and changed owner never invoke the gener
   assert.equal((await f.service.tick()).state, 'outside_window');
   const wrongOwner = fixture({ owner: { uid: 'different' } });
   await assert.rejects(wrongOwner.service.tick(), { code: 'SEED_OWNER_MISMATCH' });
+  assert.deepEqual(wrongOwner.logs[0][1], {
+    event: 'profile_seed_dispatcher_failed', stage: 'verify_owner', day, errorCode: 'SEED_OWNER_MISMATCH',
+  });
+  assert.doesNotMatch(JSON.stringify(wrongOwner.logs), /different/);
   const disabledOwner = fixture({ owner: { disabled: true } });
   await assert.rejects(disabledOwner.service.tick(), { code: 'SEED_OWNER_MISMATCH' });
   assert.equal(f.calls.generate + wrongOwner.calls.generate + disabledOwner.calls.generate, 0);
@@ -250,6 +258,10 @@ test('reservation budget includes failed attempts and cannot exceed fifty', asyn
 });
 
 test('preflight, identity callback, and ambiguous commit errors pause all future creation', async () => {
+  const stages = {
+    preflight: 'snowflake_preflight', preferences: 'snowflake_preflight', missing_callback: 'preparation',
+    throw: 'source_write', partial: 'source_post_commit', unknown: 'source_write',
+  };
   for (const outcome of ['preflight', 'preferences', 'missing_callback', 'throw', 'partial', 'unknown']) {
     const f = fixture();
     if (outcome === 'preflight') f.snowflake.preflight = async () => { throw new Error('credential provider failure'); };
@@ -268,6 +280,7 @@ test('preflight, identity callback, and ambiguous commit errors pause all future
     assert.equal((await f.service.tick()).state, 'needs_attention', outcome);
     assert.equal(f.db.data.get(controlKey).blocked, true);
     assert.equal(f.db.data.get(dayKey()).slots[0].state, 'needs_attention');
+    assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, stages[outcome]);
     const generated = f.calls.generate;
     f.advance(15 * 60_000);
     await f.service.tick();
@@ -283,13 +296,13 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
   assert.doesNotThrow(() => assertFlowHealth({
     ...good,
     flows: [{ ...good.flows[0], lastRun: {
-      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 119 * 60_000).toISOString(),
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 120 * 60_000).toISOString(),
     } }],
   }, f.now()));
   assert.equal(diagnoseFlowHealth({
     ...good,
     flows: [{ ...good.flows[0], lastRun: {
-      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 121 * 60_000).toISOString(),
+      ...good.flows[0].lastRun, completedAt: new Date(+f.now() - 120 * 60_000 - 1).toISOString(),
     } }],
   }, f.now()).issues[0].code, 'last_run_stale');
   const missingMetric = diagnoseFlowHealth({
@@ -313,12 +326,15 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
 });
 
 test('flow-health failure persists safe per-flow evidence and never reaches Snowflake', async () => {
+  const flowId = '065f3b53-df40-43d1-9d91-c42f031996d6';
   const health = {
     complete: true,
     flows: [{
-      id: 'flow-a', sourceTables: ['REL.RECIPIENT'], state: 'enabled',
-      schedule: { frequency: 'minute', interval: 15 },
+      id: flowId, sourceTables: ['REL.RECIPIENT'], state: 'enabled',
+      schedule: { frequency: 'minute', interval: 15, private: 'secret-provider-token' },
       lastRun: { state: 'success', completedAt: '2026-11-10T05:00:00.000Z', failedCount: null },
+    }, {
+      id: 'private-email@example.test', state: 'unknown',
     }],
   };
   const f = fixture({ health });
@@ -327,11 +343,38 @@ test('flow-health failure persists safe per-flow evidence and never reaches Snow
   assert.equal(f.calls.generate, 0);
   const slot = f.db.data.get(dayKey()).slots[0];
   assert.equal(slot.errorCode, 'SEED_INGESTION_NOT_HEALTHY');
+  assert.equal(slot.failureStage, 'flow_health');
   assert.equal(slot.flowHealth.issues[0].code, 'last_run_stale');
   assert.equal(slot.flowHealth.issues[1].code, 'failed_count_unknown');
-  const failureLog = f.logs.find(([message]) => message.includes('Paused for inspection'));
-  assert.equal(failureLog[1].stage, 'flow_health');
-  assert.equal(failureLog[1].flowHealth.healthy, false);
+  const [, log] = f.logs.find(([, fields]) => fields.event === 'profile_seed_needs_attention');
+  assert.equal(log.stage, 'flow_health');
+  assert.equal(log.flowHealthAtFailure.healthy, false);
+  assert.equal(log.flowHealthAtFailure.maxRunAgeMs, 120 * 60_000);
+  assert.deepEqual(log.flowHealthAtFailure.unhealthyFlows[0], {
+    flowId, reasons: ['last_run_stale', 'failed_count_unknown'], lastRunAgeMs: 1445 * 60_000,
+  });
+  assert.equal(log.flowHealthAtFailure.unhealthyFlows[1].flowId, null);
+  assert.doesNotMatch(JSON.stringify(f.logs), /private-email|secret-provider-token|REL\.RECIPIENT/);
+});
+
+test('snapshot fetch and attention persistence failures remain distinguishable without logging exceptions', async () => {
+  const upstream = Object.assign(new Error('private upstream text'), {
+    code: 'SEED_SECRET_VALUE', healthDiagnostic: { text: 'private forged diagnostic' },
+  });
+  const f = fixture({ flowError: upstream });
+  f.store.finish = async () => { throw Object.assign(new Error('private store text'), { code: 'SEED_CLAIM_LOST' }); };
+  await assert.rejects(() => f.service.tick(), { code: 'SEED_CLAIM_LOST' });
+  await f.service.tick();
+  const [, log] = f.logs[0];
+  assert.equal(f.logs.length, 1);
+  assert.equal(log.event, 'profile_seed_attention_unconfirmed');
+  assert.equal(log.stage, 'persist_attention');
+  assert.equal(log.failureStage, 'flow_snapshot');
+  assert.equal(log.failureCode, 'SEED_EXECUTION_INTERRUPTED');
+  assert.equal(log.errorCode, 'SEED_CLAIM_LOST');
+  assert.equal(log.flowHealthAtFailure, null);
+  assert.equal(f.calls.generate, 0);
+  assert.doesNotMatch(JSON.stringify(f.logs), /private|SECRET_VALUE/);
 });
 
 test('pause or close of business between preparation and write prevents the write', async () => {
@@ -363,7 +406,14 @@ test('a crashed writer remains blocked even across midnight and is never reclaim
   overnight.setTime('2026-11-12T08:05:00+03:00');
   await overnight.service.tick();
   assert.equal(overnight.db.data.get(controlKey).blocked, true);
-  assert.equal(overnight.db.data.get(dayKey()).slots[0].state, 'needs_attention');
+  const abandoned = overnight.db.data.get(dayKey()).slots[0];
+  assert.equal(abandoned.state, 'needs_attention');
+  assert.equal(abandoned.failureStage, 'abandoned_writer');
+  assert.deepEqual(overnight.logs[0][1], {
+    event: 'profile_seed_writer_abandoned', day, slot: '00', industry: 'retail', count: 2,
+    stage: 'abandoned_writer', errorCode: 'SEED_EXECUTION_INTERRUPTED',
+    writerAgeMs: 24 * 60 * 60_000, maxWriterAgeMs: 15 * 60_000,
+  });
   assert.equal(overnight.calls.generate, 0);
 });
 
@@ -379,6 +429,7 @@ test('lost final receipt cannot replay a committed source write', async () => {
   await f.service.tick();
   assert.equal(f.calls.generate, 1);
   assert.equal(f.db.data.get(dayKey()).slots[0].identities.length, 2);
+  assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, 'persist_commit');
 });
 
 test('lost durable preparation prevents writes and cannot reserve fresh identities on redelivery', async () => {
@@ -388,6 +439,7 @@ test('lost durable preparation prevents writes and cannot reserve fresh identiti
   await f.service.tick();
   assert.equal(f.calls.generate, 1);
   assert.equal(f.db.data.get(controlKey).blocked, true);
+  assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, 'persist_preparation');
 });
 
 test('same-day configuration changes cannot silently replace a saved plan', async () => {
@@ -449,20 +501,28 @@ test('scheduled export is private, Riyadh-scoped, bounded and logs only safe dis
   let handler;
   let options;
   let initialized = false;
+  let initError;
   let dispatchError;
   const logs = [];
+  const logger = { error: (...args) => logs.push(args) };
   const db = {};
   vm.runInNewContext(source.slice(start, end), {
     exports: {}, REGION: 'us-central1', PROFILE_FN_SECRETS: ['adobe'],
     SNOWFLAKE_VPC_OPTS: { vpcConnector: 'snowflake-egress', vpcConnectorEgressSettings: 'ALL_TRAFFIC' },
-    consentStoreRuntimeEnv: () => ({}), console: { error: (...args) => logs.push(args) },
+    consentStoreRuntimeEnv: () => ({}),
     onSchedule(opts, fn) { options = opts; handler = fn; },
     require(name) {
-      if (name === './adminFirestore') return { getAdminFirestore() { initialized = true; return db; } };
+      if (name === 'firebase-functions/logger') return logger;
+      if (name === './adminFirestore') return { getAdminFirestore() {
+        if (initError) throw initError;
+        initialized = true;
+        return db;
+      } };
       if (name === 'firebase-admin') return { auth() { assert.equal(initialized, true); return {}; } };
       if (name === './profileSeedScheduleRuntime') return {
         createProfileSeedScheduleRuntime(input) {
           assert.equal(input.db, db);
+          assert.equal(input.logger, logger);
           return { tick: async () => {
             if (dispatchError) throw dispatchError;
             return { state: 'disabled' };
@@ -486,9 +546,12 @@ test('scheduled export is private, Riyadh-scoped, bounded and logs only safe dis
     code: 'SEED_OWNER_MISMATCH', name: 'sensitive upstream name',
   });
   await assert.rejects(handler, /Profile seed dispatcher failed/);
+  assert.equal(logs.length, 0, 'tick owns staged logging');
+  initError = dispatchError;
+  await assert.rejects(handler, /Profile seed dispatcher failed/);
   assert.deepEqual(JSON.parse(JSON.stringify(logs)), [[
-    '[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.',
-    { errorCode: 'SEED_OWNER_MISMATCH', errorName: 'Error' },
+    '[profile-seed-schedule] Dispatcher initialization failed.',
+    { event: 'profile_seed_dispatcher_failed', stage: 'initialize', errorCode: 'SEED_DISPATCHER_FAILED' },
   ]]);
   assert.equal(JSON.stringify(logs).includes('sensitive upstream'), false);
 });

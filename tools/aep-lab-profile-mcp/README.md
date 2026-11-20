@@ -103,6 +103,11 @@ prewrite health failure: attempted budget 31, exact due/start/update timestamps,
 zero prepared identities, and the saved 13-flow snapshot with only the shared
 base-profile flow marked in-progress. The backend checks that failure snapshot,
 including its three health reasons, before issuing a recovery receipt.
+It also covers the exact **2026-11-19 / slot 01 / retail / count 3** prewrite
+health failure: attempted budget 4, exact timestamps, zero prepared identities,
+and the 13-flow snapshot with only `REL.REL_RETAIL_ORDER` stale. The last
+successful empty-copy run was over two hours old at failure. Fresh healthy
+flow evidence is required again when applying the receipt.
 The backend enforces each reviewed day/slot pair and prewrite attempt despite
 the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.

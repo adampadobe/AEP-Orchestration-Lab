@@ -55,7 +55,7 @@ export function registerAepIngestionDiagnosticsTools(server) {
         const date = new Date(`${value}T00:00:00Z`);
         return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
       }).describe('Exact failed day plan, YYYY-MM-DD.'),
-      slot_id: z.enum(['15', '01', '14']).describe('Only Nov11 slot15 retail, Nov15 slot01 media, Nov15 slot15 travel, or the exact Nov17 slot14 sports prewrite incident is supported; the backend verifies the day/slot pair and saved attempt.'),
+      slot_id: z.enum(['15', '01', '14']).describe('Only the reviewed Nov11 slot15 retail, Nov15 slot01 media, Nov15 slot15 travel, Nov17 slot14 sports, and Nov19 slot01 retail prewrite incidents are supported; the backend verifies the exact saved attempt.'),
       allow_verified_idle_runs: z.boolean().optional().describe('Request explicit review of verified-idle readiness; does not activate policy during preview.'),
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
