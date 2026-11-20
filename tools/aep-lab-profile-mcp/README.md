@@ -2,11 +2,27 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.57.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key` (existing clients) or a validated Adobe IMS bearer session (Coworker marketplace plugin). Cowork sessions without the IMS `email` scope use Adobe's authenticated `POST /ims/profile/v1` endpoint to resolve the corporate identity; forwarded identity headers remain consistency checks only.
+**Version 3.57.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key`
+(recommended Coworker v2 and other API-key clients) or a validated Adobe IMS
+bearer session (legacy Coworker v1). The latter can use Adobe's authenticated
+`POST /ims/profile/v1` endpoint when the IMS `email` scope is missing; forwarded
+identity headers remain consistency checks only.
+
+**Set up Coworker:** follow the [v2 onboarding guide](../../docs/COWORKER_MARKETPLACE_V2.md).
+Add `adampadobe/AEP-Orchestration-Lab-v2` with **no subdirectory**, save your
+personal Portal key once as `aep_lab_mcp_key`, and install `aep-lab-v2`.
+It supplies all 20 connections plus skill `aep-lab-profile-mcp-v2`.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree registers the complete 252-tool catalog. The Coworker marketplace installs it as `lab-all` alongside the nineteen focused endpoints using Adobe IMS; API-key clients can connect to the same endpoints using the shared sandbox header. Ingestion diagnostics, governed cleanup, and AJO Loyalty additions require deployment of their Firebase functions and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+The original `/mcp` endpoint remains backward compatible and this source tree
+registers the complete 252-tool catalog. Coworker v2 installs General as
+`lv2-all` alongside nineteen focused endpoints, all referencing one personal
+secret in `X-AEP-Lab-Mcp-Key`. Legacy v1 uses `lab-all` and IMS passthrough.
+Canonical/v1 names elsewhere in this server reference are not v2 connection
+names; use the [v2 connection table](../../docs/COWORKER_MARKETPLACE_V2.md#included-connections)
+when selecting a Coworker v2 integration.
+Ingestion diagnostics, governed cleanup, and AJO Loyalty additions require deployment of their Firebase functions and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
 
 ### Read-only AJO Loyalty inspection
 
@@ -188,13 +204,28 @@ notice, Firestore TTL and runtime permissions require separate approval before
 activation. See [lab usage statistics](../../docs/LAB_USAGE_STATISTICS.md#phase-3-implemented-locally-collection-disabled-by-default)
 for identity attribution, outcome semantics, reporting limits and release gates.
 
-**One-click Coworker install:** add `tools/coworker-marketplace` as a Coworker Marketplace (Marketplaces → Add Marketplace → GitHub → this repo → subdirectory `tools/coworker-marketplace`) and install the bundled `aep-lab` plugin. It registers `lab-all` plus all nineteen focused connections above and authenticates them with the signed-in Adobe IMS session. Plugin 1.10.0 adds a read-only Orchestrated Campaign dataset context at `aep-lab-ajo-oc-datasets`; preview/apply remain available only in `lab-all`. The previous 1.9.0 release shortened General, Decisioning, and Commerce Optimizer connection names to `lab-all`, `lab-dps`, and `lab-aco` to keep qualified tool names within 64 characters. Existing users must update or reinstall the plugin, then start a new chat. Create a Portal key once for sandbox enrollment, but do not paste it into Coworker. Prefer focused integrations for ordinary tasks; use General for advanced onboarding, infrastructure, complete Snowflake workflows, administration, or any tool absent from a focused catalog. See `tools/coworker-marketplace/README.md`.
+**One-install Coworker v2 setup:** in **Customizations > User > Marketplaces**,
+add `adampadobe/AEP-Orchestration-Lab-v2`, ref `main`, empty subdirectory and
+name `AEP-Orchestration-Lab-v2`. No GitHub token is needed. Save your personal,
+sandbox-scoped Portal MCP key in **App settings > Secrets > Your secrets**
+under `aep_lab_mcp_key`; never paste it into chat or a manifest. Install
+`aep-lab-v2` and start a new chat. General is `lv2-all`, Decisioning is
+`lv2-dps`, and the workflow skill is `aep-lab-profile-mcp-v2`. Prefer focused
+integrations for ordinary tasks; use General for advanced onboarding,
+infrastructure, full Snowflake workflows and administration. The
+[onboarding guide](../../docs/COWORKER_MARKETPLACE_V2.md) includes key creation,
+all connection names, safe acceptance checks and optional v1 removal.
 
 **One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same nineteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
 **GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus nineteen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
 
-### Troubleshooting Coworker HTTP 403
+### Troubleshooting legacy Coworker v1 IMS HTTP 403
+
+This subsection applies to **v1 IMS passthrough only**. V2 uses a saved personal
+key, not forwarded IMS headers; follow the
+[v2 troubleshooting table](../../docs/COWORKER_MARKETPLACE_V2.md#troubleshooting)
+instead. A generic 403 alone does not identify the failing authentication layer.
 
 Search Cloud Run logs for `ims-auth-rejected`. An `enrollment-rejected` event
 means IMS identity validation succeeded, but Lab enrollment failed. The
@@ -790,7 +821,18 @@ calling the legacy delete tool object-by-object.
 
 ### Governed Real-Time Database demo preparation (Phase 3.31)
 
-RTDB demo configuration and customer assets are scoped to the Firebase `principalUid` on a **user-generated** MCP key or the caller's **validated Adobe IMS sandbox enrollment**. For Coworker, MCP forwards the caller's bearer and IMS identity headers to these endpoints (and first-run setup), without substituting the shared ops key. Firebase independently validates the bearer using IMS UserInfo, with authenticated Profile fallback when email scope is missing, then looks up active Portal key records for that verified email and the requested sandbox. Conflicting Firebase UID mappings fail closed; no plaintext Portal key is recovered or required in Coworker. The Firebase API resolves the saved workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary `ajoLookups/{slug}` path. Shared ops keys are rejected.
+RTDB demo configuration and customer assets are scoped to the Firebase
+`principalUid` on a **user-generated** MCP key (including Coworker v2) or the
+caller's **validated Adobe IMS sandbox enrollment** (legacy Coworker v1).
+V2 sends its saved personal key; v1 forwards the caller's bearer and IMS
+identity headers to these endpoints and first-run setup, without substituting
+the shared ops key. For IMS, Firebase independently validates the bearer using
+IMS UserInfo, with authenticated Profile fallback when email scope is missing,
+then looks up active Portal key records for that verified email and requested
+sandbox. Conflicting Firebase UID mappings fail closed. Neither path recovers
+a plaintext key from enrollment records. The Firebase API resolves the saved
+workspace slug and verifies `workspaceClaims`; tools never accept an arbitrary
+`ajoLookups/{slug}` path. Shared ops keys are rejected.
 
 Audience-management and Snowflake HTTP routes also accept independently validated Adobe IMS Portal enrollment. Tool registration does not depend on IMS versus API-key authentication, but successful `lab_mcp_access_info` alone does not prove downstream API access. After an MCP release that changes registrations, start a new Coworker chat connected to the focused endpoints: existing sessions retain their initialized catalog. Commerce Optimizer exposes four governed ingestion tools (change preview/apply and delete audit/apply); offer-eligibility preview is registered in both Decisioning and General, and Decisioning includes `lab_batch_job_status` for its asynchronous workflows.
 
@@ -1222,7 +1264,11 @@ Colleagues with **approved lab access** can manage personal MCP keys on **Profil
 - MCP Cloud Run auth: shared ops key (`AEP_LAB_MCP_API_KEY`), user key via `keyHash` query on `mcpApiKeys`, or validated Coworker Adobe IMS bearer auth.
 - Ops seed script `scripts/seed-mcp-sandbox-allowlist.mjs` remains for shared / legacy keys.
 
-## Coworker Adobe IMS authentication
+## Legacy Coworker v1 Adobe IMS authentication
+
+Recommended [Coworker v2](../../docs/COWORKER_MARKETPLACE_V2.md) uses one
+personal saved key instead. The following describes the retained server-side
+IMS support and v1 package, not v2 setup.
 
 The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment and its Firebase `principalUid`; Coworker never receives or stores the plaintext key. That verified UID gives Coworker the same profile-generation preferences as the signed-in Profile Viewer. Existing API-key clients are unchanged.
 
@@ -1234,6 +1280,8 @@ Audience/AJO deletion still requires exact asset confirmation and a fresh read; 
 
 ## Related
 
+- Coworker v2 installation, migration and troubleshooting: [onboarding guide](../../docs/COWORKER_MARKETPLACE_V2.md)
+- Bundled v2 skill: [`aep-lab-profile-mcp-v2`](../coworker-marketplace-v2/aep-lab-v2/skills/aep-lab-profile-mcp-v2/SKILL.md)
 - Coworker skill: `.cursor/skills/aep-lab-profile-mcp-coworker/SKILL.md`
 - Stdio Adobe MCP: `tools/aep-lab-adobe-mcp/`
 - Hotel segment seed reference: `scripts/bulk-seed-travel-hotel-segment-profiles.mjs`
