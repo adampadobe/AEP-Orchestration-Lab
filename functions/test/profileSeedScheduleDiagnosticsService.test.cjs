@@ -15,7 +15,7 @@ const config = {
 };
 const day = '2026-11-11';
 
-function fixture(currentTime = '2026-11-11T13:00:00.000Z') {
+function fixture(currentTime = '2026-11-11T13:00:00.000Z', { flowError, configPatch } = {}) {
   let flowReads = 0;
   const dayReads = [];
   const savedPlan = {
@@ -23,7 +23,8 @@ function fixture(currentTime = '2026-11-11T13:00:00.000Z') {
     slots: [{
       id: '15', industry: 'retail', count: 2, dueAt: '2026-11-11T12:54:00.000Z',
       startedAt: '2026-11-11T12:55:07.000Z', updatedAt: '2026-11-11T12:55:14.000Z',
-      state: 'needs_attention', errorCode: 'SEED_INGESTION_NOT_HEALTHY', ingestion: 'unverified',
+      state: 'needs_attention', errorCode: 'SEED_INGESTION_NOT_HEALTHY', failureStage: 'flow_health',
+      ingestion: 'unverified',
       identities: [{ email: privateEmail, ecid: 'private-ecid', crmId: 'private-crm', recipientId: 'private-recipient' }],
       flowHealth: { healthy: false, issues: [{ code: 'failed_count_unknown', flowId: 'flow-a' }] },
     }],
@@ -31,7 +32,7 @@ function fixture(currentTime = '2026-11-11T13:00:00.000Z') {
   const service = createProfileSeedScheduleDiagnosticsService({
     now: () => new Date(currentTime),
     store: {
-      getConfig: async () => config,
+      getConfig: async () => ({ ...config, ...configPatch }),
       getDispatcher: async () => ({ blocked: true, active: null, attention: { day, id: '15' } }),
       getDay: async (requestedDay) => {
         dayReads.push(requestedDay);
@@ -41,6 +42,7 @@ function fixture(currentTime = '2026-11-11T13:00:00.000Z') {
     flowSnapshot: async (industry) => {
       flowReads++;
       assert.equal(industry, 'retail');
+      if (flowError) throw flowError;
       return {
         complete: true,
         flows: [{
@@ -59,6 +61,9 @@ test('owner diagnostics return slot and live flow reasons without profile identi
   assert.equal(result.dispatcher.blocked, true);
   assert.equal(result.dispatcher.attention.id, '15');
   assert.equal(result.focus.slot.preparedIdentityCount, 1);
+  assert.equal(result.focus.slot.failureStage, 'flow_health');
+  assert.equal(result.focus.slot.flowHealthAtFailure.healthy, false);
+  assert.equal(result.focus.liveFlowHealthError, null);
   assert.equal(result.focus.liveFlowHealth.issues[0].code, 'failed_count_unknown');
   assert.equal(result.focus.liveFlowHealth.flows[0].lastRun.failedCount, null);
   assert.equal(f.flowReads, 1);
@@ -66,6 +71,27 @@ test('owner diagnostics return slot and live flow reasons without profile identi
   for (const secret of [privateEmail, privatePhone, privateUid, 'private-ecid', 'private-crm', 'private-recipient']) {
     assert.equal(serialized.includes(secret), false);
   }
+});
+
+test('unavailable current flow health does not erase the saved failure or expose provider errors', async () => {
+  const f = fixture(undefined, { flowError: new Error('private credential material') });
+  const result = await f.service.diagnose({ principalUid: privateUid, sandbox: 'apalmer' });
+  assert.equal(result.dispatcher.blocked, true);
+  assert.equal(result.focus.slot.flowHealthAtFailure.issues[0].code, 'failed_count_unknown');
+  assert.equal(result.focus.liveFlowHealth, null);
+  assert.equal(result.focus.liveFlowHealthObservedAt, null);
+  assert.equal(result.focus.liveFlowHealthError.code, 'SEED_FLOW_SNAPSHOT_UNAVAILABLE');
+  assert.equal(result.focus.liveFlowHealthError.stage, 'flow_snapshot');
+  assert.doesNotMatch(JSON.stringify(result), /private credential material/);
+});
+
+test('invalid saved health policy leaves current health unknown rather than adopting the default', async () => {
+  const f = fixture(undefined, { configPatch: { allowVerifiedIdleRuns: true } });
+  const result = await f.service.diagnose({ principalUid: privateUid, sandbox: 'apalmer' });
+  assert.equal(result.focus.liveFlowHealth, null);
+  assert.equal(result.focus.liveFlowHealthError.code, 'SEED_HEALTH_POLICY_INVALID');
+  assert.equal(result.focus.liveFlowHealthError.stage, 'flow_health');
+  assert.equal(result.dispatcher.blocked, true);
 });
 
 test('diagnostics include seven recent business days and retain an older dispatcher focus', async () => {
@@ -78,6 +104,11 @@ test('diagnostics include seven recent business days and retain an older dispatc
   assert.equal(result.days.length, 1);
   assert.equal(result.days[0].day, day);
   assert.equal(result.focus.day, day);
+  assert.equal(result.focus.liveFlowHealth.maxRunAgeMs, 120 * 60_000);
+  assert.equal(result.focus.liveFlowHealth.flows[0].lastRun.ageMs, (8 * 24 * 60 + 1) * 60_000);
+  assert.ok(result.focus.liveFlowHealth.issues.some(({ code, flowId }) =>
+    code === 'last_run_stale' && flowId === 'flow-a'));
+  assert.ok(result.focus.slot.flowHealthAtFailure.issues.every(({ code }) => code !== 'last_run_stale'));
 });
 
 test('non-owner or wrong-sandbox requests fail before querying Adobe flow health', async () => {

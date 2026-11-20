@@ -6,8 +6,50 @@ const INDUSTRIES = Object.freeze(['travel', 'fsi', 'retail', 'telecom', 'media',
 const TIME_ZONE = 'Asia/Riyadh';
 const DAILY_CAP = 50;
 const MINUTE = 60_000;
+const MAX_RUN_AGE_MS = 2 * 60 * MINUTE;
 const IDLE_POLICY = 'verified_empty_snowflake_copy_v1';
 const fail = (code) => Object.assign(new Error(code), { code });
+const SLOT_FAILURE_STAGES = Object.freeze({
+  flowSnapshot: 'flow_snapshot', flowHealth: 'flow_health', preflight: 'snowflake_preflight',
+  preparation: 'preparation', validateIdentities: 'validate_prepared_identities',
+  windowCheck: 'prewrite_window_check', persistPreparation: 'persist_preparation',
+  sourceWrite: 'source_write', sourcePostCommit: 'source_post_commit',
+  persistCommit: 'persist_commit', abandoned: 'abandoned_writer',
+});
+const SLOT_ERROR_CODES = [
+  'SEED_INGESTION_NOT_HEALTHY', 'SEED_PREFERENCES_CHANGED', 'SEED_WINDOW_CLOSED',
+  'SEED_PREPARED_IDENTITIES_INVALID', 'SEED_COMMITTED_NEEDS_INSPECTION', 'SEED_OUTCOME_UNKNOWN',
+  'SEED_GENERATION_FAILED',
+];
+const DISPATCHER_ERROR_CODES = [
+  'SEED_HEALTH_POLICY_INVALID', 'SEED_SCHEDULE_CONFIG_INVALID', 'SEED_OWNER_MISMATCH',
+  'SEED_CONFIGURATION_CHANGED', 'SEED_DAY_CONFIG_CHANGED', 'SEED_SCHEDULE_DAY_INVALID', 'SEED_CLAIM_LOST',
+];
+const safeErrorCode = (error, codes, fallback) => codes.includes(error?.code) ? error.code : fallback;
+
+function slotLogFields(day, slot) {
+  return {
+    day: typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : null,
+    slot: typeof slot.id === 'string' && /^\d{2}$/.test(slot.id) ? slot.id : null,
+    industry: INDUSTRIES.includes(slot.industry) ? slot.industry : null,
+    count: Number.isInteger(slot.count) && slot.count >= 1 && slot.count <= 3 ? slot.count : null,
+  };
+}
+
+function flowHealthLogFields(health) {
+  const issues = health.issues.filter((issue) => !Object.hasOwn(issue, 'flowId')).map(({ code }) => code);
+  return {
+    healthy: health.healthy, complete: health.complete, observedAt: health.observedAt,
+    maxRunAgeMs: health.maxRunAgeMs, flowCount: health.flowCount, snapshotIssues: issues,
+    unhealthyFlows: health.flows.filter(({ healthy }) => !healthy).map((flow) => ({
+      // Real snapshots bind flow IDs to reviewed AEP registry entries. Do not copy upstream objects.
+      flowId: typeof flow.flowId === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(flow.flowId)
+        ? flow.flowId : null,
+      reasons: flow.reasons,
+      lastRunAgeMs: flow.lastRun?.ageMs ?? null,
+    })),
+  };
+}
 
 function healthPolicy(config) {
   if (config?.allowVerifiedIdleRuns === undefined || config.allowVerifiedIdleRuns === false) {
@@ -108,10 +150,11 @@ function diagnoseFlowHealth(snapshot, now, policy = {}) {
 
     const completedAt = flow.lastRun?.completedAt;
     const completedAtMs = typeof completedAt === 'string' ? Date.parse(completedAt) : NaN;
+    const runAgeMs = Number.isFinite(completedAtMs) ? now.getTime() - completedAtMs : null;
     if (flow.lastRun?.state !== 'success') reasons.push('last_run_not_success');
     if (!Number.isFinite(completedAtMs)) reasons.push('last_run_completion_missing');
     else if (completedAtMs > now.getTime()) reasons.push('last_run_in_future');
-    else if (now.getTime() - completedAtMs > 2 * 60 * MINUTE) reasons.push('last_run_stale');
+    else if (runAgeMs > MAX_RUN_AGE_MS) reasons.push('last_run_stale');
     const evidence = flow.lastRun?.verifiedIdleEvidence;
     const verifiedIdle = reviewedPolicy.allowVerifiedIdleRuns && evidence?.policy === IDLE_POLICY
       && evidence.runId === flow.lastRun?.id && typeof evidence.runId === 'string' && !!evidence.runId
@@ -134,7 +177,7 @@ function diagnoseFlowHealth(snapshot, now, policy = {}) {
       lastRun: flow.lastRun ? {
         state: flow.lastRun.state ?? null,
         completedAt: completedAt ?? null,
-        ageMs: Number.isFinite(completedAtMs) ? now.getTime() - completedAtMs : null,
+        ageMs: runAgeMs,
         readCount: Number.isFinite(flow.lastRun.readCount) ? flow.lastRun.readCount : null,
         writtenCount: Number.isFinite(flow.lastRun.writtenCount) ? flow.lastRun.writtenCount : null,
         failedCount: Number.isFinite(flow.lastRun.failedCount) ? flow.lastRun.failedCount : null,
@@ -152,6 +195,7 @@ function diagnoseFlowHealth(snapshot, now, policy = {}) {
     healthy: issues.length === 0,
     complete: snapshot?.complete === true,
     observedAt,
+    maxRunAgeMs: MAX_RUN_AGE_MS,
     flowCount: flows.length,
     issues,
     flows: checks,
@@ -169,73 +213,117 @@ function createProfileSeedScheduleService({
   store, snowflake, getOwner, flowSnapshot, now = () => new Date(), logger = console,
 }) {
   async function tick() {
-    const clock = now();
-    const config = validateConfig(await store.getConfig());
-    if (!config) return { state: 'disabled' };
-    const local = businessTime(clock);
-    if (!local.open) return { state: 'outside_window' };
-    const owner = await getOwner();
-    if (owner.disabled || owner.uid !== config.ownerUid) throw fail('SEED_OWNER_MISMATCH');
-    await store.ensureDay(buildDayPlan(local.day, config.fingerprint), config);
-    const slot = await store.claim(local.day, config, clock);
+    let stage = 'read_config';
+    let config, local, owner, slot;
+    try {
+      const clock = now();
+      const savedConfig = await store.getConfig();
+      stage = 'validate_config';
+      config = validateConfig(savedConfig);
+      if (!config) return { state: 'disabled' };
+      stage = 'business_window';
+      local = businessTime(clock);
+      if (!local.open) return { state: 'outside_window' };
+      stage = 'verify_owner';
+      owner = await getOwner();
+      if (owner.disabled || owner.uid !== config.ownerUid) throw fail('SEED_OWNER_MISMATCH');
+      stage = 'ensure_day';
+      await store.ensureDay(buildDayPlan(local.day, config.fingerprint), config);
+      stage = 'claim_slot';
+      slot = await store.claim(local.day, config, clock);
+    } catch (error) {
+      logger.error('[profile-seed-schedule] Dispatcher failed; inspect durable state before resuming.', {
+        event: 'profile_seed_dispatcher_failed', stage, day: local?.day ?? null,
+        errorCode: safeErrorCode(error, DISPATCHER_ERROR_CODES, 'SEED_DISPATCHER_FAILED'),
+      });
+      throw error;
+    }
     if (!slot) return { state: 'idle' };
     if (slot.state === 'needs_attention') {
-      logger.error('[profile-seed-schedule] Abandoned writer; generation blocked until inspection.');
+      logger.error('[profile-seed-schedule] Abandoned writer; generation blocked until inspection.', {
+        event: 'profile_seed_writer_abandoned', ...slotLogFields(slot.day, slot),
+        stage: SLOT_FAILURE_STAGES.abandoned, errorCode: 'SEED_EXECUTION_INTERRUPTED',
+        writerAgeMs: slot.writerAgeMs, maxWriterAgeMs: slot.maxWriterAgeMs,
+      });
       return { state: 'needs_attention' };
     }
+    const logFields = slotLogFields(local.day, slot);
     let prepared = false;
+    let flowHealthAtFailure;
     try {
-      assertFlowHealth(await flowSnapshot(slot.industry), now(), config);
+      stage = SLOT_FAILURE_STAGES.flowSnapshot;
+      const snapshot = await flowSnapshot(slot.industry);
+      stage = SLOT_FAILURE_STAGES.flowHealth;
+      const health = diagnoseFlowHealth(snapshot, now(), config);
+      if (!health.healthy) {
+        flowHealthAtFailure = health;
+        throw fail('SEED_INGESTION_NOT_HEALTHY');
+      }
+      stage = SLOT_FAILURE_STAGES.preflight;
       const ready = await snowflake.preflight({ uid: owner.uid, industry: slot.industry });
       if (!ready?.ready || ready.baseEmail !== config.expectedBaseEmail
         || ready.mobilePhone !== config.expectedMobilePhone) throw fail('SEED_PREFERENCES_CHANGED');
+      stage = SLOT_FAILURE_STAGES.preparation;
       const result = await snowflake.generate({
         uid: owner.uid, industry: slot.industry, count: slot.count, samplingMode: 'ongoing',
         eventTimeMode: slot.industry === 'travel' ? 'historical' : 'recent',
         expectedBaseEmail: config.expectedBaseEmail, expectedMobilePhone: config.expectedMobilePhone,
         onPrepared: async (plan) => {
+          stage = SLOT_FAILURE_STAGES.validateIdentities;
           if (prepared || plan.profiles?.length !== slot.count
             || plan.profiles.some((profile) => ['email', 'ecid', 'crmId', 'recipientId']
               .some((key) => typeof profile[key] !== 'string' || !profile[key]))) {
             throw fail('SEED_PREPARED_IDENTITIES_INVALID');
           }
           // Recheck the window and kill switch immediately before source writes.
+          stage = SLOT_FAILURE_STAGES.windowCheck;
           const current = now();
           if (!businessTime(current).open || businessTime(current).day !== local.day) {
             throw fail('SEED_WINDOW_CLOSED');
           }
+          stage = SLOT_FAILURE_STAGES.persistPreparation;
           await store.prepared(local.day, slot.id, config, plan, current);
           prepared = true;
+          stage = SLOT_FAILURE_STAGES.sourceWrite;
         },
       });
       if (!prepared || result?.ok !== true) {
+        if (result?.committed) stage = SLOT_FAILURE_STAGES.sourcePostCommit;
         throw fail(result?.committed ? 'SEED_COMMITTED_NEEDS_INSPECTION'
           : result?.outcomeUnknown ? 'SEED_OUTCOME_UNKNOWN' : 'SEED_GENERATION_FAILED');
       }
+      stage = SLOT_FAILURE_STAGES.persistCommit;
       await store.finish(local.day, slot.id, {
         state: 'committed', ingestion: 'pending', tableRowcounts: result.tableRowcounts || {},
       }, now());
-      logger.info('[profile-seed-schedule] Source committed; AEP arrival pending', {
-        day: local.day, slot: slot.id, industry: slot.industry, count: slot.count,
-      });
-      return { state: 'committed', count: slot.count };
     } catch (error) {
       // Even a pre-write failure is not automatically replayed with fresh identities.
-      const errorCode = ['SEED_INGESTION_NOT_HEALTHY', 'SEED_PREFERENCES_CHANGED', 'SEED_WINDOW_CLOSED',
-        'SEED_PREPARED_IDENTITIES_INVALID', 'SEED_COMMITTED_NEEDS_INSPECTION', 'SEED_OUTCOME_UNKNOWN',
-        'SEED_GENERATION_FAILED'].includes(error.code) ? error.code : 'SEED_EXECUTION_INTERRUPTED';
-      const stage = error.healthDiagnostic ? 'flow_health' : prepared ? 'source_write' : 'preparation';
+      const errorCode = safeErrorCode(error, SLOT_ERROR_CODES, 'SEED_EXECUTION_INTERRUPTED');
+      try {
+        await store.finish(local.day, slot.id, {
+          state: 'needs_attention', ingestion: 'unverified',
+          errorCode, failureStage: stage,
+          ...(flowHealthAtFailure ? { flowHealth: flowHealthAtFailure } : {}),
+        }, now());
+      } catch (finishError) {
+        logger.error('[profile-seed-schedule] Could not confirm attention state; inspect durable state.', {
+          event: 'profile_seed_attention_unconfirmed', ...logFields, stage: 'persist_attention',
+          errorCode: safeErrorCode(finishError, DISPATCHER_ERROR_CODES, 'SEED_ATTENTION_PERSIST_FAILED'),
+          failureStage: stage, failureCode: errorCode, prepared,
+          flowHealthAtFailure: flowHealthAtFailure ? flowHealthLogFields(flowHealthAtFailure) : null,
+        });
+        throw finishError;
+      }
       logger.error('[profile-seed-schedule] Paused for inspection', {
-        day: local.day, slot: slot.id, industry: slot.industry, count: slot.count,
-        stage, errorCode, prepared, flowHealth: error.healthDiagnostic || null,
+        event: 'profile_seed_needs_attention', ...logFields, stage, errorCode, prepared,
+        flowHealthAtFailure: flowHealthAtFailure ? flowHealthLogFields(flowHealthAtFailure) : null,
       });
-      await store.finish(local.day, slot.id, {
-        state: 'needs_attention', ingestion: 'unverified',
-        errorCode,
-        ...(error.healthDiagnostic ? { flowHealth: error.healthDiagnostic } : {}),
-      }, now());
       return { state: 'needs_attention' };
     }
+    logger.info('[profile-seed-schedule] Source committed; AEP arrival pending', {
+      event: 'profile_seed_source_committed', ...logFields, ingestion: 'pending',
+    });
+    return { state: 'committed', count: slot.count };
   }
   return { tick };
 }
@@ -243,5 +331,5 @@ function createProfileSeedScheduleService({
 module.exports = {
   INDUSTRIES, TIME_ZONE, DAILY_CAP, businessTime, validateConfig, buildDayPlan,
   diagnoseFlowHealth, assertFlowHealth, createProfileSeedScheduleService,
-  healthPolicy, IDLE_POLICY,
+  healthPolicy, IDLE_POLICY, SLOT_FAILURE_STAGES,
 };
