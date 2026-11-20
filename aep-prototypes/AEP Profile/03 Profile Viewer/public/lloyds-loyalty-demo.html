@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="shared/profile-viewer-modal.css">
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
-  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261119-rewards-app">
+  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261120-web-rewards">
   <link rel="stylesheet" href="aep-theme.css?v=20261119-loyalty-palette">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page">
@@ -29,6 +29,10 @@
   <header class="tui-live-actions" aria-label="Loyalty demo controls">
     <div class="tui-lab-brand"><strong class="lloyds-wordmark">LLOYDS</strong><span>Loyalty lab</span></div>
     <div class="tui-action-controls">
+      <div class="loyalty-preview-switch" role="group" aria-label="Preview channel">
+        <button type="button" data-loyalty-preview="mobile" aria-pressed="true" aria-controls="loyaltyMobilePreview">Mobile app</button>
+        <button type="button" data-loyalty-preview="web" aria-pressed="false" aria-controls="loyaltyWebPreview">Web page</button>
+      </div>
       <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
       <button id="loyaltyRun" type="button" disabled>Refresh content card</button>
       <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
@@ -42,11 +46,18 @@
       <p>Your everyday favourites. A little more rewarding.</p></div>
     </section>
     <div class="loyalty-columns">
+      <div class="loyalty-inspector">
       <section id="loyalty-challenges" class="loyalty-challenges" aria-labelledby="loyaltyTasksTitle" data-ajo-insert-section="Member task progress">
         <div class="loyalty-section-heading"><h2 id="loyaltyTasksTitle">Challenge progress</h2><span id="loyaltyUpdated">Not loaded</span></div>
         <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile, then select Get task status.</p></div>
       </section>
-      <section class="loyalty-mobile-preview" aria-label="Lloyds mobile banking app">
+      <section class="loyalty-offer-inspector" aria-labelledby="loyaltyReturnedTitle">
+        <div class="loyalty-section-heading"><h2 id="loyaltyReturnedTitle">Profile offers</h2><span id="loyaltyReturnedCount">Waiting for AJO</span></div>
+        <p class="loyalty-inspector-note">Experience Decisioning results, in the order returned by Adobe.</p>
+        <div id="loyaltyReturnedOffers" aria-live="polite"><p class="loyalty-empty">No personalised offers received for this context.</p></div>
+      </section>
+      </div>
+      <section id="loyaltyMobilePreview" class="loyalty-mobile-preview" aria-label="Lloyds mobile banking app">
         <div class="loyalty-phone">
           <svg class="loyalty-app-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <symbol id="loyaltyIconHome" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9h-6v-6H9v6H3z"/></symbol>
@@ -170,6 +181,28 @@
           <div id="loyaltyOfferSheet" class="loyalty-offer-overlay" hidden></div>
         </div>
       </section>
+      <section id="loyaltyWebPreview" class="loyalty-web-preview" aria-label="Lloyds-inspired rewards website preview" hidden>
+        <div class="loyalty-web-utility"><span>Personal</span><span>Business</span><span>Private Banking</span><strong>Demo preview</strong></div>
+        <header class="loyalty-web-header">
+          <strong class="loyalty-web-wordmark">LLOYDS<span>Banking. With more reward.</span></strong>
+          <nav aria-label="Website preview navigation">
+            <a href="#loyaltyWebChallenge">Your challenge</a><a href="#loyaltyWebOffers">Your offers</a>
+          </nav>
+          <span class="loyalty-web-member">Personal banking</span>
+        </header>
+        <div class="loyalty-web-products" aria-label="Illustrative banking navigation"><span>Everyday banking</span><span>Current accounts</span><span>Savings</span><span>Borrowing</span><b>Rewards</b></div>
+        <div class="loyalty-web-hero">
+          <div><p class="loyalty-web-eyebrow">A LITTLE MORE FOR YOU</p><h2>Everyday favourites.<br>Extra rewards.</h2><p>Your challenges and personalised offers, all in one place.</p><a href="#loyaltyWebOffers">Explore your offers <span aria-hidden="true">&#8594;</span></a></div>
+          <div class="loyalty-web-hero-art" aria-hidden="true"><span>MORE</span><b>for your<br>everyday.</b><i>Rewards</i></div>
+        </div>
+        <div class="loyalty-web-content">
+          <section id="loyaltyWebChallenge" class="loyalty-web-challenge-slot" aria-label="Your Loyalty challenge"></section>
+          <section id="loyaltyWebOffers" class="loyalty-web-offer-slot" aria-label="Your Featured Offers"></section>
+          <p id="loyaltyWebNotice" class="loyalty-web-notice" role="status" aria-live="polite"></p>
+          <p class="loyalty-inspector-note">Lab demonstration, not online banking. Saving an offer is a preview only; Adobe task state is the source of challenge progress.</p>
+        </div>
+        <footer class="loyalty-web-footer"><strong>LLOYDS</strong><span>Your banking. Your rewards.</span><span>Demonstration only</span></footer>
+      </section>
     </div>
     <details class="loyalty-evidence"><summary>Last successful response / proposition evidence</summary><pre id="loyaltyEvidence">No live response yet.</pre></details>
   </main>
@@ -216,7 +249,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261120-featured-offers-request'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261120-web-rewards'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

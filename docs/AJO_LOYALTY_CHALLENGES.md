@@ -32,6 +32,23 @@ current-account card, quick actions, a Rewards teaser, accounts, spending and
 transactions. The greeting uses the loaded profile's first name; the banking
 amounts are explicitly illustrative, not AEP balances.
 
+The **Mobile app / Web page** control changes presentation only. The website
+preview uses an original Lloyds-inspired banking header, navigation and rewards
+hero informed by the supplied saved-page archive, without importing its scripts,
+trackers or third-party styles. The same live Loyalty Content Card and Featured
+Offers carousel nodes move between the two previews; switching neither requests
+decisions nor resets subscriptions, signup receipts or saved preview offers.
+The mobile app layout is unchanged. Both previews support light and dark themes
+and narrow browser widths.
+
+The shared challenge-progress panel uses a polished progress ring, task rail,
+current-task emphasis and a completion banner, while retaining Adobe's actual
+states and the reward-delivery caveat. **Profile offers** beneath it shows only
+the valid items received through `ajo:featured-offers`, in returned order, with
+safe images, available copy/priority fields and expandable complete item response
+details. Local fallback offers are excluded and a profile change clears the prior
+results. This is an inspection view, not an independent eligibility evaluation.
+
 The **Rewards** tab contains the summary/breakdown, quick navigation and
 **Win £1 million** banner. The original live journey Content Card mount is
 immediately below that banner, before the featured-offer carousel. Switching
