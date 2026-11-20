@@ -9,12 +9,13 @@ async function main() {
   let browser;
   try {
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ viewport: { width: 1500, height: 1100 } });
+    const context = await browser.newContext({ viewport: { width: 1500, height: 1100 }, reducedMotion: 'reduce' });
     const errors = [], writes = [], reads = [], signupRequests = [];
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
     let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
     let consentGate, releaseConsent, consentRequests = 0, rejectConsent = false;
     let stateChallengeId = 'challenge-fixture', optedIn = false;
+    let challengeListOverride, stateHasName = true, metadataMode = 'success', metadataGate;
     let signupMode = 'success', signupGate, releaseSignup;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
@@ -58,7 +59,8 @@ async function main() {
       else if (url.pathname === '/api/tags/reactor' || url.pathname === '/api/events/datastreams') data = { data: [] };
       else if (url.pathname === '/api/image-hosting/library') data = { items: [] };
       else if (url.pathname === '/api/ajo-loyalty') {
-        assert.equal(request.headers().authorization, 'Bearer offline-fixture');
+        assert.equal(request.headers().authorization, ['kirkham', 'apalmer'].includes(url.searchParams.get('sandbox')) ? undefined : 'Bearer offline-fixture',
+          'Demo sandboxes omit Portal authentication; other sandboxes retain it');
         if (request.method() === 'POST') {
           const body = request.postDataJSON();
           signupRequests.push({ sandbox: url.searchParams.get('sandbox'), ...body });
@@ -84,11 +86,22 @@ async function main() {
         reads.push(Object.fromEntries(url.searchParams));
         if (unavailableState) return route.fulfill({ status: 404, contentType: 'text/html', body: 'Not Found' });
         if (url.searchParams.get('action') === 'config') data = { ok: true, data: { namespace } };
+        else if (url.searchParams.get('action') === 'challenge_get') {
+          if (metadataGate) await metadataGate;
+          const id = url.searchParams.get('challenge_id');
+          if (metadataMode === 'failure' && id === 'coffee-challenge-fixture') {
+            return route.fulfill({ status: 404, json: { ok: false, error: 'Fixture: challenge metadata unavailable' } });
+          }
+          data = { ok: true, data: {
+            [id === 'coffee-challenge-fixture' ? 'get_id' : '_id']: metadataMode === 'mismatch' ? 'different-challenge' : id,
+            name: id === 'coffee-challenge-fixture' ? 'Coffee rewards (Adobe metadata fixture)  ' : '  Everyday rewards (Adobe metadata fixture)',
+          } };
+        }
         else {
           if (holdState) await new Promise(resolve => { releaseState = resolve; stateStarted(); });
           if (rejectState) return route.fulfill({ status: 403, json: { ok: false, error: 'Fixture: no active enrollment for this sandbox' } });
-          data = { ok: true, data: missingState ? {} : { challengeList: [{
-            challenge_id: stateChallengeId, challengeName: 'Everyday rewards (offline fixture)', state: 'active',
+          data = { ok: true, data: missingState ? {} : { challengeList: challengeListOverride || [{
+            challenge_id: stateChallengeId, ...(stateHasName ? { challengeName: 'Everyday rewards (offline fixture)' } : {}), state: 'active',
             optedIn, tasksToComplete: 2, challengeCompletions: [],
             tasks: [
               { taskId: 'purchase', taskName: 'Make three purchases', taskState: quantity === 3 ? 'completed' : 'incomplete',
@@ -141,6 +154,133 @@ async function main() {
       /Demonstration experience|Web SDK preview · live state, no simulated task completion/,
       'The requested demonstration badge and phone caption stay removed');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
+    const homeTab = page.locator('.loyalty-phone-nav [data-phone-view="home"]');
+    const rewardsTab = page.locator('.loyalty-phone-nav [data-phone-view="rewards"]');
+    assert.equal(await page.locator('#loyaltyViewHome').isVisible(), true, 'The mockup opens on Home');
+    assert.equal(await page.locator('#loyaltyViewRewards').isVisible(), false);
+    assert.equal(await homeTab.getAttribute('aria-current'), 'page');
+    const readsBeforeNavigation = reads.length;
+    await page.locator('.loyalty-rewards-teaser').click();
+    assert.equal(await page.locator('#loyaltyViewHome').isVisible(), false);
+    assert.equal(await page.locator('#loyaltyViewRewards').isVisible(), true);
+    assert.equal(await rewardsTab.getAttribute('aria-current'), 'page');
+    assert.equal(await homeTab.getAttribute('aria-current'), null);
+    assert.equal(await page.evaluate(() => document.activeElement.id), 'loyaltyMobileTitle', 'A hidden Home teaser does not retain keyboard focus');
+    assert.equal(await page.locator('#loyaltyPrizeDraw').evaluate(element =>
+      element.nextElementSibling.querySelector('#ContentCardContainerLoyalty') !== null), true,
+    'The live challenge card sits immediately below the Win £1m promotion, before the carousel');
+    await page.locator('#loyaltyBreakdownButton').click();
+    assert.equal(await page.locator('#loyaltyBreakdown').isVisible(), true);
+    assert.equal(await page.locator('#loyaltyBreakdownButton').getAttribute('aria-expanded'), 'true');
+    await page.locator('#loyaltyBreakdownButton').click();
+    assert.equal(await page.locator('#loyaltyBreakdown').isVisible(), false);
+    const carousel = page.locator('#loyaltyOfferCarousel');
+    assert.equal(await page.locator('#loyaltyFeaturedOffers [role="listitem"]').count(), 0,
+      'Do not immediately render local mock offers');
+    assert.match(await page.locator('#loyaltyFeaturedStatus').textContent(), /Loading personalised offers/);
+    await page.evaluate(() => {
+      for (const offers of [undefined, [], [null, {}, { id: 'empty' }]]) {
+        window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } }));
+      }
+    });
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyFeaturedOffers [role="listitem"]').length === 6,
+      null, { timeout: 10000 });
+    assert.equal(await page.locator('#loyaltyFeaturedOffers [role="listitem"]').count(), 6);
+    assert.match(await page.locator('#loyaltyFeaturedStatus').textContent(), /Preview offers/);
+    assert.equal(await carousel.evaluate(element => element.scrollWidth > element.clientWidth), true, 'Offers swipe horizontally inside the phone');
+    await page.locator('#loyaltyNextOffer').click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
+    await carousel.focus();
+    await page.keyboard.press('End');
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[5].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltyNextOffer').isDisabled(), true);
+    await page.keyboard.press('Home');
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltyPreviousOffer').isDisabled(), true);
+    await page.locator('#loyaltyOfferDots button').nth(3).click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[3].getAttribute('aria-current') === 'true');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    await carousel.scrollIntoViewIfNeeded();
+    const carouselBox = await carousel.boundingBox();
+    await page.mouse.move(carouselBox.x + carouselBox.width - 40, carouselBox.y + 55);
+    await page.mouse.down();
+    await page.mouse.move(carouselBox.x + 30, carouselBox.y + 55, { steps: 10 });
+    await page.mouse.up();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0, 'Dragging a card does not save it');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    await page.locator('[data-save-preview-offer="waitrose"]').click();
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true');
+    assert.equal(await page.locator('#loyaltySavedOffers [aria-label="Waitrose saved preview offer"]').count(), 1);
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /preview only.*not activated/);
+    assert.equal(signupRequests.length, 0, 'Preview offers and navigation never submit Loyalty signup');
+    assert.equal(reads.length, readsBeforeNavigation, 'Navigating the app does not fetch or alter Loyalty state');
+    await homeTab.click();
+    await rewardsTab.click();
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true', 'Tab switches preserve preview selections');
+    await page.locator('[data-save-preview-offer="waitrose"]').click();
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
+    const ajoOffers = Array.from({ length: 6 }, (_, index) => ({
+      id: 'ajo-offer-' + index, merchant: 'Merchant ' + index, title: 'Cashback ' + index,
+      priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate',
+      image: index ? 'javascript:alert(1)' : 'https://example.invalid/offer.png',
+      logo: index ? 'data:image/svg+xml,test' : 'https://example.invalid/logo.png',
+      propositionId: 'original-proposition-' + index, propositionScope: 'hero-banner',
+      propositionItemId: 'original-item-' + index, detailTitle: 'Original detail ' + index,
+      detailSubtitle: 'Original subtitle', detailDescription: 'Original description',
+      destination: 'https://example.invalid/offer', deepLink: 'app://offer/' + index,
+    }));
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', {
+      detail: { offers: [null, {}, { id: 'empty' }, ...offers] },
+    })), ajoOffers);
+    assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(),
+      ajoOffers.slice(0, 5).map(offer => offer.title), 'Filter invalid offers, cap at five and preserve AJO ranking rather than priority sorting');
+    assert.match(await page.locator('.loyalty-featured-art').first().getAttribute('style'), /https:\/\/example.invalid\/offer.png/);
+    assert.equal(await page.locator('.loyalty-featured-art').nth(1).getAttribute('style'), null,
+      'Unsafe incoming images never reach CSS URLs');
+    assert.equal(await page.locator('.loyalty-featured-offer > .loyalty-merchant-logo').nth(1).getAttribute('style'), null,
+      'Unsafe incoming logos never reach CSS URLs');
+    const originalAjoCard = await page.locator('.loyalty-featured-offer').first().elementHandle();
+    await page.locator('#loyaltyNextOffer').click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[1].getAttribute('aria-current') === 'true');
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), ajoOffers);
+    assert.equal(await originalAjoCard.evaluate(card => card.isConnected), true, 'Duplicate ID order does not recreate cards');
+    assert.equal(await page.locator('#loyaltyOfferDots button').nth(1).getAttribute('aria-current'), 'true');
+    await page.evaluate(() => {
+      const set = Map.prototype.set;
+      Map.prototype.set = function(key, value) {
+        if (value?.propositionId) window.__selectedFeaturedOffer = value;
+        return set.call(this, key, value);
+      };
+    });
+    await page.locator('[data-save-preview-offer="ajo-offer-1"]').click();
+    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), ajoOffers[1],
+      'Existing activation/save behavior receives the complete offer including proposition IDs and detail fields');
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })),
+      [ajoOffers[1], ajoOffers[0]]);
+    assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(), [ajoOffers[1].title, ajoOffers[0].title]);
+    assert.equal(await originalAjoCard.evaluate(card => card.isConnected), false, 'Changed ID order rerenders');
+    await page.evaluate(offer => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [offer] } })), ajoOffers[0]);
+    assert.equal(await page.locator('#loyaltyNextOffer').isDisabled(), true);
+    assert.equal(await page.locator('#loyaltyPreviousOffer').isDisabled(), true);
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [] } })));
+    assert.equal(await page.locator('.loyalty-featured-offer').count(), 1, 'Invalid later events do not discard valid offers');
+    await page.locator('#loyaltyPrizeDraw button').click();
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /No banking action or prize entry was submitted/);
+    if (process.env.AEP_LOYALTY_SCREENSHOT) {
+      await page.evaluate(() => { document.getElementById('loyaltyAppToast').hidden = true; });
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+        await homeTab.click();
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-home-' + theme + '.png') });
+        await rewardsTab.click();
+        await page.evaluate(() => { document.querySelector('.loyalty-phone-scroll').scrollTop = 0; });
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-rewards-' + theme + '.png') });
+      }
+      await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    }
     await page.locator('[data-subgroup="demoLloyds"]').waitFor();
     assert.equal(await page.locator('[data-subgroup="demoLloyds"] a[href="lloyds-loyalty-demo.html"]').count(), 1);
     await openConfiguration();
@@ -170,6 +310,8 @@ async function main() {
       'Opening the drawer during lookup must not report failure before its data arrives');
     assert.equal(consentRequests, 1, 'Same-profile hover and explicit lookups share one drawer request');
     await waitForProfile();
+    assert.equal(await page.locator('#loyaltyHomeName').textContent(), 'Alex', 'Home greets the selected profile, not a hardcoded customer');
+    assert.equal(await page.locator('#loyaltyHomeAvatar').textContent(), 'A');
     assert.equal(await page.locator('#tuiPhSignal-points').textContent(), '0',
       'The successful page lookup must publish its table signals alongside the basic drawer fields');
     await page.evaluate(() => {
@@ -211,7 +353,59 @@ async function main() {
     assert.ok(reads.some(read => read.action === 'profile_state' && !Object.hasOwn(read, 'region')),
       'Without an override, use the backend documented va7 default instead of requiring setup or probing regions');
     assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).region, 'va7');
+    challengeListOverride = ['challenge-fixture', 'coffee-challenge-fixture'].map(id => ({
+      challenge_id: id, challengeName: id === 'challenge-fixture' ? id : '  ',
+      state: 'active', optedIn: false, tasksToComplete: 1,
+      tasks: [{ taskId: 'purchase', taskName: 'Make three purchases', taskState: 'incomplete' }],
+    }));
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    const metadataNames = ['Everyday rewards (Adobe metadata fixture)', 'Coffee rewards (Adobe metadata fixture)'];
+    assert.deepEqual(await page.locator('#loyaltyTasks .loyalty-progress-summary h3').allTextContents(), metadataNames,
+      'All returned nameless challenges resolve metadata, without requiring a challenge filter');
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), metadataNames);
+    assert.match(await page.locator('#loyaltyTasks .loyalty-task-details').first().textContent(), /Challenge ID: challenge-fixture/,
+      'Technical IDs remain available in API details');
+    metadataMode = 'failure';
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(),
+      [metadataNames[0], 'Challenge name unavailable']);
+    assert.match(await page.locator('#loyaltyTasks').textContent(), /challenge metadata unavailable/);
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-task').count(), 2,
+      'An individual metadata failure does not hide Adobe-reported task progress');
+    metadataMode = 'mismatch';
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(),
+      ['Challenge name unavailable', 'Challenge name unavailable'], 'Never apply another challenge identity\'s name');
+    metadataMode = 'success';
     await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('coffee-challenge-fixture');
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), [metadataNames[1]]);
+    await page.locator('[data-loyalty-participation="complete"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.deepEqual(await page.locator('#loyaltyPhoneTasks h4').allTextContents(), [metadataNames[1]],
+      'Completed participation resolves the same exact challenge name');
+    await page.locator('[data-loyalty-participation="active"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    let releaseMetadata;
+    metadataGate = new Promise(resolve => { releaseMetadata = resolve; });
+    const pendingMetadata = page.waitForRequest(request => new URL(request.url()).searchParams.get('action') === 'challenge_get');
+    await page.locator('#loyaltyRefresh').click();
+    await pendingMetadata;
+    await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('challenge-fixture');
+    releaseMetadata(); metadataGate = undefined;
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-challenge').count(), 0,
+      'Delayed metadata cannot refill progress after its challenge context changes');
+    assert.equal(await page.locator('#loyaltyPhoneTasks h4').count(), 0);
+    challengeListOverride = undefined;
+    await openApiOptions();
+    await page.locator('#loyaltyChallenge').fill('');
     await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#loyaltyTenant').fill('_ownTenant');
     await page.locator('#loyaltyRefresh').click();
@@ -224,6 +418,44 @@ async function main() {
     assert.equal(await page.locator('.loyalty-phone-count').textContent(), '0 / 2 tasks complete');
     assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 0);
     assert.equal(await page.locator('.loyalty-phone-task button').count(), 0, 'Phone tasks cannot be completed by local simulation buttons');
+    challengeListOverride = [{
+      challenge_id: stateChallengeId, challengeName: 'Completed partner challenge', state: 'sent',
+      optedIn: true, tasksToComplete: 3, completionDate: '2026-11-19T22:02:33.090Z',
+      tasks: ['PureGym', 'TK Maxx', 'Waitrose'].map((name, index) => ({
+        taskId: 'partner-' + index, taskName: name, taskState: 'sent',
+        variables: { qtyMin: 1 },
+        taskCompletions: [{ completionDate: '2026-11-19T22:02:30.767Z', accumulators: { qty: 1 } }],
+      })),
+    }];
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '3 / 3',
+      'Adobe sent is the post-completion state, not an unfinished task');
+    assert.equal(await page.locator('.loyalty-phone-count').textContent(), '3 / 3 tasks complete');
+    assert.equal(await page.locator('.loyalty-phone-tick').count(), 3);
+    assert.equal(await page.locator('.loyalty-task[data-current="true"]').count(), 0);
+    assert.match(await page.locator('.loyalty-outcome').textContent(), /Challenge completed/);
+    assert.match(await page.locator('.loyalty-outcome').textContent(), /Reward delivery is not verified/);
+    assert.doesNotMatch(await page.locator('.loyalty-phone-task').first().textContent(), /sent/);
+    assert.match(await page.locator('.loyalty-task-details').textContent(), /State: sent/,
+      'Raw Adobe state remains available in API diagnostics');
+    await page.locator('[data-loyalty-participation="complete"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await page.locator('.loyalty-phone-tick').count(), 3,
+      'Completed participation renders Adobe sent tasks as complete too');
+    await page.locator('[data-loyalty-participation="active"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    challengeListOverride[0].state = 'incomplete';
+    challengeListOverride[0].tasks[1].taskState = 'incomplete';
+    challengeListOverride[0].tasks[2].taskState = 'unrecognized';
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '1 / 3',
+      'Historical completion receipts do not complete current incomplete or unknown task states');
+    assert.doesNotMatch(await page.locator('.loyalty-outcome').textContent(), /Challenge completed/);
+    challengeListOverride = undefined;
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-points')?.textContent === '0');
     assert.equal(await page.locator('#tuiPhSignal-emailConsent').textContent(), 'n');
     assert.equal(await page.locator('#tuiPhSignal-tier').textContent(), 'Gold');
@@ -249,6 +481,7 @@ async function main() {
           return {};
         }
         if (payload.xdm?.eventType?.startsWith('decisioning.proposition')) return {};
+        if (window.__emptyCardResponse) return { propositions: [] };
         const proposition = (id, scope, rank) => ({ id, scope, scopeDetails: { decisionProvider: 'CJM', rank }, items: [{
           id: 'item-' + id, name: 'Loyalty offer fixture', itemSelection: { selectionDetail: { strategyID: 'strategy-fixture' } },
           data: { rules: [{ consequences: [{ id: 'consequence-' + id, detail: { data: {
@@ -315,6 +548,36 @@ async function main() {
     assert.deepEqual(decision.personalization.surfaces, [sharedCardSurface],
       'Request the configured shared AJO channel, not the Lloyds document URL');
     assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
+    const originalCard = await page.locator('#ContentCardContainerLoyalty article').elementHandle();
+    const sdkCallsBeforeTabs = await page.evaluate(() => window.__sdkCalls.length);
+    await homeTab.click();
+    await rewardsTab.click();
+    assert.equal(await originalCard.evaluate(card => card.isConnected), true, 'Tab switches preserve the original live card and its handlers');
+    assert.equal(await page.evaluate(() => window.__sdkCalls.length), sdkCallsBeforeTabs, 'Switching tabs does not resend a proposition, display or signup event');
+    await page.evaluate(() => { window.__emptyCardResponse = true; });
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('previous card was removed'));
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
+      'An authoritative empty refresh cannot leave an obsolete challenge card visible');
+    await page.evaluate(() => { window.__emptyCardResponse = false; });
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('original proposition display accepted'));
+    if (process.env.AEP_LOYALTY_SCREENSHOT) {
+      for (const theme of ['light', 'dark']) {
+        await page.evaluate(theme => {
+          document.documentElement.setAttribute('data-aep-theme', theme);
+          const scroll = document.querySelector('.loyalty-phone-scroll'), prize = document.getElementById('loyaltyPrizeDraw');
+          scroll.scrollTop += prize.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
+        }, theme);
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-challenge-' + theme + '.png') });
+        await page.evaluate(() => {
+          const scroll = document.querySelector('.loyalty-phone-scroll'), featured = document.getElementById('loyaltyFeaturedTitle');
+          scroll.scrollTop += featured.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 12;
+        });
+        await page.locator('.loyalty-phone').screenshot({ path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-carousel-' + theme + '.png') });
+      }
+      await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    }
     await page.locator('#ContentCardContainer button').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Proposition interaction accepted'));
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/, 'A successful card interaction does not advance tasks locally');
@@ -353,6 +616,15 @@ async function main() {
     }), 'The phone frame fits a narrow mobile viewport');
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1),
       'The redesigned page must not introduce horizontal scrolling on mobile');
+    await page.locator('#loyaltyOfferDots button').first().click();
+    await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
+    assert.ok(await page.locator('#loyaltyOfferCarousel').evaluate(element => {
+      const rect = element.getBoundingClientRect(), phone = document.querySelector('.loyalty-phone').getBoundingClientRect();
+      return rect.left >= phone.left && rect.right <= phone.right;
+    }), 'The swipeable carousel stays within the mobile phone instead of widening the page');
+    assert.equal(await page.locator('.loyalty-featured-offer').first().evaluate(element =>
+      element.getBoundingClientRect().width < document.getElementById('loyaltyOfferCarousel').clientWidth - 20), true,
+    'The next offer peeks into view at mobile width');
     await openApiOptions();
     assert.ok(await page.locator('#loyaltyRegion').evaluate(node => {
       const rect = node.getBoundingClientRect(); return rect.left >= 0 && rect.right <= innerWidth + 1;
@@ -523,6 +795,7 @@ async function main() {
       !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_demoemea',
       'The TUI-compatible tenant is also populated on initial page load, not only after a sandbox switch');
+    await rewardsTab.click();
     await page.evaluate(() => {
       window.__journeySubscriptions = [];
       window.__journeyTracking = [];
@@ -539,12 +812,17 @@ async function main() {
           const propositions = [{ id: 'journey-card', scope: subscription.surfaces[0],
             scopeDetails: { decisionProvider: 'CJM' }, items: [{ id: 'native-card',
               schema: 'https://ns.adobe.com/personalization/message/content-card',
-              data: { content: { title: 'Delivered by the journey', body: 'Native AJO card',
+              data: { content: { title: window.__journeyTitle || 'Delivered by the journey', body: 'Native AJO card',
                 actionUrl: '#loyalty-challenges' }, meta: { buttonLabel: 'View tasks' } } }] }];
           window.__deliverJourney = () => subscription.callback({ propositions }, async (type, selected) => {
             window.__journeyTracking.push({ type, selected });
           });
           window.__deliverJourney();
+          if (window.__staleDirectResponse) {
+            const stale = JSON.parse(JSON.stringify(propositions));
+            stale[0].items[0].data.content.title = 'Obsolete direct-response card';
+            return { propositions: stale };
+          }
           return { propositions: [] };
         }
         return {};
@@ -572,6 +850,12 @@ async function main() {
     await page.evaluate(() => window.__deliverJourney());
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1,
       'Repeated ruleset callbacks cannot loop display collection');
+    await page.evaluate(() => { window.__journeyTitle = 'Updated journey content'; window.__staleDirectResponse = true; });
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), 'Updated journey content',
+      'A current ruleset callback wins over an older direct sendEvent response, even with the same proposition IDs');
+    await page.evaluate(() => { window.__journeyTitle = ''; window.__staleDirectResponse = false; });
     await page.evaluate(() => {
       window.__journeySubscriptions.at(-1).callback({ propositions: [] }, async () => {});
     });
@@ -665,15 +949,13 @@ async function main() {
     assert.equal(await joinButton.getAttribute('data-interact-id'), 'joinChallenge');
     assert.equal(await joinButton.getAttribute('data-challenge-id'), 'challenge-one-fixture');
     await page.evaluate(() => { window.AepLabSandboxSync.getAuthHeaders = async () => ({}); });
-    await joinButton.click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Sign in to the Portal'));
-    assert.equal(signupRequests.length, 0);
-    await page.evaluate(() => {
-      window.AepLabSandboxSync.getAuthHeaders = async () => ({ Authorization: 'Bearer offline-fixture' });
-    });
     signupMode = 'namespace';
+    const anonymousSignup = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === '/api/ajo-loyalty');
     await joinButton.click();
+    assert.equal((await (await anonymousSignup).allHeaders()).authorization, undefined, 'Demo signup is triggered without Portal sign-in or a browser Adobe token');
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('configured namespace mismatch'));
+    assert.equal(signupRequests.length, 1, 'No frontend sign-in check prevents the server-verified demo request');
+    await page.evaluate(() => { window.AepLabSandboxSync.getAuthHeaders = async () => ({ Authorization: 'Bearer offline-fixture' }); });
     assert.equal(await joinButton.isDisabled(), false, 'A local proxy 409 is not Adobe already-joined enrollment');
     signupMode = 'rejected';
     await joinButton.click();
@@ -693,7 +975,12 @@ async function main() {
     assert.equal(signupRequests.length, uncertainCount, 'An uncertain submission cannot be retried by another click');
     assert.equal((await signupInteractions()).length, 0);
     unavailableState = false; namespace = 'loyaltyId'; stateChallengeId = 'challenge-one-fixture'; quantity = 0;
+    const anonymousState = page.waitForRequest(request => {
+      const url = new URL(request.url());
+      return url.pathname === '/api/ajo-loyalty' && url.searchParams.get('action') === 'profile_state';
+    });
     await page.locator('#loyaltyRefresh').click();
+    assert.equal((await (await anonymousState).allHeaders()).authorization, undefined, 'Test-member task reads do not need Portal sign-in');
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
     assert.equal(await joinButton.isDisabled(), false, 'Explicit Adobe optedIn:false permits a deliberate retry after reconciliation');
     signupMode = 'success';
@@ -791,7 +1078,7 @@ async function main() {
     assert.equal(signupRequests.length, signupsAfterTrackingFailure, 'Never repeat accepted signup to retry tracking');
     assert.equal(await joinButton.isDisabled(), true);
     signupMode = 'duplicate';
-    unavailableState = false; stateChallengeId = 'challenge-three-fixture';
+    unavailableState = false; stateChallengeId = 'challenge-three-fixture'; stateHasName = false;
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-three-fixture'; window.__deliverSignupCard(); });
     await joinButton.click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge Already Joined.'));
@@ -800,6 +1087,9 @@ async function main() {
     assert.equal(signupRequests.at(-1).challenge_id, 'challenge-three-fixture');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).test, 'false');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).profile_id, 'loyalty-fixture-123');
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-summary h3').textContent(), metadataNames[0],
+      'The automatic post-signup refresh also resolves the challenge name');
+    stateHasName = true;
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Duplicate enrollment and task refresh do not complete tasks');
     signupMode = 'network';
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-network-fixture'; window.__deliverSignupCard(); });
@@ -895,6 +1185,28 @@ async function main() {
       'A visible caller joining a silent lookup still receives the actual failure');
     assert.equal(consentRequests, beforeJoinedFailure + 1, 'Failed joined requests are not retried automatically');
     rejectConsent = false;
+    const earlyPage = await context.newPage();
+    earlyPage.on('pageerror', error => errors.push(error.message));
+    await earlyPage.addInitScript(() => {
+      const add = window.addEventListener;
+      window.addEventListener = function(type, listener, options) {
+        add.call(this, type, listener, options);
+        if (type !== 'ajo:featured-offers') return;
+        window.addEventListener = add;
+        window.dispatchEvent(new CustomEvent(type, { detail: { offers: [{
+          id: 'early-ajo-offer', merchant: 'Early merchant', title: 'Early ranked offer',
+          propositionId: 'early-proposition', propositionScope: 'hero-banner', propositionItemId: 'early-item',
+        }] } }));
+      };
+    });
+    await earlyPage.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
+    await earlyPage.waitForFunction(() => document.querySelector('.loyalty-featured-body h4')?.textContent === 'Early ranked offer');
+    assert.equal(await earlyPage.locator('#loyaltyOfferCarousel').getAttribute('aria-busy'), 'false',
+      'An event delivered immediately after listener registration survives asynchronous app initialization');
+    await earlyPage.waitForTimeout(5500);
+    assert.deepEqual(await earlyPage.locator('.loyalty-featured-body h4').allTextContents(), ['Early ranked offer'],
+      'The five-second fallback cannot overwrite a valid early AJO delivery');
+    await earlyPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');

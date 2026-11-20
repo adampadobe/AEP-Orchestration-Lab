@@ -413,6 +413,11 @@ const PROFILE_LOOKUP_NAMESPACE_TRIES = {
   phone: ['Phone', 'phone'],
 };
 
+function isUpsEntityNotFound(status, data) {
+  return status === 404 && data?.['error-code'] === 'UPLIB-201001-404'
+    && data.title === 'Entity not found.' && Number(data.status) === 404;
+}
+
 /**
  * Fetch profile by identity value and namespace (Consent Manager / Profile table).
  * @param {string} identityValue - email, ECID, CRM ID, etc.
@@ -452,8 +457,7 @@ async function fetchUpsProfileEntities(identityValue, sandboxName, token, client
       throw new Error('Profile Access returned errors; absence is not confirmed.');
     }
     if (!res.ok) {
-      if (res.status === 404 && data['error-code'] === 'UPLIB-201001-404'
-        && data.title === 'Entity not found.' && Number(data.status) === 404) {
+      if (isUpsEntityNotFound(res.status, data)) {
         sawEntityNotFound = true;
         if (strictRead) sawOkEmpty = true;
         continue;
@@ -717,6 +721,7 @@ module.exports = {
   buildProfileTablePayload,
   resolveExistingEcidForProfileMerge,
   fetchUpsProfileEntities,
+  isUpsEntityNotFound,
   flattenEntityToTableRows,
   get,
   getProfileEmail,

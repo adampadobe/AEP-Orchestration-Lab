@@ -2,6 +2,13 @@
 
 /* Home page – Vodafone-inspired look and feel */
 
+body.home-dashboard-concierge.lloyds-loyalty-page {
+  --dash-loyalty-accent: #00d26a;
+  --dash-loyalty-accent-end: #39e88f;
+  --dash-loyalty-ink: #0b1c13;
+  --dash-loyalty-on-ink: #ffffff;
+}
+
 :root {
   --vodafone-red: #E60000;
   --vodafone-red-hover: #cc0000;
