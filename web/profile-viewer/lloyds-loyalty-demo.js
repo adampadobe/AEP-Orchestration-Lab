@@ -34,18 +34,22 @@
     const url = safeUrl(raw);
     return url ? 'url("' + url.replace(/["\\\n\r\f]/g, character => '\\' + character.charCodeAt(0).toString(16) + ' ') + '")' : '';
   };
-  // Data Collection owns hero-banner decisioning; this listener only consumes its ranked offers.
+  // Data Collection owns the featured-offers Code-based Experience; consume its ranked items only.
   global.addEventListener('ajo:featured-offers', event => {
-    const items = event.detail?.offers;
+    const detail = event.detail, items = detail?.offers;
     if (!Array.isArray(items) || !items.length) {
-      console.warn('AJO Featured Offers: expected a non-empty offers array.'); return;
+      console.log('[Rewards App] No valid AJO Featured Offers received'); return;
     }
     const offers = items.filter(item => item && typeof item === 'object' && !Array.isArray(item) &&
-      ['id', 'merchant', 'title'].every(key => typeof item[key] === 'string' && item[key].trim())).slice(0, 5);
+      ['id', 'merchant', 'title'].every(key => typeof item[key] === 'string' && item[key].trim())).slice(0, 5).map(item => ({
+        ...item,
+        ...Object.fromEntries(['propositionId', 'propositionScope', 'propositionScopeDetails']
+          .filter(key => item[key] == null && detail[key] != null).map(key => [key, detail[key]])),
+      }));
     if (!offers.length) {
-      console.warn('AJO Featured Offers: no valid offers received.'); return;
+      console.log('[Rewards App] No valid AJO Featured Offers received'); return;
     }
-    console.info('AJO Featured Offers received', offers);
+    console.log('[Rewards App] Rendering AJO Featured Offers', offers);
     clearTimeout(featuredFallbackTimer);
     pendingFeaturedOffers = offers;
     if (featuredReady) renderAjoFeaturedOffers();
@@ -100,6 +104,7 @@
       body.append(node('span', offer.merchant), node('h4', offer.title),
         node('p', 'Channel: ' + (offer.channel || 'Not specified')), node('p', 'Expires: ' + (offer.expiry || 'Not specified')));
       const save = node('button', '+', 'loyalty-featured-save'); save.type = 'button'; save.dataset.savePreviewOffer = offer.id;
+      save.title = typeof offer.cta === 'string' && offer.cta.trim() ? offer.cta + ' (preview save only)' : 'Save preview offer';
       save.addEventListener('click', () => activateOffer(offer));
       body.append(save); card.append(art, logo, body); cards.append(card);
       const dot = node('button'); dot.type = 'button';
@@ -692,15 +697,26 @@
   async function work(operation) {
     if (busy) return;
     busy = true; aborter = new AbortController();
-    const timeout = setTimeout(() => aborter.abort(), 120000), ctx = context(), token = version;
+    const controller = aborter, ctx = context(), token = version;
+    const timeout = setTimeout(() => controller.abort(new Error(
+      'Request timed out after 120 seconds. Any submitted Adobe operation may still finish; inspect its state before retrying.'
+    )), 120000);
+    let onAbort;
+    const cancelled = new Promise((resolve, reject) => {
+      onAbort = () => reject(controller.signal.reason);
+      controller.signal.addEventListener('abort', onAbort, { once: true });
+    });
     message('Loading...');
-    try { await operation(ctx, token); }
+    // Aborting fetch alone cannot release queued SDK commands or shared drawer promises.
+    try { await Promise.race([operation(ctx, token), cancelled]); }
     catch (error) {
       if (token === version) {
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
+        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; }
       }
     } finally {
+      controller.signal.removeEventListener('abort', onAbort);
       clearTimeout(timeout); busy = false; message($('loyaltyStatus').textContent, $('loyaltyStatus').dataset.error === 'true');
       if (pendingProfile) {
         const detail = pendingProfile; pendingProfile = null;
@@ -885,8 +901,10 @@
       throw new Error('Configure the reviewed event tenant namespace before requesting a content card.');
     }
     if (!/^web:\/\/[^?#\s]+#[A-Za-z][A-Za-z0-9_-]*$/.test(ctx.surface)) throw new Error('Provide one explicit web surface URI with a fragment.');
+    message('Connecting to Web SDK for the content card...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
+    message('Reading the active Web SDK visitor identity...');
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
     same(ctx, token);
     const ecid = identity?.identity?.ECID;
@@ -904,11 +922,13 @@
       const subscription = { key: subscriptionKey, alloy, updates: 0 };
       cardSubscription = subscription;
       try {
+        message('Subscribing to journey content cards...');
         await alloy('subscribeRulesetItems', { surfaces: [ctx.surface], schemas: [cardSchema],
           callback: (result, collectEvent) => {
             if (cardSubscription !== subscription || !current()) return;
             subscription.updates++;
-            void showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true).catch(error => {
+            subscription.rendering = showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true);
+            void subscription.rendering.catch(error => {
               if (current()) message('Journey card rendering failed: ' + error.message + ' No automatic retry.', true);
             });
           } });
@@ -917,21 +937,25 @@
     same(ctx, token);
     if (!current()) throw new Error('Event datastream changed while preparing the card. No request sent.');
     const subscriptionUpdates = cardSubscription.updates;
+    message('Requesting journey content from Adobe...');
     const result = await alloy('sendEvent', { ...captured.edgeOptions, renderDecisions: true,
       personalization: { surfaces: [ctx.surface], sendDisplayEvent: false },
       xdm: { ...captured.eventXdm, identityMap, web: { webPageDetails: {
         URL: location.origin + location.pathname, name: viewName, viewName } } } });
     same(ctx, token);
     if (!current()) throw new Error('Event datastream changed; previous card response discarded.');
-    if (cardSubscription.updates !== subscriptionUpdates) return;
+    if (cardSubscription.updates !== subscriptionUpdates) {
+      await cardSubscription.rendering; same(ctx, token); return;
+    }
     if (model.selectCard(result?.propositions, ctx.surface)) await showCard(result.propositions, captured, ctx, token);
     else if (Array.isArray(result?.propositions)) {
       await showCard(result.propositions, captured, ctx, token, true);
-      message('No eligible content card returned. The previous card was removed; refresh does not change Adobe eligibility.');
     }
-    else if (!cardMount().childElementCount) {
-      $('loyaltyCardHint').textContent = 'Waiting for a journey content-card proposition for this surface.';
-      message('Card request accepted. Journey cards render through the active ruleset subscription.');
+    else {
+      if (!cardMount().childElementCount) $('loyaltyCardHint').textContent = 'Waiting for a journey content-card proposition for this surface.';
+      $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, surface: ctx.surface,
+        response: result, note: 'No direct content-card propositions returned; journey subscription remains active.' }, null, 2);
+      message('Card request accepted. No new direct content card returned; journey cards render through the active ruleset subscription.');
     }
   }
   async function showCard(propositions, captured, ctx, token, clearMissing) {
@@ -942,11 +966,15 @@
         cardMount().replaceChildren(); displayedCard = '';
         deliveredChallenge = null; restoreParticipation();
         $('loyaltyCardHint').textContent = 'No eligible renderable journey card returned for this surface.';
+        $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, surface: ctx.surface, propositions }, null, 2);
+        message('No eligible content card returned. The previous card was removed; refresh does not change Adobe eligibility.');
       }
       return;
     }
     const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content, candidate.meta]);
-    if (displayedCard === cardKey) return;
+    if (displayedCard === cardKey) {
+      message('Content card unchanged. Adobe returned the same card; no duplicate display event sent.'); return;
+    }
     if (!candidate.item.id || typeof captured?.alloy !== 'function' || !captured.identityMap ||
         !Object.values(captured.identityMap).some(ids => Array.isArray(ids) && ids.some(id => typeof id?.id === 'string' && id.id))) {
       throw new Error('Original proposition request identity is missing. No display event sent.');
@@ -959,6 +987,7 @@
     $('loyaltyCardHint').textContent = 'Chosen for you';
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
       renderedConsequence: candidate.consequenceId }, null, 2);
+    message('Content card displayed; collecting the original proposition display...');
     if (captured.collectEvent) await captured.collectEvent('display', [candidate.proposition]);
     else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
     same(ctx, token);

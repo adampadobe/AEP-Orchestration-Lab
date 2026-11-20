@@ -39,14 +39,25 @@ tabs preserves the delivered card, subscription, signup receipt and task state
 without sending any new events. The carousel supports native touch scrolling,
 mouse dragging, previous/next controls, pagination dots and keyboard arrows /
 Home / End. Featured offers arrive from the Data Collection rule's
-`CustomEvent("ajo:featured-offers", { detail: { offers } })`, after it processes
-the Experience Decisioning `hero-banner` response. The page makes no additional
+`CustomEvent("ajo:featured-offers", { detail: { offers, propositionId,
+propositionScope, propositionScopeDetails } })`, after it processes the AJO
+Code-based Experience at location **`featured-offers`**. This is the Adobe
+personalization location, not a replacement DOM ID: the existing carousel
+and `renderFeaturedOffers(items)` remain the presentation layer. The tag owns
+requesting that experience with the correct profile; profile lookup alone
+does not prove that a decision was requested or that this event was dispatched.
+The page makes no additional
 SDK request for this carousel. It accepts non-empty object entries with string
 `id`, `merchant` and `title`, keeps the first five valid offers in strategy order,
 and replaces the cards through `renderFeaturedOffers(items)`. Media uses the
 HTTP(S) URL and CSS URL guards; copy remains text. Complete offer objects,
-including proposition IDs/scope and details, remain available to the unchanged
-preview-save action. Display/interaction tracking is deliberately not added yet.
+including `detailTitle`, `detailSubtitle`, `detailDescription`, `image`, `cta`,
+`endDate`, `propositionId`, `propositionScope`, `propositionScopeDetails` and
+`propositionItemId`, remain available to the unchanged preview-save action and
+future detail popup. Missing per-item proposition ID/scope/scope-details inherit
+the event-level values; explicit item metadata takes precedence. The AJO CTA is
+the existing `+` button's preview-labelled tooltip; neither activation behavior
+nor the popup is changed. Display/interaction tracking is deliberately not added yet.
 The listener is registered before app initialization and retains an early response.
 Repeated AJO ID/order signatures preserve the existing cards and scroll position;
 changed IDs or order rerender. The carousel initially shows **Loading personalised
@@ -66,8 +77,15 @@ no profile or sandbox token.
 
 An explicit Content Card refresh with an empty proposition array removes the
 previous card instead of leaving obsolete content visible. A newer ruleset
-subscription update delivered during the request takes precedence over that
-empty direct response. Repeated subscription callbacks still deduplicate display
+subscription update delivered during the request takes precedence over an
+older direct response. Unchanged cards and successful empty responses finish
+with an explicit status; empty responses are recorded in proposition evidence.
+SDK preparation, identity, subscription, decision request and display collection
+have separate status messages. The existing 120-second request deadline releases
+the UI even when an SDK/shared-drawer promise does not settle. A late resolution
+cannot continue into a new request context. This does not cancel an Adobe
+operation already submitted; inspect its state before retrying, and do not
+automatically retry. Repeated subscription callbacks still deduplicate display
 tracking; Content Card SDK behavior is separate from the carousel CustomEvent.
 
 Live participation controls, joined-challenge partner offers and the mobile task
