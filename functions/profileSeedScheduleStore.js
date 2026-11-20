@@ -1,7 +1,8 @@
 'use strict';
 
-const { validateConfig, DAILY_CAP, businessTime } = require('./profileSeedScheduleService');
+const { validateConfig, DAILY_CAP, businessTime, SLOT_FAILURE_STAGES } = require('./profileSeedScheduleService');
 const COLLECTION = 'labProfileSeedSchedules';
+const MAX_WRITER_AGE_MS = 15 * 60_000;
 const fail = (code) => Object.assign(new Error(code), { code });
 
 function createProfileSeedScheduleStore(db) {
@@ -37,7 +38,8 @@ function createProfileSeedScheduleStore(db) {
       const current = state.data() || {};
       if (current.blocked) return null;
       if (current.active) {
-        if (now.getTime() - Date.parse(current.active.startedAt) > 15 * 60_000) {
+        const writerAgeMs = now.getTime() - Date.parse(current.active.startedAt);
+        if (writerAgeMs > MAX_WRITER_AGE_MS) {
           // Never reclaim an abandoned writer: its commit may already have happened.
           const activeRef = dayRef(current.active.day);
           const activeDay = current.active.day === day ? saved : await tx.get(activeRef);
@@ -45,10 +47,14 @@ function createProfileSeedScheduleStore(db) {
           const slot = plan.slots.find(({ id }) => id === current.active.id);
           slot.state = 'needs_attention';
           slot.errorCode = 'SEED_EXECUTION_INTERRUPTED';
+          slot.failureStage = SLOT_FAILURE_STAGES.abandoned;
           slot.updatedAt = now.toISOString();
           tx.set(activeRef, plan);
           tx.set(control, { ...current, blocked: true });
-          return { state: 'needs_attention' };
+          return {
+            state: 'needs_attention', day: current.active.day, id: slot.id,
+            industry: slot.industry, count: slot.count, writerAgeMs, maxWriterAgeMs: MAX_WRITER_AGE_MS,
+          };
         }
         return null;
       }

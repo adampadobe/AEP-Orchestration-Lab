@@ -96,6 +96,20 @@ AEP flow configuration change, or downstream promotion. An accepted apply
 reports `ingestion:'not_started'`. After timeout/network uncertainty, stop:
 never automatically retry preview or apply. Use read-only schedule diagnostics
 to establish state, and obtain a fresh review if a later action is needed.
+
+For scheduler execution in Cloud Logging, filter by `jsonPayload.event`
+(`profile_seed_needs_attention`, `profile_seed_attention_unconfirmed`,
+`profile_seed_writer_abandoned`, `profile_seed_dispatcher_failed`, or
+`profile_seed_source_committed`). Correlate a slot using its Riyadh business
+`day` and `slot`. `flowHealthAtFailure.unhealthyFlows` gives the affected AEP
+flow IDs, reason codes, and observed completion ages in milliseconds; compare
+with `maxRunAgeMs` (two hours). A null age means there was no usable completion
+timestamp. An unconfirmed attention update means the log cannot establish whether
+the durable transition succeeded; inspect owner-scoped diagnostics and do not replay.
+The diagnostics report separately labels saved failure evidence, current flow
+health, and errors that make current health unknown. A healthy current read does
+not erase the saved failure or unblock the dispatcher.
+
 Final acceptance requires the next real scheduled run's provenance and complete
 stored Snowflake source, current XDM and REL readback. Keep the shared Agentic
 parent and its source tables separate from the read-only REL model; source
