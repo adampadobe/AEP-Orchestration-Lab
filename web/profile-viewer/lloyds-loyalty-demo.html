@@ -34,7 +34,7 @@
         <button type="button" data-loyalty-preview="web" aria-pressed="false" aria-controls="loyaltyWebPreview">Web page</button>
       </div>
       <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
-      <button id="loyaltyRun" type="button" disabled>Refresh content card</button>
+      <button id="loyaltyRun" type="button" disabled title="Refresh the challenge Content Card and Featured Offers for the loaded profile.">Refresh card &amp; offers</button>
       <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
       <button id="loyaltyAbandon" type="button" disabled title="Send rewards.interest for the loaded test profile. AEP must evaluate the event before audience membership is confirmed.">Show interest in Rewards</button>
     </div>
@@ -250,7 +250,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261121-rewards-interest'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261121-combined-refresh'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
