@@ -505,7 +505,7 @@ async function main() {
           if (window.__pauseIdentity) await new Promise(resolve => { window.__releaseDecision = resolve; });
           return { identity: { ECID: window.__browserEcid ?? '12345678901234567890123456789012345678' } };
         }
-        if (payload.xdm?.eventType === 'abandoned.search') {
+        if (payload.xdm?.eventType === 'rewards.interest') {
           if (window.__rejectAbandon) throw new Error('Fixture: Edge response interrupted');
           return {};
         }
@@ -527,11 +527,12 @@ async function main() {
       };
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' } });
     });
-    const abandonCalls = () => page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.xdm?.eventType === 'abandoned.search'));
+    const abandonCalls = () => page.evaluate(() => window.__sdkCalls.filter(call => call.payload?.xdm?.eventType === 'rewards.interest'));
     assert.equal((await abandonCalls()).length, 0, 'Lookup, task reads and SDK setup never send a journey event');
     const refreshesBefore = eventRefreshes;
     await page.locator('#loyaltyAbandon').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('abandoned.search accepted'));
+    assert.equal(await page.locator('#loyaltyAbandon').textContent(), 'Show interest in Rewards');
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('audience membership is not yet verified'));
     const abandoned = await abandonCalls();
     assert.equal(abandoned.length, 1, 'One explicit click sends one event');
     assert.equal(abandoned[0].payload.xdm.identityMap.loyaltyId, undefined, 'Missing Loyalty identity is not invented');
@@ -540,7 +541,7 @@ async function main() {
       edgeConfigOverrides: { datastreamId: 'reviewed-fixture-stream' }, renderDecisions: false,
       personalization: { defaultPersonalizationEnabled: false },
       xdm: {
-        eventType: 'abandoned.search',
+        eventType: 'rewards.interest', timestamp: abandoned[0].payload.xdm.timestamp,
         identityMap: {
           Email: [{ id: 'fixture@example.invalid', authenticatedState: 'authenticated', primary: true }],
           ECID: [{ id: '12345678901234567890123456789012345678', authenticatedState: 'ambiguous', primary: false }],
@@ -550,7 +551,11 @@ async function main() {
       },
     } }, 'The TUI / Center Parcs event contract is preserved with the selected profile, tenant and datastream');
     assert.ok(eventRefreshes > refreshesBefore, 'Accepted events refresh the shared profile timeline');
-    assert.match(await page.locator('#loyaltyStatus').textContent(), /Journey entry is not yet verified/);
+    assert.ok(Math.abs(Date.now() - Date.parse(abandoned[0].payload.xdm.timestamp)) < 30000, 'Interest event uses the current ISO timestamp');
+    assert.equal(new Date(abandoned[0].payload.xdm.timestamp).toISOString(), abandoned[0].payload.xdm.timestamp);
+    assert.equal(abandoned[0].payload.xdm._experience, undefined, 'Audience interest does not inject journey orchestration metadata');
+    assert.ok(!JSON.stringify(abandoned[0].payload).includes('abandoned.search'), 'The old event type is absent from the entire new request');
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /audience membership is not yet verified/);
     assert.equal(await page.locator('.loyalty-task[data-complete="true"]').count(), 0, 'Sending a journey event never completes a task locally');
     await page.evaluate(() => { window.__rejectAbandon = true; });
     await page.locator('#loyaltyAbandon').click();
@@ -807,7 +812,7 @@ async function main() {
     await page.evaluate(() => { window.__pauseIdentity = true; window.__releaseDecision = null; });
     await page.locator('#loyaltyAbandon').click();
     await page.waitForFunction(() => typeof window.__releaseDecision === 'function');
-    assert.match(await page.locator('#loyaltyStatus').textContent(), /Preparing abandoned.search/,
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /Preparing rewards.interest/,
       'Preparing the SDK is visibly acknowledged rather than looking like an inactive button');
     assert.equal(await page.locator('#loyaltyAbandon').isDisabled(), true, 'Double clicks are blocked while an event is being prepared');
     await openConfiguration();
@@ -849,9 +854,9 @@ async function main() {
     assert.equal(await page.locator('#tuiPhSignal-loyaltyId').textContent(), 'loyalty-fixture-123',
       'The shared Loyalty drawer displays the scalar ID extracted from the supplied schema path');
     await page.locator('#loyaltyAbandon').click();
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Journey entry is not yet verified'));
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('audience membership is not yet verified'));
     const defaultTenantEvent = (await abandonCalls())[2].payload;
-    assert.equal(defaultTenantEvent.xdm.eventType, 'abandoned.search');
+    assert.equal(defaultTenantEvent.xdm.eventType, 'rewards.interest');
     assert.deepEqual(defaultTenantEvent.xdm._demoemea.identification.core, {
       ecid: '12345678901234567890123456789012345678', email: 'kirkham-fixture@example.invalid',
       loyaltyId: 'loyalty-fixture-123',
