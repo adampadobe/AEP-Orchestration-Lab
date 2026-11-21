@@ -906,7 +906,9 @@
       message('Look up a test profile before requesting Featured Offers.', true); return;
     }
     if (busy) { pendingFeaturedRequest = true; return; }
-    return work(async (ctx, token) => {
+    return work((ctx, token) => fetchFeaturedOffers(ctx, token));
+  }
+  async function fetchFeaturedOffers(ctx, token, refresh = false) {
       const captured = await prepareProfileEvent(ctx, token, 'featured-offers decision');
       same(ctx, token);
       if (global.alloy !== captured.alloy ||
@@ -915,7 +917,7 @@
       }
       const key = JSON.stringify([ctx.sandbox, ctx.namespace, ctx.identifier, ctx.tenant,
         captured.identityMap, captured.edgeOptions]);
-      if (featuredRequest?.key === key && featuredRequest.alloy === captured.alloy) {
+      if (!refresh && featuredRequest?.key === key && featuredRequest.alloy === captured.alloy) {
         console.log('[Rewards] featured-offers request already submitted for this profile context');
         message('Featured Offers already requested for this profile context. No duplicate request sent.');
         return featuredRequest.result;
@@ -951,7 +953,14 @@
       request.result = result;
       message('Featured Offers request completed. Data Collection processes the response and dispatches ajo:featured-offers.');
       return result;
-    });
+  }
+  async function refreshContentAndOffers(ctx, token) {
+    await run(ctx, token);
+    same(ctx, token);
+    const cardStatus = $('loyaltyStatus').textContent;
+    // Explicit refresh alone bypasses automatic same-profile request deduplication.
+    await fetchFeaturedOffers(ctx, token, true);
+    message(cardStatus + ' Featured Offers response refreshed; Data Collection processes the offers.');
   }
   global.requestFeaturedOffers = requestFeaturedOffers;
   async function lookup(ctx, token, drawerReady = false) {
@@ -1301,7 +1310,7 @@
       closeConfiguration();
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
-    $('loyaltyRun').addEventListener('click', () => { scrollPhoneSection('loyaltyPromotionTitle'); void work(run); });
+    $('loyaltyRun').addEventListener('click', () => { scrollPhoneSection('loyaltyPromotionTitle'); void work(refreshContentAndOffers); });
     $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendRewardsInterest); });
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }

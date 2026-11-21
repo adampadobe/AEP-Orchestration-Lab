@@ -1565,6 +1565,50 @@ async function main() {
     await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), 5,
       'A selected ECID different from the active SDK visitor cannot request Featured Offers');
+    if (!await requestPage.locator('#customerEmail').isVisible()) await requestPage.locator('#aepLabEnvMinimizeBtn').click();
+    await requestPage.locator('#lloydsLoyaltyNs').selectOption('email');
+    await requestPage.evaluate(() => { window.__rejectFeaturedRequest = false; });
+    await featuredLookup('combined-refresh@example.invalid');
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    await requestPage.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [{
+        id: 'refresh-preserved', merchant: 'Fixture merchant', title: 'Existing offer',
+      }] } }));
+      const original = window.alloy;
+      window.__cardRefreshes = 0;
+      window.alloy = async (command, options) => {
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0]?.endsWith('#ContentCardContainerLoyalty')) {
+          window.__cardRefreshes++;
+        }
+        return original(command, options);
+      };
+      window.__holdFeaturedResponse = true; delete window.__releaseFeaturedResponse;
+    });
+    const beforeRefresh = await requestPage.evaluate(() => window.__featuredCalls.length);
+    const retainedOffer = await requestPage.locator('.loyalty-featured-offer').elementHandle();
+    await requestPage.locator('#loyaltyRun').click();
+    await requestPage.waitForFunction(() => typeof window.__releaseFeaturedResponse === 'function');
+    assert.equal(await requestPage.locator('#loyaltyRun').isDisabled(), true);
+    await requestPage.locator('#loyaltyRun').dispatchEvent('click');
+    assert.equal(await requestPage.evaluate(() => window.__cardRefreshes), 1);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), beforeRefresh + 1);
+    assert.equal(await retainedOffer.evaluate(card => card.isConnected), true, 'Refreshing does not clear the carousel while waiting');
+    await requestPage.evaluate(() => { window.__holdFeaturedResponse = false; window.__releaseFeaturedResponse(); });
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await requestPage.locator('#loyaltyStatus').textContent(), /Featured Offers response refreshed/);
+    await requestPage.locator('#loyaltyRun').click();
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await requestPage.evaluate(() => window.__cardRefreshes), 2);
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), beforeRefresh + 2,
+      'Each deliberate click refreshes both surfaces without requiring a profile change');
+    await requestPage.evaluate(() => window.requestFeaturedOffers());
+    assert.equal(await requestPage.evaluate(() => window.__featuredCalls.length), beforeRefresh + 2,
+      'Automatic/manual-console requests remain deduplicated after explicit refresh');
+    await requestPage.evaluate(() => { window.__rejectFeaturedRequest = true; });
+    await requestPage.locator('#loyaltyRun').click();
+    await requestPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await requestPage.locator('#loyaltyStatus').textContent(), /interrupted featured-offers response.*No automatic retry/);
+    assert.equal(await retainedOffer.evaluate(card => card.isConnected), true, 'An unsuccessful refresh retains existing offers');
     await requestPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),

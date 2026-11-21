@@ -135,6 +135,17 @@ restart its wait, so another profile does not inherit the previous result.
 The rule still owns request/identity correlation because its event contract has
 no profile or sandbox token.
 
+**Refresh card & offers** uses the existing button to refresh the challenge
+Content Card, then explicitly re-request Featured Offers for the same loaded
+profile. Both run under the existing busy/context guard. Explicit refresh bypasses
+only the automatic Featured Offers same-profile request reservation; profile/SDK
+ready notifications and the console function remain deduplicated. The current
+carousel stays visible while waiting and the raw response still goes through
+Data Collection and `ajo:featured-offers`. Switching profile, enrolment and
+purchase state are not reset. An unchanged ordered-ID response retains the
+existing cards; a changed result replaces them. Refresh does not force audience
+qualification, and an error is shown without automatically retrying either request.
+
 An explicit Content Card refresh with an empty proposition array removes the
 previous card instead of leaving obsolete content visible. A newer ruleset
 subscription update delivered during the request takes precedence over an
