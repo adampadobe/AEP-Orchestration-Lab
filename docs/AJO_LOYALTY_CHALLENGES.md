@@ -267,15 +267,18 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    content does not establish that the member has no challenges. The authored
    hero remains on the page; `manageMounts:false` prevents the manual runtime
    from replacing or relocating the authored mounts.
-6. To trigger a journey configured for **`abandoned.search`**, load an AEP test
+6. To express interest for the separately configured **Interested in Rewards**
+   edge audience, load an AEP test
    profile, inject Tags/Web SDK, and select the reviewed event datastream and event
    tenant namespace in the top configuration bar. Kirkham automatically uses
    **`_demoemea`**, matching the reviewed TUI / Center Parcs configuration, so
    no extra tenant entry is required there. Other sandboxes still require their
    own reviewed namespace; switching away from Kirkham clears its default and
    switching back restores it. An explicit tenant override remains available.
-   Select **Send abandoned.search**. The status shows SDK preparation, dispatch
-   and acceptance while the profile timeline refreshes.
+   Select **Show interest in Rewards** to send **`rewards.interest`** with a
+   current ISO timestamp. No orchestration event ID is added. The status shows SDK preparation, dispatch
+   and acceptance while the profile timeline refreshes. Acceptance does not
+   confirm audience membership; AEP must evaluate the event separately.
    This copies the TUI / Center Parcs Web SDK event contract: active browser ECID
    plus the selected profile identity, tenant `identification.core.ecid` and
    profile email, page/view details, and the configured datastream override.
@@ -295,9 +298,9 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    The action requires neither a Loyalty state region nor a working Loyalty
    state proxy. It does not update profile snapshots, synthesize task completion,
    request/display content or enable/activate a journey. The shared drawer's event
-   timeline refreshes after SDK acceptance. Journey entry still depends on the
-   configured AJO event, sandbox, identity and journey eligibility; SDK acceptance
-   alone does not verify it. Each click sends at most one event, with no automatic
+   timeline refreshes after SDK acceptance. Audience qualification depends on
+   the separately created AEP audience and its evaluation; SDK acceptance alone
+   does not verify membership. Each click sends at most one event, with no automatic
    retry. If the response is interrupted, check stored profile events before
    deliberately sending again, because ingestion may already have occurred.
 7. The delivered **Join Challenge** button is an API-owned action:

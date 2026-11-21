@@ -1034,21 +1034,29 @@
       journeyEntryVerified: false }, null, 2);
     return result;
   }
-  async function sendAbandonedSearch(ctx, token) {
-    const captured = await prepareProfileEvent(ctx, token, 'abandoned.search');
-    const payload = { ...captured.edgeOptions,
-      renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
-      xdm: { ...captured.eventXdm, eventType: 'abandoned.search', identityMap: captured.identityMap,
-        web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } } };
-    await dispatchProfileEvent(captured, payload, ctx, token);
-    message('abandoned.search accepted by Web SDK. Refreshing profile events...');
-    try { await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); }
-    catch (error) {
-      throw new Error('abandoned.search was accepted by Web SDK, but the profile event refresh failed: ' +
-        error.message + '. Do not resend to refresh the drawer. Journey entry is not verified.');
+  async function sendRewardsInterest(ctx, token) {
+    try {
+      if (!loaded) throw new Error('Look up a test profile before showing interest in Rewards.');
+      const captured = await prepareProfileEvent(ctx, token, 'rewards.interest');
+      const payload = { ...captured.edgeOptions,
+        renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+        xdm: { ...captured.eventXdm, eventType: 'rewards.interest', timestamp: new Date().toISOString(),
+          identityMap: captured.identityMap,
+          web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } } };
+      await dispatchProfileEvent(captured, payload, ctx, token);
+      console.log('[Rewards] rewards.interest event sent');
+      message('rewards.interest accepted by Web SDK. Refreshing profile events...');
+      try { await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile(); }
+      catch (error) {
+        throw new Error('rewards.interest was accepted by Web SDK, but the profile event refresh failed: ' +
+          error.message + '. Do not resend to refresh the drawer. Audience membership is not verified.', { cause: error });
+      }
+      same(ctx, token);
+      message('Rewards interest sent. Interested in Rewards audience membership is not yet verified.');
+    } catch (error) {
+      console.error('[Rewards] rewards.interest event failed', error);
+      throw error;
     }
-    same(ctx, token);
-    message('abandoned.search accepted by Web SDK for the selected profile. Journey entry is not yet verified.');
   }
   function tracking(candidate, captured, ctx, kind, button) {
     const proposition = candidate.proposition;
@@ -1294,7 +1302,7 @@
       await readTasks(ctx, token); autoBlocked = false; message('Task state refreshed from Adobe.');
     }));
     $('loyaltyRun').addEventListener('click', () => { scrollPhoneSection('loyaltyPromotionTitle'); void work(run); });
-    $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendAbandonedSearch); });
+    $('loyaltyAbandon').addEventListener('click', () => { closeConfiguration(); void work(sendRewardsInterest); });
     document.addEventListener('click', event => {
       if (event.target.closest('#cdMicroProfileRunBtn')) { event.preventDefault(); event.stopImmediatePropagation(); if (loaded) void work(run); }
     }, true);

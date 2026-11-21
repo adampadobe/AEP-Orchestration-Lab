@@ -36,7 +36,7 @@
       <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
       <button id="loyaltyRun" type="button" disabled>Refresh content card</button>
       <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
-      <button id="loyaltyAbandon" type="button" disabled title="Send a live abandoned.search event for the loaded test profile. This may trigger a configured AJO journey.">Send abandoned.search</button>
+      <button id="loyaltyAbandon" type="button" disabled title="Send rewards.interest for the loaded test profile. AEP must evaluate the event before audience membership is confirmed.">Show interest in Rewards</button>
     </div>
   </header>
   <main class="loyalty-workspace">
@@ -219,7 +219,7 @@
         <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
         <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
       </div>
-      <p><strong>Send abandoned.search</strong> uses the injected Web SDK and selected datastream, just like TUI / Center Parcs. Kirkham automatically uses the same <code>_demoemea</code> event tenant; other sandboxes need their reviewed event tenant above. The event may trigger a configured AJO journey. It does not update profile attributes or complete tasks.</p>
+      <p><strong>Show interest in Rewards</strong> sends <code>rewards.interest</code> using the injected Web SDK and selected datastream, just like TUI / Center Parcs. Kirkham automatically uses the same <code>_demoemea</code> event tenant; other sandboxes need their reviewed event tenant above. AEP must evaluate the event for the separately configured Interested in Rewards audience. Sending does not confirm audience membership or complete tasks.</p>
       <div class="loyalty-options">
         <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
         <label><input id="loyaltyAuto" type="checkbox"> Refresh task state every 30 seconds after a successful read</label>
@@ -250,7 +250,7 @@
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Lloyds Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261121-offer-purchase'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261121-rewards-interest'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
