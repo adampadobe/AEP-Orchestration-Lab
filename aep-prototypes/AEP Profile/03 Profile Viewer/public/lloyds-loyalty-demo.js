@@ -19,7 +19,7 @@
   let featuredRequest = null, pendingFeaturedRequest = false;
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
-  const savedPreviewOffers = new Map();
+  const activatedOffers = new Map();
   const decisionItems = [
     { key: 'waitrose', merchant: 'Waitrose', initials: 'W', reward: '15% cashback', channel: 'Online', expiry: '01 Dec 26', badge: true },
     { key: 'tkmaxx', merchant: 'TK Maxx', initials: 'TK', reward: '10% cashback', channel: 'In store', expiry: '14 Dec 26' },
@@ -78,13 +78,6 @@
       $('loyaltyFeaturedStatus').textContent = 'Preview offers: no personalised offers received after 5 seconds.';
     }, 5000);
   }
-  function activateOffer(offer) {
-    // Add proposition interaction tracking here later, using the complete selected offer.
-    if (savedPreviewOffers.has(offer.id)) savedPreviewOffers.delete(offer.id);
-    else savedPreviewOffers.set(offer.id, offer);
-    renderSavedOffers();
-    phoneToast(savedPreviewOffers.has(offer.id) ? 'Saved for this preview only. Cashback is not activated.' : 'Preview offer removed.');
-  }
   function renderFeaturedOffers(items) {
     currentItems = [...items];
     const carousel = $('loyaltyOfferCarousel'), track = $('loyaltyFeaturedOffers'), dots = $('loyaltyOfferDots');
@@ -93,6 +86,13 @@
       const card = node('article', undefined, 'loyalty-featured-offer');
       card.dataset.art = offer.key || offer.id; card.setAttribute('role', 'listitem');
       card.setAttribute('aria-label', (index + 1) + ' of ' + currentItems.length + ': ' + offer.merchant);
+      card.tabIndex = 0;
+      card.addEventListener('click', () => openOfferDetail(offer));
+      card.addEventListener('keydown', event => {
+        if (event.target === card && ['Enter', ' '].includes(event.key)) {
+          event.preventDefault(); openOfferDetail(offer);
+        }
+      });
       const art = node('div', undefined, 'loyalty-featured-art'); art.setAttribute('aria-hidden', 'true');
       const image = cssUrl(offer.image);
       if (image) { art.style.backgroundImage = image; art.style.backgroundSize = 'cover'; art.style.backgroundPosition = 'center'; }
@@ -108,8 +108,11 @@
       body.append(node('span', offer.merchant), node('h4', offer.title),
         node('p', 'Channel: ' + (offer.channel || 'Not specified')), node('p', 'Expires: ' + (offer.expiry || 'Not specified')));
       const save = node('button', '+', 'loyalty-featured-save'); save.type = 'button'; save.dataset.savePreviewOffer = offer.id;
-      save.title = typeof offer.cta === 'string' && offer.cta.trim() ? offer.cta + ' (preview save only)' : 'Save preview offer';
-      save.addEventListener('click', () => activateOffer(offer));
+      save.title = 'Send demo purchase for ' + offer.merchant;
+      save.addEventListener('click', async event => {
+        event.stopPropagation();
+        await sendOfferPurchase(offer, save);
+      });
       body.append(save); card.append(art, logo, body); cards.append(card);
       const dot = node('button'); dot.type = 'button';
       dot.setAttribute('aria-label', 'Show ' + offer.merchant + ' offer'); dot.setAttribute('aria-controls', carousel.id);
@@ -160,7 +163,7 @@
   };
   function clearResults() {
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
-    savedPreviewOffers.clear(); renderSavedOffers();
+    activatedOffers.clear(); renderSavedOffers(); closeOfferDetail(false);
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyWebNotice').textContent = '';
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
@@ -279,19 +282,21 @@
   }
   function renderSavedOffers() {
     const fragment = document.createDocumentFragment();
-    for (const offer of savedPreviewOffers.values()) {
+    for (const offer of activatedOffers.values()) {
       const logo = node('span', offer.initials || offer.merchant.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join(''), 'loyalty-merchant-logo');
-      logo.dataset.art = offer.key || offer.id; logo.setAttribute('role', 'img'); logo.setAttribute('aria-label', offer.merchant + ' saved preview offer');
+      logo.dataset.art = offer.key || offer.id; logo.setAttribute('role', 'img'); logo.setAttribute('aria-label', offer.merchant + ' purchase sent');
       fragment.append(logo);
     }
-    if (!savedPreviewOffers.size) fragment.append(node('span', undefined, 'loyalty-saved-empty'),
-      node('span', undefined, 'loyalty-saved-empty'), node('small', 'Save a featured offer to see it here.'));
+    if (!activatedOffers.size) fragment.append(node('span', undefined, 'loyalty-saved-empty'),
+      node('span', undefined, 'loyalty-saved-empty'), node('small', 'Send a demo purchase with + to see it here.'));
     $('loyaltySavedOffers').replaceChildren(fragment);
     document.querySelectorAll('[data-save-preview-offer]').forEach(button => {
-      const saved = savedPreviewOffers.has(button.dataset.savePreviewOffer);
+      const saved = activatedOffers.has(button.dataset.savePreviewOffer);
       button.setAttribute('aria-pressed', String(saved)); button.textContent = saved ? '\u2713' : '+';
+      button.classList.toggle('done', saved);
+      button.disabled = saved || button.getAttribute('aria-busy') === 'true';
       const offer = currentItems.find(item => item.id === button.dataset.savePreviewOffer);
-      button.setAttribute('aria-label', (saved ? 'Unsave' : 'Save') + ' ' + offer.merchant + ' preview offer');
+      button.setAttribute('aria-label', (saved ? 'Purchase sent for ' : 'Send demo purchase for ') + offer.merchant);
     });
   }
   function initPhoneApp() {
@@ -343,12 +348,15 @@
       suppressClick = false;
       if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button')) return;
       drag = { id: event.pointerId, x: event.clientX, scroll: carousel.scrollLeft };
-      carousel.setPointerCapture(event.pointerId);
     });
     carousel.addEventListener('pointermove', event => {
       if (!drag || drag.id !== event.pointerId) return;
       const distance = event.clientX - drag.x;
-      if (Math.abs(distance) > 5) { suppressClick = true; carousel.style.scrollSnapType = 'none'; }
+      if (Math.abs(distance) > 5) {
+        suppressClick = true; carousel.style.scrollSnapType = 'none';
+        // Capture only a real drag; capturing taps retargets card clicks to the carousel.
+        carousel.setPointerCapture(event.pointerId);
+      }
       if (suppressClick) { event.preventDefault(); carousel.scrollLeft = drag.scroll - distance; }
     });
     const endDrag = event => {
@@ -720,6 +728,43 @@
     if (restoreFocus && offerFocus?.isConnected) offerFocus.focus();
     offerFocus = null;
   }
+  let detailFocus = null;
+  function closeOfferDetail(restoreFocus = true) {
+    $('loyaltyDecisionOfferSheet').hidden = true;
+    if (restoreFocus && detailFocus?.isConnected) detailFocus.focus();
+    detailFocus = null;
+  }
+  function openOfferDetail(offer) {
+    if (!offer) return;
+    const overlay = $('loyaltyDecisionOfferSheet'), sheet = node('div', undefined, 'loyalty-offer-sheet');
+    detailFocus = document.activeElement;
+    sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-modal', 'true');
+    sheet.setAttribute('aria-labelledby', 'loyaltyDecisionOfferTitle');
+    const close = node('button', '\u00d7', 'loyalty-offer-close'); close.type = 'button';
+    close.setAttribute('aria-label', 'Close offer'); close.addEventListener('click', () => closeOfferDetail());
+    const hero = node('div', undefined, 'loyalty-offer-hero');
+    const title = node('h3', offer.detailTitle || offer.title); title.id = 'loyaltyDecisionOfferTitle';
+    hero.append(close, node('span', offer.merchant, 'loyalty-eyebrow'), title);
+    const body = node('div', undefined, 'loyalty-offer-body');
+    const imageUrl = safeUrl(offer.image);
+    if (imageUrl) {
+      const image = node('img'); image.src = imageUrl; image.alt = offer.merchant + ' offer';
+      body.append(image);
+    }
+    for (const value of [offer.detailSubtitle, offer.detailDescription]) {
+      if (typeof value === 'string' && value.trim()) body.append(node('p', value));
+    }
+    if (offer.expiry) body.append(node('p', 'Expires: ' + offer.expiry));
+    if (offer.cta) body.append(node('small', offer.cta));
+    body.append(node('p', 'Use + on the carousel to send a demo purchase. Viewing this offer sends no purchase event.'));
+    sheet.append(hero, body); overlay.replaceChildren(sheet); overlay.hidden = false; close.focus();
+    overlay.onclick = event => { if (event.target === overlay) closeOfferDetail(); };
+    overlay.onkeydown = event => {
+      if (event.key === 'Escape') { event.preventDefault(); closeOfferDetail(); }
+      if (event.key === 'Tab') { event.preventDefault(); close.focus(); }
+    };
+    // Future decisioning.propositionInteract integration uses this offer's original proposition metadata.
+  }
   function openOffer(offer, button, purchaseId) {
     const overlay = $('loyaltyOfferSheet'), sheet = node('div', undefined, 'loyalty-offer-sheet');
     offerFocus = button;
@@ -750,18 +795,66 @@
     if (!joinedChallenge) throw new Error('Join the delivered challenge before viewing its partner offers. No purchase event sent.');
     const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
     const purchaseID = global.crypto.randomUUID();
-    const payload = { ...captured.edgeOptions, renderDecisions: false,
-      personalization: { defaultPersonalizationEnabled: false },
-      xdm: { eventType: 'commerce.purchases', identityMap: captured.identityMap,
-        commerce: { purchases: { value: 1 }, order: { purchaseID, priceTotal: offer.amount, currencyCode: 'GBP' } },
-        productListItems: [{ SKU: offer.sku, name: offer.productName, quantity: 1, priceTotal: offer.amount, currencyCode: 'GBP' }],
-        ...captured.eventXdm } };
+    const payload = purchasePayload(captured, offer.sku, offer.productName, offer.amount, purchaseID);
     await dispatchProfileEvent(captured, payload, ctx, token);
     purchaseReceipts.set(offer.key, purchaseID);
     renderPartnerOffers();
     const currentButton = $('loyaltyPartnerOffers').querySelector('[data-loyalty-purchase="' + offer.key + '"]');
     openOffer(offer, currentButton || button, purchaseID);
     message(offer.brand + ' purchase event accepted by Web SDK. Get task status for Adobe-confirmed progress.');
+  }
+  function purchasePayload(captured, sku, name, amount, purchaseID = global.crypto.randomUUID()) {
+    return { ...captured.edgeOptions, renderDecisions: false,
+      personalization: { defaultPersonalizationEnabled: false },
+      xdm: { _id: global.crypto.randomUUID(), timestamp: new Date().toISOString(),
+        eventType: 'commerce.purchases', identityMap: captured.identityMap,
+        commerce: { purchases: { value: 1 }, order: { purchaseID, priceTotal: amount, currencyCode: 'GBP' } },
+        productListItems: [{ SKU: sku, name, quantity: 1, priceTotal: amount, currencyCode: 'GBP' }],
+        ...captured.eventXdm } };
+  }
+  async function sendOfferPurchase(offer, button) {
+    if (button.getAttribute('aria-busy') === 'true' || activatedOffers.has(offer?.id)) return;
+    try {
+      if (!loaded) throw new Error('Look up a test profile before sending a purchase.');
+      if (!offer || typeof offer.sku !== 'string' || !offer.sku.trim()) {
+        throw new Error('This decision item has no SKU. No purchase sent.');
+      }
+      if (busy) throw new Error('Another request is in progress. Wait before sending a purchase.');
+      button.disabled = true; button.setAttribute('aria-busy', 'true');
+      let accepted = false, failureReported = false;
+      await work(async (ctx, token) => {
+        try {
+          closeConfiguration();
+          const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
+          const payload = purchasePayload(captured, offer.sku, offer.merchant + ' Offer', 10);
+          console.log('[Rewards] Sending challenge purchase event', {
+            offerId: offer.id, merchant: offer.merchant, sku: offer.sku,
+          });
+          const result = await dispatchProfileEvent(captured, payload, ctx, token);
+          console.log('[Rewards] Challenge purchase event sent', {
+            offerId: offer.id, merchant: offer.merchant, sku: offer.sku, eventType: 'commerce.purchases', result,
+          });
+          accepted = true; activatedOffers.set(offer.id, offer); renderSavedOffers();
+          phoneToast('Purchase sent for ' + offer.merchant + '. Accepted for processing; challenge progress is not verified.');
+          message('Purchase accepted for processing. Get task status to check Adobe Loyalty progress.');
+          // Future proposition interaction tracking is separate from this commerce event.
+        } catch (error) {
+          failureReported = true;
+          console.error('[Rewards] Challenge purchase event failed', error);
+          phoneToast('Purchase not confirmed. ' + error.message); throw error;
+        }
+      });
+      if (!accepted && !failureReported) {
+        const error = new Error($('loyaltyStatus').textContent);
+        console.error('[Rewards] Challenge purchase event failed', error);
+        phoneToast('Purchase not confirmed. ' + error.message);
+      }
+    } catch (error) {
+      console.error('[Rewards] Challenge purchase event failed', error);
+      phoneToast('Purchase not sent. ' + error.message); message(error.message, true);
+    } finally {
+      button.removeAttribute('aria-busy'); renderSavedOffers();
+    }
   }
   async function work(operation) {
     if (busy) return;
@@ -914,6 +1007,9 @@
       throw new Error('The selected ECID differs from the active Web SDK visitor. No event sent.');
     }
     const identityMap = global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace);
+    if (requireLoyaltyId && !identityMap.Email) {
+      identityMap.Email = [{ id: profileEmail, authenticatedState: 'authenticated', primary: false }];
+    }
     if (profileLoyaltyId) {
       identityMap.loyaltyId = [{ id: profileLoyaltyId, ...(!requireLoyaltyId && { authenticatedState: 'authenticated' }), primary: false }];
     }
@@ -927,14 +1023,16 @@
       throw new Error('Event datastream changed while preparing ' + payload.xdm.eventType + '. No event sent.');
     }
     message('Sending ' + payload.xdm.eventType + ' for the selected profile...');
-    try { await captured.alloy('sendEvent', payload); }
+    let result;
+    try { result = await captured.alloy('sendEvent', payload); }
     catch (error) {
       throw new Error(payload.xdm.eventType + ' send was not confirmed: ' + error.message +
-        '. The event may already have been ingested; check profile events before sending again.');
+        '. The event may already have been ingested; check profile events before sending again.', { cause: error });
     }
     same(ctx, token);
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, event: payload, sdkAccepted: true,
       journeyEntryVerified: false }, null, 2);
+    return result;
   }
   async function sendAbandonedSearch(ctx, token) {
     const captured = await prepareProfileEvent(ctx, token, 'abandoned.search');

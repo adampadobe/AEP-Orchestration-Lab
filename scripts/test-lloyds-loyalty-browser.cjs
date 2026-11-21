@@ -220,19 +220,19 @@ async function main() {
     await page.locator('#loyaltyOfferDots button').first().click();
     await page.waitForFunction(() => document.querySelectorAll('#loyaltyOfferDots button')[0].getAttribute('aria-current') === 'true');
     await page.locator('[data-save-preview-offer="waitrose"]').click();
-    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true');
-    assert.equal(await page.locator('#loyaltySavedOffers [aria-label="Waitrose saved preview offer"]').count(), 1);
-    assert.match(await page.locator('#loyaltyAppToast').textContent(), /preview only.*not activated/);
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /test profile/);
     assert.equal(signupRequests.length, 0, 'Preview offers and navigation never submit Loyalty signup');
     assert.equal(reads.length, readsBeforeNavigation, 'Navigating the app does not fetch or alter Loyalty state');
     await homeTab.click();
     await rewardsTab.click();
-    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'true', 'Tab switches preserve preview selections');
+    assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'false', 'No profile means no purchase receipt');
     await page.locator('[data-save-preview-offer="waitrose"]').click();
     assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
     const ajoOffers = Array.from({ length: 6 }, (_, index) => ({
       id: 'ajo-offer-' + index, merchant: index ? 'Merchant ' + index : 'Waitrose', title: index ? 'Cashback ' + index : '15% cashback',
-      priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate offer',
+      priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate offer', sku: 'DYNAMIC-SKU-' + index,
       image: index ? 'javascript:alert(1)' : 'https://example.invalid/offer.png',
       logo: index ? 'data:image/svg+xml,test' : 'https://example.invalid/logo.png',
       propositionId: 'original-proposition-' + index, propositionScope: 'featured-offers',
@@ -249,8 +249,7 @@ async function main() {
       ajoOffers.slice(0, 5).map(offer => offer.title), 'Filter invalid offers, cap at five and preserve AJO ranking rather than priority sorting');
     assert.deepEqual(await page.locator('.loyalty-featured-body').first().locator('span,h4,p').allTextContents(),
       ['Waitrose', '15% cashback', 'Channel: Online', 'Expires: 01 Dec 26']);
-    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('title'), 'Activate offer (preview save only)',
-      'The decision CTA is retained on the existing plus control without changing its preview behavior');
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('title'), 'Send demo purchase for Waitrose');
     assert.match(await page.locator('.loyalty-featured-art').first().getAttribute('style'), /https:\/\/example.invalid\/offer.png/);
     assert.equal(await page.locator('.loyalty-featured-art').nth(1).getAttribute('style'), null,
       'Unsafe incoming images never reach CSS URLs');
@@ -268,16 +267,12 @@ async function main() {
     await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), ajoOffers);
     assert.equal(await originalAjoCard.evaluate(card => card.isConnected), true, 'Duplicate ID order does not recreate cards');
     assert.equal(await page.locator('#loyaltyOfferDots button').nth(1).getAttribute('aria-current'), 'true');
-    await page.evaluate(() => {
-      const set = Map.prototype.set;
-      Map.prototype.set = function(key, value) {
-        if (value?.propositionId) window.__selectedFeaturedOffer = value;
-        return set.call(this, key, value);
-      };
-    });
     await page.locator('[data-save-preview-offer="ajo-offer-1"]').click();
-    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), ajoOffers[1],
-      'Existing activation/save behavior receives the complete offer including proposition IDs and detail fields');
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet').isVisible(), false, '+ does not open detail dialog');
+    await page.locator('.loyalty-featured-offer').nth(1).press('Enter');
+    assert.equal(await page.locator('#loyaltyDecisionOfferTitle').textContent(), ajoOffers[1].detailTitle);
+    assert.match(await page.locator('#loyaltyDecisionOfferSheet').textContent(), /Original subtitle.*Original description/s);
+    await page.locator('#loyaltyDecisionOfferSheet').press('Escape');
     await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })),
       [ajoOffers[1], ajoOffers[0]]);
     assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(), [ajoOffers[1].title, ajoOffers[0].title]);
@@ -297,11 +292,9 @@ async function main() {
     await page.evaluate(detail => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail })),
       { ...envelope, offers: envelopeOffers });
     assert.equal(await page.locator('.loyalty-featured-offer').count(), 2, 'One returned item produces one card');
-    await page.locator('[data-save-preview-offer="item-metadata-wins"]').click();
-    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), envelopeOffers[0],
+    assert.deepEqual(JSON.parse(await page.locator('#loyaltyReturnedOffers pre').first().textContent()), envelopeOffers[0],
       'Item-level proposition metadata takes precedence over envelope metadata');
-    await page.locator('[data-save-preview-offer="envelope-metadata"]').click();
-    assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), { ...envelopeOffers[1], ...envelope },
+    assert.deepEqual(JSON.parse(await page.locator('#loyaltyReturnedOffers pre').nth(1).textContent()), { ...envelopeOffers[1], ...envelope },
       'Missing per-item attribution inherits the complete envelope without discarding detail fields');
     await page.locator('#loyaltyPrizeDraw button').click();
     assert.match(await page.locator('#loyaltyAppToast').textContent(), /No banking action or prize entry was submitted/);
@@ -641,9 +634,13 @@ async function main() {
     assert.equal(await originalLiveMount.evaluate(mount => mount === document.querySelector('#loyaltyWebChallenge #ContentCardContainerLoyalty')), true,
       'Web preview moves the original subscription mount instead of cloning or rebuilding its content');
     assert.equal(await originalCarousel.evaluate(mount => mount === document.querySelector('#loyaltyWebOffers #loyaltyOfferCarousel')), true);
+    await page.locator('#loyaltyWebOffers .loyalty-featured-art').first().click();
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet').isVisible(), true, 'The detail overlay works outside the hidden mobile frame');
+    await page.keyboard.press('Escape');
     await page.locator('#loyaltyWebOffers [data-save-preview-offer="ajo-offer-0"]').click();
-    assert.match(await page.locator('#loyaltyWebNotice').textContent(), /preview only/);
-    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'true');
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.match(await page.locator('#loyaltyWebNotice').textContent(), /no Loyalty ID/);
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'false');
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
       assert.ok(await page.locator('#loyaltyWebPreview').isVisible());
@@ -661,8 +658,8 @@ async function main() {
     await page.locator('[data-loyalty-preview="mobile"]').click();
     assert.equal(await originalLiveMount.evaluate(mount => mount === document.querySelector('#loyaltyViewRewards #ContentCardContainerLoyalty')), true);
     assert.equal(await originalCarousel.evaluate(mount => mount === document.querySelector('#loyaltyViewRewards #loyaltyOfferCarousel')), true);
-    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'true',
-      'Switching presentation preserves the existing preview-save state');
+    assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('aria-pressed'), 'false',
+      'Switching presentation cannot turn an invalid purchase into an accepted receipt');
     assert.equal(await page.evaluate(() => window.__sdkCalls.length), sdkCallsBeforeSwitch,
       'Switching channel and preview-saving never request decisions, track displays or send journey events');
     const extent = await page.evaluate(() => ({
@@ -1034,6 +1031,9 @@ async function main() {
         if (options.xdm?.eventType === 'loyalty.challenge.challenge_signup' ||
             options.xdm?._experience?.decisioning?.propositionAction?.id === 'joinChallenge' || options.xdm?.eventType === 'commerce.purchases') {
           window.__loyaltySends.push(options);
+          if (options.xdm?.eventType === 'commerce.purchases' && window.__holdPurchase) {
+            await new Promise(resolve => { window.__releasePurchase = resolve; });
+          }
           if (window.__rejectLoyaltySend ||
               window.__rejectLoyaltyTracking && options.xdm?.eventType === 'decisioning.propositionInteract') {
             throw new Error('Fixture: interrupted loyalty send');
@@ -1170,7 +1170,7 @@ async function main() {
       assert.deepEqual(purchase, {
         edgeConfigOverrides: { datastreamId: 'purchase-fixture-stream' }, renderDecisions: false,
         personalization: { defaultPersonalizationEnabled: false },
-        xdm: { eventType: 'commerce.purchases',
+        xdm: { _id: purchase.xdm._id, timestamp: purchase.xdm.timestamp, eventType: 'commerce.purchases',
           identityMap: {
             Email: [{ id: 'another-fixture@example.invalid', authenticatedState: 'authenticated', primary: true }],
             ECID: [{ id: '12345678901234567890123456789012345678', authenticatedState: 'ambiguous', primary: false }],
@@ -1187,6 +1187,85 @@ async function main() {
       assert.equal(await page.locator('[data-loyalty-purchase="' + key + '"]').evaluate(node => document.activeElement === node), true);
     }
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Purchase acceptance never marks Adobe tasks complete locally');
+    const purchaseOffers = [
+      { ...ajoOffers[0], id: 'purchase-a', merchant: 'Waitrose', sku: 'WAITROSE-OFFER-001' },
+      { ...ajoOffers[1], id: 'purchase-b', merchant: 'Tesco', sku: 'TESCO-OFFER-001' },
+      { id: 'missing-sku', merchant: 'Other merchant', title: 'Other offer', image: 'javascript:alert(1)' },
+    ];
+    await page.evaluate(() => {
+      const set = Map.prototype.set;
+      Map.prototype.set = function(key, value) {
+        if (value?.propositionId) window.__selectedFeaturedOffer = value;
+        return set.call(this, key, value);
+      };
+    });
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), purchaseOffers);
+    const beforeDetails = (await loyaltySends()).length;
+    await page.locator('.loyalty-featured-offer').first().click();
+    assert.equal(await page.locator('#loyaltyDecisionOfferTitle').textContent(), purchaseOffers[0].detailTitle);
+    assert.match(await page.locator('#loyaltyDecisionOfferSheet').textContent(), /Original subtitle.*Original description/s);
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet img').getAttribute('src'), purchaseOffers[0].image);
+    await page.keyboard.press('Tab');
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet .loyalty-offer-close').evaluate(button => button === document.activeElement), true);
+    await page.keyboard.press('Escape');
+    assert.equal((await loyaltySends()).length, beforeDetails, 'Opening and closing offer details never sends a purchase');
+    const dragBox = await page.locator('.loyalty-featured-art').first().boundingBox();
+    await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(dragBox.x + dragBox.width / 2 - 70, dragBox.y + dragBox.height / 2, { steps: 8 });
+    await page.mouse.up();
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet').isVisible(), false, 'Dragging preserves swipe behavior without opening details');
+    await page.locator('.loyalty-featured-offer').nth(2).press('Enter');
+    assert.equal(await page.locator('#loyaltyDecisionOfferSheet img').count(), 0, 'Unsafe media is omitted');
+    assert.equal(await page.locator('#loyaltyDecisionOfferTitle').textContent(), 'Other offer');
+    await page.locator('#loyaltyDecisionOfferSheet').click({ position: { x: 2, y: 2 } });
+    await page.locator('[data-save-preview-offer="missing-sku"]').click();
+    assert.match(await page.locator('#loyaltyAppToast').textContent(), /no SKU/);
+    assert.equal((await loyaltySends()).length, beforeDetails, 'Missing SKU cannot be inferred from merchant/title');
+    await page.evaluate(() => { window.__rejectLoyaltySend = true; });
+    const failedPurchase = page.locator('[data-save-preview-offer="purchase-b"]');
+    await failedPurchase.click();
+    await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await failedPurchase.textContent(), '+');
+    assert.equal(await failedPurchase.isDisabled(), false);
+    assert.equal(await failedPurchase.getAttribute('aria-busy'), null);
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
+    await page.evaluate(() => { window.__rejectLoyaltySend = false; window.__holdPurchase = true; });
+    for (const offer of purchaseOffers.slice(0, 2)) {
+      const button = page.locator('[data-save-preview-offer="' + offer.id + '"]');
+      const before = (await loyaltySends()).length;
+      await button.click();
+      await page.waitForFunction(() => !!window.__releasePurchase);
+      assert.equal(await button.getAttribute('aria-busy'), 'true');
+      assert.equal(await button.textContent(), '+', 'No green tick before acceptance');
+      await button.dispatchEvent('click');
+      assert.equal((await loyaltySends()).length, before + 1, 'In-flight double click sends one event');
+      assert.equal(await page.locator('#loyaltyDecisionOfferSheet').isVisible(), false, '+ must stop the card detail click');
+      const payload = (await loyaltySends()).at(-1);
+      assert.deepEqual(payload.xdm.productListItems, [{ SKU: offer.sku, name: offer.merchant + ' Offer',
+        quantity: 1, priceTotal: 10, currencyCode: 'GBP' }]);
+      assert.deepEqual(payload.xdm.identityMap, {
+        Email: [{ id: 'another-fixture@example.invalid', authenticatedState: 'authenticated', primary: true }],
+        ECID: [{ id: '12345678901234567890123456789012345678', authenticatedState: 'ambiguous', primary: false }],
+        loyaltyId: [{ id: 'loyalty-fixture-123', primary: false }],
+      }, 'Reuse the successful challenge identity map without inventing a visitor');
+      assert.equal(payload.edgeConfigOverrides.datastreamId, 'purchase-fixture-stream');
+      assert.equal(payload.xdm.commerce.purchases.value, 1);
+      assert.match(payload.xdm._id, /^[0-9a-f-]{36}$/);
+      assert.ok(Number.isFinite(Date.parse(payload.xdm.timestamp)));
+      await page.evaluate(() => { const release = window.__releasePurchase; delete window.__releasePurchase; release(); });
+      await page.waitForFunction(id => document.querySelector('[data-save-preview-offer="' + id + '"]').classList.contains('done'), offer.id);
+      assert.equal(await button.getAttribute('aria-busy'), null);
+      assert.equal(await button.textContent(), '\u2713');
+      assert.deepEqual(await page.evaluate(() => window.__selectedFeaturedOffer), offer, 'Retain the entire selected decision item after acceptance');
+      await button.dispatchEvent('click');
+      assert.equal((await loyaltySends()).length, before + 1, 'Accepted purchase button cannot replay the event');
+    }
+    await page.evaluate(() => { window.__holdPurchase = false; });
+    assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 2);
+    assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3,
+      'Static challenge offers remain until real ingestion and Loyalty evaluation have been verified');
+    assert.equal(await page.locator('.loyalty-phone-tick').count(), 0);
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-two-fixture'; window.__deliverSignupCard(); window.__rejectLoyaltyTracking = true; });
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false, 'A new delivered challenge cannot reuse the previous signup');
     await joinButton.click();
