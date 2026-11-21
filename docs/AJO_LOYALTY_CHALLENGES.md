@@ -37,7 +37,7 @@ preview uses an original Lloyds-inspired banking header, navigation and rewards
 hero informed by the supplied saved-page archive, without importing its scripts,
 trackers or third-party styles. The same live Loyalty Content Card and Featured
 Offers carousel nodes move between the two previews; switching neither requests
-decisions nor resets subscriptions, signup receipts or saved preview offers.
+decisions nor resets subscriptions, signup receipts or accepted purchase offers.
 The mobile app layout is unchanged. Both previews support light and dark themes
 and narrow browser widths.
 
@@ -98,11 +98,11 @@ and replaces the cards through `renderFeaturedOffers(items)`. Media uses the
 HTTP(S) URL and CSS URL guards; copy remains text. Complete offer objects,
 including `detailTitle`, `detailSubtitle`, `detailDescription`, `image`, `cta`,
 `endDate`, `propositionId`, `propositionScope`, `propositionScopeDetails` and
-`propositionItemId`, remain available to the unchanged preview-save action and
-future detail popup. Missing per-item proposition ID/scope/scope-details inherit
+`propositionItemId` and `sku`, remain available to the detail popup and purchase
+action. Missing per-item proposition ID/scope/scope-details inherit
 the event-level values; explicit item metadata takes precedence. The AJO CTA is
-the existing `+` button's preview-labelled tooltip; neither activation behavior
-nor the popup is changed. Display/interaction tracking is deliberately not added yet.
+shown in the detail popup. Featured-offer display/interaction tracking is
+deliberately not added yet; existing challenge Content Card tracking remains.
 The listener is registered before app initialization and retains an early response.
 Repeated AJO ID/order signatures preserve the existing cards and scroll position;
 changed IDs or order rerender. The carousel initially shows **Loading personalised
@@ -110,10 +110,25 @@ offers…**, with no mock cards. After five seconds without valid AJO offers, it
 six authored development previews appear with an explicit preview label. A valid
 late response replaces them and cancels the fallback. The rest of the app,
 including Ready to use, does not wait for AJO.
-Saving an offer updates only the current page's saved-offers row, never Adobe
-activation or task state. This live app's existing control remains the `+`
-preview-save button, not a new activation API or navigation flow.
-Context changes clear these saved previews. Prize-draw and banking placeholders
+Card clicks (or Enter/Space on a focused card) open a shared accessible
+decision-driven detail dialog; Escape, its close button and backdrop close it.
+Viewing sends no purchase. The existing `+` stops propagation and sends one
+`commerce.purchases` event through the same `prepareProfileEvent` and
+`dispatchProfileEvent` helpers as the challenge partner purchase flow.
+The item must supply a nonblank `sku`; it is copied unchanged into
+`productListItems[0].SKU`, never inferred from merchant or copy.
+The shared payload builder supplies UUID event/order IDs, an ISO timestamp,
+`commerce.purchases.value: 1`, one product with quantity 1, priceTotal 10 and
+currencyCode GBP for Featured Offers. The selected test profile's Email,
+scalar loyaltyId, active SDK ECID, reviewed tenant and datastream are required.
+The button stays busy with + until acceptance, then shows the existing tick and
+adds the complete offer to the purchase row. Duplicate in-flight/accepted clicks
+do not resend. Failures leave + available and explicitly warn that an uncertain
+submission may already have been ingested; inspect profile events before retrying.
+SDK acceptance is not cashback activation, profile-storage proof, challenge
+completion or reward delivery. Static challenge partner offers are retained
+until live profile ingestion and Loyalty task evaluation have been verified.
+Context changes clear purchase-row state. Prize-draw and banking placeholders
 explicitly perform no real action.
 Identity/sandbox changes also clear the prior personalised carousel result and
 restart its wait, so another profile does not inherit the previous result.
