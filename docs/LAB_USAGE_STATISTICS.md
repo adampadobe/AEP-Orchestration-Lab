@@ -101,11 +101,17 @@ Signed-in lab users can also read **aggregate** page-view counts through the
 home page heat map (`GET /api/lab/usage/heatmap`); see
 [LAB_HOME_DATA.md](LAB_HOME_DATA.md). The visitor notice says so.
 
-When enabled, the collector inserts a visible, theme-token-based usage notice
-in the main content **before sending any event**, after auth and visible content
-are ready. Onboarding also shows the notice before credentials are submitted.
+Onboarding shows the usage disclosure before credentials are submitted; there
+is no per-page banner. Collection waits for auth and visible dashboard content.
 Deferred home-shell mounting is supported. Anonymous/signed-out
 visitors and embedded documents do not produce events.
+
+The shared sandbox-sync bootstrap waits for Firebase's first auth-state callback
+before creating an anonymous session. A null `currentUser` during persistence
+restoration is not proof of sign-out: signing in anonymously at that point can
+replace the saved email account and suppress telemetry on subsequent pages.
+Restored email and anonymous accounts are reused; restoration errors are reported
+without anonymous fallback, and sync readiness still resolves for page callers.
 
 - A page view is one visible, authenticated core document view per UID.
   Repeated auth callbacks/token refreshes do not produce views or logins.
