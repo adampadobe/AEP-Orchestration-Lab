@@ -166,6 +166,13 @@
         }
       },
       {
+        "source": "/api/brand-scraper/scrapes/classify",
+        "function": {
+          "functionId": "brandScraperClassify",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",

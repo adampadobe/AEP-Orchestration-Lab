@@ -343,10 +343,13 @@ async function putLibraryObject(sandbox, target) {
 }
 
 /** List every object under <sandbox>/library/ */
-async function listLibrary(sandbox) {
+async function listLibrary(sandbox, page) {
   const prefix = libraryRoot(sandbox) + '/';
-  const [files] = await getBucket().getFiles({ prefix });
-  return files.map((f) => {
+  const options = page
+    ? { prefix, autoPaginate: false, maxResults: page.limit, ...(page.cursor ? { pageToken: page.cursor } : {}) }
+    : { prefix };
+  const [files, nextQuery] = await getBucket().getFiles(options);
+  const items = files.map((f) => {
     const rel = f.name.slice(prefix.length);
     const parts = rel.split('/');
     const file = parts.pop();
@@ -371,6 +374,22 @@ async function listLibrary(sandbox) {
       isFolderMarker,
     };
   }).sort((a, b) => a.relPath.localeCompare(b.relPath));
+  return page ? { items, nextCursor: nextQuery?.pageToken || null } : items;
+}
+
+async function* libraryExportEntries(sandbox) {
+  const prefix = libraryRoot(sandbox) + '/';
+  let pageToken;
+  do {
+    const [files, next] = await getBucket().getFiles({ prefix, autoPaginate: false, maxResults: 100, pageToken });
+    for (const file of files) {
+      const name = file.name.slice(prefix.length);
+      if (name && name !== LIBRARY_FOLDER_MARKER && !name.endsWith(`/${LIBRARY_FOLDER_MARKER}`)) {
+        yield { file, name };
+      }
+    }
+    pageToken = next?.pageToken;
+  } while (pageToken);
 }
 
 /**
@@ -1045,8 +1064,8 @@ async function uploadBackupZipAndSign(sandbox, buffer, fileName) {
 }
 
 /**
- * Replace the current library contents with the files from a ZIP. The
- * old library is deleted first so stale names don't linger.
+ * Restore the files from a ZIP. With replace enabled, stale files are
+ * removed only after every incoming file has been written successfully.
  */
 async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
   const unzipper = require('unzipper');
@@ -1090,6 +1109,7 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     if (baseName === '.DS_Store') continue;
     if (baseName.startsWith('._')) continue; // AppleDouble metadata
     if (SKIPPED_NAMES.has(baseName)) continue;
+    if (!/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(baseName)) continue;
     eligible.push({ entry, name });
   }
   if (eligible.length === 0) {
@@ -1099,18 +1119,7 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     throw err;
   }
 
-  if (opts && opts.replace) {
-    const [existing] = await bucket.getFiles({ prefix });
-    const delResults = await Promise.allSettled(
-      existing.map((f) => f.delete({ ignoreNotFound: true }))
-    );
-    const delErrs = delResults.filter((r) => r.status === 'rejected');
-    if (delErrs.length) {
-      const error = new Error(`ZIP restore stopped: ${delErrs.length} of ${existing.length} pre-restore deletes failed. Library may be partially changed; inspect before retrying.`);
-      error.name = 'PartialRestoreError';
-      throw error;
-    }
-  }
+  const [existing] = opts && opts.replace ? await bucket.getFiles({ prefix }) : [[]];
 
   const out = [];
   const failures = [];
@@ -1144,6 +1153,18 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     throw err;
   }
 
+  if (opts && opts.replace) {
+    const restoredPaths = new Set(eligible.map(({ name }) => prefix + name));
+    const stale = existing.filter((file) => !restoredPaths.has(file.name));
+    const results = await Promise.allSettled(stale.map((file) => file.delete({ ignoreNotFound: true })));
+    const failed = results.filter((result) => result.status === 'rejected');
+    if (failed.length) {
+      const error = new Error(`ZIP restore incomplete: ${failed.length} of ${stale.length} stale files could not be deleted. Library may be partially changed; inspect before retrying.`);
+      error.name = 'PartialRestoreError';
+      throw error;
+    }
+  }
+
   return out;
 }
 
@@ -1152,6 +1173,7 @@ module.exports = {
   LIBRARY_FOLDER_MARKER,
   BACKUP_INLINE_MAX_BYTES,
   listLibrary,
+  libraryExportEntries,
   createLibraryFolder,
   publishScrapeImage,
   deleteLibraryObject,
