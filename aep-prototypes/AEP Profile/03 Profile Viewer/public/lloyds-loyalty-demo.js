@@ -11,13 +11,14 @@
   };
   const completedState = state => /^(complete|completed|sent)$/i.test(String(state));
   const complete = task => completedState(task.taskState);
-  const stateChallengeName = challenge => typeof challenge?.challengeName === 'string' &&
-    challenge.challengeName.trim() !== challenge.challenge_id ? challenge.challengeName.trim() : '';
+  const stateChallengeName = challenge => [challenge?.challengeName, challenge?.name].find(value =>
+    typeof value === 'string' && value.trim() && value.trim() !== challenge.challenge_id)?.trim() || '';
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
+  const availableMessages = new Map();
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
   const activatedOffers = new Map();
@@ -171,6 +172,9 @@
     displayedCard = '';
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
+    availableMessages.clear();
+    $('loyaltyAvailable').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
+    $('loyaltyPhoneAvailable').replaceChildren();
     syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
@@ -398,7 +402,7 @@
   async function loyalty(ctx, input) {
     const headers = await loyaltyAuthHeaders(ctx);
     const result = await json('/api/ajo-loyalty?' + new URLSearchParams({ sandbox: ctx.sandbox, ...input }), { headers });
-    return result.data;
+    return ['profile_state', 'profile_challenges'].includes(input.action) ? model.normaliseChallengeResponse(result.data) : result.data;
   }
   function syncSignupButtons() {
     const ctx = context();
@@ -409,6 +413,13 @@
         receipt?.state === 'already' ? 'Challenge Already Joined' :
         receipt?.state === 'unknown' ? 'Check challenge status' :
         receipt?.state === 'pending' ? 'Joining Challenge...' : button.dataset.joinLabel;
+    });
+    document.querySelectorAll('[data-available-join]').forEach(button => {
+      const receipt = signupReceipts.get(signupKey(ctx, loaded?.profileLoyaltyId, button.dataset.availableJoin));
+      button.disabled = busy || button.dataset.selectedMember !== 'true' || !loaded?.profileLoyaltyId;
+      button.textContent = receipt?.state === 'pending' ? 'Joining challenge...' :
+        receipt ? 'Check challenge status' : 'Join challenge';
+      button.setAttribute('aria-busy', String(receipt?.state === 'pending'));
     });
   }
   function reconcileSignupState(state, ctx, member) {
@@ -457,13 +468,13 @@
   }
   async function refreshSignupState(ctx, token, challengeId, member) {
     const state = await loyalty(ctx, { action: 'profile_state', profile_id: member,
-      challenge_id: challengeId, region: ctx.region || 'va7', test: 'false' });
+      region: ctx.region || 'va7', test: 'false' });
     same(ctx, token);
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing.');
-    const stateContext = { ...ctx, challenge: challengeId, participation: 'active', test: false };
+    const stateContext = { ...ctx, participation: 'active', test: false };
     reconcileSignupState(state, stateContext, member);
     if (!ctx.test && ctx.participation === 'active') {
-      const metadata = await readChallengeMetadata(state, ctx, token, challengeId);
+      const metadata = await readChallengeMetadata(state, ctx, token);
       renderTasks(state, metadata, stateContext, true);
     }
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
@@ -543,10 +554,10 @@
     same(ctx, token);
     return new Map(entries);
   }
-  async function readTasks(ctx, token, joinedOnly = false) {
+  async function readTasks(ctx, token, resolvedMember = false) {
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
     const config = await loyalty(ctx, { action: 'config' }); same(ctx, token);
-    const member = memberId(joinedOnly ? { ...ctx, member: '' } : ctx, config);
+    const member = memberId(resolvedMember ? { ...ctx, member: '' } : ctx, config);
     $('loyaltyNamespace').textContent = 'State member: ' + config.namespace + ' / ' + member;
     const region = ctx.region ? { region: ctx.region } : {};
     const input = ctx.participation === 'complete'
@@ -556,17 +567,19 @@
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     reconcileSignupState(state, ctx, member);
     const metadata = await readChallengeMetadata(state, ctx, token);
-    const displayedState = joinedOnly ? { ...state, challengeList: state.challengeList.filter(challenge => challenge.optedIn === true) } : state;
-    renderTasks(displayedState, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
+    renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
       member, region: ctx.region || 'va7', state, metadata: Object.fromEntries(metadata) }, null, 2);
+    return state;
   }
   function renderTasks(state, metadata, ctx, selectedMember) {
     const fragment = document.createDocumentFragment(), phone = document.createDocumentFragment();
-    const challenges = state.challengeList.filter(challenge => !ctx.challenge || challenge.challenge_id === ctx.challenge);
+    const classified = model.classifyChallenges(state.challengeList.filter(challenge => !ctx.challenge || challenge.challenge_id === ctx.challenge));
+    const challenges = classified.joinedChallenges;
     if (!challenges.length) {
-      const empty = node('p', 'No ' + ctx.participation + ' challenges returned for this member and filter.', 'loyalty-empty');
+      const empty = node('div', undefined, 'loyalty-empty');
+      empty.append(node('b', 'No active challenges'), node('p', 'Join an available challenge to start tracking progress.'));
       phone.append(empty.cloneNode(true)); fragment.append(empty);
     }
     for (const challenge of challenges) {
@@ -574,6 +587,7 @@
       if (challenge.tasks.some(task => !task || typeof task !== 'object')) throw new Error('Malformed task in Loyalty state.');
       const { definition, error } = metadata.get(challenge.challenge_id) || {};
       const section = node('article', undefined, 'loyalty-challenge');
+      section.dataset.challengeId = challenge.challenge_id;
       const name = stateChallengeName(challenge) || definition?.name.trim() || 'Challenge name unavailable';
       const completed = challenge.tasks.filter(complete).length, total = challenge.tasks.length;
       const summary = node('div', undefined, 'loyalty-progress-summary');
@@ -600,10 +614,7 @@
         const meter = node('progress'); meter.max = total; meter.value = completed;
         meter.setAttribute('aria-label', name + ' completed tasks'); mobile.append(meter);
       }
-      const diagnostic = node('details', undefined, 'loyalty-task-details');
-      diagnostic.append(node('summary', 'Challenge API details'), node('small', 'Challenge ID: ' + repr(challenge.challenge_id)),
-        node('p', 'State: ' + repr(challenge.state) + ' / Opted in: ' + repr(challenge.optedIn) +
-        ' / Required tasks: ' + repr(challenge.tasksToComplete)));
+      const diagnostic = challengeDetails(challenge, name, definition);
       if (Array.isArray(challenge.challengeCompletions)) diagnostic.append(node('small', 'Previous challenge completions: ' + challenge.challengeCompletions.length));
       for (const [index, task] of challenge.tasks.entries()) {
         const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
@@ -627,12 +638,6 @@
           meter.setAttribute('aria-label', (task.taskName || task.taskId) + ' progress');
           card.append(meter);
         }
-        const taskDetails = node('div');
-        taskDetails.append(node('b', taskName), node('small', 'Goal: ' + repr(task.variables?.goal) + ' / Goal type: ' + repr(task.variables?.type)),
-          node('small', 'Accumulators: ' + repr(task.accumulators)));
-        taskDetails.append(node('small', 'Task state: ' + repr(task.taskState)));
-        if (Array.isArray(task.taskCompletions)) taskDetails.append(node('small', 'Reported task completions: ' + task.taskCompletions.length));
-        taskDetails.append(node('small', 'Task ID: ' + repr(task.taskId))); diagnostic.append(taskDetails);
         section.append(card);
         const row = node('div', undefined, 'loyalty-phone-task');
         row.dataset.complete = String(complete(task));
@@ -658,6 +663,118 @@
     $('loyaltyTasks').replaceChildren(fragment);
     if (state._links?.next) phone.append(node('p', 'More challenges are available. This response is not the full history.'));
     $('loyaltyPhoneTasks').replaceChildren(phone);
+    renderAvailableChallenges(classified.availableChallenges, classified.unknownChallenges, metadata, ctx, selectedMember);
+  }
+  function challengeDetails(challenge, name, definition) {
+    const details = node('details', undefined, 'loyalty-task-details');
+    details.append(node('summary', 'Challenge API details'), node('small', 'Challenge ID: ' + challenge.challenge_id),
+      node('small', 'Challenge name: ' + name), node('small', 'State: ' + repr(challenge.state)),
+      node('small', 'Opted in: ' + repr(challenge.optedIn)), node('small', 'Required tasks: ' + repr(challenge.tasksToComplete)));
+    for (const key of Object.keys(challenge).filter(key => key.startsWith('accum'))) {
+      details.append(node('small', key + ': ' + repr(challenge[key])));
+    }
+    for (const task of challenge.tasks) {
+      const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
+      const entry = node('div');
+      entry.append(node('b', task.taskName || task.taskId || 'Task name not reported'),
+        node('small', 'Task ID: ' + repr(task.taskId)),
+        node('small', 'Task type: ' + repr(task.taskType || task.taskClass || definitionTask?.taskType || definitionTask?.taskClass)),
+        node('small', 'Task state: ' + repr(task.taskState)), node('small', 'Variables: ' + repr(task.variables)));
+      if (task.accumulators != null) entry.append(node('small', 'Accumulators: ' + repr(task.accumulators)));
+      if (Array.isArray(task.taskCompletions)) entry.append(node('small', 'Completion history: ' + repr(task.taskCompletions)));
+      details.append(entry);
+    }
+    return details;
+  }
+  function renderAvailableChallenges(challenges, unknown, metadata, ctx, selectedMember) {
+    for (const mount of [$('loyaltyAvailable'), $('loyaltyPhoneAvailable')]) {
+      const previous = new Map([...mount.children].filter(card => card.dataset.challengeId)
+        .map(card => [card.dataset.challengeId, card]));
+      const fragment = document.createDocumentFragment();
+      for (const challenge of challenges) {
+        const card = previous.get(challenge.challenge_id) || node('article', undefined, 'loyalty-available-card');
+        card.dataset.challengeId = challenge.challenge_id; card.replaceChildren();
+        const { definition, error } = metadata.get(challenge.challenge_id) || {};
+        const name = stateChallengeName(challenge) || definition?.name.trim() || 'Challenge name unavailable';
+        card.append(node('p', 'AVAILABLE CHALLENGE', 'loyalty-eyebrow'), node('h3', name));
+        const description = [challenge.desc, definition?.desc].find(value => typeof value === 'string' && value.trim())?.trim();
+        if (description) card.append(node('p', description));
+        const summary = model.getChallengeSummary(challenge);
+        if (summary && summary !== description) card.append(node('p', summary));
+        const facts = node('div', undefined, 'loyalty-available-facts');
+        if (challenge.state) facts.append(node('span', 'State: ' + challenge.state));
+        if (challenge.tasksReported) facts.append(node('span', challenge.tasks.length + (challenge.tasks.length === 1 ? ' task' : ' tasks')));
+        for (const [key, label] of [['startDate', 'Available from'], ['endDate', 'Available until']]) {
+          const value = challenge[key];
+          if (typeof value === 'string' && Number.isFinite(Date.parse(value))) {
+            facts.append(node('span', label + ': ' + new Date(value).toLocaleDateString('en-GB')));
+          }
+        }
+        const reward = challenge.reward || definition?.reward;
+        const denomination = reward?.rewardDefinition?.denomination || reward?.definition;
+        if (['string', 'number'].includes(typeof reward?.rewardValue) && String(reward.rewardValue).trim() &&
+            typeof denomination === 'string' && denomination.trim()) {
+          facts.append(node('span', 'Reward: ' + reward.rewardValue + ' ' + denomination));
+        }
+        card.append(facts);
+        const button = node('button', 'Join challenge', 'loyalty-available-join'); button.type = 'button';
+        button.dataset.availableJoin = challenge.challenge_id;
+        button.dataset.selectedMember = String(selectedMember);
+        button.addEventListener('click', () => void work(async (current, token) => {
+          same(ctx, token); await joinAvailableChallenge(challenge.challenge_id, current, token);
+        }));
+        const status = node('p', availableMessages.get(signupKey(ctx, loaded?.profileLoyaltyId, challenge.challenge_id)) ||
+          (selectedMember ? '' : 'Resolve the current Loyalty member to join this challenge.'), 'loyalty-available-status');
+        status.setAttribute('role', 'status'); status.setAttribute('aria-live', 'polite');
+        if (error) status.textContent = 'Challenge details unavailable: ' + error;
+        card.append(button, status, challengeDetails(challenge, name, definition)); fragment.append(card);
+      }
+      if (!challenges.length) fragment.append(node('p', 'No available challenges returned.', 'loyalty-empty'));
+      if (unknown.length) {
+        const warning = node('div', undefined, 'loyalty-empty');
+        warning.append(node('p', 'Adobe did not report participation for ' + unknown.length +
+          (unknown.length === 1 ? ' challenge. It is' : ' challenges. They are') + ' not classified as joined or available.'));
+        unknown.forEach(challenge => warning.append(challengeDetails(challenge, stateChallengeName(challenge) || 'Not reported')));
+        fragment.append(warning);
+      }
+      mount.replaceChildren(fragment);
+    }
+    syncSignupButtons();
+  }
+  async function joinAvailableChallenge(challengeId, ctx, token) {
+    const member = loaded?.profileLoyaltyId, key = signupKey(ctx, member, challengeId);
+    const report = text => {
+      availableMessages.set(key, text);
+      document.querySelectorAll('.loyalty-available-card').forEach(card => {
+        if (card.dataset.challengeId === challengeId) card.querySelector('.loyalty-available-status').textContent = text;
+      });
+    };
+    try {
+      if (!member) throw new Error('Unable to join challenge: the loaded profile has no Loyalty ID.');
+      if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
+        throw new Error('Unable to join challenge: only AEP test profiles can join.');
+      }
+      const existing = signupReceipts.get(key);
+      if (!existing) {
+        report('Joining challenge...');
+        await submitSignup(ctx, token, challengeId, member);
+      }
+      same(ctx, token);
+      report('Checking participation with Adobe...');
+      const state = await readTasks(ctx, token, true);
+      same(ctx, token);
+      if (model.classifyChallenges(state.challengeList).joinedChallenges.some(challenge => challenge.challenge_id === challengeId)) {
+        availableMessages.delete(key);
+        message('Challenge participation confirmed by Adobe.');
+      } else {
+        report('Adobe has not confirmed participation. Check challenge status before another signup.');
+        message('Signup outcome not yet confirmed by Adobe state. No automatic retry.', true);
+      }
+    } catch (error) {
+      same(ctx, token);
+      console.error('Available challenge signup failed', error);
+      report(error.message); throw error;
+    } finally { syncSignupButtons(); }
   }
   function restoreParticipation() {
     const challenge = deliveredChallenge && memberChallenges.find(value =>
@@ -678,6 +795,7 @@
     syncSignupButtons();
   }
   function renderPendingChallenge() {
+    if (!memberChallenges.some(challenge => challenge.challenge_id === joinedChallenge?.id && challenge.optedIn === true)) return;
     if ($('loyaltyTasks').querySelector('.loyalty-challenge:not(.loyalty-pending-progress)')) return;
     const section = node('article', undefined, 'loyalty-challenge loyalty-pending-progress');
     const summary = node('div', undefined, 'loyalty-progress-summary');

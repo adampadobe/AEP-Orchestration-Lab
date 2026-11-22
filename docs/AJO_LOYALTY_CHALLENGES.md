@@ -228,13 +228,15 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    sufficient.
 3. Resolving a profile with a scalar Loyalty ID automatically performs the existing
    read-only state lookup. It waits for profile resolution to finish, displays
-   only records explicitly reporting `optedIn:true`, and never submits signup.
+   joined progress for records reporting `optedIn:true` and separate available
+   cards for `optedIn:false`; lookup never submits signup.
    Repeated notifications for the same resolved profile are deduplicated; a fresh
    lookup reads again. Context changes discard queued reads and stale responses.
    The automatic read resolves the loaded profile in the configured namespace,
    ignoring the manual debugging member override.
-   **Get task status** remains available for debugging, including non-opted-in
-   records and the existing filters. SDK injection, Decisioning enablement and the event
+   **Get task status** remains available for debugging with the existing filters
+   and unjoined records shown separately in **Available challenges**.
+   SDK injection, Decisioning enablement and the event
    tenant are not prerequisites for either read. Optionally enable the 30-second
    state refresh in the top-bar API options after a successful read. Only
    Adobe's returned `taskState` marks a task complete. Numeric progress requires
@@ -251,6 +253,38 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    a successful manual task read resumes them. Polling is off by default and profile
    lookup performs a one-off read without enabling the polling option. No task-completion events are
    synthesized.
+
+   All state reads are parsed by `normaliseChallengeResponse` and classified by
+   `classifyChallenges` in the shared Loyalty model. The same rendering boundary
+   applies to automatic lookup, manual status, polling, participation tabs,
+   post-signup and Content Card state refreshes. Boolean strings are normalized
+   once; unknown participation is shown only as an API-details warning, never
+   assumed joined or available. Invalid challenge IDs, duplicate IDs and malformed
+   lists/tasks produce explicit errors rather than silently losing records.
+   Missing tasks are safely represented as unreported, without inventing goals.
+
+   **Available challenges** renders one ID-keyed card per unjoined record in the
+   current response/filter, on both the inspector and mobile Rewards views. It
+   shows supplied names, descriptions, dates, state, reward denomination/value
+   and task counts when reported. `getChallengeSummary` uses Adobe-authored task
+   descriptions, recognized target variables or task names; it never reads
+   accumulators to invent available-challenge progress or infers GBP.
+   Every card includes expandable challenge/task API details.
+
+   `joinAvailableChallenge` passes the selected ID and the loaded scalar Loyalty
+   member to the existing `submitSignup` API action. It requires an AEP test
+   profile and reuses existing duplicate/uncertain-outcome receipts. The available
+   card stays available after signup acceptance until a fresh `readTasks` response
+   reports `optedIn:true`; only then does the shared renderer move it into progress.
+   Definite rejections restore Join and show the error on the card. An accepted or
+   uncertain outcome instead offers **Check challenge status**, a read-only check
+   rather than a duplicate POST. Content Card tracking and Journey events remain
+   independent. Its post-signup state refresh now reads the member list, so other
+   returned challenges are not lost by restricting the request to the selected ID.
+
+   No raw Spend accumulator display is implemented. Joined tasks retain the
+   existing task-state/count rendering and progress helper; missing current
+   accumulators are not zero. There are no locally simulated Loyalty counters.
 4. To personalize, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
    namespace and the exact AJO **content-card surface URI** in the top-bar Loyalty
