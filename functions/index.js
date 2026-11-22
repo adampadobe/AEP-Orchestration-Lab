@@ -342,7 +342,7 @@ Object.assign(exports, registerLabUsageRoutes({
     ...CONSENT_STORE_FN_OPTS,
     environmentVariables: {
       ...CONSENT_STORE_FN_OPTS.environmentVariables,
-      LAB_USAGE_TELEMETRY_ENABLED: 'false',
+      LAB_USAGE_TELEMETRY_ENABLED: 'true',
     },
   },
   setCors,
@@ -4581,13 +4581,22 @@ function getLabFeedsService() {
   return require('./labFeedsService').createService({
     db: admin.firestore(),
     callGemini: (...args) => require('./vertexClient').callGemini(...args),
+    authorize: async (req) => {
+      const claims = await require('./labUsageTelemetry').requireTelemetryUser(req, admin.auth());
+      const token = req.headers.authorization.split(/\s+/)[1];
+      const access = await require('./labWorkspaceAuthService').getLabAccessStatusFromIdTokenRequest({ idToken: token });
+      if (!['approved', 'missing', 'not_applicable'].includes(access.status)) {
+        throw Object.assign(new Error('Lab access is pending approval.'), { status: 403 });
+      }
+      return claims;
+    },
   });
 }
 
 exports.labFeeds = onRequest(
   { region: REGION, invoker: 'public', timeoutSeconds: 30, memory: '256MiB' },
   async (req, res) => {
-    setCors(res, 'GET, OPTIONS');
+    setCors(res, 'GET, POST, OPTIONS');
     await getLabFeedsService().handle(req, res);
   },
 );

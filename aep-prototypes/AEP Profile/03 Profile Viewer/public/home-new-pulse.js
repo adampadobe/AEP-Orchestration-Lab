@@ -86,6 +86,7 @@
     if (!items.length) {
       list.innerHTML = emptyLi('Nothing shipped in the last ' + ((data && data.windowDays) || 90) + ' days.');
     } else {
+      var mine = myVotes();
       list.innerHTML = items
         .map(function (it) {
           var kind = it.kind === 'new' ? 'new' : 'updated';
@@ -119,6 +120,7 @@
     if (!items.length) {
       list.innerHTML = emptyLi('No open pull requests right now.');
     } else {
+      var mine = myVotes();
       list.innerHTML = items
         .map(function (it) {
           var url = safeUrl(it.url);
@@ -282,6 +284,32 @@
   var radarTimer = null;
 
   var SOURCE_LABEL = { live: 'Live', stale: 'Stale', fallback: 'Awaiting first run' };
+  var VOTES_KEY = 'aepLabFeedVotes';
+
+  function myVotes() {
+    try { return JSON.parse(global.localStorage.getItem(VOTES_KEY)) || {}; } catch (e) { return {}; }
+  }
+
+  function saveMyVote(id, vote) {
+    var all = myVotes();
+    if (vote === 'none') delete all[id];
+    else all[id] = vote;
+    try { global.localStorage.setItem(VOTES_KEY, JSON.stringify(all)); } catch (e) {}
+  }
+
+  function voteButtons(it, mine) {
+    if (!/^[0-9a-f]{64}$/.test(String(it.id || ''))) return '';
+    var v = it.votes || {};
+    function btn(kind, glyph, label, count) {
+      return '<button type="button" class="home-radar__vote' + (mine === kind ? ' is-active' : '') +
+        '" data-vote="' + kind + '" data-id="' + esc(it.id) + '" aria-pressed="' + (mine === kind) +
+        '" title="' + label + '">' + glyph + ' <span>' + esc(count || 0) + '</span></button>';
+    }
+    return '<div class="home-radar__votes" role="group" aria-label="Rate this signal">' +
+      btn('up', '\uD83D\uDC4D', 'Useful: show more like this', v.up) +
+      btn('down', '\uD83D\uDC4E', 'Not useful: show less like this', v.down) +
+      '</div>';
+  }
 
   function renderRadar(feedId) {
     var list = document.getElementById('homeRadarList');
@@ -304,6 +332,7 @@
     if (!items.length) {
       list.innerHTML = emptyLi(m.source === 'fallback' ? 'The curation agent has not run yet. Check back soon.' : 'No signals right now.');
     } else {
+      var mine = myVotes();
       list.innerHTML = items
         .map(function (it) {
           var url = safeUrl(it.sourceUrl);
@@ -325,6 +354,7 @@
             '<div class="home-radar__headline">' + headline + '</div>' +
             (it.soWhat ? '<p class="home-radar__sowhat">' + esc(it.soWhat) + '</p>' : '') +
             (tags.length ? '<div class="home-radar__tags">' + tags.join('') + '</div>' : '') +
+            voteButtons(it, mine[it.id]) +
             '</li>'
           );
         })
@@ -360,6 +390,48 @@
       });
   }
 
+  function sendVote(button) {
+    var feedId = radarFeed;
+    var id = button.getAttribute('data-id');
+    var st = radarState[feedId];
+    var item = st && st.data && (st.data.items || []).filter(function (it) { return it.id === id; })[0];
+    if (!item) return;
+    var previous = myVotes()[id] || 'none';
+    var vote = button.getAttribute('data-vote') === previous ? 'none' : button.getAttribute('data-vote');
+    var before = { up: (item.votes || {}).up || 0, down: (item.votes || {}).down || 0 };
+    var after = { up: before.up, down: before.down };
+    if (previous !== 'none') after[previous] = Math.max(0, after[previous] - 1);
+    if (vote !== 'none') after[vote] += 1;
+    item.votes = after;
+    saveMyVote(id, vote);
+    renderRadar(feedId);
+    function revert(message) {
+      item.votes = before;
+      saveMyVote(id, previous);
+      renderRadar(feedId);
+      var meta = document.getElementById('homeRadarMeta');
+      if (meta && message) meta.textContent = message;
+    }
+    authHeaders().then(function (headers) {
+      if (!headers || !headers.Authorization) return revert('Sign in to rate signals.');
+      return fetch('/api/lab/feeds/' + encodeURIComponent(feedId) + '/feedback', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: Object.assign({ 'Content-Type': 'application/json' }, headers),
+        body: JSON.stringify({ id: id, vote: vote }),
+      }).then(function (res) {
+        if (!res.ok) throw httpError(res);
+        return res.json();
+      }).then(function (body) {
+        item.votes = body.votes;
+        st.etag = '';
+        renderRadar(feedId);
+      });
+    }).catch(function () {
+      revert('Your rating could not be saved. Try again.');
+    });
+  }
+
   function stopRadarPoll() {
     if (radarTimer) global.clearInterval(radarTimer);
     radarTimer = null;
@@ -385,6 +457,13 @@
         loadRadar(radarFeed);
       });
     });
+    var list = document.getElementById('homeRadarList');
+    if (list) {
+      list.addEventListener('click', function (e) {
+        var button = e.target.closest && e.target.closest('[data-vote]');
+        if (button) sendVote(button);
+      });
+    }
     root.addEventListener('toggle', function () {
       if (root.open) {
         loadRadar(radarFeed);
