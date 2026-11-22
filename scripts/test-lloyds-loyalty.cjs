@@ -14,6 +14,43 @@ test('task progress uses reported goal type and actual zero counters, never hist
     { value: 25, goal: 100, key: 'spend' });
 });
 
+test('challenge classification preserves explicit participation and rejects ambiguous or malformed state', () => {
+  const response = { challengeList: [
+    { challenge_id: 'joined-fixture', optedIn: true, tasks: [] },
+    { challenge_id: 'available-fixture', optedIn: ' false ', tasks: [{ variables: { spendMin: 75 }, accumulators: { spend: 0 } }] },
+    { challenge_id: 'unknown-fixture' },
+  ] };
+  const state = model.normaliseChallengeResponse(response), groups = model.classifyChallenges(state.challengeList);
+  assert.deepEqual(groups.joinedChallenges.map(challenge => challenge.challenge_id), ['joined-fixture']);
+  assert.deepEqual(groups.availableChallenges.map(challenge => challenge.challenge_id), ['available-fixture']);
+  assert.deepEqual(groups.unknownChallenges.map(challenge => challenge.challenge_id), ['unknown-fixture']);
+  assert.equal(state.challengeList[1].tasks[0].accumulators.spend, 0);
+  assert.equal(state.challengeList[2].tasksReported, false);
+  assert.equal(response.challengeList[1].optedIn, ' false ', 'Parsing does not mutate the Adobe response');
+  for (const malformed of [{}, { challengeList: null }, { challengeList: [null] },
+    { challengeList: [{ challenge_id: 'x', optedIn: 1 }] },
+    { challengeList: [{ challenge_id: 'x', tasks: {} }] },
+    { challengeList: [{ challenge_id: 'x', tasks: [null] }] },
+    { challengeList: [{ challenge_id: 'x' }, { challenge_id: 'x' }] }]) {
+    assert.throws(() => model.normaliseChallengeResponse(malformed), /Malformed/);
+  }
+  assert.deepEqual(model.classifyChallenges(model.normaliseChallengeResponse({ challengeList: [] }).challengeList),
+    { joinedChallenges: [], availableChallenges: [], unknownChallenges: [] });
+});
+
+test('available summaries describe arbitrary task goals without inferring currency or accumulated progress', () => {
+  assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 75 } }] }), 'Qualifying spend target: 75');
+  assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 80, currencyCode: 'EUR' }, accumulators: { spend: 20 } }] }),
+    'Qualifying spend target: 80 EUR');
+  assert.equal(model.getChallengeSummary({ tasks: [
+    { variables: { qtyMin: 4 } }, { taskName: 'Visit a partner', variables: { customTarget: 9 } },
+    { desc: 'An Adobe-authored goal', variables: { mystery: 1 } },
+  ] }), '4 qualifying items; Visit a partner; An Adobe-authored goal');
+  assert.equal(model.getChallengeSummary({}), '');
+  assert.equal(model.getChallengeSummary({ tasks: [{ taskName: 'Visit a partner', variables: { goal: 3, type: 'customCounter' } }] }),
+    'Visit a partner target: 3', 'Technical counter types stay in API details');
+});
+
 test('card selection is surface-exact, ranked, JSON-only and retains original proposition and item attribution', () => {
   const surface = 'web://example.invalid/rewards#ContentCardContainer';
   const proposition = (id, scope, rank, content = { title: { content: id } }) => ({

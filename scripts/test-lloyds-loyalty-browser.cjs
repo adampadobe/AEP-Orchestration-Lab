@@ -14,9 +14,10 @@ async function main() {
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
     let holdState = false, events = [], testProfile = true, eventRefreshes = 0, profileLoyaltyId;
     let consentGate, releaseConsent, consentRequests = 0, rejectConsent = false;
-    let stateChallengeId = 'challenge-fixture', optedIn = false;
+    let stateChallengeId = 'challenge-fixture', optedIn = true;
     let challengeListOverride, stateHasName = true, metadataMode = 'success', metadataGate;
     let signupMode = 'success', signupGate, releaseSignup;
+    let confirmAvailableSignup = false;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -86,6 +87,8 @@ async function main() {
             ok: false, error: 'Fixture: already joined', signup_submitted: true, signup_outcome_unknown: false,
             platform_status: 409, platform_response: { title: 'Profile has already joined the challenge' },
           } });
+          if (confirmAvailableSignup) challengeListOverride = challengeListOverride.map(challenge =>
+            challenge.challenge_id === body.challenge_id ? { ...challenge, optedIn: true } : challenge);
           return route.fulfill({ json: { ok: true, accepted: true, platform_status: 200, challenge_id: body.challenge_id } });
         }
         assert.equal(request.method(), 'GET');
@@ -384,7 +387,7 @@ async function main() {
     assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).region, 'va7');
     challengeListOverride = ['challenge-fixture', 'coffee-challenge-fixture'].map(id => ({
       challenge_id: id, challengeName: id === 'challenge-fixture' ? id : '  ',
-      state: 'active', optedIn: false, tasksToComplete: 1,
+      state: 'active', optedIn: true, tasksToComplete: 1,
       tasks: [{ taskId: 'purchase', taskName: 'Make three purchases', taskState: 'incomplete' }],
     }));
     await page.locator('#loyaltyRefresh').click();
@@ -439,7 +442,7 @@ async function main() {
     await page.locator('#loyaltyTenant').fill('_ownTenant');
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
-    assert.match(await page.locator('#loyaltyTasks').textContent(), /Opted in: false/);
+    assert.match(await page.locator('#loyaltyTasks').textContent(), /Opted in: true/);
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/);
     assert.equal(await page.locator('.loyalty-task progress').count(), 1, 'Missing accumulator is never fabricated as zero');
     assert.equal(await page.locator('.loyalty-task[data-complete="true"]').count(), 0, 'Previous-cycle completions do not complete current tasks');
@@ -1106,7 +1109,7 @@ async function main() {
     await joinButton.dispatchEvent('click');
     assert.equal(signupRequests.length, uncertainCount, 'An uncertain submission cannot be retried by another click');
     assert.equal((await signupInteractions()).length, 0);
-    unavailableState = false; namespace = 'loyaltyId'; stateChallengeId = 'challenge-one-fixture'; quantity = 0;
+    unavailableState = false; namespace = 'loyaltyId'; stateChallengeId = 'challenge-one-fixture'; quantity = 0; optedIn = false;
     const anonymousState = page.waitForRequest(request => {
       const url = new URL(request.url());
       return url.pathname === '/api/ajo-loyalty' && url.searchParams.get('action') === 'profile_state';
@@ -1152,10 +1155,10 @@ async function main() {
     assert.equal(signupEvidence.signup.platform_status, 200);
     assert.equal(signupEvidence.enrollmentVerified, true);
     assert.equal(signupEvidence.journeyEntryVerified, false, 'API enrollment does not prove event-triggered journey entry');
-    assert.equal(await page.locator('#loyaltyTasks .loyalty-task').count(), 2,
-      'Signup preserves the previously reported tasks when its subsequent state refresh fails');
-    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-count').textContent(), '0 / 2',
-      'Enrollment does not change Adobe-reported task completion');
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-task').count(), 0,
+      'An unconfirmed state refresh cannot move available tasks into progress');
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-count').count(), 0,
+      'Signup acceptance does not fabricate joined task progress');
     assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3);
     assert.match(await page.locator('#loyaltyPartnerOffers').textContent(), /Participation confirmed by Adobe/);
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Signup does not fabricate completed tasks');
@@ -1305,8 +1308,8 @@ async function main() {
     assert.equal(signupRequests.at(-1).challenge_id, 'challenge-three-fixture');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).test, 'false');
     assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).profile_id, 'loyalty-fixture-123');
-    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-summary h3').textContent(), metadataNames[0],
-      'The automatic post-signup refresh also resolves the challenge name');
+    assert.equal(await page.locator('#loyaltyAvailable h3').textContent(), metadataNames[0],
+      'The post-signup refresh resolves the name but retains availability until Adobe reports optedIn true');
     stateHasName = true;
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0, 'Duplicate enrollment and task refresh do not complete tasks');
     signupMode = 'network';
@@ -1654,8 +1657,10 @@ async function main() {
       'Available but non-opted-in challenges are not presented as joined progress');
     await progressPage.locator('#loyaltyRefresh').click();
     await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
-    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').count(), 1,
-      'Manual task status retains the original debugging view');
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').count(), 0,
+      'Manual task status also excludes unjoined challenges from progress');
+    assert.equal(await progressPage.locator('#loyaltyAvailable .loyalty-available-card').count(), 1,
+      'Unjoined challenges remain inspectable under Available challenges');
     if (!await progressPage.locator('#customerEmail').isVisible()) await progressPage.locator('#aepLabEnvMinimizeBtn').click();
     if (!await progressPage.locator('.loyalty-settings').evaluate(element => element.open)) {
       await progressPage.locator('.loyalty-settings summary').click();
@@ -1684,6 +1689,88 @@ async function main() {
     await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').dataset.error === 'true');
     assert.match(await progressPage.locator('#loyaltyStatus').textContent(), /no active enrollment.*No automatic retry/);
     assert.equal(signupRequests.length, beforeAutomaticSignups, 'Automatic reads never submit challenge signup');
+    rejectState = false; signupMode = 'success';
+    challengeListOverride = [
+      { challenge_id: 'museum-fixture', name: 'Museum visits', optedIn: true, state: 'incomplete', accumSpend: 12,
+        tasks: [{ taskId: 'visit-fixture', taskName: 'Visit a museum', taskState: 'incomplete' }] },
+      { challenge_id: 'yoga-fixture', name: 'Yoga sessions', optedIn: true, state: 'incomplete', tasks: [] },
+      { challenge_id: 'rail-fixture', name: 'Explore rail', optedIn: false, state: 'published',
+        reward: { definition: 'points', rewardValue: '450' }, startDate: '2026-11-01T00:00:00Z',
+        tasks: [{ taskId: 'rail-task', taskType: 'purchase', variables: { qtyMin: 4 }, accumulators: { qty: 2 } }] },
+      { challenge_id: 'market-fixture', name: 'Weekly market', optedIn: 'false', state: 'published',
+        tasks: [{ taskId: 'market-task', taskClass: 'spend', variables: { spendMin: 75 } }] },
+      { challenge_id: 'unknown-fixture', name: 'Participation not reported' },
+    ];
+    await progressPage.locator('#loyaltyMember').fill('');
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    assert.deepEqual(await progressPage.locator('#loyaltyTasks .loyalty-challenge h3').allTextContents(), ['Museum visits', 'Yoga sessions']);
+    assert.match(await progressPage.locator('#loyaltyTasks [data-challenge-id="museum-fixture"] .loyalty-task-details').textContent(),
+      /accumSpend: 12/, 'Reported challenge-level accumulators remain inspectable without new progress UI');
+    assert.deepEqual(await progressPage.locator('#loyaltyAvailable .loyalty-available-card h3').allTextContents(), ['Explore rail', 'Weekly market']);
+    assert.equal(await progressPage.locator('#loyaltyPhoneAvailable .loyalty-available-card').count(), 2);
+    assert.equal(await progressPage.locator('#loyaltyAvailable progress, #loyaltyAvailable .loyalty-progress-count, #loyaltyAvailable [data-current]').count(), 0,
+      'Available cards never display accumulated progress, completed counts or Up next states');
+    assert.match(await progressPage.locator('#loyaltyAvailable').textContent(), /Qualifying spend target: 75/);
+    assert.doesNotMatch(await progressPage.locator('#loyaltyAvailable .loyalty-available-facts').allTextContents().then(values => values.join(' ')), /GBP|£/,
+      'Currency is not inferred from an unrelated banking demo');
+    const railCard = progressPage.locator('#loyaltyAvailable [data-challenge-id="rail-fixture"]');
+    const railDetails = await railCard.locator('.loyalty-task-details').textContent();
+    assert.match(railDetails, /Opted in: false.*Task type: purchase.*qtyMin.*Accumulators/s);
+    const stableCard = await railCard.elementHandle();
+    await progressPage.locator('#loyaltyRefresh').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await stableCard.evaluate(card => card.isConnected), true, 'Available cards retain their challenge-ID key across refresh');
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-challenge').count(), 2);
+    await progressPage.locator('.loyalty-phone-nav [data-phone-view="rewards"]').click();
+    await progressPage.locator('[data-loyalty-participation="complete"]').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-challenge').count(), 2, 'Participation-tab refresh uses the same classification');
+    await progressPage.locator('[data-loyalty-participation="active"]').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    if (process.env.AEP_LOYALTY_AVAILABLE_SCREENSHOT) {
+      await railCard.scrollIntoViewIfNeeded();
+      await progressPage.screenshot({ path: process.env.AEP_LOYALTY_AVAILABLE_SCREENSHOT + '-light.png' });
+      await progressPage.evaluate(() => document.documentElement.setAttribute('data-aep-theme', 'dark'));
+      await progressPage.screenshot({ path: process.env.AEP_LOYALTY_AVAILABLE_SCREENSHOT + '-dark.png' });
+    }
+    const availableSignupStart = signupRequests.length;
+    signupMode = 'rejected';
+    await railCard.locator('button').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').dataset.error === 'true');
+    assert.match(await railCard.locator('.loyalty-available-status').textContent(), /personalization missing/);
+    assert.equal(await railCard.locator('button').isDisabled(), false, 'Definite rejection restores the available card action');
+    assert.equal(challengeListOverride[2].optedIn, false, 'Failures never modify Adobe participation locally');
+    signupMode = 'success';
+    signupGate = new Promise(resolve => { releaseSignup = resolve; });
+    const availableSignupStarted = progressPage.waitForRequest(request => request.method() === 'POST' && request.postDataJSON()?.challenge_id === 'rail-fixture');
+    await railCard.locator('button').click(); await availableSignupStarted;
+    assert.equal(await railCard.locator('button').isDisabled(), true);
+    assert.equal(await railCard.locator('button').textContent(), 'Joining challenge...');
+    await railCard.locator('button').dispatchEvent('click');
+    releaseSignup(); signupGate = null;
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('not yet confirmed'));
+    assert.equal(signupRequests.length, availableSignupStart + 2, 'A failed attempt and one accepted attempt, without a double submission');
+    assert.equal(await progressPage.locator('#loyaltyAvailable .loyalty-available-card').count(), 2,
+      'Accepted signup alone does not move a challenge into progress');
+    assert.equal(await railCard.locator('button').textContent(), 'Check challenge status');
+    assert.deepEqual(signupRequests.at(-1), { sandbox: 'kirkham', action: 'signup', profile_id: 'automatic-member',
+      challenge_id: 'rail-fixture', region: 'va7', test: false, confirmed: true }, 'Reuse the existing scalar-member signup body with the selected ID');
+    challengeListOverride[2] = { ...challengeListOverride[2], optedIn: true };
+    await railCard.locator('button').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('participation confirmed by Adobe'));
+    assert.equal(signupRequests.length, availableSignupStart + 2, 'Checking an accepted signup reads state instead of sending another signup');
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-challenge').count(), 3);
+    assert.equal(await progressPage.locator('#loyaltyAvailable .loyalty-available-card').count(), 1);
+    confirmAvailableSignup = true;
+    await progressPage.locator('#loyaltyAvailable [data-available-join="market-fixture"]').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('participation confirmed by Adobe'));
+    assert.equal(signupRequests.at(-1).challenge_id, 'market-fixture', 'A completely different challenge uses the same signup action');
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-challenge').count(), 4);
+    assert.equal(await progressPage.locator('#loyaltyAvailable .loyalty-available-card').count(), 0);
+    assert.equal(await progressPage.locator('#loyaltyTasks [data-challenge-id="market-fixture"] .loyalty-task progress').count(), 0,
+      'Joining a raw Spend task does not fabricate an accumulator or Spend meter');
+    confirmAvailableSignup = false;
     await progressPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
