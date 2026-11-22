@@ -936,9 +936,12 @@
 
   async function fetchImageHostingLibrary(sandbox) {
     if (!sandbox) throw new Error('sandbox is required');
-    var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sandbox));
+    var headers = await window.AepLabSandboxSync?.getAuthHeaders();
+    var user = window.firebase?.apps?.length ? window.firebase.auth().currentUser : null;
+    if (!headers?.Authorization || user?.isAnonymous) throw new Error('Sign in to the lab to load the published image library.');
+    var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sandbox), { headers: headers });
     var data = await r.json().catch(function () { return {}; });
-    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+    if (!r.ok || data.ok === false) throw new Error(data.error || ('Library request failed (HTTP ' + r.status + '). Sign in with an authorized lab account.'));
     return Array.isArray(data.items) ? data.items : [];
   }
 

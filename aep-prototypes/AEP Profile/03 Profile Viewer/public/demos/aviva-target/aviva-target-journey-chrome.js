@@ -209,7 +209,7 @@
       PV + 'aep-profile-drawer.js?v=20260521-ns-autodetect',
       PV + 'aep-demo-web-push.js?v=20260512-lab-push',
       PV + 'aep-demo-generator-targets.js?v=20260508',
-      PV + 'site-clone-bc-env.js?v=20260605-tags-sandbox-restore',
+      PV + 'site-clone-bc-env.js?v=20261122-library-auth',
     ];
 
     var chain = prereqScripts.reduce(function (p, src) {

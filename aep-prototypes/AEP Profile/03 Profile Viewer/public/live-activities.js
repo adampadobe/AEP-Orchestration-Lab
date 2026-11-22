@@ -1731,14 +1731,17 @@
       if (!opts.silent) laShowTravelBrandMsg('Select a sandbox to load hosted logos.', true);
       return Promise.resolve();
     }
-    return fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb), { credentials: 'same-origin' })
+    return laImageLibraryAuth()
+      .then(function (headers) {
+        return fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb), { credentials: 'same-origin', headers: headers });
+      })
       .then(function (res) {
         return res.json().then(function (data) {
           return { ok: res.ok, data: data };
         });
       })
       .then(function (x) {
-        if (!x.ok) throw new Error((x.data && x.data.error) || 'HTTP ' + x.status);
+        if (!x.ok) throw new Error((x.data && x.data.error) || 'Sign in to load the image library.');
         var items = Array.isArray(x.data.items) ? x.data.items : [];
         laPopulateTravelLogoLibrarySelect(items);
         var n = items.filter(laIsLibraryImageItem).length;
@@ -1749,8 +1752,15 @@
         if (inp && String(inp.value || '').trim()) laSelectTravelLogoLibraryOptionForUrl(inp.value);
       })
       .catch(function (e) {
-        if (!opts.silent) laShowTravelBrandMsg(String(e.message || e), true);
+        laPopulateTravelLogoLibrarySelect([]);
+        laShowTravelBrandMsg(String(e.message || e), true);
       });
+  }
+  async function laImageLibraryAuth() {
+    var headers = await window.AepLabSandboxSync?.getAuthHeaders();
+    var user = window.firebase?.apps?.length ? window.firebase.auth().currentUser : null;
+    if (!headers?.Authorization || user?.isAnonymous) throw new Error('Sign in to the lab to load or upload hosted images.');
+    return headers;
   }
 
   function laFileToBase64Data(file) {
@@ -1785,7 +1795,7 @@
         var uploadName = 'live-activity-logo' + ext;
         return fetch('/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(sb), {
           method: 'POST',
-          headers: Object.assign({ 'Content-Type': 'application/json' }, await laAuthHeaders()),
+          headers: Object.assign({ 'Content-Type': 'application/json' }, await laImageLibraryAuth()),
           body: JSON.stringify({
             sandbox: sb,
             files: [{ name: uploadName, base64: b64, contentType: file.type || '' }],

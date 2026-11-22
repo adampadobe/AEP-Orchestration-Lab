@@ -11,9 +11,9 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20261019-cloud-customers">
-  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
+  <link rel="stylesheet" href="image-hosting.css?v=20261122-explorer">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
+  <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
 <body class="image-hosting-page home-dashboard-concierge">
   <div class="dashboard-shell">
@@ -35,13 +35,58 @@
             <header class="dashboard-hero-header">
               <h2 id="bannerHeadingImageHosting" class="dashboard-hero-title">Image hosting</h2>
               <p class="dashboard-hero-subtitle">
-                <strong>Image hosting</strong> for Experience Platform demos where brand visuals ship on <strong>stable <code>/cdn/</code> URLs</strong> and <strong>predictable names</strong> (for example <code>logo</code>, <code>hero-banner</code>)—so you <strong>replace the file once</strong> and every surface that references the same link can pick up the new creative: <strong>DSN-driven websites and mobile experiences</strong>, <strong>Adobe Journey Optimizer</strong> content such as email headers and heroes, and any other embed you wire into a prototype or conversation. <strong>Brand scraper</strong> promotes classified assets into this library; you can also upload or restore from ZIP. Library objects do not auto-expire; temporary scrape-cache blobs use a short lifecycle (see Brand scraper retention UI).
+                Browse published demo assets, keep private files in My drive, and back up your sandbox libraries. Published <code>/cdn/</code> URLs stay shared; your drive and backups are private. Backups stay until you delete them and exclude brand-scrape images.
               </p>
             </header>
           </div>
         </section>
 
-        <section class="image-hosting-controls panel" aria-label="Controls">
+        <p id="imageHostingStatus" class="status" role="status" aria-live="polite"></p>
+        <section id="imageHostingSignIn" class="panel ih-sign-in" hidden>
+          <h2>Sign in to manage your images</h2>
+          <p>My drive and backups belong to your signed-in lab account. Anonymous sessions cannot access them.</p>
+          <a href="home-new.html" class="dashboard-btn-primary">Go to lab sign-in</a>
+        </section>
+        <nav class="ih-tabs" role="tablist" aria-label="Image hosting workspaces">
+          <button id="ihTabFiles" type="button" role="tab" aria-selected="true" aria-controls="ihFiles" data-ih-tab="ihFiles">Files</button>
+          <button id="ihTabCustomers" type="button" role="tab" aria-selected="false" aria-controls="imageHostingCustomers" data-ih-tab="imageHostingCustomers" tabindex="-1">Customer packages</button>
+          <button id="ihTabScrapes" type="button" role="tab" aria-selected="false" aria-controls="ihScrapes" data-ih-tab="ihScrapes" tabindex="-1">Brand scrape images</button>
+        </nav>
+        <section id="ihFiles" role="tabpanel" aria-labelledby="ihTabFiles">
+          <div class="ih-topbar">
+            <nav id="ihBreadcrumb" aria-label="Folder breadcrumb"></nav>
+            <input id="ihSearch" type="search" placeholder="Search this folder" aria-label="Search this folder">
+            <div class="ih-view" aria-label="File view">
+              <button id="ihGridView" type="button" aria-pressed="true">Grid</button>
+              <button id="ihListView" type="button" aria-pressed="false">List</button>
+            </div>
+            <button id="ihUpload" type="button" class="dashboard-btn-outline">Upload</button>
+            <input id="ihUploadInput" type="file" multiple hidden>
+            <button id="ihNewFolder" type="button" class="dashboard-btn-outline">New folder</button>
+            <button id="ihBackupNow" type="button" class="dashboard-btn-primary">Back up now</button>
+          </div>
+          <div class="ih-explorer">
+            <aside id="ihTree" class="ih-tree" aria-label="Image folders"></aside>
+            <div class="ih-content">
+              <p id="ihLocationHint" class="hint"></p>
+              <div id="ihSelection" class="ih-selection" hidden>
+                <span id="ihSelectionCount"></span>
+                <button id="ihSelectAll" type="button">Select all</button>
+                <button id="ihClear" type="button">Clear</button>
+                <button id="ihDownload" type="button">Download</button>
+                <button id="ihMove" type="button">Move</button>
+                <button id="ihRename" type="button">Rename</button>
+                <button id="ihDelete" type="button">Delete</button>
+                <button id="ihCopy" type="button">Copy CDN URL</button>
+                <button id="ihRestore" type="button">Restore…</button>
+              </div>
+              <div id="ihItems" class="ih-items"></div>
+            </div>
+            <aside id="ihDetails" class="ih-details" aria-label="File details"><h3>Details</h3><p>Select a file to preview it and see its details.</p></aside>
+          </div>
+        </section>
+        <div id="ihScrapes" role="tabpanel" aria-labelledby="ihTabScrapes" hidden>
+        <section class="image-hosting-controls panel" aria-label="Brand scrape controls">
           <div class="image-hosting-controls-row">
             <div class="form-row image-hosting-sandbox-row">
               <label for="sandboxSelect">Sandbox</label>
@@ -59,14 +104,14 @@
               <button type="button" id="imageHostingRefreshBtn" class="primary">Refresh scrapes</button>
             </div>
           </div>
-          <p id="imageHostingStatus" class="status" role="status" aria-live="polite"></p>
         </section>
+        <section class="image-hosting-list image-hosting-scrape-list" id="imageHostingList" aria-label="Brand scrapes — expand a card to publish images"></section>
+        </div>
 
-        <section id="imageHostingCustomers" class="image-hosting-customers panel" aria-labelledby="customerHeading">
+        <section id="imageHostingCustomers" class="image-hosting-customers panel" role="tabpanel" aria-labelledby="ihTabCustomers" hidden>
           <h2 id="customerHeading">Cloud customer packages</h2>
           <p class="hint">Save customer-specific files and approved brand settings together. Shared files stay untouched; existing CDN paths are preserved. ZIP downloads below are separate exports, not cloud saves.</p>
           <p id="customerActive">Active customer: not inspected</p>
-          <p id="customerStatus" role="status" aria-live="polite">Inspect the current sandbox to begin.</p>
           <fieldset id="customerControls">
             <legend class="image-hosting-customer-legend">Customer package controls</legend>
             <div class="image-hosting-customer-actions">
@@ -89,7 +134,7 @@
               <div id="customerConfiguration"></div>
             </details>
             <div class="image-hosting-customer-actions">
-              <button id="customerSave" type="button" class="dashboard-btn-primary" disabled>Save customer in cloud — preview</button>
+              <button id="customerSave" type="button" class="dashboard-btn-primary" disabled>Preview package save</button>
             </div>
             <h3>Switch to a saved customer</h3>
             <p class="hint">Restore a complete saved package after reviewing additions, replacements, deletions and settings. The outgoing customer is backed up first.</p>
@@ -108,15 +153,16 @@
           </fieldset>
         </section>
 
-        <section class="image-hosting-library-panel panel" aria-labelledby="imageHostingLibraryHeader">
+        <details id="ihPublishedTools" class="image-hosting-library-panel panel">
+          <summary>Published library upload options and ZIP import / export</summary>
           <header class="image-hosting-library-header">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+            <div class="ih-library-heading">
               <div>
-                <h2 id="imageHostingLibraryHeader" style="margin:0;">Current library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill" style="margin-left:0.5rem;">0</span></h2>
-                <p class="hint" style="margin:0.25rem 0 0;">Sandbox library for reusable brand files. Upload, restore from ZIP, or publish from <strong>Brand scraper</strong> below. Each path keeps a stable <code>/cdn/&lt;sandbox&gt;/…</code> URL so swapping the bytes behind <code>logo</code> or <code>hero-banner</code> updates everywhere that URL is used.</p>
+                <h2 id="imageHostingLibraryHeader">Published library <span id="imageHostingLibraryCountPill" class="dashboard-env-pill">0</span></h2>
+                <p class="hint">These tools affect the selected sandbox's shared library, not My drive. ZIP import replaces published files. CDN paths stay stable.</p>
               </div>
               <div class="image-hosting-library-actions">
-                <button type="button" id="imageHostingDownloadBtn" class="dashboard-btn-outline">Download ZIP</button>
+                <button type="button" id="imageHostingDownloadBtn" class="dashboard-btn-outline">Export published library ZIP</button>
                 <label class="dashboard-btn-outline image-hosting-file-label" title="Replace the library contents with the zip">
                   Restore from ZIP
                   <input id="imageHostingRestoreInput" type="file" accept=".zip,application/zip" hidden />
@@ -144,8 +190,7 @@
               Auto-rename mode accepts images and ZIPs only. Keep original filename accepts any file type. Choose PNG conversion above as needed. Click to browse.
             </p>
           </div>
-          <p id="imageHostingManualMsg" class="status" role="status" aria-live="polite"></p>
-          <div class="image-hosting-library-toolbar" aria-label="View controls">
+          <div class="image-hosting-library-toolbar" hidden aria-label="Legacy view controls">
             <div class="image-hosting-view-toggle" role="tablist" aria-label="View">
               <button type="button" role="tab" data-view="grid" aria-selected="true" title="Grid view">
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="1" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="1" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="1" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9" y="9" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -179,7 +224,7 @@
             </div>
             <p class="image-hosting-paste-hint">Paste <kbd>⌘/Ctrl&nbsp;+&nbsp;V</kbd> an image anywhere on this page to upload it. Paste on a card to replace it.</p>
           </div>
-          <div id="imageHostingLibraryLayout" class="image-hosting-library-layout">
+          <div id="imageHostingLibraryLayout" class="image-hosting-library-layout" hidden>
             <aside id="imageHostingFolderPanel" class="image-hosting-folder-panel" aria-label="Library folders">
               <div class="image-hosting-folder-panel-head">
                 <span class="image-hosting-folder-panel-title">Folders</span>
@@ -189,7 +234,7 @@
               <div id="imageHostingFolderList" class="image-hosting-folder-list" role="list"></div>
             </aside>
             <div class="image-hosting-library-main">
-              <div id="imageHostingFolderScopeBar" class="image-hosting-folder-scope-bar" hidden role="status" aria-live="polite">
+              <div id="imageHostingFolderScopeBar" class="image-hosting-folder-scope-bar" hidden>
                 <span id="imageHostingFolderScopeLabel" class="image-hosting-folder-scope-label"></span>
                 <button type="button" id="imageHostingFolderScopeClear" class="dashboard-btn-outline">Show all folders</button>
               </div>
@@ -202,14 +247,36 @@
               <div id="imageHostingLibraryGrid" class="image-hosting-library-grid image-hosting-library-grid--grid" aria-live="polite"></div>
             </div>
           </div>
-          <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden>Library empty. Classify a scrape below, then click <strong>Publish</strong> on the images you want to keep.</p>
-        </section>
-
-        <section class="image-hosting-list image-hosting-scrape-list" id="imageHostingList" aria-label="Brand scrapes — expand a card to publish images"></section>
+          <p id="imageHostingLibraryEmpty" class="image-hosting-empty" hidden></p>
+        </details>
       </main>
     </div>
   </div>
 
+  <dialog id="ihBackupDialog" class="ih-dialog" aria-labelledby="ihBackupTitle">
+    <h2 id="ihBackupTitle">Back up published libraries</h2>
+    <p>Choose sandboxes to duplicate into your private backups. Published files are not changed. Brand-scrape images are excluded.</p>
+    <div id="ihBackupSandboxes"></div>
+    <progress id="ihBackupProgress" hidden></progress>
+    <p id="ihBackupResult"></p>
+    <div class="ih-dialog-actions">
+      <button id="ihBackupStart" type="button" class="dashboard-btn-primary">Create backup</button>
+      <button id="ihBackupCheck" type="button" class="dashboard-btn-outline" hidden>Check progress</button>
+      <button id="ihBackupClose" type="button" class="dashboard-btn-outline">Close</button>
+    </div>
+  </dialog>
+  <dialog id="ihRestoreDialog" class="ih-dialog" aria-labelledby="ihRestoreTitle">
+    <h2 id="ihRestoreTitle">Review restore</h2>
+    <p>Review the exact published paths below. Overwrites change the images at existing CDN URLs. Unchanged files are skipped.</p>
+    <p id="ihRestoreCounts"></p>
+    <label><input id="ihRestoreAll" type="checkbox" checked> Restore everything in this preview</label>
+    <div id="ihRestoreDiff"></div>
+    <label><input id="ihRestoreConfirm" type="checkbox"> I approve these additions and overwrites to the published libraries.</label>
+    <div class="ih-dialog-actions">
+      <button id="ihRestoreApply" type="button" class="dashboard-btn-primary" disabled>Confirm restore</button>
+      <button id="ihRestoreClose" type="button" class="dashboard-btn-outline">Cancel</button>
+    </div>
+  </dialog>
   <dialog id="imageHostingLightbox" class="image-hosting-lightbox" aria-label="Image preview">
     <button type="button" id="imageHostingLightboxClose" class="image-hosting-lightbox-close" aria-label="Close preview">×</button>
     <figure>
@@ -252,7 +319,7 @@
       </div>
       <label for="imageHostingPublishTargetSelect" class="image-hosting-backup-customer-label">Library file to overwrite</label>
       <select id="imageHostingPublishTargetSelect" class="sandbox-select" aria-describedby="imageHostingPublishTargetPath"></select>
-      <p id="imageHostingPublishTargetPath" class="image-hosting-publish-target-path" role="status" aria-live="polite">Select the exact library file to overwrite.</p>
+      <p id="imageHostingPublishTargetPath" class="image-hosting-publish-target-path">Select the exact library file to overwrite.</p>
       <div class="image-hosting-restore-dialog-actions">
         <button type="button" id="imageHostingPublishTargetCancel" class="dashboard-btn-outline">Cancel</button>
         <button type="button" id="imageHostingPublishTargetConfirm" class="dashboard-btn-primary" disabled>Replace file</button>
@@ -272,7 +339,7 @@
       <div class="image-hosting-restore-progress" aria-hidden="true">
         <span class="image-hosting-restore-progress-bar"></span>
       </div>
-      <p id="imageHostingBackupDialogStatus" class="image-hosting-restore-dialog-status" role="status" aria-live="polite"></p>
+      <p id="imageHostingBackupDialogStatus" class="image-hosting-restore-dialog-status"></p>
       <div id="imageHostingBackupDialogActions" class="image-hosting-restore-dialog-actions" hidden>
         <a id="imageHostingBackupDialogManualLink" class="dashboard-btn-outline image-hosting-backup-manual-link" hidden>Re-download</a>
         <button type="button" id="imageHostingBackupDialogClose" class="dashboard-btn-outline">Close</button>
@@ -293,7 +360,7 @@
       <div class="image-hosting-restore-progress" aria-hidden="true">
         <span class="image-hosting-restore-progress-bar"></span>
       </div>
-      <p id="imageHostingRestoreDialogStatus" class="image-hosting-restore-dialog-status" role="status" aria-live="polite"></p>
+      <p id="imageHostingRestoreDialogStatus" class="image-hosting-restore-dialog-status"></p>
       <div id="imageHostingRestoreDialogActions" class="image-hosting-restore-dialog-actions" hidden>
         <button type="button" id="imageHostingRestoreDialogClose" class="dashboard-btn-outline">Close</button>
       </div>
@@ -330,7 +397,7 @@
       <h2 id="customerPreviewTitle">Review customer package</h2>
       <p id="customerPreviewNotice">Review every exact path and setting. Switching may briefly show mixed images while files change. Downstream client caches may take longer to update.</p>
       <div id="customerPreviewContent"></div>
-      <p id="customerPreviewStatus" role="status" aria-live="polite"></p>
+      <p id="customerPreviewStatus"></p>
       <label class="image-hosting-customer-check"><input id="customerPreviewConfirm" type="checkbox"> I approve the complete file and configuration changes shown above.</label>
       <div class="image-hosting-customer-actions">
         <button id="customerApply" type="button" class="dashboard-btn-primary" disabled>Confirm and apply</button>
@@ -339,7 +406,7 @@
       </div>
     </div>
   </dialog>
-  <script src="image-hosting.js?v=20260817-publish-target"></script>
-  <script src="image-hosting-customers.js?v=20261019-cloud-customers"></script>
+  <script src="image-hosting.js?v=20261122-explorer"></script>
+  <script src="image-hosting-customers.js?v=20261122-explorer"></script>
 </body>
 </html>

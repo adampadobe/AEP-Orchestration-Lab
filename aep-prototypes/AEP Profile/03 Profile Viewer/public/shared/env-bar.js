@@ -33,7 +33,7 @@
       prefsSync: '20260616-tags-incognito-load',
       tagsInjection: '20261029-page-view-owner',
       aepDemoEnvBar: '20260720-global-lab-console',
-      siteCloneBcEnv: '20260721-cross-tab-bc-restore',
+      siteCloneBcEnv: '20261122-library-auth',
       siteCloneBcChrome: '20260614-modal-dock-parity',
       siteCloneBc: '20260625-bc-incognito-sync-skip',
       bottomDockCss: '20260818-bc-typing-maxheight-fix',

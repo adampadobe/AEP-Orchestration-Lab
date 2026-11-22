@@ -8,13 +8,16 @@
 
   async function fetch(url, options) {
     var opts = Object.assign({}, options || {});
-    if (typeof url === 'string' && url.indexOf('/api/image-hosting/library') === 0
-      && opts.method && opts.method !== 'GET') {
-      var auth = window.AepLabSandboxSync && await window.AepLabSandboxSync.getAuthHeaders();
-      if (!auth || !auth.Authorization) throw new Error('Sign in to the lab before modifying images.');
+    if (typeof url === 'string' && url.indexOf('/api/') === 0) {
+      var auth = await requireImageAuth();
       opts.headers = Object.assign({}, opts.headers || {}, auth);
     }
-    return window.fetch(url, opts);
+    var response = await window.fetch(url, opts);
+    if (typeof url === 'string' && url.indexOf('/api/') === 0 && [401, 403].includes(response.status)) {
+      showSignIn();
+      throw new Error('Sign in with an authorized lab account to access images.');
+    }
+    return response;
   }
 
   var listEl = document.getElementById('imageHostingList');
@@ -33,29 +36,644 @@
   var lastRecords = [];
   var classifying = {}; // scrapeId → true while a classify is in flight
 
-  /**
-   * Classify/download images for a scrape runs on `brandScraperClassify` (up to
-   * several minutes). Firebase Hosting rewrites to `/api/*` are proxied with a
-   * short timeout, so we call the Cloud Function URL directly — same pattern
-   * as `brand-scraper.js` (CLASSIFY_URL).
-   */
-  function aepLabCloudFunctionsOrigin() {
-    try {
-      if (window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__) {
-        return String(window.__AEP_LAB_CLOUD_FUNCTIONS_ORIGIN__).replace(/\/+$/, '');
-      }
-    } catch (_e) {}
-    var pid = 'aep-orchestration-lab';
-    try {
-      if (window.firebaseDatabaseConfig && window.firebaseDatabaseConfig.projectId) {
-        pid = String(window.firebaseDatabaseConfig.projectId).trim() || pid;
-      }
-    } catch (_e2) {}
-    return 'https://us-central1-' + pid + '.cloudfunctions.net';
+  var explorer = {
+    source: 'published', sandbox: '', path: '', backupId: '', items: [], selected: new Set(),
+    sandboxes: [], backups: [], driveFolders: new Set(['']), totalBytes: 0,
+    generation: 0, busy: false, restore: null, pollTimer: null, signedIn: false, uid: ''
+  };
+  var byId = function (id) { return document.getElementById(id); };
+  function node(tag, text, cls) {
+    var el = document.createElement(tag);
+    if (text != null) el.textContent = String(text);
+    if (cls) el.className = cls;
+    return el;
   }
-  function brandScraperClassifyDirectUrl() {
-    return aepLabCloudFunctionsOrigin() + '/brandScraperClassify';
+  function action(text, work, cls) {
+    var button = node('button', text, cls);
+    button.type = 'button';
+    button.addEventListener('click', function () { runExplorer(work); });
+    return button;
   }
+  function showSignIn() {
+    explorer.signedIn = false;
+    explorer.generation++;
+    clearTimeout(explorer.pollTimer);
+    explorer.items = []; explorer.backups = []; lastLibraryItems = [];
+    explorer.driveFolders = new Set(['']); explorer.sandboxes = []; lastRecords = [];
+    explorer.path = ''; explorer.backupId = ''; explorer.restore = null;
+    explorer.uid = ''; explorer.totalBytes = 0;
+    explorer.selected.clear();
+    byId('imageHostingSignIn').hidden = false;
+    byId('ihItems').replaceChildren();
+    byId('ihTree').replaceChildren();
+    byId('ihDetails').replaceChildren();
+    document.querySelectorAll('[data-ih-tab]').forEach(function (tab) {
+      byId(tab.dataset.ihTab).hidden = true;
+    });
+    byId('ihPublishedTools').hidden = true;
+    document.querySelectorAll('dialog[open]').forEach(function (dialog) { dialog.close(); });
+  }
+  async function requireImageAuth() {
+    var headers = window.AepLabSandboxSync && await window.AepLabSandboxSync.getAuthHeaders();
+    var user = window.firebase && window.firebase.apps && window.firebase.apps.length
+      ? window.firebase.auth().currentUser : null;
+    if (!headers || !headers.Authorization || (user && user.isAnonymous)) {
+      showSignIn();
+      throw new Error('Sign in to the lab to use Image hosting. Anonymous sessions cannot access private files.');
+    }
+    if (explorer.signedIn && user && explorer.uid !== (user.uid || '')) {
+      showSignIn();
+      throw new Error('Your lab account changed. Reload Image hosting to access the new account.');
+    }
+    return headers;
+  }
+  async function imageApi(url, method, body) {
+    var response = await fetch(url, {
+      method: method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      body: body == null ? undefined : JSON.stringify(body)
+    });
+    var result;
+    try { result = await response.json(); }
+    catch (_) { throw new Error('Unreadable server response (HTTP ' + response.status + ').'); }
+    if (!response.ok || result.ok !== true) {
+      throw new Error(typeof result.error === 'string' ? result.error : 'Request failed (HTTP ' + response.status + ').');
+    }
+    return result;
+  }
+  async function readPages(url) {
+    var items = [], cursor = '', seen = new Set();
+    do {
+      var result = await imageApi(url + (cursor ? (url.includes('?') ? '&' : '?') + 'cursor=' + encodeURIComponent(cursor) : ''));
+      if (!Array.isArray(result.items)) throw new Error('The server did not return a file list.');
+      items.push.apply(items, result.items);
+      cursor = result.nextCursor || '';
+      if (cursor && seen.has(cursor)) throw new Error('The server repeated a pagination cursor. Reload the folder.');
+      seen.add(cursor);
+    } while (cursor);
+    return items;
+  }
+  async function runExplorer(work) {
+    if (explorer.busy) return;
+    explorer.busy = true;
+    byId('ihFiles').setAttribute('aria-busy', 'true');
+    try {
+      await requireImageAuth();
+      await work();
+    } catch (error) {
+      setStatus(error.message || String(error), 'err');
+      if (byId('ihItems').textContent === 'Loading…') {
+        byId('ihItems').replaceChildren(node('p', 'Folder could not be loaded. Select it again to retry.', 'ih-empty'));
+      }
+    }
+    finally {
+      explorer.busy = false;
+      byId('ihFiles').removeAttribute('aria-busy');
+    }
+  }
+  function fileKey(item) { return item.sandbox ? item.sandbox + '/' + item.path : item.path; }
+  function joinPath(parent, child) { return parent ? parent + '/' + child : child; }
+  function validPath(value) {
+    if (!value || value.startsWith('/') || /[\\?#\u0000-\u001f]/.test(value) ||
+      value.split('/').some(function (part) { return !part || part === '.' || part === '..'; })) {
+      throw new Error('Use a relative path with non-empty folder names and no "..".');
+    }
+    return value;
+  }
+  function displayDate(value) {
+    if (!value) return 'Not available';
+    var date = new Date(value);
+    return isNaN(date.getTime()) ? 'Not available' : date.toLocaleString();
+  }
+  function previewUrl(item) {
+    var raw = explorer.source === 'published' ? item.cdnUrl : item.previewUrl;
+    if (!raw) return '';
+    try {
+      var url = new URL(raw, location.href);
+      return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
+    } catch (_) { return ''; }
+  }
+  function preview(item) {
+    var url = previewUrl(item);
+    if (!url || item.kind === 'folder' || (item.contentType && !item.contentType.startsWith('image/'))) {
+      return node('div', item.kind === 'folder' ? 'Folder' : 'File', 'ih-file-placeholder');
+    }
+    var image = node('img', null, 'ih-thumbnail');
+    image.alt = item.name;
+    image.loading = 'lazy';
+    image.referrerPolicy = 'no-referrer';
+    image.src = url;
+    image.addEventListener('error', function () { image.replaceWith(node('p', 'Preview unavailable', 'ih-file-placeholder')); }, { once: true });
+    return image;
+  }
+  function renderTree() {
+    var tree = byId('ihTree');
+    tree.replaceChildren();
+    function entry(label, source, path, sandbox, backupId, nested) {
+      var button = action(label, function () { return navigateExplorer(source, path, sandbox, backupId); }, nested ? 'ih-tree-child' : 'ih-tree-root');
+      if (explorer.source === source && explorer.path === (path || '') &&
+        (!sandbox || explorer.sandbox === sandbox) && (!backupId || explorer.backupId === backupId)) button.setAttribute('aria-current', 'location');
+      tree.append(button);
+    }
+    entry('Published library', 'published', '', explorer.sandbox || explorer.sandboxes[0]);
+    explorer.sandboxes.forEach(function (sandbox) {
+      entry(sandbox, 'published', '', sandbox, '', true);
+      if (sandbox === explorer.sandbox) {
+        sortedFolderPaths(collectFolderPaths(lastLibraryItems)).filter(Boolean).forEach(function (path) {
+          entry(path, 'published', path, sandbox, '', true);
+        });
+      }
+    });
+    entry('My drive', 'drive', '');
+    Array.from(explorer.driveFolders).filter(Boolean).sort().forEach(function (path) {
+      entry(path, 'drive', path, '', '', true);
+    });
+    entry('Backups', 'backups', '');
+    explorer.backups.forEach(function (backup) {
+      entry(displayDate(backup.createdAt), 'backup', '', '', backup.id, true);
+    });
+  }
+  function locationName() {
+    return { published: 'Published library', drive: 'My drive', backups: 'Backups', backup: 'Backups' }[explorer.source];
+  }
+  function renderBreadcrumb() {
+    var host = byId('ihBreadcrumb');
+    host.replaceChildren(action(locationName(), function () {
+      return navigateExplorer(explorer.source === 'backup' ? 'backups' : explorer.source, '', explorer.sandbox);
+    }));
+    if (explorer.source === 'published') host.append(node('span', ' / ' + (explorer.sandbox || 'Select a sandbox')));
+    if (explorer.source === 'backup') {
+      var backup = explorer.backups.find(function (item) { return item.id === explorer.backupId; });
+      host.append(node('span', ' / ' + (backup ? displayDate(backup.createdAt) : explorer.backupId)));
+    }
+    var parts = explorer.path.split('/').filter(Boolean);
+    parts.forEach(function (part, index) {
+      host.append(node('span', ' / '), action(part, function () {
+        return navigateExplorer(explorer.source, parts.slice(0, index + 1).join('/'), explorer.sandbox, explorer.backupId);
+      }));
+    });
+    var writable = ['published', 'drive'].includes(explorer.source);
+    byId('ihUpload').disabled = !writable || (explorer.source === 'published' && !explorer.sandbox);
+    byId('ihNewFolder').disabled = byId('ihUpload').disabled;
+    byId('ihPublishedTools').hidden = explorer.source !== 'published' || byId('ihFiles').hidden;
+    byId('ihLocationHint').textContent = {
+      published: 'Shared sandbox assets. Moving or renaming a published file changes its CDN path.',
+      drive: 'Private to your account. Files here have no published CDN URL.',
+      backups: 'Private snapshots kept until you delete them. Total storage: ' + (formatBytesShort(explorer.totalBytes) || '0 B') + '.',
+      backup: 'Read-only snapshot. Restore to the original published sandbox libraries after reviewing a diff.'
+    }[explorer.source];
+  }
+  function selectedItems() {
+    return explorer.items.filter(function (item) { return explorer.selected.has(fileKey(item)); });
+  }
+  function renderSelection() {
+    var count = explorer.selected.size;
+    byId('ihSelection').hidden = !count;
+    byId('ihSelectionCount').textContent = count + ' selected';
+    var backup = explorer.source === 'backup';
+    byId('ihCopy').hidden = explorer.source !== 'published';
+    byId('ihRestore').hidden = !backup;
+    ['ihMove', 'ihRename', 'ihDelete'].forEach(function (id) { byId(id).hidden = backup; });
+    byId('ihRename').disabled = count !== 1;
+    var publishedFolders = explorer.source === 'published' && selectedItems().some(function (item) { return item.kind === 'folder'; });
+    ['ihMove', 'ihRename', 'ihDelete'].forEach(function (id) {
+      byId(id).disabled = publishedFolders || (id === 'ihRename' && count !== 1);
+      byId(id).title = publishedFolders ? 'Open published folders and select their files to modify them.' : '';
+    });
+    byId('ihCopy').disabled = selectedItems().some(function (item) { return item.kind === 'folder'; });
+    byId('ihDownload').disabled = selectedItems().some(function (item) { return item.kind === 'folder' || !previewUrl(item); });
+  }
+  function showDetails(item) {
+    var pane = byId('ihDetails');
+    pane.replaceChildren(node('h3', item.name), preview(item));
+    var dl = node('dl');
+    [['Path', fileKey(item)], ['Size', item.size == null ? 'Not available' : formatBytesShort(item.size)],
+      ['Type', item.kind === 'folder' ? 'Folder' : item.contentType || 'Not available'],
+      ['Updated', displayDate(item.updatedAt)], ['Created', displayDate(item.createdAt)]].forEach(function (pair) {
+      dl.append(node('dt', pair[0]), node('dd', pair[1]));
+    });
+    pane.append(dl);
+    if (explorer.source === 'published' && item.kind !== 'folder') {
+      pane.append(node('dt', 'CDN URL'), node('p', previewUrl(item), 'ih-cdn'));
+      pane.append(action('Copy CDN URL', function () { return copyToClipboard(previewUrl(item)); }));
+      var replace = node('label', 'Replace image', 'dashboard-btn-outline image-hosting-file-label');
+      var input = node('input');
+      input.type = 'file'; input.accept = 'image/*'; input.hidden = true;
+      input.addEventListener('change', function () {
+        if (input.files[0]) runExplorer(function () { return replaceLibraryItem(item.path, input.files[0]); });
+      });
+      replace.append(input); pane.append(replace);
+    }
+    if (explorer.source === 'backup') pane.append(action('Restore this file…', function () { return previewRestore([fileKey(item)]); }));
+    else pane.append(action('Select for actions', function () {
+      explorer.selected.add(fileKey(item)); renderExplorerItems();
+    }));
+  }
+  function visibleItems() {
+    var q = byId('ihSearch').value.trim().toLowerCase();
+    return explorer.items.filter(function (item) { return (item.name + ' ' + fileKey(item)).toLowerCase().includes(q); });
+  }
+  function renderExplorerItems() {
+    renderBreadcrumb();
+    byId('ihGridView').setAttribute('aria-pressed', String(viewMode !== 'list'));
+    byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+    var host = byId('ihItems');
+    host.className = 'ih-items' + (viewMode === 'list' ? ' ih-items--list' : '');
+    host.replaceChildren();
+    if (explorer.source === 'backups') { renderBackupList(); return; }
+    var items = visibleItems();
+    items.forEach(function (item) {
+      var row = node('article', null, 'ih-item');
+      if (explorer.selected.has(fileKey(item))) row.classList.add('is-selected');
+      var label = node('label', null, 'ih-file-select');
+      var checkbox = node('input');
+      checkbox.type = 'checkbox'; checkbox.checked = explorer.selected.has(fileKey(item));
+      checkbox.setAttribute('aria-label', 'Select ' + fileKey(item));
+      checkbox.addEventListener('change', function () {
+        if (checkbox.checked) explorer.selected.add(fileKey(item)); else explorer.selected.delete(fileKey(item));
+        row.classList.toggle('is-selected', checkbox.checked); showDetails(item); renderSelection();
+      });
+      label.append(checkbox);
+      var open = action(item.name, function () {
+        if (item.kind === 'folder') return navigateExplorer(explorer.source, item.path, explorer.sandbox, explorer.backupId);
+        showDetails(item);
+      }, 'ih-file-open');
+      var thumb = preview(item);
+      row.append(label, thumb, open, node('span', item.kind === 'folder' ? 'Folder' : formatBytesShort(item.size) || 'Size unavailable', 'ih-file-size'),
+        node('span', displayDate(item.updatedAt), 'ih-file-date'));
+      host.append(row);
+    });
+    if (!items.length) host.append(node('div', byId('ihSearch').value ? 'No files match your search. Clear the search to see this folder.' :
+      explorer.source === 'backup' ? 'No files in this snapshot.' : 'This folder is empty. Upload files or create a folder to get started.', 'ih-empty'));
+    renderSelection();
+  }
+  function renderPublishedExplorer() {
+    if (explorer.source !== 'published' || !explorer.signedIn || byId('ihFiles').hidden) return;
+    var path = explorer.path;
+    if (libraryCountEl) libraryCountEl.textContent = String(assetLibraryItems().length);
+    var folders = sortedFolderPaths(collectFolderPaths(lastLibraryItems));
+    var folderItems = folders.filter(function (folder) {
+      return folder && libraryDirAndFilename(folder).dir === path;
+    }).map(function (folder) { return { name: libraryDirAndFilename(folder).file, path: folder, kind: 'folder' }; });
+    explorer.items = folderItems.concat(assetLibraryItems().filter(function (item) {
+      return libraryDirAndFilename(item.relPath).dir === path;
+    }).map(function (item) {
+      return Object.assign({}, item, { path: item.relPath, name: item.file || libraryDirAndFilename(item.relPath).file, kind: 'file' });
+    }));
+    renderTree(); renderExplorerItems();
+  }
+  async function loadBackups() {
+    var generation = explorer.generation;
+    var result = await imageApi('/api/image-hosting/backups');
+    if (!Array.isArray(result.backups)) throw new Error('The server did not return backups.');
+    if (generation !== explorer.generation || !explorer.signedIn) return;
+    explorer.backups = result.backups; explorer.totalBytes = result.totalBytes;
+  }
+  async function navigateExplorer(source, path, sandbox, backupId) {
+    var generation = ++explorer.generation;
+    explorer.source = source; explorer.path = path || '';
+    explorer.sandbox = sandbox || explorer.sandbox; explorer.backupId = backupId || '';
+    explorer.items = []; explorer.selected.clear(); byId('ihSearch').value = '';
+    byId('ihDetails').replaceChildren(node('h3', 'Details'), node('p', 'Select a file to preview it and see its details.'));
+    renderBreadcrumb(); renderSelection();
+    byId('ihItems').replaceChildren(node('p', 'Loading…', 'ih-empty'));
+    if (source === 'published') {
+      if (!explorer.sandbox) { byId('ihItems').replaceChildren(node('p', 'Choose a sandbox in the folder tree.')); return; }
+      var items = await fetchLibrary(explorer.sandbox);
+      if (generation !== explorer.generation) return;
+      lastLibraryItems = items.map(function (item) {
+        return Object.assign({}, item, { isFolderMarker: item.isFolderMarker || item.file === LIB_FOLDER_MARKER });
+      });
+      renderPublishedExplorer();
+    } else if (source === 'drive') {
+      var drive = await readPages('/api/image-hosting/drive?path=' + encodeURIComponent(explorer.path));
+      if (generation !== explorer.generation) return;
+      explorer.items = drive;
+      drive.filter(function (item) { return item.kind === 'folder'; }).forEach(function (item) { explorer.driveFolders.add(item.path); });
+      renderExplorerItems(); renderTree();
+    } else {
+      await loadBackups();
+      if (generation !== explorer.generation) return;
+      if (source === 'backup') {
+        var files = await readPages('/api/image-hosting/backups/' + encodeURIComponent(backupId) + '/files');
+        if (generation !== explorer.generation) return;
+        explorer.items = files.map(function (item) {
+          return Object.assign({}, item, { name: item.sandbox + '/' + item.relPath, path: item.relPath, kind: 'file' });
+        });
+      }
+      renderExplorerItems(); renderTree();
+    }
+  }
+  function completedBackup(backup) { return ['completed', 'complete', 'succeeded'].includes(backup.status); }
+  function renderBackupList() {
+    var host = byId('ihItems');
+    host.className = 'ih-backup-list';
+    var q = byId('ihSearch').value.toLowerCase();
+    explorer.backups.filter(function (backup) { return (displayDate(backup.createdAt) + ' ' + backup.sandboxes.join(' ')).toLowerCase().includes(q); }).forEach(function (backup) {
+      var row = node('article', null, 'ih-backup-row');
+      row.append(action(displayDate(backup.createdAt), function () { return navigateExplorer('backup', '', '', backup.id); }, 'ih-backup-title'),
+        node('p', backup.sandboxes.join(', ')), node('p', backup.fileCount + ' files · ' + (formatBytesShort(backup.bytes) || '0 B')),
+        node('p', backup.status + (backup.error ? ': ' + backup.error : '')));
+      var buttons = node('div', null, 'ih-dialog-actions');
+      var restore = action('Restore…', function () { explorer.backupId = backup.id; return previewRestore(); });
+      var download = action('Download ZIP', function () { return downloadBackup(backup.id); });
+      restore.disabled = download.disabled = !completedBackup(backup);
+      buttons.append(restore, download, action('Delete', async function () {
+        if (!confirm('Permanently delete backup from ' + displayDate(backup.createdAt) + '? This cannot be undone.')) return;
+        await imageApi('/api/image-hosting/backups/' + encodeURIComponent(backup.id), 'DELETE');
+        setStatus('Backup deleted.', 'ok'); await navigateExplorer('backups');
+      }));
+      if (!completedBackup(backup) && backup.status !== 'failed') buttons.append(action('Check progress', function () { return pollBackup(backup.id); }));
+      row.append(buttons); host.append(row);
+    });
+    if (!host.children.length) host.append(node('p', q ? 'No backups match your search.' : 'No backups yet. Use Back up now to duplicate your published libraries.', 'ih-empty'));
+  }
+  async function downloadUrl(url, filename, authenticated) {
+    var response = await (authenticated ? fetch(url) : window.fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer' }));
+    if (!response.ok) throw new Error('Download failed (HTTP ' + response.status + ').');
+    var blob = await response.blob(), objectUrl = URL.createObjectURL(blob);
+    var anchor = node('a'); anchor.href = objectUrl; anchor.download = filename;
+    document.body.append(anchor); anchor.click(); anchor.remove();
+    setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 60000);
+  }
+  async function downloadBackup(id) {
+    var result = await imageApi('/api/image-hosting/backups/' + encodeURIComponent(id) + '/download');
+    var url = signedDownloadUrl(result.url);
+    await downloadUrl(url, 'image-backup-' + id + '.zip', false);
+    setStatus('Backup ZIP downloaded.', 'ok');
+  }
+  function signedDownloadUrl(value) {
+    var url;
+    try { url = new URL(value); } catch (_) { throw new Error('No valid download URL returned.'); }
+    if (url.protocol !== 'https:') throw new Error('Download URL must use HTTPS.');
+    return url.href;
+  }
+  async function chooseBackup() {
+    var result = await imageApi('/api/image-hosting/sandboxes-used');
+    var used = (result.sandboxes || []).map(function (sandbox) { return sandbox.name; });
+    var host = byId('ihBackupSandboxes');
+    host.replaceChildren();
+    Array.from(new Set(explorer.sandboxes.concat(used))).forEach(function (sandbox) {
+      var label = node('label', null, 'ih-sandbox-choice'), checkbox = node('input');
+      checkbox.type = 'checkbox'; checkbox.value = sandbox; checkbox.checked = used.includes(sandbox);
+      label.append(checkbox, node('span', sandbox)); host.append(label);
+    });
+    if (!host.children.length) host.append(node('p', 'No used sandboxes are available yet. Open a sandbox library first.'));
+    byId('ihBackupStart').disabled = !host.children.length;
+    byId('ihBackupCheck').hidden = true;
+    byId('ihBackupProgress').hidden = true; byId('ihBackupResult').textContent = '';
+    byId('ihBackupDialog').showModal();
+  }
+  async function pollBackup(id) {
+    clearTimeout(explorer.pollTimer);
+    byId('ihBackupCheck').dataset.backupId = id;
+    byId('ihBackupCheck').hidden = false;
+    var result = await imageApi('/api/image-hosting/backups/' + encodeURIComponent(id));
+    var backup = result.backup;
+    if (!backup || typeof backup.status !== 'string') throw new Error('The server did not return a backup status. Use Check progress to retry.');
+    var progress = byId('ihBackupProgress');
+    progress.hidden = false;
+    if (backup.progress && backup.progress.total > 0) {
+      progress.max = backup.progress.total; progress.value = backup.progress.done;
+    } else progress.removeAttribute('value');
+    byId('ihBackupResult').textContent = backup.status + ' · ' + (backup.progress ? backup.progress.done + ' / ' + backup.progress.total + ' files' : 'Preparing inventory');
+    if (completedBackup(backup) || backup.status === 'failed') {
+      byId('ihBackupStart').disabled = false;
+      byId('ihBackupCheck').hidden = true;
+      setStatus(completedBackup(backup) ? 'Backup complete: ' + backup.fileCount + ' files, ' + formatBytesShort(backup.bytes) + '.' : 'Backup failed: ' + (backup.error || 'Unknown error'), completedBackup(backup) ? 'ok' : 'err');
+      await navigateExplorer('backups');
+    } else {
+      function nextPoll() {
+        if (!explorer.signedIn) return;
+        if (explorer.busy) { explorer.pollTimer = setTimeout(nextPoll, 1000); return; }
+        runExplorer(function () { return pollBackup(id); });
+      }
+      explorer.pollTimer = setTimeout(nextPoll, 2000);
+    }
+  }
+  async function previewRestore(paths) {
+    var id = explorer.backupId;
+    var result = await imageApi('/api/image-hosting/backups/' + encodeURIComponent(id) + '/restore/preview', 'POST', paths ? { paths: paths } : {});
+    if (!Array.isArray(result.items)) throw new Error('The server did not return a restore diff.');
+    explorer.restore = { id: id, paths: paths, items: result.items };
+    var host = byId('ihRestoreDiff'); host.replaceChildren();
+    var counts = result.counts || {};
+    byId('ihRestoreCounts').textContent = ['add', 'overwrite', 'unchanged'].map(function (key) { return (counts[key] || 0) + ' ' + key; }).join(' · ');
+    result.items.forEach(function (item) {
+      var label = node('label', null, 'ih-diff-row'), checkbox = node('input');
+      checkbox.type = 'checkbox'; checkbox.value = item.sandbox + '/' + item.relPath; checkbox.checked = item.action !== 'unchanged'; checkbox.disabled = true;
+      checkbox.addEventListener('change', updateRestoreApply);
+      label.append(checkbox, node('span', item.action, 'ih-diff-action'), node('span', checkbox.value)); host.append(label);
+    });
+    byId('ihRestoreAll').checked = true; byId('ihRestoreConfirm').checked = false;
+    updateRestoreApply(); byId('ihRestoreDialog').showModal();
+  }
+  function updateRestoreApply() {
+    var all = byId('ihRestoreAll').checked;
+    byId('ihRestoreDiff').querySelectorAll('input').forEach(function (input) {
+      var item = explorer.restore.items.find(function (item) { return item.sandbox + '/' + item.relPath === input.value; });
+      input.disabled = all || item.action === 'unchanged';
+    });
+    byId('ihRestoreApply').disabled = !byId('ihRestoreConfirm').checked ||
+      !explorer.restore.items.some(function (item) { return item.action !== 'unchanged'; }) ||
+      (!all && !byId('ihRestoreDiff').querySelector('input:checked:not(:disabled)'));
+  }
+  async function mutateSelection(operation) {
+    var items = selectedItems();
+    if (!items.length) return;
+    if (explorer.source === 'published' && items.some(function (item) { return item.kind === 'folder'; })) {
+      throw new Error('Open published folders and select their files to modify them.');
+    }
+    if (operation === 'delete' && !confirm('Delete ' + items.length + ' selected item(s)? Folder contents will also be deleted.')) return;
+    var target = null;
+    if (operation === 'move') {
+      target = prompt('Destination folder path (blank for root):', explorer.path);
+      if (target === null) return;
+      if (target) validPath(target);
+    }
+    if (operation === 'rename') {
+      target = prompt('New name:', items[0].name);
+      if (target === null) return;
+      validPath(target);
+      if (target.includes('/')) throw new Error('A new name cannot contain a slash. Use Move to change folders.');
+    }
+    if (explorer.source === 'drive' && operation === 'delete') {
+      await imageApi('/api/image-hosting/drive', 'DELETE', { paths: items.map(function (item) { return item.path; }) });
+    } else {
+      for (var item of items) {
+        if (explorer.source === 'drive') {
+          await imageApi('/api/image-hosting/drive/' + operation, 'POST', operation === 'rename' ?
+            { path: item.path, newName: target } : { from: item.path, to: joinPath(target, item.name) });
+        } else {
+          if (item.kind === 'folder') throw new Error('Published folders are navigable; select their files to move, rename or delete them.');
+          var url = '/api/image-hosting/library?sandbox=' + encodeURIComponent(explorer.sandbox);
+          if (operation === 'delete') await imageApi(url + '&relPath=' + encodeURIComponent(item.path), 'DELETE');
+          else await imageApi('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(explorer.sandbox), 'POST', {
+            sandbox: explorer.sandbox, relPath: item.path, newRelPath: operation === 'rename' ?
+              joinPath(libraryDirAndFilename(item.path).dir, target) : joinPath(target, item.name), onConflict: 'error'
+          });
+        }
+      }
+    }
+    explorer.driveFolders = new Set(['']);
+    setStatus('Selected items updated.', 'ok');
+    await navigateExplorer(explorer.source, explorer.path, explorer.sandbox, explorer.backupId);
+  }
+  async function initExplorer() {
+    await runExplorer(async function () {
+      explorer.signedIn = true;
+      explorer.uid = window.firebase?.apps?.length ? window.firebase.auth().currentUser?.uid || '' : '';
+      byId('imageHostingSignIn').hidden = true;
+      explorer.sandbox = window.AepGlobalSandbox?.getSandboxName() || '';
+      explorer.sandboxes = Array.from(byId('sandboxSelect').options).map(function (option) { return option.value; }).filter(Boolean);
+      byId('ihFiles').hidden = false;
+      renderTree();
+      var result = await imageApi('/api/image-hosting/sandboxes-used');
+      explorer.sandboxes = Array.from(new Set((result.sandboxes || []).map(function (sandbox) { return sandbox.name; }).concat(
+        Array.from(byId('sandboxSelect').options).map(function (option) { return option.value; }).filter(Boolean))));
+      explorer.sandbox = getSandbox() || explorer.sandboxes[0] || '';
+      byId('ihFiles').hidden = false;
+      await loadBackups();
+      await navigateExplorer('published', '', explorer.sandbox);
+      setStatus('Image folders ready.', 'ok');
+    });
+  }
+  document.querySelectorAll('[data-ih-tab]').forEach(function (tab, index, tabs) {
+    tab.addEventListener('click', function () {
+      if (!explorer.signedIn) return;
+      tabs.forEach(function (other) {
+        var active = other === tab;
+        other.setAttribute('aria-selected', String(active)); other.tabIndex = active ? 0 : -1;
+        byId(other.dataset.ihTab).hidden = !active;
+      });
+      byId('ihPublishedTools').hidden = tab.dataset.ihTab !== 'ihFiles' || explorer.source !== 'published';
+      if (tab.dataset.ihTab === 'ihScrapes') runExplorer(refresh);
+      if (tab.dataset.ihTab === 'ihFiles') runExplorer(function () {
+        return navigateExplorer(explorer.source, explorer.path, explorer.sandbox, explorer.backupId);
+      });
+    });
+    tab.addEventListener('keydown', function (event) {
+      var next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : -1;
+      if (next >= 0) { event.preventDefault(); tabs[next].focus(); tabs[next].click(); }
+    });
+  });
+  byId('ihSearch').addEventListener('input', renderExplorerItems);
+  ['Grid', 'List'].forEach(function (mode) {
+    byId('ih' + mode + 'View').addEventListener('click', function () {
+      viewMode = mode.toLowerCase();
+      byId('ihGridView').setAttribute('aria-pressed', String(viewMode === 'grid'));
+      byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+      renderExplorerItems();
+    });
+  });
+  byId('ihBackupNow').addEventListener('click', function () { runExplorer(chooseBackup); });
+  byId('ihBackupClose').addEventListener('click', function () { byId('ihBackupDialog').close(); });
+  byId('ihBackupCheck').addEventListener('click', function () {
+    runExplorer(function () { return pollBackup(byId('ihBackupCheck').dataset.backupId); });
+  });
+  byId('ihBackupStart').addEventListener('click', function () { runExplorer(async function () {
+    var sandboxes = Array.from(byId('ihBackupSandboxes').querySelectorAll('input:checked')).map(function (input) { return input.value; });
+    if (!sandboxes.length) throw new Error('Select at least one sandbox to back up.');
+    var result = await imageApi('/api/image-hosting/backups', 'POST', { sandboxes: sandboxes });
+    if (!result.backupId) throw new Error('Backup submitted but no ID returned. Inspect Backups before creating another.');
+    byId('ihBackupStart').disabled = true;
+    setStatus('Backup started. You may close the dialog and inspect Backups.', 'ok');
+    await pollBackup(result.backupId);
+  }); });
+  byId('ihRestoreAll').addEventListener('change', updateRestoreApply);
+  byId('ihRestoreConfirm').addEventListener('change', updateRestoreApply);
+  byId('ihRestoreClose').addEventListener('click', function () { byId('ihRestoreDialog').close(); });
+  byId('ihRestoreApply').addEventListener('click', function () { runExplorer(async function () {
+    byId('ihRestoreApply').disabled = true;
+    var restore = explorer.restore;
+    var paths = byId('ihRestoreAll').checked ? restore.paths :
+      Array.from(byId('ihRestoreDiff').querySelectorAll('input:checked:not(:disabled)')).map(function (input) { return input.value; });
+    try {
+      var result = await imageApi('/api/image-hosting/backups/' + encodeURIComponent(restore.id) + '/restore', 'POST', paths ? { paths: paths } : {});
+      if (!Number.isInteger(result.restored) || !Number.isInteger(result.skipped)) {
+        throw new Error('Restore returned no valid receipt.');
+      }
+      setStatus('Restored ' + result.restored + ' files; skipped ' + result.skipped + '.', 'ok');
+      byId('ihRestoreDialog').close();
+      await navigateExplorer(explorer.source, explorer.path, explorer.sandbox, explorer.backupId);
+    } catch (error) {
+      byId('ihRestoreConfirm').checked = false;
+      throw new Error(error.message + ' Inspect published files before submitting another restore.');
+    }
+  }); });
+  byId('ihNewFolder').addEventListener('click', function () { runExplorer(async function () {
+    var name = prompt('New folder name:', '');
+    if (name === null) return;
+    var path = validPath(joinPath(explorer.path, name));
+    await imageApi(explorer.source === 'drive' ? '/api/image-hosting/drive/folder' :
+      '/api/image-hosting/library/folder?sandbox=' + encodeURIComponent(explorer.sandbox), 'POST',
+    explorer.source === 'drive' ? { path: path } : { sandbox: explorer.sandbox, folder: path });
+    await navigateExplorer(explorer.source, explorer.path, explorer.sandbox);
+    setStatus('Folder created.', 'ok');
+  }); });
+  byId('ihUpload').addEventListener('click', function () { byId('ihUploadInput').click(); });
+  byId('ihUploadInput').addEventListener('change', function () {
+    var files = Array.from(this.files); this.value = '';
+    runExplorer(async function () {
+      for (var file of files) {
+        setStatus('Uploading ' + file.name + '…');
+        var result = await imageApi(explorer.source === 'drive' ? '/api/image-hosting/drive/upload' :
+          '/api/image-hosting/library/upload?sandbox=' + encodeURIComponent(explorer.sandbox), 'POST', {
+          sandbox: explorer.sandbox, path: explorer.path,
+          files: [{ name: file.name,
+            base64: await fileToBase64(file), contentType: file.type }],
+          keepFilename: true, convertToPng: false, onConflict: explorer.source === 'published' && explorer.path ? 'version' : 'error'
+        });
+        if (result.conflicts && result.conflicts.length) throw new Error('Upload conflict for ' + file.name + '. No replacement was made; rename the file or use Replace image.');
+        if (result.errors && result.errors.length) throw new Error('Upload failed: ' + JSON.stringify(result.errors));
+        if (!Array.isArray(result.uploaded) || !result.uploaded.length) {
+          throw new Error('Upload returned no saved file. Inspect the folder before retrying.');
+        }
+        if (explorer.source === 'published' && explorer.path) {
+          var uploaded = result.uploaded && result.uploaded[0];
+          if (!uploaded || !uploaded.relPath) throw new Error('Upload returned no path. Inspect the published root before retrying.');
+          try {
+            await imageApi('/api/image-hosting/library/rename?sandbox=' + encodeURIComponent(explorer.sandbox), 'POST', {
+              sandbox: explorer.sandbox, relPath: uploaded.relPath,
+              newRelPath: joinPath(explorer.path, file.name), onConflict: 'error'
+            });
+          } catch (error) {
+            throw new Error('Uploaded as ' + uploaded.relPath + ' in the published root, but could not move it: ' + error.message + ' Inspect the root before retrying.');
+          }
+        }
+      }
+      await navigateExplorer(explorer.source, explorer.path, explorer.sandbox);
+      setStatus('Files uploaded.', 'ok');
+    });
+  });
+  byId('ihClear').addEventListener('click', function () { explorer.selected.clear(); renderExplorerItems(); });
+  byId('ihSelectAll').addEventListener('click', function () {
+    visibleItems().forEach(function (item) { explorer.selected.add(fileKey(item)); }); renderExplorerItems();
+  });
+  ['Move', 'Rename', 'Delete'].forEach(function (operation) {
+    byId('ih' + operation).addEventListener('click', function () { runExplorer(function () { return mutateSelection(operation.toLowerCase()); }); });
+  });
+  byId('ihCopy').addEventListener('click', function () { runExplorer(async function () {
+    await copyToClipboard(selectedItems().map(previewUrl).join('\n')); setStatus('CDN URLs copied.', 'ok');
+  }); });
+  byId('ihDownload').addEventListener('click', function () { runExplorer(async function () {
+    for (var item of selectedItems()) await downloadUrl(previewUrl(item), item.name, false);
+    setStatus('Selected files downloaded.', 'ok');
+  }); });
+  byId('ihRestore').addEventListener('click', function () {
+    runExplorer(function () { return previewRestore(Array.from(explorer.selected)); });
+  });
+  window.addEventListener('aep-access-forced-logout', showSignIn);
+  var statusHome = statusEl.parentNode;
+  var statusAnchor = byId('imageHostingSignIn');
+  var dialogStatusObserver = new MutationObserver(function () {
+    var activeDialog = document.querySelector('dialog[open]');
+    if (activeDialog) activeDialog.append(statusEl);
+    else statusHome.insertBefore(statusEl, statusAnchor);
+  });
+  document.querySelectorAll('dialog').forEach(function (dialog) {
+    dialogStatusObserver.observe(dialog, { attributes: true, attributeFilter: ['open'] });
+  });
 
   // Persist view + sort preferences per-browser so switching pages
   // or reloading keeps the user's last choice.
@@ -90,6 +708,7 @@
   }
 
   function getSandbox() {
+    if (explorer && explorer.source === 'published' && explorer.sandbox && !byId('ihFiles').hidden) return explorer.sandbox;
     try {
       return (window.AepGlobalSandbox && window.AepGlobalSandbox.getSandboxName()) || '';
     } catch (_e) { return ''; }
@@ -109,16 +728,17 @@
   }
 
   function refreshOrReloadForSandboxChange() {
+    if (!explorer.signedIn) return;
     if (sandboxReloadPending) return;
     persistSandboxFromSelect();
-    var current = getSandbox();
+    var current = window.AepGlobalSandbox?.getSandboxName() || '';
     if (current !== sandboxAtPageLoad) {
       sandboxReloadPending = true;
       setStatus('Sandbox changed. Reloading page…', 'warn');
       window.location.reload();
       return;
     }
-    refresh();
+    if (!byId('ihScrapes').hidden) runExplorer(refresh);
   }
 
   function setStatus(msg, cls) {
@@ -127,22 +747,19 @@
     statusEl.className = 'status' + (cls ? ' ' + cls : '');
   }
 
-  function sandboxQs() {
-    var sb = getSandbox();
-    return sb ? ('?sandbox=' + encodeURIComponent(sb)) : '';
-  }
-
   async function fetchScrapes(sb) {
     var r = await fetch('/api/brand-scraper/scrapes' + (sb ? ('?sandbox=' + encodeURIComponent(sb)) : ''));
-    var data = await r.json().catch(function () { return {}; });
+    var data = await r.json();
     if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
-    return Array.isArray(data.items) ? data.items : [];
+    if (!Array.isArray(data.items)) throw new Error('The server did not return a scrape list.');
+    return data.items;
   }
 
   async function fetchScrape(sb, scrapeId) {
-    var r = await fetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + (sb ? ('?sandbox=' + encodeURIComponent(sb)) : ''));
-    if (!r.ok) return null;
-    return r.json().catch(function () { return null; });
+    var response = await fetch('/api/brand-scraper/scrapes/' + encodeURIComponent(scrapeId) + (sb ? ('?sandbox=' + encodeURIComponent(sb)) : ''));
+    var record = await response.json();
+    if (!response.ok) throw new Error(record.error || 'Could not load scrape ' + scrapeId + ' (HTTP ' + response.status + ').');
+    return record;
   }
 
   function imageUrl(img) {
@@ -164,18 +781,19 @@
   function populateCategoryFilter(cats) {
     if (!categoryFilterEl) return;
     var keep = categoryFilterEl.value;
-    categoryFilterEl.innerHTML = '<option value="">All categories</option>' +
-      cats.map(function (c) { return '<option value="' + c + '">' + c + '</option>'; }).join('');
+    var all = node('option', 'All categories'); all.value = '';
+    categoryFilterEl.replaceChildren(all);
+    cats.forEach(function (category) {
+      var option = node('option', category); option.value = category;
+      categoryFilterEl.append(option);
+    });
     if (keep && cats.indexOf(keep) !== -1) categoryFilterEl.value = keep;
   }
 
   // ----- Library (curated per-sandbox assets) -----
 
   async function fetchLibrary(sb) {
-    var r = await fetch('/api/image-hosting/library?sandbox=' + encodeURIComponent(sb));
-    var data = await r.json().catch(function () { return {}; });
-    if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
-    return Array.isArray(data.items) ? data.items : [];
+    return readPages('/api/image-hosting/library?limit=100&sandbox=' + encodeURIComponent(sb));
   }
 
   // Try to fetch the image bytes in the browser (where the origin CDN
@@ -740,7 +1358,7 @@
         row.classList.add('is-folder-view-active');
       }
       var pad = 8 + (fp ? Math.max(0, fp.split('/').length - 1) * 10 : 0);
-      row.style.paddingLeft = pad + 'px';
+      row.classList.add(fp && fp.includes('/') ? 'ih-folder-nested' : 'ih-folder-top');
       var label = document.createElement('button');
       label.type = 'button';
       label.className = 'image-hosting-folder-row-label';
@@ -1100,7 +1718,7 @@
     img.referrerPolicy = 'no-referrer';
     img.alt = item.file;
     img.src = libraryCdnUrlForDisplay(item);
-    img.onerror = function () { img.style.opacity = '0.3'; };
+    img.onerror = function () { img.classList.add('ih-preview-failed'); };
     wrap.appendChild(img);
     card.appendChild(wrap);
 
@@ -1145,7 +1763,7 @@
     openBtn.target = '_blank';
     openBtn.rel = 'noopener';
     openBtn.textContent = 'Open';
-    openBtn.style.cssText = 'font-size:0.65rem;padding:0.2rem 0.55rem;border-radius:999px;border:1px solid var(--dash-border);text-decoration:none;color:var(--dash-text);';
+    openBtn.className = 'ih-legacy-open';
     actions.appendChild(openBtn);
 
     var renameBtn = document.createElement('button');
@@ -1166,8 +1784,7 @@
     // drag-drop (discoverability for users who don't think to drag).
     var replaceLabel = document.createElement('label');
     replaceLabel.className = 'image-hosting-file-label';
-    replaceLabel.style.fontSize = '0.65rem';
-    replaceLabel.style.padding = '0.2rem 0.55rem';
+    replaceLabel.classList.add('ih-legacy-replace');
     replaceLabel.textContent = 'Replace';
     var replaceInput = document.createElement('input');
     replaceInput.type = 'file';
@@ -1201,10 +1818,7 @@
   }
 
   function setManualMsg(msg, cls) {
-    var el = document.getElementById('imageHostingManualMsg');
-    if (!el) return;
-    el.textContent = msg || '';
-    el.className = 'status' + (cls ? ' ' + cls : '');
+    setStatus(msg, cls);
   }
 
   function fileToBase64(file) {
@@ -1414,6 +2028,7 @@
   }
 
   function renderLibraryItems() {
+    if (explorer) { renderPublishedExplorer(); return; }
     if (!libraryGridEl) return;
     libraryGridEl.innerHTML = '';
     applyViewClass();
@@ -1457,6 +2072,10 @@
     try { items = await fetchLibrary(sb); }
     catch (e) {
       lastLibraryItems = [];
+      setStatus('Library load failed: ' + (e.message || e), 'err');
+      if (explorer && explorer.source === 'published') {
+        byId('ihItems').replaceChildren(node('p', 'Library could not be loaded. Select the sandbox again to retry.'));
+      }
       if (libraryEmptyEl) { libraryEmptyEl.hidden = false; libraryEmptyEl.textContent = 'Library load failed: ' + (e.message || e); }
       updateFolderScopeBar();
       renderFolderPanel();
@@ -1476,6 +2095,7 @@
     updateBulkBar();
     var assets = assetLibraryItems();
     if (!assets.length) {
+      if (explorer) renderPublishedExplorer();
       if (libraryEmptyEl) {
         libraryEmptyEl.hidden = false;
         libraryEmptyEl.textContent = lastLibraryItems.length
@@ -1501,7 +2121,7 @@
     setStatus('Classifying images for ' + scrapeId + '… (this can take 1–3 minutes)', '');
     setManualMsg('Downloading images to GCS and classifying with Gemini vision…');
     try {
-      var url = brandScraperClassifyDirectUrl() + '?sandbox=' + encodeURIComponent(sb);
+      var url = '/api/brand-scraper/scrapes/classify?sandbox=' + encodeURIComponent(sb);
       var r = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -1634,7 +2254,7 @@
         empty.textContent = 'No images match the category filter. Clear the filter or open another scrape.';
       } else if (rec.rawImageCount) {
         var p = document.createElement('p');
-        p.style.margin = '0 0 0.6rem';
+        p.className = 'ih-scrape-empty-note';
         p.textContent = rec.rawImageCount + ' images were found during crawl but have not been classified and stored yet. Use Classify images below.';
         empty.appendChild(p);
       } else {
@@ -1660,7 +2280,7 @@
         thumb.alt = img.alt || '';
         thumb.src = url;
         thumb.onerror = function () {
-          thumb.style.opacity = '0.3';
+          thumb.classList.add('ih-preview-failed');
           thumb.alt = 'failed to load';
         };
         wrap.appendChild(thumb);
@@ -1796,6 +2416,7 @@
 
   async function refresh() {
     if (!listEl) return;
+    lastRecords = [];
     listEl.innerHTML = '';
     var sb = getSandbox();
     if (sb !== lastLibrarySandbox) {
@@ -1810,6 +2431,7 @@
     catch (e) { setStatus('Error: ' + (e.message || e), 'err'); return; }
     if (!summaries.length) {
       setStatus('No scrapes yet in sandbox "' + sb + '". Run a scrape in Brand scraper first.', '');
+      listEl.append(node('p', 'No brand scrapes in this sandbox. Start in Brand scraper, then return here to classify and publish images.', 'image-hosting-empty'));
       return;
     }
     setStatus('Loading images for ' + summaries.length + ' scrape(s)…');
@@ -1838,8 +2460,6 @@
     lastRecords = brands;
     populateCategoryFilter(collectCategories(brands));
     render();
-    // Library is independent of scrape records; always refresh in parallel.
-    renderLibrary().catch(function () { /* surfaced inline */ });
   }
 
   function render() {
@@ -2218,7 +2838,8 @@
     var blobUrl = null;
     var anchorEl = null;
     try {
-      var resp = await fetch(url, { credentials: 'same-origin', cache: 'no-store' });
+      var download = await imageApi(url);
+      var resp = await window.fetch(signedDownloadUrl(download.url), { credentials: 'omit', cache: 'no-store' });
       if (slowTimer) { clearTimeout(slowTimer); slowTimer = null; }
 
       if (!resp.ok) {
@@ -2255,7 +2876,7 @@
           if (redirectBody.fileName) redirAnchor.download = redirectBody.fileName;
           redirAnchor.rel = 'noopener';
           redirAnchor.target = '_self';
-          redirAnchor.style.display = 'none';
+          redirAnchor.hidden = true;
           document.body.appendChild(redirAnchor);
           redirAnchor.click();
           var redirSize = formatBytesShort(redirectBody.size);
@@ -2340,7 +2961,7 @@
       anchorEl.href = blobUrl;
       anchorEl.download = fileName;
       anchorEl.rel = 'noopener';
-      anchorEl.style.display = 'none';
+      anchorEl.hidden = true;
       document.body.appendChild(anchorEl);
       anchorEl.click();
 
@@ -2441,9 +3062,7 @@
       var p1 = document.createTextNode('Renaming ' + contextLabel + ' would overwrite an existing file. Choose what to do:');
       conflictDlgDescEl.appendChild(p1);
       var ul = document.createElement('ul');
-      ul.style.margin = '0.4rem 0 0';
-      ul.style.paddingInlineStart = '1.2rem';
-      ul.style.fontSize = '0.78rem';
+      ul.className = 'ih-restore-file-list';
       var li1 = document.createElement('li');
       var b1 = document.createElement('strong'); b1.textContent = 'Replace existing'; li1.appendChild(b1);
       li1.appendChild(document.createTextNode(' — overwrite the bytes at ' + conflicting + ' (URL stays exactly the same).'));
@@ -2761,6 +3380,7 @@
   // clipboard adds it to the library. If a library card currently has
   // focus (last clicked/tabbed) the paste replaces that card instead.
   function onPaste(e) {
+    if (!explorer.signedIn || explorer.source !== 'published' || byId('ihFiles').hidden) return;
     if (!e.clipboardData) return;
     // Don't hijack paste inside text inputs/selects/textareas.
     var tag = (e.target && e.target.tagName) || '';
@@ -2787,7 +3407,7 @@
   }
   document.addEventListener('paste', onPaste);
 
-  if (refreshBtn) refreshBtn.addEventListener('click', refresh);
+  if (refreshBtn) refreshBtn.addEventListener('click', function () { runExplorer(refresh); });
 
   // Bulk-selection action bar.
   var bulkSelectAll = document.getElementById('imageHostingBulkSelectAll');
@@ -2898,9 +3518,21 @@
       sel.addEventListener('change', refreshOrReloadForSandboxChange);
     }
     if (typeof AepLabSandboxSync !== 'undefined' && AepLabSandboxSync.whenReady) {
-      AepLabSandboxSync.whenReady.then(refresh).catch(function () { refresh(); });
+      AepLabSandboxSync.whenReady.then(async function () {
+        await initExplorer();
+        var auth = window.firebase?.apps?.length ? window.firebase.auth() : null;
+        if (auth && typeof auth.onAuthStateChanged === 'function') {
+          auth.onAuthStateChanged(function (user) {
+            if (!user || user.isAnonymous) showSignIn();
+            else if (!explorer.signedIn || explorer.uid !== (user.uid || '')) {
+              showSignIn();
+              initExplorer();
+            }
+          });
+        }
+      }).catch(function (error) { setStatus(error.message, 'err'); });
     } else {
-      refresh();
+      initExplorer();
     }
   })();
 })();
