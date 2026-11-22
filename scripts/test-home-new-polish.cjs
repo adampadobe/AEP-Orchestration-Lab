@@ -66,6 +66,67 @@ async function main() {
       assert.ok(urlBounds.y >= titleBounds.y + titleBounds.height, 'scrape details stack below the brand name');
       await page.close();
     }
+    for (const theme of ['light', 'dark']) {
+      for (const sidebar of ['light', 'dark']) {
+        for (const palette of ['default', 'slate', 'ocean', 'ember', 'violet']) {
+          const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+          await page.addInitScript(({ theme, sidebar, palette }) => {
+            localStorage.setItem('aepTheme', theme);
+            localStorage.setItem('aepHomeDashboardSidebarTheme', sidebar);
+            localStorage.setItem('aepMenuPalette', palette);
+          }, { theme, sidebar, palette });
+          await page.route('**/*', async route => {
+            const url = new URL(route.request().url());
+            if (url.pathname.endsWith('/aep-access-onboarding.js')) {
+              return route.fulfill({ contentType: 'application/javascript', body: 'window.AepAccessOnboarding={init:function(){}};' });
+            }
+            if (url.pathname.endsWith('/aep-lab-sandbox-sync.js')) {
+              return route.fulfill({ contentType: 'application/javascript', body: 'window.AepLabSandboxSync={whenReady:Promise.resolve(),getAuthHeaders:function(){return Promise.resolve({});}};' });
+            }
+            if (url.hostname !== 'aep.test') return route.abort();
+            if (url.pathname.startsWith('/api/')) return route.fulfill({ status: 503, json: {} });
+            const file = path.resolve(root, '.' + url.pathname);
+            if (!file.startsWith(root + path.sep)) return route.abort();
+            try {
+              const type = { '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript', '.json': 'application/json' }[path.extname(file)];
+              return route.fulfill({ contentType: type, body: await fs.readFile(file) });
+            } catch (error) {
+              if (error.code === 'ENOENT') return route.fulfill({ status: 404, body: '' });
+              throw error;
+            }
+          });
+          await page.goto('http://aep.test/profile-viewer/home-new.html');
+          await page.evaluate(() => {
+            const template = document.getElementById('aepDeferredDashboardShell');
+            document.getElementById('aepDashboardMount').replaceWith(template.content.cloneNode(true));
+            template.remove();
+            window.dispatchEvent(new Event('aep-deferred-dashboard-mounted'));
+          });
+          await page.locator('.dashboard-nav-item--active').waitFor();
+          const result = await page.evaluate(() => {
+            const links = [...document.querySelectorAll('link[rel="stylesheet"]')];
+            const themeLink = links.find(link => new URL(link.href).pathname.endsWith('/aep-theme.css'));
+            const paletteLink = links.find(link => new URL(link.href).pathname.endsWith('/aep-theme-palettes.css'));
+            const snapshot = () => {
+              const body = getComputedStyle(document.body);
+              const active = getComputedStyle(document.querySelector('.dashboard-nav-item--active'));
+              return [
+                ...['--dash-sidebar', '--menu-bg', '--menu-fg', '--menu-fg-muted', '--menu-accent', '--menu-nav-active-bg', '--menu-nav-active-fg', '--menu-hover'].map(name => body.getPropertyValue(name).trim()),
+                active.backgroundColor,
+                active.color,
+              ];
+            };
+            const last = links.at(-1) === themeLink;
+            const actual = snapshot();
+            paletteLink.before(themeLink);
+            return { last, actual, previous: snapshot() };
+          });
+          assert.ok(result.last, 'aep-theme.css must be the final stylesheet');
+          assert.deepEqual(result.actual, result.previous, `${theme}/${sidebar}/${palette} sidebar changed when theme moved last`);
+          await page.close();
+        }
+      }
+    }
     console.log('Home dashboard polish checks passed');
   } finally {
     await browser.close();
