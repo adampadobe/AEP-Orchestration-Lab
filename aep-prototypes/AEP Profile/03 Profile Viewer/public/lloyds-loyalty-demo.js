@@ -509,7 +509,6 @@
     $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
     message((receipt.state === 'already' ? 'Challenge Already Joined.' : 'Challenge Joined.') +
       ' Journey entry is not verified. ' + warnings.join(' '), warnings.length > 0);
-    scrollPhoneSection('loyaltyPhoneTitle');
   }
   function memberId(ctx, config) {
     if (!config || typeof config.namespace !== 'string' || !config.namespace.trim()) throw new Error('Adobe Loyalty has not reported its member namespace.');
@@ -579,10 +578,11 @@
       const ring = node('div', undefined, 'loyalty-progress-ring');
       ring.setAttribute('role', 'img'); ring.setAttribute('aria-label', completed + ' of ' + total + ' tasks complete');
       ring.style.setProperty('--loyalty-progress', (total ? completed / total * 100 : 0) + '%');
-      ring.append(node('b', completed + ' / ' + total), node('span', 'tasks complete'));
       const title = node('div');
       const remaining = challenge.tasks.find(task => !complete(task));
-      title.append(node('p', 'CHALLENGE PROGRESS', 'loyalty-eyebrow'), node('h3', name),
+      title.append(node('p', 'CHALLENGE PROGRESS', 'loyalty-eyebrow'),
+        node('b', completed + ' / ' + total, 'loyalty-progress-count'),
+        node('span', 'tasks complete', 'loyalty-progress-caption'), node('h3', name),
         node('p', !total ? 'No tasks reported' : remaining ? 'Remaining: ' + (remaining.taskName || remaining.taskId || 'Unnamed task') : 'All returned tasks complete', 'loyalty-next-task'));
       summary.append(ring, title); section.append(summary);
       const mobile = node('article', undefined, 'loyalty-phone-challenge');
@@ -680,9 +680,11 @@
     const section = node('article', undefined, 'loyalty-challenge loyalty-pending-progress');
     const summary = node('div', undefined, 'loyalty-progress-summary');
     const ring = node('div', undefined, 'loyalty-progress-ring');
-    ring.append(node('b', '\u2014'), node('span', 'Live status'));
+    ring.setAttribute('role', 'img'); ring.setAttribute('aria-label', 'Awaiting Adobe task progress');
     const title = node('div');
-    title.append(node('p', 'YOUR CHALLENGE', 'loyalty-eyebrow'), node('h3', joinedChallenge.title),
+    title.append(node('p', 'YOUR CHALLENGE', 'loyalty-eyebrow'),
+      node('b', '\u2014', 'loyalty-progress-count'),
+      node('span', 'Live status', 'loyalty-progress-caption'), node('h3', joinedChallenge.title),
       node('p', 'Enrollment confirmed. Awaiting Adobe task progress.', 'loyalty-next-task'));
     summary.append(ring, title); section.append(summary);
     for (const [index, offer] of model.partnerOffers.entries()) {

@@ -443,7 +443,11 @@ async function main() {
     assert.match(await page.locator('#loyaltyTasks').textContent(), /0 of 3/);
     assert.equal(await page.locator('.loyalty-task progress').count(), 1, 'Missing accumulator is never fabricated as zero');
     assert.equal(await page.locator('.loyalty-task[data-complete="true"]').count(), 0, 'Previous-cycle completions do not complete current tasks');
-    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '0 / 2');
+    assert.equal(await page.locator('.loyalty-progress-count').textContent(), '0 / 2');
+    assert.equal(await page.locator('.loyalty-progress-ring').textContent(), '');
+    assert.equal(await page.locator('.loyalty-progress-count').evaluate(count =>
+      count.getBoundingClientRect().left > document.querySelector('.loyalty-progress-ring').getBoundingClientRect().right), true,
+    'Count and task caption sit beside the ring, not inside it');
     assert.equal(await page.locator('.loyalty-phone-count').textContent(), '0 / 2 tasks complete');
     assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 0);
     assert.equal(await page.locator('.loyalty-phone-task button').count(), 0, 'Phone tasks cannot be completed by local simulation buttons');
@@ -458,7 +462,7 @@ async function main() {
     }];
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
-    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '3 / 3',
+    assert.equal(await page.locator('.loyalty-progress-count').textContent(), '3 / 3',
       'Adobe sent is the post-completion state, not an unfinished task');
     assert.equal(await page.locator('.loyalty-phone-count').textContent(), '3 / 3 tasks complete');
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 3);
@@ -479,7 +483,7 @@ async function main() {
     challengeListOverride[0].tasks[2].taskState = 'unrecognized';
     await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
-    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '1 / 3',
+    assert.equal(await page.locator('.loyalty-progress-count').textContent(), '1 / 3',
       'Historical completion receipts do not complete current incomplete or unknown task states');
     assert.doesNotMatch(await page.locator('.loyalty-outcome').textContent(), /Challenge completed/);
     challengeListOverride = undefined;
@@ -624,7 +628,7 @@ async function main() {
     quantity = 3;
     await page.waitForFunction(() => document.querySelectorAll('.loyalty-task[data-complete="true"]').length === 1,
       null, { timeout: 35000 });
-    assert.equal(await page.locator('.loyalty-progress-ring b').textContent(), '1 / 2');
+    assert.equal(await page.locator('.loyalty-progress-count').textContent(), '1 / 2');
     assert.equal(await page.locator('.loyalty-phone-count').textContent(), '1 / 2 tasks complete');
     assert.equal(await page.locator('.loyalty-phone-task[data-complete="true"]').count(), 1);
     await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), ajoOffers);
@@ -1113,6 +1117,12 @@ async function main() {
     assert.equal(await joinButton.isDisabled(), false, 'Explicit Adobe optedIn:false permits a deliberate retry after reconciliation');
     signupMode = 'success';
     signupGate = new Promise(resolve => { releaseSignup = resolve; });
+    await page.evaluate(() => {
+      const scroll = document.querySelector('.loyalty-phone-scroll');
+      const original = scroll.scrollTo.bind(scroll);
+      window.__signupScrolls = 0;
+      scroll.scrollTo = (...args) => { window.__signupScrolls++; return original(...args); };
+    });
     const signupStarted = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname === '/api/ajo-loyalty');
     await joinButton.click();
     await signupStarted;
@@ -1121,6 +1131,7 @@ async function main() {
     unavailableState = true;
     releaseSignup(); signupGate = null;
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge Joined.'));
+    assert.equal(await page.evaluate(() => window.__signupScrolls), 0, 'Joining does not scroll the phone to the static partner offers');
     assert.equal(signupRequests.length, countDuringSignup, 'Rapid double clicks submit only one signup');
     assert.deepEqual(signupRequests.at(-1), {
       sandbox: 'kirkham', action: 'signup', profile_id: 'loyalty-fixture-123', challenge_id: 'challenge-one-fixture',
@@ -1143,7 +1154,7 @@ async function main() {
     assert.equal(signupEvidence.journeyEntryVerified, false, 'API enrollment does not prove event-triggered journey entry');
     assert.equal(await page.locator('#loyaltyTasks .loyalty-task').count(), 2,
       'Signup preserves the previously reported tasks when its subsequent state refresh fails');
-    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-ring b').textContent(), '0 / 2',
+    assert.equal(await page.locator('#loyaltyTasks .loyalty-progress-count').textContent(), '0 / 2',
       'Enrollment does not change Adobe-reported task completion');
     assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3);
     assert.match(await page.locator('#loyaltyPartnerOffers').textContent(), /Participation confirmed by Adobe/);
