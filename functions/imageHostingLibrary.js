@@ -590,17 +590,12 @@ async function renameLibraryObject(sandbox, relPath, newRelPath, opts) {
  */
 async function aiGenerateReplacement(opts) {
   const { classification, brandName, subject, sourceUrl, alt } = opts || {};
-  const { VertexAI } = require('@google-cloud/vertexai');
+  const { GoogleGenAI } = require('@google/genai');
   const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
   const location = process.env.VERTEX_LOCATION || 'us-central1';
-  const modelName = process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image-preview';
+  const modelName = process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
 
-  const vertex = new VertexAI({ project, location });
-  const model = vertex.getGenerativeModel({
-    model: modelName,
-    // Flash Image returns both IMAGE and TEXT parts; we only use the image.
-    generationConfig: { temperature: 0.3, responseModalities: ['IMAGE', 'TEXT'] },
-  });
+  const vertex = new GoogleGenAI({ vertexai: true, project, location });
 
   const cat = (classification && classification.category) || '';
   const brand = String(brandName || '').trim();
@@ -631,10 +626,13 @@ async function aiGenerateReplacement(opts) {
     prompt += ` (Source reference: ${siteHost}.)`;
   }
 
-  const resp = await model.generateContent({
+  const resp = await vertex.models.generateContent({
+    model: modelName,
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    // Flash Image returns both IMAGE and TEXT parts; we only use the image.
+    config: { temperature: 0.3, responseModalities: ['IMAGE', 'TEXT'] },
   });
-  const cand = resp && resp.response && resp.response.candidates && resp.response.candidates[0];
+  const cand = resp && resp.candidates && resp.candidates[0];
   if (!cand) throw new Error('Gemini image: no candidate returned');
   const parts = (cand.content && cand.content.parts) || [];
   const imagePart = parts.find(p => p && p.inlineData && p.inlineData.data);
@@ -675,7 +673,7 @@ async function publishAiImage(sandbox, opts) {
       metadata: {
         sandbox: sandboxPrefix(sandbox),
         aiGenerated: 'true',
-        aiModel: process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image-preview',
+        aiModel: process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image',
         aiPrompt: String(generated.prompt || '').slice(0, 2000),
       },
     },
