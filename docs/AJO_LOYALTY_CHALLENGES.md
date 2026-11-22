@@ -719,8 +719,20 @@ after approximately two seconds, then retries at five-second intervals, with at
 most six reads and a 32-second scheduling deadline. Busy unrelated requests can
 reduce the number of attempts. The existing `readTasks(..., true)` ignores a
 manual debugging member override. Polling stops on a changed reported Spend,
-Adobe task/challenge completion, a missing/non-opted-in task, an error, context
+Adobe task/challenge completion, a missing/non-opted-in task, a non-transient error, context
 invalidation, another deliberate purchase, navigation away or the bound.
+Transient read failures (network transport, HTTP 408/429/500/502/503/504,
+or unreadable JSON on a successful response) consume the same six-attempt
+budget and can recover automatically. Only the Loyalty read is retried;
+the accepted purchase is never resent. HTTP status and errors persist in
+`poll.errors`. A JSON-labelled gateway response containing plain text such as
+`upstream request timeout` is reported with its HTTP status rather than leaking
+an unexplained JSON parse error and ending the first read. The UI warns that
+previous progress may be stale while retrying. Exhaustion retains the real prior
+progress, shows the last read error, and recommends **Get task status** without
+resending the purchase. Authorization/configuration failures and valid JSON with
+a malformed Loyalty state contract are not automatically retried. A failed read
+is never converted into an empty/complete state.
 If the initial accumulator was missing, first reporting zero does not stop
 latency polling; zero is displayed honestly while waiting for positive Spend.
 Manual **Get task status** remains available afterward.
@@ -738,7 +750,7 @@ For the first click, open:
   logged without automatic resubmission.
 - **Last successful response / proposition evidence → Spend purchase and
   Loyalty state evidence:** the request, UUID purchase ID, full `sdkResponse`,
-  `sdkAccepted`, bounded `poll.responses` and stop reason persist separately from
+  `sdkAccepted`, bounded `poll.responses`, `poll.errors` and stop reason persist separately from
   the general evidence panel. Console command:
   `window.LloydsLoyaltySpendDebug.getLatest()`. `qualification:"Not confirmed"`
   deliberately is not inferred from acceptance or a concurrent state change.
