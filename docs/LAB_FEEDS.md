@@ -37,9 +37,13 @@ inventing a day. For AdobeDocs, an explicit last-update date may be used when
 provided rather than a publication date.
 The model's `demoableInLab` is a suggestion, not proof that a demo exists.
 
-`meta.source` is `live` after a successful recent run, `stale` when the last
-run is partial, failed or overdue, and `fallback` with an empty list before
-the first run. `fetchedAt` is the latest attempted run, not necessarily the
+`meta.source` is `live` after a recent successful or partial run, `stale`
+when the last run failed, is overdue (older than twice its schedule
+interval), or was partial without refreshing anything because every
+classification it attempted failed or was deferred, and `fallback` with an
+empty list before the first run. A `live` feed can still report
+`lastRunStatus: "partial"`; the home page then shows "Live · some sources
+failed". `fetchedAt` is the latest attempted run, not necessarily the
 age of every item. `lastRunStatus` is `not-run`, `success`, `partial`, or
 `failed`. A 503 indicates the cache could not be read; it is not an empty
 successful feed. Unknown feeds return 404 and other methods return 405.
@@ -55,21 +59,33 @@ Classifications below the relevance threshold remain hidden. Failed
 classifications can be retried on a later run. A daily UTC cap counts attempts,
 including failed attempts. Items beyond the cap are recorded as `deferred` and
 picked up on a later run; reaching the cap does not make a run partial. Runs
-with source or classification errors are reported as partial. Gemini does not
+with source or classification errors are reported as partial. When Gemini
+returns 429 (`RESOURCE_EXHAUSTED`), the item is retried after 20 s and then
+40 s, with at most 120 s of backoff per run. If the limit persists, the run
+stops, records the remaining new items as `deferred` with a single
+`Classification deferred: Gemini rate-limited` error, and leaves them for the
+next run instead of failing each one. Gemini does not
 echo source metadata: `sourceUrl` and `publishedAt` are always taken from the
-source, and summaries longer than 25 words are trimmed rather than rejected. A
+source. Harmless drift is repaired rather than rejected: summaries over 25
+words, headlines over 300 characters and lists over 20 entries or with entries
+over 100 characters are trimmed. Genuinely invalid output is rejected and the
+failing field is named in the run's `errors`. A
 Firestore lease prevents overlapping refreshes. The initial result appears
 only after a scheduled run; deployment does not execute one.
 
 `labFeedConfig/{feedId}` is seeded on first run, never overwritten by the
 service, and may be edited by an authorized Firestore administrator. Stored
 sources that no longer exist in code are skipped, so retiring a source (for
-example `venturebeat`) does not break refreshes; raise other changed defaults,
-such as `dailyCap`, in the stored document too:
+example `venturebeat`) does not break refreshes. A retired source with a
+replacement is substituted in stored configs: `martech` now reads as `sap`
+(SAP's first-party newsroom feed), because martech.org's Cloudflare edge
+answers Cloud Functions egress with HTTP 429 although it serves other
+clients. Raise other changed defaults, such as `dailyCap`, in the stored
+document too:
 
 ```json
 {
-  "sources": ["techcrunch", "verge", "cmswire", "martech", "salesforce", "microsoft", "google"],
+  "sources": ["techcrunch", "verge", "cmswire", "sap", "salesforce", "microsoft", "google"],
   "watchlist": ["Salesforce", "Oracle", "SAP", "Braze", "Twilio Segment", "Bloomreach", "Optimizely", "Contentsquare", "HubSpot", "Microsoft", "Google"],
   "threshold": 0.6,
   "promptVersion": "1",
@@ -92,7 +108,8 @@ also block or rate-limit fetches.
 `expiresAt`. A Firestore TTL policy on the `items` collection group's
 `expiresAt` field deletes expired items; the read endpoint also filters them. Latest run
 counts, source status, errors, budget, and lease state are stored in
-`labFeeds/{feedId}`. Existing `/api/release-notes/summary` fallback responses
+`labFeeds/{feedId}`; each run replaces `lastRun` whole, so per-source entries
+from earlier runs do not linger. Existing `/api/release-notes/summary` fallback responses
 remain explicitly labelled `fallback`; live responses no longer blend in
 bundled product highlights.
 

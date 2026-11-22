@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createService, parseRss, parseMarkdown, parseCaas, validateClassification, DEFAULTS, SOURCES } = require('../labFeedsService');
+const { createService, parseRss, parseMarkdown, parseCaas, validateClassification, normaliseClassification, DEFAULTS, SOURCES } = require('../labFeedsService');
 
 const fixed = new Date('2026-11-22T10:00:00.000Z');
 const rss = `<rss><channel>
@@ -40,6 +40,7 @@ function fakeDb() {
       get: async (ref) => snap(ref.path),
       create: (ref, value) => { if (docs.has(ref.path)) throw Error('Already exists'); docs.set(ref.path, value); },
       set: (ref, value, options) => docs.set(ref.path, options?.merge ? { ...docs.get(ref.path), ...value } : value),
+      update: (ref, value) => { if (!docs.has(ref.path)) throw Error('No document to update'); docs.set(ref.path, { ...docs.get(ref.path), ...value }); },
     }),
   };
 }
@@ -262,4 +263,81 @@ test('ignores retired stored sources, sends JSON Accept to CaaS and trims long s
   const [item] = (await service.read('adobe-releases')).items;
   assert.equal(item.soWhat.split(' ').length, 25);
   assert.equal(item.sourceUrl, 'https://blog.adobe.com/en/recent');
+});
+
+test('normalises long model lists and headlines but still rejects wrong types', () => {
+  const long = (n) => Array.from({ length: n }, (_, i) => `Product ${i} ${'x'.repeat(i === 0 ? 150 : 0)}`);
+  const value = normaliseClassification({ relevance: 0.7, category: 'release', competitors: [], products: [...long(30), 'Product 1 ', ''],
+    headline: 'h'.repeat(400), soWhat: 'Useful', demoableInLab: true });
+  assert.equal(value.products.length, 20);
+  assert.ok(value.products.every((p) => p.length <= 100));
+  assert.equal(value.headline.length, 300);
+  assert.ok(validateClassification({}, value));
+  assert.ok(!validateClassification({}, normaliseClassification({ ...value, products: 'AEP' })));
+  assert.ok(!validateClassification({}, normaliseClassification({ ...value, demoableInLab: 'yes' })));
+});
+
+function rateLimited() {
+  return Object.assign(new Error('Vertex AI Gemini (gemini-2.5-flash) is rate-limited (RESOURCE_EXHAUSTED / 429).'), { code: 'RATE_LIMITED' });
+}
+
+const twoItemRss = rss.replace('https://example.com/news</link><pubDate>Sat, 21 Nov 2026 10:00:00 GMT</pubDate></item>',
+  'https://example.com/other</link><pubDate>Sat, 21 Nov 2026 10:00:00 GMT</pubDate></item>');
+
+test('backs off and retries an item when Gemini returns 429', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch'] });
+  const calls = [];
+  const base = classifier(calls);
+  let failures = 1;
+  const sleeps = [];
+  const service = createService({ db, fetchFn: async () => response(), now: () => fixed, sleep: async (ms) => sleeps.push(ms),
+    callGemini: async (...args) => { if (failures-- > 0) throw rateLimited(); return base(...args); } });
+  await service.refresh('tech-news');
+  assert.deepEqual(sleeps, [20000]);
+  assert.equal(db.docs.get('labFeeds/tech-news').lastRun.status, 'success');
+  assert.equal((await service.read('tech-news')).items.length, 1);
+});
+
+test('persistent Gemini 429 stops the run and defers the remaining items', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch'] });
+  let calls = 0;
+  const sleeps = [];
+  const service = createService({ db, fetchFn: async () => response(twoItemRss), now: () => fixed, sleep: async (ms) => sleeps.push(ms),
+    callGemini: async () => { calls++; throw rateLimited(); } });
+  await service.refresh('tech-news');
+  const run = db.docs.get('labFeeds/tech-news').lastRun;
+  assert.equal(calls, 3);
+  assert.deepEqual(sleeps, [20000, 40000]);
+  assert.equal(run.status, 'partial');
+  assert.equal(run.deferred, 2);
+  assert.deepEqual(run.errors, ['Classification deferred: Gemini rate-limited; 2 items left for the next run']);
+  assert.equal((await service.read('tech-news')).meta.source, 'stale');
+});
+
+test('a recent partial run that refreshed items is live until it is overdue', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch', 'verge'] });
+  let clock = fixed;
+  const service = createService({ db, now: () => clock, callGemini: classifier([]),
+    fetchFn: async (url) => url === SOURCES.verge.url ? { ok: false, status: 429 } : response() });
+  await service.refresh('tech-news');
+  const recent = await service.read('tech-news');
+  assert.deepEqual(recent.meta, { fetchedAt: fixed.toISOString(), source: 'live', lastRunStatus: 'partial' });
+  assert.equal(recent.items.length, 1);
+  clock = new Date(fixed.getTime() + 5 * 3600000);
+  assert.equal((await service.read('tech-news')).meta.source, 'stale');
+});
+
+test('replaces retired martech with SAP and overwrites the previous run metrics', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['martech', 'sap'] });
+  db.docs.set('labFeeds/tech-news', { lastRun: { sources: { venturebeat: { status: 'error', error: 'HTTP 429' } } } });
+  const urls = [];
+  const service = createService({ db, fetchFn: async (url) => { urls.push(url); return response(); }, callGemini: classifier([]), now: () => fixed });
+  await service.refresh('tech-news');
+  assert.deepEqual(urls, [SOURCES.sap.url]);
+  assert.ok(!Object.hasOwn(SOURCES, 'martech'));
+  assert.deepEqual(Object.keys(db.docs.get('labFeeds/tech-news').lastRun.sources), ['sap']);
 });
