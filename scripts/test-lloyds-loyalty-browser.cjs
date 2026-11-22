@@ -575,6 +575,14 @@ async function main() {
       'Journey content does not require the Decisioning toggle');
     await page.locator('#loyaltyRun').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('original proposition display accepted'));
+    const directDiagnostic = await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getLatest());
+    assert.equal(directDiagnostic.responseSource, 'direct-response');
+    assert.equal(directDiagnostic.evaluated, false, 'Direct responses are never described as evaluated subscription results');
+    assert.equal(directDiagnostic.totalPropositions, 3);
+    assert.equal(directDiagnostic.surfacePropositions, 1);
+    assert.equal(directDiagnostic.totalContentCardCandidates, 1);
+    assert.equal(directDiagnostic.selectedCandidate.propositionId, 'card');
+    assert.equal(directDiagnostic.propositions[0].id, 'hero', 'Raw evidence retains the complete array, including nonmatching scopes');
     assert.equal(await page.locator('#ContentCardContainer h3').textContent(), '<b>Your rewards</b>');
     assert.equal(await page.locator('#ContentCardContainer h3 b').count(), 0, 'Incoming copy is text, never executable HTML');
     const calls = await page.evaluate(() => window.__sdkCalls);
@@ -888,6 +896,7 @@ async function main() {
       window.__journeySubscriptions = [];
       window.__journeyTracking = [];
       window.__journeyCommands = [];
+      window.__diagnosticMultiCard = true;
       window.alloy = async (command, options) => {
         window.__journeyCommands.push(options?.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers' ? 'featured-sendEvent' : command);
         if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
@@ -903,6 +912,29 @@ async function main() {
               schema: 'https://ns.adobe.com/personalization/message/content-card',
               data: { content: { title: window.__journeyTitle || 'Delivered by the journey', body: 'Native AJO card',
                 actionUrl: '#loyalty-challenges' }, meta: { buttonLabel: 'View tasks' } } }] }];
+          if (window.__diagnosticMultiCard) {
+            propositions[0].scopeDetails = { decisionProvider: 'AJO', rank: 9, correlationID: 'synthetic-correlation',
+              characteristics: { source: 'journey', eventToken: 'synthetic-event-token' },
+              activity: { id: 'synthetic-activity', priority: 0 } };
+            propositions[0].items.push({ id: 'second-native-card',
+              schema: 'https://ns.adobe.com/personalization/message/content-card',
+              data: { content: { title: 'Second eligible card', body: 'Separate native content' },
+                meta: { rank: 1, challengeId: 'synthetic-second-challenge' } } });
+            propositions.push({ id: 'rules-card', scope: subscription.surfaces[0],
+              scopeDetails: { decisionProvider: 'AJO', rank: 2 }, items: [{ id: 'rules-item', data: { rules: [{
+                consequences: [
+                  { id: 'first-content', detail: { data: { contentType: 'application/json',
+                    content: JSON.stringify({ title: { content: 'Rule card' }, body: { content: 'Rule body' },
+                      buttons: [{ text: { content: 'Join' }, interactId: 'joinChallenge' }] }),
+                    meta: { challengeId: 'synthetic-rule-challenge', rank: 3 } } } },
+                  { id: 'second-content', detail: { data: { content: { title: { content: 'Another consequence' } } } } },
+                  { id: 'empty-content', detail: { data: { content: {} } } },
+                ],
+              }] } }, { id: 'default-item', schema: 'https://ns.adobe.com/personalization/default-content-item' }] });
+            propositions.push({ id: 'unrelated-surface', scope: subscription.surfaces[0] + '-different',
+              scopeDetails: { decisionProvider: 'AJO', rank: 100 }, items: [] });
+          }
+          window.__lastEvaluatedPropositions = propositions;
           window.__deliverJourney = () => subscription.callback({ propositions: window.__emptyJourneySubscription ? [] : propositions }, async (type, selected) => {
             window.__journeyTracking.push({ type, selected });
           });
@@ -936,11 +968,45 @@ async function main() {
     assert.equal(journey.tracking.length, 1);
     assert.equal(journey.tracking[0].type, 'display');
     assert.equal(journey.tracking[0].selected[0].items[0].id, 'native-card');
+    const evaluatedDiagnostic = await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated());
+    assert.equal(evaluatedDiagnostic.evaluated, true);
+    assert.equal(evaluatedDiagnostic.totalPropositions, 3);
+    assert.equal(evaluatedDiagnostic.surfacePropositions, 2);
+    assert.equal(evaluatedDiagnostic.totalContentCardCandidates, 4);
+    assert.equal(evaluatedDiagnostic.inventory.length, 6, 'Inventory retains rejected consequences and default items too');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.itemId, 'native-card');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.provider, 'AJO');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.source, 'journey');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.eventToken, 'synthetic-event-token');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.correlationId, 'synthetic-correlation');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.activity.id, 'synthetic-activity');
+    assert.equal(evaluatedDiagnostic.selectedCandidate.activityPriority, 0);
+    assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').ctas[0].interactId, 'joinChallenge');
+    assert.deepEqual(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').ctas,
+      [{ id: null, label: 'Join', interactId: 'joinChallenge', actionUrl: null }]);
+    assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').title, 'Rule card');
+    assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').body, 'Rule body');
+    assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').challengeId, 'synthetic-rule-challenge');
+    assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').rank, 3);
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 1, 'Diagnostics do not render the other eligible candidates');
+    assert.equal(JSON.parse(await page.locator('#loyaltyCardPreselectionEvidence').textContent()).totalContentCardCandidates, 4);
+    assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).proposition.id, 'journey-card',
+      'Existing selected-card evidence remains unchanged');
+    await page.evaluate(() => {
+      const evidence = window.LloydsLoyaltyContentCardDebug.getEvaluated();
+      if (JSON.stringify(evidence.propositions) !== JSON.stringify(window.__lastEvaluatedPropositions)) throw new Error('Incomplete or mutated raw evidence');
+      evidence.propositions.length = 0;
+      if (window.LloydsLoyaltyContentCardDebug.getEvaluated().propositions.length !== 3) throw new Error('Getter exposed mutable stored evidence');
+      document.getElementById('loyaltyCardPreselectionEvidence').remove();
+      window.__diagnosticMultiCard = false;
+    });
     await page.locator('#loyaltyRun').click();
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.match(await page.locator('#loyaltyStatus').textContent(), /unchanged/i,
       'An unchanged subscription update completes the loading state');
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1);
+    assert.equal(await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated().totalPropositions), 1,
+      'A missing optional diagnostic panel cannot block capture or existing card rendering');
     await page.evaluate(() => window.__deliverJourney());
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1,
       'Repeated ruleset callbacks cannot loop display collection');
@@ -955,6 +1021,8 @@ async function main() {
     });
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0,
       'A ruleset update with no eligible cards removes previously qualified content');
+    assert.equal(await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated().totalContentCardCandidates), 0,
+      'Empty callbacks replace previous diagnostic counts');
     await page.evaluate(() => { window.__emptyJourneySubscription = true; });
     await page.locator('#loyaltyRun').click();
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);

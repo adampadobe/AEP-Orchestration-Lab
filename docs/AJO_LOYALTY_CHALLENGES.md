@@ -314,6 +314,26 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    it to the old decision-only schema list. See Adobe's
    [Web SDK content-card configuration](https://experienceleague.adobe.com/en/docs/journey-optimizer/using/channels/content-card/configure/content-card-configuration-sdk)
    and [`subscribeRulesetItems`](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/subscriberulesetitems).
+
+   Temporary read-only Content Card diagnostics capture the complete callback
+   `propositions` before single-card selection. Open **Last successful response /
+   proposition evidence → Content Card pre-selection diagnostics** beneath the
+   demo, or run `window.LloydsLoyaltyContentCardDebug.getEvaluated()` in DevTools.
+   Its `propositions` preserves the full response array. `inventory` lists every
+   matching-surface item/consequence, including rejected/default entries, with
+   title/body, CTA, challenge metadata, rank, priority and original attribution
+   fields. `totalContentCardCandidates` counts candidates accepted by the existing
+   selector; `selectedCandidate` reports its unchanged winner. `totalPropositions`
+   counts the full input array; `surfacePropositions` counts exact surface matches.
+
+   `window.LloydsLoyaltyContentCardDebug.getLatest()` also exposes direct-response
+   fallback snapshots, explicitly labelled `evaluated:false`. Do not interpret
+   unevaluated direct rules as proof of eligible Journey cards. Snapshots include
+   the captured profile identifier/time and clear on context reset. They stay in
+   page memory only, preserve opaque event tokens without decoding them and send
+   no additional SDK requests or tracking events. Treat exported evidence as
+   profile-specific data; do not publish tokens or check live responses into Git.
+   The existing selected-card evidence and customer-facing rendering are unchanged.
 5. Explicit card display/click events retain the original proposition ID, scope,
    scope details, selected item and selection metadata, SDK identity and
    datastream override. Native journey cards use the SDK-provided `collectEvent`

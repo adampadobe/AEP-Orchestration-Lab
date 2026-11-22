@@ -18,6 +18,12 @@
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
+  let contentCardEvidence = null, evaluatedContentCardEvidence = null;
+  const readContentCardEvidence = evidence => evidence?.version === version ? structuredClone(evidence.snapshot) : null;
+  global.LloydsLoyaltyContentCardDebug = Object.freeze({
+    getLatest: () => readContentCardEvidence(contentCardEvidence),
+    getEvaluated: () => readContentCardEvidence(evaluatedContentCardEvidence),
+  });
   const availableMessages = new Map();
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
@@ -178,6 +184,9 @@
     syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
+    contentCardEvidence = evaluatedContentCardEvidence = null;
+    const diagnosticPanel = $('loyaltyCardPreselectionEvidence');
+    if (diagnosticPanel) diagnosticPanel.textContent = 'No Content Card response captured for this context.';
     $('loyaltyCardHint').textContent = 'Your next challenge will appear here.';
   }
   function invalidate(clearProfile) {
@@ -1268,6 +1277,82 @@
     }
     card.append(body); cardMount().replaceChildren(card);
   }
+  function captureContentCardEvidence(propositions, ctx, token, responseSource) {
+    const evaluated = responseSource === 'evaluated-subscription';
+    const diagnosticPanel = $('loyaltyCardPreselectionEvidence');
+    try {
+      const rawPropositions = structuredClone(propositions ?? null);
+      const inventory = [], text = value => typeof value === 'string' ? value :
+        typeof value?.content === 'string' ? value.content : null;
+      const describe = (proposition, item, consequenceId, data, candidate) => {
+        let content = candidate?.content || data?.content, contentParseError = null;
+        if (typeof content === 'string') {
+          try { content = JSON.parse(content); }
+          catch (error) { contentParseError = error.message; }
+        }
+        const meta = candidate?.meta || data?.meta || {};
+        const buttons = Array.isArray(content?.buttons) ? content.buttons.slice() : [];
+        if (!buttons.length && content?.actionUrl) buttons.push({ actionUrl: content.actionUrl, text: { content: 'View reward' } });
+        return {
+          propositionId: proposition.id, itemId: item.id, consequenceId,
+          itemSchema: item.schema ?? null, contentType: data?.contentType ?? null, contentParseError,
+          contentCardCandidate: Boolean(candidate), title: text(content?.title), body: text(content?.body),
+          ctas: buttons.map(button => ({
+            id: button.id ?? null, label: text(button.text), interactId: button.interactId ?? null,
+            actionUrl: button.actionUrl ?? null,
+          })),
+          challengeId: meta.challengeId ?? null, metadata: meta,
+          rank: Number.isFinite(candidate?.rank) ? candidate.rank : null,
+          metadataRank: meta.rank ?? null, propositionRank: proposition.scopeDetails?.rank ?? null,
+          activityPriority: proposition.scopeDetails?.activity?.priority ?? null,
+          provider: proposition.scopeDetails?.decisionProvider ?? null,
+          source: proposition.scopeDetails?.characteristics?.source ?? null,
+          correlationId: proposition.scopeDetails?.correlationID ?? null,
+          activity: proposition.scopeDetails?.activity ?? null,
+          eventToken: proposition.scopeDetails?.characteristics?.eventToken ?? null,
+        };
+      };
+      const matching = Array.isArray(propositions) ? propositions.filter(proposition => proposition.scope === ctx.surface) : [];
+      for (const proposition of matching) {
+        for (const item of proposition.items || []) {
+          const consequences = (item.data?.rules || []).flatMap(rule => rule.consequences || [])
+            .map(consequence => ({ consequence, direct: false }));
+          if (item.data?.content !== undefined) consequences.push({
+            consequence: { id: item.id, detail: { data: item.data } }, direct: true,
+          });
+          if (!consequences.length) inventory.push(describe(proposition, item, null, item.data, null));
+          for (const { consequence, direct } of consequences) {
+            const data = { ...item.data, rules: direct ? [] : [{ consequences: [consequence] }] };
+            if (!direct) delete data.content;
+            const candidate = model.selectCard([{ ...proposition, items: [{ ...item, data }] }], ctx.surface);
+            inventory.push(describe(proposition, item, consequence.id || item.id, consequence.detail?.data, candidate));
+          }
+        }
+      }
+      const selected = Array.isArray(propositions) ? model.selectCard(propositions, ctx.surface) : null;
+      const snapshot = structuredClone({
+        capturedAt: new Date().toISOString(), sandbox: ctx.sandbox,
+        profile: { namespace: ctx.namespace, identifier: ctx.identifier },
+        surface: ctx.surface, responseSource, evaluated,
+        propositionsReported: Array.isArray(propositions),
+        propositions: rawPropositions,
+        totalPropositions: Array.isArray(propositions) ? propositions.length : null,
+        surfacePropositions: Array.isArray(propositions) ? matching.length : null,
+        totalContentCardCandidates: Array.isArray(propositions) ? inventory.filter(entry => entry.contentCardCandidate).length : null,
+        inventory,
+        selectedCandidate: selected ? describe(selected.proposition, selected.item, selected.consequenceId,
+          { content: selected.content, meta: selected.meta }, selected) : null,
+      });
+      contentCardEvidence = { version: token, snapshot };
+      if (evaluated) evaluatedContentCardEvidence = contentCardEvidence;
+      if (diagnosticPanel) diagnosticPanel.textContent = JSON.stringify(snapshot, null, 2);
+    } catch (error) {
+      console.error('[Loyalty] Content Card diagnostic capture failed', error);
+      contentCardEvidence = { version: token, snapshot: { responseSource, evaluated, captureFailed: true, error: error.message } };
+      if (evaluated) evaluatedContentCardEvidence = contentCardEvidence;
+      if (diagnosticPanel) diagnosticPanel.textContent = 'Content Card diagnostic capture failed: ' + error.message;
+    }
+  }
   async function run(ctx, token) {
     closeConfiguration();
     if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
@@ -1300,6 +1385,7 @@
           callback: (result, collectEvent) => {
             if (cardSubscription !== subscription || !current()) return;
             subscription.updates++;
+            captureContentCardEvidence(result.propositions, ctx, token, 'evaluated-subscription');
             subscription.rendering = showCard(result.propositions, { ...captured, collectEvent }, ctx, token, true);
             void subscription.rendering.catch(error => {
               if (current()) message('Journey card rendering failed: ' + error.message + ' No automatic retry.', true);
@@ -1320,6 +1406,7 @@
     if (cardSubscription.updates !== subscriptionUpdates) {
       await cardSubscription.rendering; same(ctx, token); return;
     }
+    captureContentCardEvidence(result?.propositions, ctx, token, 'direct-response');
     if (model.selectCard(result?.propositions, ctx.surface)) await showCard(result.propositions, captured, ctx, token);
     else if (Array.isArray(result?.propositions)) {
       await showCard(result.propositions, captured, ctx, token, true);
