@@ -17,7 +17,7 @@ async function main() {
     let stateChallengeId = 'challenge-fixture', optedIn = true;
     let challengeListOverride, stateHasName = true, metadataMode = 'success', metadataGate;
     let signupMode = 'success', signupGate, releaseSignup;
-    let confirmAvailableSignup = false;
+    let confirmAvailableSignup = false, spendDefinition;
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -104,6 +104,7 @@ async function main() {
           data = { ok: true, data: {
             [id === 'coffee-challenge-fixture' ? 'get_id' : '_id']: metadataMode === 'mismatch' ? 'different-challenge' : id,
             name: id === 'coffee-challenge-fixture' ? 'Coffee rewards (Adobe metadata fixture)  ' : '  Everyday rewards (Adobe metadata fixture)',
+            ...(id === 'spend-demo-fixture' && spendDefinition ? { tasks: [spendDefinition] } : {}),
           } };
         }
         else {
@@ -2106,6 +2107,219 @@ async function main() {
       'Joining a raw Spend task does not fabricate an accumulator or Spend meter');
     confirmAvailableSignup = false;
     await progressPage.close();
+    const spendPage = await context.newPage();
+    spendPage.on('pageerror', error => errors.push(error.message));
+    profileLoyaltyId = 'spend-demo-member'; namespace = 'loyaltyId';
+    const spendChallenge = { challenge_id: 'spend-demo-fixture', challengeName: 'Generic Spend fixture',
+      optedIn: true, state: 'active', tasks: [{ taskId: 'spend-task-fixture', taskName: 'Spend task fixture',
+        taskType: 'purchase', taskClass: 'spend', taskState: 'incomplete',
+        variables: { spendMin: 50, singleTrans: false, include: { valuesSet: ['*'] } } }] };
+    challengeListOverride = [spendChallenge,
+      { ...spendChallenge, challenge_id: 'unjoined-spend-fixture', optedIn: false },
+      { ...spendChallenge, challenge_id: 'not-spend-fixture', tasks: [{ ...spendChallenge.tasks[0], taskClass: 'purchase' }] }];
+    const spendTask = spendChallenge.tasks[0], beforeSpendSignups = signupRequests.length;
+    await spendPage.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
+    await spendPage.waitForFunction(() => document.getElementById('loyaltyStatus')?.textContent.includes('SDK injection is only needed'));
+    await spendPage.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    await spendPage.locator('#customerEmail').fill('spend-demo@example.invalid');
+    await spendPage.locator('#queryProfileBtn').click();
+    await spendPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    await spendPage.evaluate(() => {
+      window.__spendEvents = []; window.__holdSpend = true;
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'spend-fixture-stream' } });
+      window.alloy = async (command, payload) => {
+        if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
+        if (command === 'sendEvent' && payload.xdm?.eventType === 'commerce.purchases') {
+          window.__spendEvents.push(payload);
+          if (window.__holdSpend) await new Promise(resolve => { window.__releaseSpend = resolve; });
+          if (window.__rejectSpend) throw new Error('Fixture: purchase ingestion rejected');
+          return { edgeTrace: 'spend-acceptance-fixture' };
+        }
+        return { propositions: [] };
+      };
+      window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [{
+        id: 'spend-preserved-offer', merchant: 'Unchanged merchant', title: 'Unchanged Featured offer',
+      }] } }));
+    });
+    const spendButton = spendPage.locator('#loyaltyTasks [data-spend-purchase]');
+    const spendCard = spendPage.locator('#loyaltyTasks [data-challenge-id="spend-demo-fixture"] .loyalty-task');
+    assert.equal(await spendButton.count(), 1, 'Only the opted-in, genuinely Spend-class task has a simulator');
+    assert.equal(await spendPage.locator('#loyaltyPhone [data-spend-purchase]').count(), 0);
+    assert.equal(await spendPage.locator('#loyaltyPhoneTasks [data-spend-purchase]').count(), 0);
+    assert.match(await spendCard.textContent(), /Progress not yet reported/);
+    assert.equal(await spendCard.locator('progress').count(), 0);
+    const featuredBeforeSpend = await spendPage.locator('#loyaltyFeaturedOffers').innerHTML();
+    await spendPage.mouse.move(0, 0);
+    await spendPage.setViewportSize({ width: 390, height: 844 });
+    for (const theme of ['dark', 'light']) {
+      const fits = await spendPage.evaluate(theme => {
+        document.documentElement.setAttribute('data-aep-theme', theme);
+        const control = document.querySelector('.loyalty-spend-demo'), rect = control.getBoundingClientRect();
+        const button = getComputedStyle(control.querySelector('button'));
+        return rect.width <= innerWidth && rect.left >= 0 && rect.right <= innerWidth &&
+          button.color !== button.backgroundColor;
+      }, theme);
+      assert.equal(fits, true, 'Spend control fits the mobile-width inspector with readable ' + theme + ' styling');
+    }
+    await spendPage.setViewportSize({ width: 1500, height: 1100 });
+    await spendPage.locator('#profileHoverZone').dispatchEvent('mouseleave');
+    if (await spendPage.locator('#customerEmail').isVisible()) await spendPage.locator('#aepLabEnvMinimizeBtn').click();
+    await spendPage.mouse.move(0, 0);
+    const storageBeforeSpend = await spendPage.evaluate(() => JSON.stringify(localStorage));
+    const beforeSpendReads = stateReads();
+    await spendButton.click();
+    await spendPage.waitForFunction(() => typeof window.__releaseSpend === 'function');
+    assert.equal(await spendButton.isDisabled(), true);
+    assert.match(await spendButton.textContent(), /Sending £10/);
+    await spendButton.dispatchEvent('click');
+    assert.equal(await spendPage.evaluate(() => window.__spendEvents.length), 1, 'Double clicks never duplicate an in-flight transaction');
+    const acceptedAt = Date.now();
+    await spendPage.evaluate(() => { window.__holdSpend = false; window.__releaseSpend(); });
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest()?.sdkAccepted &&
+      !document.querySelector('[data-spend-purchase]').disabled);
+    assert.equal(stateReads(), beforeSpendReads, 'Acceptance does not immediately refresh or simulate progress');
+    assert.match(await spendCard.textContent(), /Progress not yet reported/);
+    assert.equal(await spendCard.locator('progress').count(), 0, 'SDK acceptance does not create a progress counter');
+    assert.equal(await spendPage.evaluate(() => JSON.stringify(localStorage)), storageBeforeSpend);
+    const event1 = await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest());
+    assert.equal(event1.member, 'spend-demo-member');
+    assert.equal(event1.event.edgeConfigOverrides.datastreamId, 'spend-fixture-stream');
+    assert.equal(event1.event.renderDecisions, false);
+    assert.equal(event1.event.xdm.eventType, 'commerce.purchases');
+    assert.deepEqual(event1.event.xdm.commerce.purchases, { value: 1 });
+    assert.equal(event1.event.xdm.commerce.order.priceTotal, 10);
+    assert.equal(event1.event.xdm.commerce.order.currencyCode, 'GBP');
+    assert.deepEqual(event1.event.xdm.productListItems, [{
+      SKU: 'LOYALTY-SPEND-DEMO-10', name: 'Loyalty Spend demo purchase', quantity: 1, priceTotal: 10, currencyCode: 'GBP',
+    }]);
+    assert.equal(event1.event.xdm.identityMap.loyaltyId[0].id, 'spend-demo-member');
+    assert.equal(event1.event.xdm.identityMap.Email[0].id, 'spend-demo@example.invalid');
+    assert.equal(event1.event.xdm._demoemea.identification.core.loyaltyId, 'spend-demo-member');
+    assert.equal(event1.event.xdm._demoemea.identification.core.ecid, event1.event.xdm.identityMap.ECID[0].id);
+    assert.equal(event1.sdkResponse.edgeTrace, 'spend-acceptance-fixture');
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.responses.length === 1);
+    assert.ok(Date.now() - acceptedAt >= 1800, 'The first real state read waits approximately two seconds');
+    assert.match(await spendCard.textContent(), /Progress not yet reported/);
+    spendTask.accumulators = { spend: 10 };
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('updated Spend'));
+    assert.match(await spendCard.textContent(), /£10 spent.*£40 to go.*20% of spend target/);
+    assert.equal(await spendCard.locator('progress').getAttribute('value'), '10');
+    assert.match(await spendPage.locator('#loyaltyTasks .loyalty-task-details').first().textContent(), /"accumulators".*"spend": 10/s);
+    assert.equal(await spendCard.getAttribute('data-complete'), 'false');
+    assert.equal(await spendPage.locator('#loyaltyFeaturedOffers').innerHTML(), featuredBeforeSpend);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.__spendEvents.length === 2 && !document.querySelector('[data-spend-purchase]').disabled);
+    assert.match(await spendCard.textContent(), /£10 spent.*£40 to go/, 'A second accepted purchase still leaves Adobe progress untouched');
+    const event2 = await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest().event);
+    assert.notEqual(event2.xdm._id, event1.event.xdm._id);
+    assert.notEqual(event2.xdm.commerce.order.purchaseID, event1.event.xdm.commerce.order.purchaseID);
+    spendTask.accumulators = { spend: 20 };
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('updated Spend'));
+    assert.match(await spendCard.textContent(), /£20 spent.*£30 to go.*40% of spend target/);
+    delete spendTask.accumulators;
+    await spendPage.locator('#loyaltyRefresh').click();
+    await spendPage.waitForFunction(() => !document.getElementById('loyaltyRefresh').disabled);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.__spendEvents.length === 3 && !document.querySelector('[data-spend-purchase]').disabled);
+    spendTask.accumulators = { spend: 0 };
+    await spendPage.waitForFunction(() => document.querySelector('[data-challenge-id="spend-demo-fixture"] .loyalty-task-copy small').textContent.includes('£0 spent'));
+    assert.match(await spendCard.textContent(), /£0 spent.*£50 to go.*0% of spend target/, 'Returned zero is not confused with a missing accumulator');
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason), undefined,
+      'First reporting zero is not treated as purchase progress; latency polling continues');
+    await spendPage.waitForFunction(() => !document.querySelector('[data-spend-purchase]').disabled);
+    await spendPage.evaluate(() => {
+      window.__spendTimers = window.setTimeout;
+      window.setTimeout = (callback, delay, ...args) => window.__spendTimers(callback,
+        delay === 2000 ? 100 : delay === 5000 ? 100 : delay, ...args);
+    });
+    const beforeBoundedReads = stateReads();
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.__spendEvents.length === 4 &&
+      window.LloydsLoyaltySpendDebug.getLatest().sdkAccepted &&
+      window.LloydsLoyaltySpendDebug.getLatest().event.xdm._id === window.__spendEvents.at(-1).xdm._id);
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('retry window'));
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest().poll.responses.length), 6,
+      'Unchanged Adobe Spend stops after six state reads for this transaction');
+    assert.ok(stateReads() >= beforeBoundedReads + 6);
+    const afterBoundedReads = stateReads();
+    await spendPage.waitForTimeout(100);
+    assert.equal(stateReads(), afterBoundedReads, 'No continuous polling after the retry limit');
+    assert.equal(await spendButton.isDisabled(), false);
+    assert.match(await spendCard.textContent(), /£0 spent/);
+    await spendPage.evaluate(() => { window.__rejectSpend = true; });
+    const beforeFailedSpendReads = stateReads();
+    await spendButton.click();
+    await spendPage.waitForFunction(() => document.querySelector('[data-spend-feedback]').textContent.includes('purchase ingestion rejected'));
+    assert.equal(await spendButton.isDisabled(), false);
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest().sdkAccepted), false);
+    assert.equal(stateReads(), beforeFailedSpendReads, 'A rejected purchase never starts progress polling');
+    assert.match(await spendCard.textContent(), /£0 spent/);
+    await spendPage.evaluate(() => { window.__rejectSpend = false; });
+    rejectState = true;
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('refresh failed'));
+    assert.match(await spendCard.textContent(), /no active enrollment/);
+    assert.equal(await spendButton.isDisabled(), false);
+    rejectState = false;
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest()?.sdkAccepted &&
+      !document.querySelector('[data-spend-purchase]').disabled);
+    spendTask.accumulators = { spend: 50 };
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('updated Spend'));
+    assert.match(await spendCard.textContent(), /£50 spent.*£0 to go.*100% of spend target/);
+    assert.equal(await spendCard.getAttribute('data-complete'), 'false', 'Reaching the spend target does not locally complete the task');
+    assert.equal(await spendPage.locator('#loyaltyTasks .loyalty-progress-count').first().textContent(), '0 / 1');
+    await spendButton.click();
+    await spendPage.waitForFunction(() => !document.querySelector('[data-spend-purchase]').disabled);
+    spendTask.taskState = 'completed'; spendChallenge.state = 'completed';
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('reported the task'));
+    assert.equal(await spendButton.count(), 0, 'Adobe completion removes the no-longer-appropriate simulator');
+    assert.equal(await spendCard.getAttribute('data-complete'), 'true');
+    assert.equal(signupRequests.length, beforeSpendSignups, 'Spend simulation never signs a member up');
+    spendTask.taskState = 'incomplete'; spendChallenge.state = 'active';
+    spendDefinition = structuredClone(spendTask);
+    delete spendTask.taskClass; delete spendTask.variables;
+    await spendPage.locator('#loyaltyRefresh').click();
+    await spendPage.waitForFunction(() => !document.getElementById('loyaltyRefresh').disabled);
+    assert.equal(await spendButton.count(), 1, 'Missing state classification/goals resolve through matching Adobe task metadata');
+    await spendPage.evaluate(() => { window.setTimeout = window.__spendTimers; });
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest()?.sdkAccepted &&
+      !document.querySelector('[data-spend-purchase]').disabled);
+    const beforeCancelledSpendReads = stateReads();
+    await spendPage.evaluate(() => {
+      const input = document.getElementById('customerEmail');
+      input.value = 'different-spend-member@example.invalid'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await spendPage.waitForTimeout(2200);
+    assert.equal(stateReads(), beforeCancelledSpendReads, 'Identity changes cancel the old member polling timer');
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest()), null);
+    assert.equal(await spendButton.count(), 0);
+    await spendPage.locator('#queryProfileBtn').dispatchEvent('click');
+    await spendPage.waitForFunction(() => document.querySelector('[data-spend-purchase]') &&
+      !document.querySelector('[data-spend-purchase]').disabled);
+    await spendPage.evaluate(() => { window.__holdSpend = true; delete window.__releaseSpend; });
+    await spendButton.click();
+    await spendPage.waitForFunction(() => typeof window.__releaseSpend === 'function');
+    await spendPage.evaluate(() => {
+      window.__oldSpendRelease = window.__releaseSpend;
+      const input = document.getElementById('customerEmail');
+      input.value = 'new-spend-profile@example.invalid'; input.dispatchEvent(new Event('input', { bubbles: true }));
+      window.__holdSpend = false;
+    });
+    await spendPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    profileLoyaltyId = 'new-spend-member';
+    await spendPage.locator('#queryProfileBtn').dispatchEvent('click');
+    await spendPage.waitForFunction(() => document.querySelector('[data-spend-purchase]') &&
+      !document.querySelector('[data-spend-purchase]').disabled);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest()?.member === 'new-spend-member' &&
+      window.LloydsLoyaltySpendDebug.getLatest().sdkAccepted);
+    const newSpendEvidence = await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest());
+    await spendPage.evaluate(async () => { window.__oldSpendRelease(); await new Promise(resolve => setTimeout(resolve, 30)); });
+    assert.deepEqual(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest()), newSpendEvidence,
+      'A late old-profile SDK result/error cannot overwrite the newer purchase evidence');
+    await spendPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');

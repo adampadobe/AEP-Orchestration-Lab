@@ -19,6 +19,11 @@
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
   let contentCardEvidence = null, evaluatedContentCardEvidence = null;
+  let spendPoll = null, spendEvidence = null;
+  const spendMessages = new Map();
+  global.LloydsLoyaltySpendDebug = Object.freeze({
+    getLatest: () => spendEvidence?.version === version ? structuredClone(spendEvidence.snapshot) : null,
+  });
   const readContentCardEvidence = evidence => evidence?.version === version ? structuredClone(evidence.snapshot) : null;
   global.LloydsLoyaltyContentCardDebug = Object.freeze({
     getLatest: () => readContentCardEvidence(contentCardEvidence),
@@ -162,6 +167,7 @@
       button.disabled = busy || !loaded || button.dataset.boundaryDisabled === 'true';
     });
     syncSignupButtons();
+    syncSpendControls();
   }
   function closeConfiguration() {
     if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
@@ -174,6 +180,8 @@
     global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   };
   function clearResults() {
+    stopSpendPolling(); spendMessages.clear(); spendEvidence = null;
+    if ($('loyaltySpendEvidence')) $('loyaltySpendEvidence').textContent = 'No Spend purchase sent for this context.';
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
     activatedOffers.clear(); renderSavedOffers(); closeOfferDetail(false);
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
@@ -549,7 +557,8 @@
   }
   async function readChallengeMetadata(state, ctx, token, filter = ctx.challenge) {
     const ids = [...new Set(state.challengeList.filter(challenge => challenge &&
-      (!filter || challenge.challenge_id === filter) && (filter || !stateChallengeName(challenge)))
+      (!filter || challenge.challenge_id === filter) && (filter || !stateChallengeName(challenge) ||
+        challenge.optedIn === true && challenge.tasks?.some(task => !task.taskClass || model.spendTask(task))))
       .map(challenge => challenge.challenge_id))];
     const entries = await Promise.all(ids.map(async id => {
       try {
@@ -643,9 +652,17 @@
         step.setAttribute('aria-hidden', 'true');
         const initialsText = taskName.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
         const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
-        const progress = model.progress(task), taskCopy = node('div', undefined, 'loyalty-task-copy');
+        const spend = model.spendTask(task, definitionTask);
+        const progress = spend ? spend.goal && spend.value !== null ? { goal: spend.goal, value: spend.value } : null : model.progress(task);
+        const money = amount => new Intl.NumberFormat('en-GB', {
+          style: 'currency', currency: spend.currency, maximumFractionDigits: 2, minimumFractionDigits: 0,
+        }).format(amount);
+        const taskCopy = node('div', undefined, 'loyalty-task-copy');
         taskCopy.append(node('strong', taskName),
-          node('small', progress ? progress.value + ' of ' + progress.goal :
+          node('small', progress ? spend ? money(progress.value) + ' spent \u00b7 ' +
+            money(Math.max(progress.goal - progress.value, 0)) + ' to go \u00b7 ' +
+            Math.min(progress.value / progress.goal * 100, 100).toLocaleString('en-GB', { maximumFractionDigits: 1 }) +
+            '% of spend target' : progress.value + ' of ' + progress.goal :
             complete(task) ? 'Completion reported by Adobe' : 'Progress not yet reported'));
         heading.append(step, logo, taskCopy,
           node('span', complete(task) ? 'Completed' : task === remaining ? 'Up next' : 'To do', 'loyalty-task-state'));
@@ -654,6 +671,11 @@
           const meter = node('progress'); meter.max = progress.goal; meter.value = Math.max(0, Math.min(progress.value, progress.goal));
           meter.setAttribute('aria-label', (task.taskName || task.taskId) + ' progress');
           card.append(meter);
+        }
+        const sku = model.spendPurchaseSku(spend);
+        if (selectedMember && ctx.participation === 'active' && !ctx.test && sku &&
+            !complete(task) && !completedState(challenge.state)) {
+          card.append(spendControl(challenge, task, definitionTask, ctx));
         }
         section.append(card);
         const row = node('div', undefined, 'loyalty-phone-task');
@@ -681,6 +703,7 @@
     if (state._links?.next) phone.append(node('p', 'More challenges are available. This response is not the full history.'));
     $('loyaltyPhoneTasks').replaceChildren(phone);
     renderAvailableChallenges(classified.availableChallenges, classified.unknownChallenges, metadata, ctx, selectedMember);
+    syncSpendControls();
   }
   function challengeDetails(challenge, name, definition) {
     const details = node('details', undefined, 'loyalty-task-details');
@@ -696,9 +719,13 @@
       entry.append(node('b', task.taskName || task.taskId || 'Task name not reported'),
         node('small', 'Task ID: ' + repr(task.taskId)),
         node('small', 'Task type: ' + repr(task.taskType || task.taskClass || definitionTask?.taskType || definitionTask?.taskClass)),
+        node('small', 'Task class: ' + repr(task.taskClass || definitionTask?.taskClass)),
         node('small', 'Task state: ' + repr(task.taskState)), node('small', 'Variables: ' + repr(task.variables)));
       if (task.accumulators != null) entry.append(node('small', 'Accumulators: ' + repr(task.accumulators)));
       if (Array.isArray(task.taskCompletions)) entry.append(node('small', 'Completion history: ' + repr(task.taskCompletions)));
+      if (model.spendTask(task, definitionTask)) {
+        entry.append(node('pre', JSON.stringify({ returnedTask: task, definitionTask }, null, 2)));
+      }
       details.append(entry);
     }
     return details;
@@ -942,6 +969,159 @@
     openOffer(offer, currentButton || button, purchaseID);
     message(offer.brand + ' purchase event accepted by Web SDK. Get task status for Adobe-confirmed progress.');
   }
+  const spendKey = (challenge, task) => JSON.stringify([challenge.challenge_id, task.taskId]);
+  function syncSpendControls() {
+    document.querySelectorAll('#loyaltyTasks [data-spend-purchase]').forEach(button => {
+      const status = spendMessages.get(button.dataset.spendPurchase);
+      const sending = status?.phase === 'sending';
+      button.disabled = busy || !loaded || sending;
+      button.textContent = sending ? 'Sending \u00a310 purchase...' : 'Simulate \u00a310 purchase';
+      button.setAttribute('aria-busy', String(sending));
+      const feedback = button.parentElement.querySelector('[data-spend-feedback]');
+      feedback.textContent = status?.message || '';
+      feedback.dataset.error = String(status?.phase === 'error');
+    });
+  }
+  function spendControl(challenge, task, definitionTask, ctx) {
+    const control = node('div', undefined, 'loyalty-spend-demo');
+    control.append(node('b', 'Simulate qualifying purchase'),
+      node('small', 'Send a \u00a310 purchase event for this Loyalty member.'),
+      node('small', 'Demo control. Only Adobe Loyalty can confirm qualification.'));
+    const button = node('button'); button.type = 'button';
+    button.dataset.spendPurchase = spendKey(challenge, task);
+    const profile = loaded, token = version;
+    button.addEventListener('click', () => void simulateSpendPurchase(challenge, task, definitionTask, ctx, token, profile));
+    const feedback = node('small'); feedback.dataset.spendFeedback = '';
+    feedback.setAttribute('role', 'status'); feedback.setAttribute('aria-live', 'polite');
+    control.append(button, feedback); return control;
+  }
+  function writeSpendEvidence(snapshot) {
+    spendEvidence = { version, snapshot };
+    $('loyaltySpendEvidence').textContent = JSON.stringify(snapshot, null, 2);
+  }
+  function stopSpendPolling(reason) {
+    if (spendPoll) {
+      clearTimeout(spendPoll.timer);
+      if (typeof reason === 'string') {
+        spendPoll.status.message = reason;
+        spendEvidence.snapshot.poll.stopReason = reason;
+        writeSpendEvidence(spendEvidence.snapshot);
+      }
+    }
+    spendPoll = null;
+  }
+  function pollSpendState(ctx, token, profile, challenge, task, status) {
+    stopSpendPolling();
+    const poll = { status, deadline: Date.now() + 32000, attempts: 0 };
+    spendPoll = poll;
+    const active = () => spendPoll === poll && token === version && loaded === profile &&
+      JSON.stringify(ctx) === JSON.stringify(context());
+    const finish = text => {
+      if (!active()) return;
+      status.message = text; status.phase = 'idle';
+      spendEvidence.snapshot.poll.stopReason = text;
+      writeSpendEvidence(spendEvidence.snapshot);
+      console.log('[Loyalty Spend demo] State refresh stopped:', text);
+      stopSpendPolling(); syncSpendControls();
+    };
+    const schedule = delay => {
+      poll.timer = setTimeout(async () => {
+        if (!active()) { if (spendPoll === poll) stopSpendPolling(); return; }
+        if (Date.now() >= poll.deadline || poll.attempts >= 6) {
+          finish('Purchase sent; no updated Spend reported within the retry window. Use Get task status. Qualification is not confirmed.');
+          return;
+        }
+        if (busy) { schedule(1000); return; }
+        poll.attempts++;
+        let state, failure;
+        await work(async (current, currentToken) => {
+          try {
+            state = await readTasks(current, currentToken, true);
+            message('Spend state refreshed from Adobe. No progress was changed locally.');
+          }
+          catch (error) { failure = error; throw error; }
+        });
+        if (!active()) return;
+        if (!state) {
+          const text = 'Purchase sent, but Loyalty state refresh failed: ' +
+            (failure?.message || $('loyaltyStatus').textContent);
+          finish(text); status.phase = 'error'; syncSpendControls();
+          console.error('[Loyalty Spend demo] Loyalty state refresh failed', failure);
+          return;
+        }
+        spendEvidence.snapshot.poll.responses.push({ attempt: poll.attempts, readAt: new Date().toISOString(), state });
+        writeSpendEvidence(spendEvidence.snapshot);
+        const returnedChallenge = state.challengeList.find(item => item.challenge_id === challenge.challenge_id);
+        const returnedTask = returnedChallenge?.tasks?.find(item => item.taskId === task.taskId);
+        console.log('[Loyalty Spend demo] Adobe state', { attempt: poll.attempts, returnedChallenge, returnedTask });
+        if (!returnedTask || returnedChallenge.optedIn !== true) {
+          finish('Purchase sent; the joined Spend task is no longer in this response. This does not prove completion.'); return;
+        }
+        if (complete(returnedTask) || completedState(returnedChallenge.state)) {
+          finish('Adobe reported the task or challenge completed. Reward issuance is not verified.'); return;
+        }
+        const value = returnedTask.accumulators?.spend;
+        const baseline = task.accumulators?.spend;
+        const hasBaseline = typeof baseline === 'number' && Number.isFinite(baseline) && baseline >= 0;
+        if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && (hasBaseline ? value !== baseline : value > 0)) {
+          finish('Adobe returned updated Spend: ' + value + '. Displayed progress comes from Loyalty state.'); return;
+        }
+        status.message = 'Purchase sent; waiting for Adobe Spend state (' + poll.attempts + ' of 6 reads). Qualification is not confirmed.';
+        syncSpendControls(); schedule(Math.min(5000, Math.max(0, poll.deadline - Date.now())));
+      }, delay);
+    };
+    schedule(2000);
+  }
+  async function simulateSpendPurchase(challenge, task, definitionTask, renderContext, renderToken, profile) {
+    if (busy) return;
+    stopSpendPolling('State refresh superseded by another purchase. Use Get task status if needed.');
+    const status = { phase: 'sending', message: '' };
+    spendMessages.set(spendKey(challenge, task), status); syncSpendControls();
+    let accepted = false, sentContext, sentToken, sentTask;
+    await work(async (ctx, token) => {
+      try {
+        same(renderContext, renderToken);
+        const current = memberChallenges.find(item => item.challenge_id === challenge.challenge_id);
+        const currentTask = current?.tasks.find(item => item.taskId === task.taskId);
+        const sku = currentTask && model.spendPurchaseSku(model.spendTask(currentTask, definitionTask));
+        if (profile !== loaded || current?.optedIn !== true || !sku || complete(currentTask) ||
+            completedState(current.state) || ctx.participation !== 'active' || ctx.test) {
+          throw new Error('Resolve this Loyalty member and retrieve an active opted-in Spend task before sending a purchase.');
+        }
+        const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
+        const payload = purchasePayload(captured, sku, 'Loyalty Spend demo purchase', 10);
+        writeSpendEvidence({ sandbox: ctx.sandbox, member: loaded.profileLoyaltyId,
+          challengeId: challenge.challenge_id, taskId: task.taskId, event: payload,
+          sdkAccepted: false, qualification: 'Not confirmed', poll: { responses: [] } });
+        console.log('[Loyalty Spend demo] Sending GBP 10 purchase', payload);
+        const result = await dispatchProfileEvent(captured, payload, ctx, token);
+        same(ctx, token);
+        writeSpendEvidence({ ...spendEvidence.snapshot, sdkAccepted: true, sdkResponse: result });
+        console.log('[Loyalty Spend demo] SDK accepted; qualification is not confirmed', {
+          purchaseID: payload.xdm.commerce.order.purchaseID, sdkResponse: result,
+        });
+        status.phase = 'idle'; status.message = '\u00a310 purchase sent. Checking Adobe Loyalty state; qualification is not confirmed.';
+        accepted = true; sentContext = ctx; sentToken = token; sentTask = currentTask;
+        message('GBP 10 purchase accepted by Web SDK. Checking Adobe Loyalty; no progress was changed locally.');
+      } catch (error) {
+        status.phase = 'error';
+        status.message = error.message + (error.cause?.message ? ' ' + error.cause.message : '');
+        console.error('[Loyalty Spend demo] Purchase failed or outcome unknown; no automatic resend', error);
+        if (token === version && profile === loaded && spendEvidence?.version === token) {
+          writeSpendEvidence({ ...spendEvidence.snapshot, error: status.message });
+        }
+        throw error;
+      }
+    });
+    if (status.phase === 'sending') {
+      status.phase = 'error'; status.message = $('loyaltyStatus').textContent;
+    }
+    syncSpendControls();
+    if (accepted && sentToken === version && profile === loaded) {
+      pollSpendState(sentContext, sentToken, profile, challenge, sentTask, status);
+    }
+  }
+  global.addEventListener('pagehide', () => stopSpendPolling('Navigation stopped the state refresh. Use Get task status if needed.'));
   function purchasePayload(captured, sku, name, amount, purchaseID = global.crypto.randomUUID()) {
     return { ...captured.edgeOptions, renderDecisions: false,
       personalization: { defaultPersonalizationEnabled: false },
