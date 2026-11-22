@@ -16,7 +16,7 @@ const {
 } = require('./releaseNotesMarkdownParser');
 
 const CACHE_COLLECTION = 'releaseNotesSummaryCache';
-const CACHE_DOC_ID = 'current';
+const CACHE_DOC_ID = 'current-v2';
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 20_000;
 const USER_AGENT = 'AEP-Orchestration-Lab/1.0 (+https://aep-orchestration-lab.web.app)';
@@ -103,18 +103,6 @@ async function fetchMarkdown(url) {
   }
 }
 
-function mergeProduct(liveProduct, fallbackProduct) {
-  if (!liveProduct) return fallbackProduct || null;
-  if (!fallbackProduct) return liveProduct;
-  const hasLiveItems = (liveProduct.highlights || []).length > 0
-    || (liveProduct.sections || []).some((sec) => (sec.items || []).length > 0);
-  if (hasLiveItems) return liveProduct;
-  return {
-    ...fallbackProduct,
-    releaseNotesUrl: liveProduct.releaseNotesUrl || fallbackProduct.releaseNotesUrl,
-  };
-}
-
 function buildLiveProducts(docs, period, ajoPrefix) {
   const ajoUrl = SOURCE_URLS.ajo.experienceLeague;
   const ajoAnchor = ajoPrefix || 'june-26';
@@ -157,14 +145,6 @@ function buildLiveProducts(docs, period, ajoPrefix) {
       ? parseTargetProduct(docs.target, SOURCE_URLS.target.experienceLeague)
       : { id: 'target', name: 'Adobe Target', shortName: 'Target', releaseNotesUrl: SOURCE_URLS.target.experienceLeague, highlights: [], sections: [] },
   };
-
-  const fallbackPeriod = getFallbackPeriod(periodToId(period));
-  const fallbackProducts = fallbackPeriod ? fallbackPeriod.products : {};
-
-  for (const productId of fallbackCatalog.productOrder) {
-    const merged = mergeProduct(products[productId], fallbackProducts[productId]);
-    if (merged) products[productId] = merged;
-  }
 
   return products;
 }

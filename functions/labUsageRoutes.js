@@ -2,6 +2,9 @@
 
 const { requireUsageOwner, getUsageSnapshot } = require('./labUsageService');
 const { ROUTES, NOTICE, telemetryEnabled, requireTelemetryUser, collectEvent } = require('./labUsageTelemetry');
+const { WINDOWS, readHeatmap } = require('./labUsageHeatmap');
+
+const HEATMAP_CACHE_MS = 5 * 60000;
 
 function registerLabUsageRoutes({ onRequest, CONSENT_STORE_FN_OPTS, setCors, getServices, logger = console, isTelemetryEnabled = telemetryEnabled }) {
   const cache = new Map();
@@ -11,6 +14,18 @@ function registerLabUsageRoutes({ onRequest, CONSENT_STORE_FN_OPTS, setCors, get
     const { getAdminFirestore } = require('./adminFirestore');
     const db = getAdminFirestore();
     return { auth: admin.auth(), db };
+  }
+  async function requireApprovedLabUser(req, svc) {
+    const claims = await requireTelemetryUser(req, svc.auth);
+    const token = req.headers.authorization.split(/\s+/)[1];
+    const access = svc.getAccessStatus
+      ? await svc.getAccessStatus(token)
+      : await require('./labWorkspaceAuthService').getLabAccessStatusFromIdTokenRequest({ idToken: token });
+    // Legacy enabled accounts with no approval document already pass the lab gate.
+    if (!['approved', 'missing', 'not_applicable'].includes(access.status)) {
+      throw Object.assign(new Error('Lab access is pending approval.'), { status: 403 });
+    }
+    return claims;
   }
   return {
     labUsageEvents: onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
@@ -31,16 +46,9 @@ function registerLabUsageRoutes({ onRequest, CONSENT_STORE_FN_OPTS, setCors, get
         return res.status(413).json({ ok: false, error: 'Usage events must not exceed 1 KB.' });
       }
       try {
-        const { auth, db, getAccessStatus } = services();
-        const claims = await requireTelemetryUser(req, auth);
-        const token = req.headers.authorization.split(/\s+/)[1];
-        const access = getAccessStatus
-          ? await getAccessStatus(token)
-          : await require('./labWorkspaceAuthService').getLabAccessStatusFromIdTokenRequest({ idToken: token });
-        // Legacy enabled accounts with no approval document already pass the lab gate.
-        if (!['approved', 'missing', 'not_applicable'].includes(access.status)) {
-          return res.status(403).json({ ok: false, error: 'Lab access is pending approval.' });
-        }
+        const svc = services();
+        const { db } = svc;
+        const claims = await requireApprovedLabUser(req, svc);
         const result = await collectEvent({ db, claims, body: req.body });
         return res.status(200).json({ ok: true, ...result });
       } catch (error) {
@@ -50,6 +58,38 @@ function registerLabUsageRoutes({ onRequest, CONSENT_STORE_FN_OPTS, setCors, get
         }
         logger.error('[lab-usage] Unable to collect usage event', { code: error.code || 'unknown' });
         return res.status(503).json({ ok: false, error: 'Usage collection is temporarily unavailable.' });
+      }
+    }),
+    labUsageHeatmap: onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {
+      setCors(res, 'GET, OPTIONS');
+      res.set('Cache-Control', 'private, no-store');
+      res.set('Vary', 'Authorization');
+      if (req.method === 'OPTIONS') return res.status(204).send('');
+      if (req.method !== 'GET') {
+        res.set('Allow', 'GET, OPTIONS');
+        return res.status(405).json({ ok: false, error: 'Use GET for the usage heat map.' });
+      }
+      const window = req.query?.window ?? '7d';
+      if (typeof window !== 'string' || !Object.hasOwn(WINDOWS, window)) {
+        return res.status(400).json({ ok: false, error: 'window must be 7d or 30d.' });
+      }
+      try {
+        const svc = services();
+        await requireApprovedLabUser(req, svc);
+        const cacheKey = 'heatmap:' + window;
+        const existing = cache.get(cacheKey);
+        if (existing && Date.now() - existing.at < HEATMAP_CACHE_MS) {
+          return res.status(200).json({ ok: true, ...existing.snapshot });
+        }
+        const snapshot = { collectionEnabled: isTelemetryEnabled(), ...(await readHeatmap({ db: svc.db, window })) };
+        cache.set(cacheKey, { at: Date.now(), snapshot });
+        return res.status(200).json({ ok: true, ...snapshot });
+      } catch (error) {
+        if ([400, 401, 403].includes(error.status)) {
+          return res.status(error.status).json({ ok: false, error: error.message });
+        }
+        logger.error('[lab-usage] Unable to read usage heat map', { code: error.code || 'unknown' });
+        return res.status(503).json({ ok: false, error: 'The usage heat map is temporarily unavailable. Retry shortly.' });
       }
     }),
     labUsageStats: onRequest(CONSENT_STORE_FN_OPTS, async (req, res) => {

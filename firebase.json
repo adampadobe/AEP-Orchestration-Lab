@@ -572,6 +572,13 @@
         }
       },
       {
+        "source": "/api/lab/feeds/**",
+        "function": {
+          "functionId": "labFeeds",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/webhook-listener",
         "function": {
           "functionId": "webhookListenerProxy",
@@ -1135,6 +1142,20 @@
         "source": "/api/lab/usage/events",
         "function": {
           "functionId": "labUsageEvents",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/usage/heatmap",
+        "function": {
+          "functionId": "labUsageHeatmap",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/whats-new/in-progress",
+        "function": {
+          "functionId": "labWhatsNewInProgress",
           "region": "us-central1"
         }
       },

@@ -348,6 +348,26 @@ Object.assign(exports, registerLabUsageRoutes({
   setCors,
 }));
 
+/** Hourly aggregate-only roll-up of labUsageEvents into labUsageAggregates (home page heat map). */
+exports.labUsageRollup = onSchedule(
+  { schedule: 'every 60 minutes', region: REGION, timeoutSeconds: 300, memory: '256MiB' },
+  async () => {
+    const { runRollup } = require('./labUsageHeatmap');
+    await runRollup({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
+
+Object.assign(exports, require('./labWhatsNew').registerWhatsNewRoutes({ onRequest, fnOpts: CONSENT_STORE_FN_OPTS, setCors }));
+
+/** Every 30 minutes: cache open pull requests for the home page "What's new → in progress" list. */
+exports.labWhatsNewRefresh = onSchedule(
+  { schedule: 'every 30 minutes', region: REGION, timeoutSeconds: 60, memory: '256MiB' },
+  async () => {
+    const { refreshInProgress } = require('./labWhatsNew');
+    await refreshInProgress({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
+
 /**
  * Snowflake handlers route ALL outbound traffic through the Serverless VPC
  * Access connector `snowflake-egress`, which exits Cloud NAT through the
@@ -4553,6 +4573,33 @@ exports.releaseNotesSummaryWeeklyRefresh = onSchedule(
   async () => {
     await releaseNotesSummaryService.resolveSummary({ forceRefresh: true });
   },
+);
+
+function getLabFeedsService() {
+  const admin = require('firebase-admin');
+  if (!admin.apps.length) admin.initializeApp();
+  return require('./labFeedsService').createService({
+    db: admin.firestore(),
+    callGemini: (...args) => require('./vertexClient').callGemini(...args),
+  });
+}
+
+exports.labFeeds = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 30, memory: '256MiB' },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    await getLabFeedsService().handle(req, res);
+  },
+);
+
+exports.labTechNewsRefresh = onSchedule(
+  { schedule: 'every 2 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('tech-news'),
+);
+
+exports.labAdobeReleasesRefresh = onSchedule(
+  { schedule: 'every 24 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('adobe-releases'),
 );
 
 /**
