@@ -97,7 +97,8 @@
     try { result = await response.json(); }
     catch (_) { throw new Error('Unreadable server response (HTTP ' + response.status + ').'); }
     if (!response.ok || result.ok !== true) {
-      throw new Error(typeof result.error === 'string' ? result.error : 'Request failed (HTTP ' + response.status + ').');
+      throw new Error(result.errors?.length ? uploadErrorSummary(result.errors) :
+        typeof result.error === 'string' ? result.error : 'Request failed (HTTP ' + response.status + ').');
     }
     return result;
   }
@@ -139,6 +140,27 @@
       throw new Error('Use a relative path with non-empty folder names and no "..".');
     }
     return value;
+  }
+  function uploadErrorSummary(errors) {
+    return errors.map(function (error) {
+      return error.name + ': ' + (error.status === 409 ? 'name conflict — rename the file or choose an explicit replacement. ' : '') +
+        (error.error || 'Upload failed') + (error.status ? ' (HTTP ' + error.status + ')' : '');
+    }).join('; ');
+  }
+  async function checkDriveOperationLimit(items) {
+    var seen = new Set();
+    async function count(item) {
+      if (seen.has(item.path)) return;
+      seen.add(item.path);
+      if (seen.size > 200) {
+        throw new Error('Folder operations are limited to 200 entries. Move or delete smaller groups of files instead. Nothing was changed.');
+      }
+      if (item.kind === 'folder') {
+        var children = await readPages('/api/image-hosting/drive?path=' + encodeURIComponent(item.path));
+        for (var child of children) await count(child);
+      }
+    }
+    for (var item of items) await count(item);
   }
   function displayDate(value) {
     if (!value) return 'Not available';
@@ -218,7 +240,7 @@
     byId('ihPublishedTools').hidden = explorer.source !== 'published' || byId('ihFiles').hidden;
     byId('ihLocationHint').textContent = {
       published: 'Shared sandbox assets. Moving or renaming a published file changes its CDN path.',
-      drive: 'Private to your account. Files here have no published CDN URL.',
+      drive: 'Private to your account; no published CDN URL. Upload up to 20 files, 8 MiB each. Folder operations are limited to 200 entries.',
       backups: 'Private snapshots kept until you delete them. Total storage: ' + (formatBytesShort(explorer.totalBytes) || '0 B') + '.',
       backup: 'Read-only snapshot. Restore to the original published sandbox libraries after reviewing a diff.'
     }[explorer.source];
@@ -481,6 +503,7 @@
   async function mutateSelection(operation) {
     var items = selectedItems();
     if (!items.length) return;
+    if (explorer.source === 'drive') await checkDriveOperationLimit(items);
     if (explorer.source === 'published' && items.some(function (item) { return item.kind === 'folder'; })) {
       throw new Error('Open published folders and select their files to modify them.');
     }
@@ -574,6 +597,7 @@
   byId('ihBackupStart').addEventListener('click', function () { runExplorer(async function () {
     var sandboxes = Array.from(byId('ihBackupSandboxes').querySelectorAll('input:checked')).map(function (input) { return input.value; });
     if (!sandboxes.length) throw new Error('Select at least one sandbox to back up.');
+    if (sandboxes.length > 100) throw new Error('A backup can include at most 100 sandboxes. Select fewer sandboxes and create another backup for the rest.');
     var result = await imageApi('/api/image-hosting/backups', 'POST', { sandboxes: sandboxes });
     if (!result.backupId) throw new Error('Backup submitted but no ID returned. Inspect Backups before creating another.');
     byId('ihBackupStart').disabled = true;
@@ -615,6 +639,11 @@
   byId('ihUploadInput').addEventListener('change', function () {
     var files = Array.from(this.files); this.value = '';
     runExplorer(async function () {
+      if (explorer.source === 'drive') {
+        if (files.length > 20) throw new Error('Upload at most 20 files at a time. Nothing was uploaded.');
+        var oversized = files.filter(function (file) { return file.size > 8 * 1024 * 1024; });
+        if (oversized.length) throw new Error('Each drive file must be at most 8 MiB. Too large: ' + oversized.map(function (file) { return file.name; }).join(', ') + '. Nothing was uploaded.');
+      }
       for (var file of files) {
         setStatus('Uploading ' + file.name + '…');
         var result = await imageApi(explorer.source === 'drive' ? '/api/image-hosting/drive/upload' :
@@ -625,7 +654,10 @@
           keepFilename: true, convertToPng: false, onConflict: explorer.source === 'published' && explorer.path ? 'version' : 'error'
         });
         if (result.conflicts && result.conflicts.length) throw new Error('Upload conflict for ' + file.name + '. No replacement was made; rename the file or use Replace image.');
-        if (result.errors && result.errors.length) throw new Error('Upload failed: ' + JSON.stringify(result.errors));
+        if (result.errors && result.errors.length) {
+          await navigateExplorer(explorer.source, explorer.path, explorer.sandbox);
+          throw new Error('Could not save all files: ' + uploadErrorSummary(result.errors));
+        }
         if (!Array.isArray(result.uploaded) || !result.uploaded.length) {
           throw new Error('Upload returned no saved file. Inspect the folder before retrying.');
         }

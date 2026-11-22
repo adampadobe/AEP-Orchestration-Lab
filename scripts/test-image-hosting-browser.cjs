@@ -12,6 +12,9 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
   const calls = [];
   let polls = 0;
   let failure = false;
+  let folderEntries = 0;
+  let usedSandboxCount = 2;
+  let uploadConflict = false;
   const drive = [
     { name: 'Campaigns', path: 'Campaigns', kind: 'folder' },
     { name: 'logo.png', path: 'logo.png', kind: 'file', size: 12000, contentType: 'image/png', previewUrl: 'https://images.test/logo.png', updatedAt: '2026-11-22T11:00:00Z' }
@@ -56,7 +59,9 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       assert.equal(request.headers().authorization, 'Bearer fixture', 'every API request is authenticated');
       if (failure && url.pathname.endsWith('/drive')) return route.fulfill({ status: 500, json: { ok: false, error: 'Storage unavailable' } });
       let result = { ok: true };
-      if (url.pathname.endsWith('/sandboxes-used')) result.sandboxes = [{ name: 'demo', fileCount: 2 }, { name: 'retail', fileCount: 1 }];
+      if (url.pathname.endsWith('/sandboxes-used')) result.sandboxes = usedSandboxCount === 2 ?
+        [{ name: 'demo', fileCount: 2 }, { name: 'retail', fileCount: 1 }] :
+        Array.from({ length: usedSandboxCount }, (_, index) => ({ name: 'sandbox-' + index, fileCount: 1 }));
       else if (url.pathname.endsWith('/library') && request.method() === 'GET') {
         assert.equal(url.searchParams.get('limit'), '100');
         result.items = url.searchParams.has('cursor') ?
@@ -65,8 +70,13 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
         if (!url.searchParams.has('cursor')) result.nextCursor = 'page-two';
       } else if (url.pathname.endsWith('/library/upload')) result.uploaded = [{ relPath: 'upload.png', file: 'upload.png' }];
       else if (url.pathname.endsWith('/drive') && request.method() === 'GET') {
-        result.items = url.searchParams.get('path') ? [] : drive;
-      } else if (url.pathname.endsWith('/drive/upload')) result.uploaded = [{ name: 'upload.png', path: 'upload.png', kind: 'file' }];
+        result.items = url.searchParams.get('path') ? Array.from({ length: folderEntries }, (_, index) => ({
+          name: index + '.png', path: url.searchParams.get('path') + '/' + index + '.png', kind: 'file'
+        })) : drive;
+      } else if (url.pathname.endsWith('/drive/upload')) {
+        result.uploaded = uploadConflict ? [] : [{ name: 'upload.png', path: 'upload.png', kind: 'file' }];
+        if (uploadConflict) result.errors = [{ name: 'upload.png', status: 409, error: 'Already exists' }];
+      }
       else if (url.pathname.endsWith('/drive/folder')) drive.push({ name: request.postDataJSON().path, path: request.postDataJSON().path, kind: 'folder' });
       else if (url.pathname.endsWith('/backups') && request.method() === 'GET') Object.assign(result, { backups: [backup], totalBytes: 34000 });
       else if (url.pathname.endsWith('/backups') && request.method() === 'POST') result.backupId = 'new-snapshot';
@@ -102,7 +112,10 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
     }
   });
   await page.goto('http://aep.test/profile-viewer/image-hosting.html');
-  return { page, calls, errors, setFailure: value => { failure = value; } };
+  return {
+    page, calls, errors, setFailure: value => { failure = value; }, setFolderEntries: value => { folderEntries = value; },
+    setUsedSandboxCount: value => { usedSandboxCount = value; }, setUploadConflict: value => { uploadConflict = value; }
+  };
 }
 
 async function ready(page) {
@@ -114,7 +127,7 @@ async function settled(page) {
 async function main() {
   const browser = await chromium.launch({ headless: true, ...(process.env.CHROME_EXECUTABLE_PATH ? { executablePath: process.env.CHROME_EXECUTABLE_PATH } : {}) });
   try {
-    const { page, calls, errors, setFailure } = await fixture(browser);
+    const { page, calls, errors, setFailure, setFolderEntries, setUsedSandboxCount, setUploadConflict } = await fixture(browser);
     await ready(page);
     assert.ok(calls.some(call => call.query.get('cursor') === 'page-two'), 'published library fetches every page');
     assert.equal(await page.locator('#ihItems .ih-item').count(), 2, 'root contains one folder and one file');
@@ -141,6 +154,41 @@ async function main() {
     await page.locator('#ihUploadInput').setInputFiles({ name: 'upload.png', mimeType: 'image/png', buffer: image });
     await settled(page);
     assert.ok(calls.some(call => call.path.endsWith('/drive/upload') && call.body.path === '' && call.body.keepFilename && !call.body.convertToPng), 'private uploads retain original bytes and names');
+    const uploadsBeforeLimits = calls.filter(call => call.path.endsWith('/drive/upload')).length;
+    await page.locator('#ihUploadInput').setInputFiles(Array.from({ length: 21 }, (_, index) => ({
+      name: index + '.png', mimeType: 'image/png', buffer: image
+    })));
+    await settled(page);
+    assert.match(await page.locator('#imageHostingStatus').innerText(), /at most 20/);
+    await page.locator('#ihUploadInput').setInputFiles({ name: 'too-large.png', mimeType: 'image/png', buffer: Buffer.alloc(8 * 1024 * 1024 + 1) });
+    await settled(page);
+    assert.match(await page.locator('#imageHostingStatus').innerText(), /at most 8 MiB/);
+    assert.equal(calls.filter(call => call.path.endsWith('/drive/upload')).length, uploadsBeforeLimits, 'invalid batches make no upload request');
+    await page.locator('#ihUploadInput').setInputFiles(Array.from({ length: 20 }, (_, index) => ({
+      name: index + '.png', mimeType: 'image/png', buffer: image
+    })));
+    await settled(page);
+    assert.equal(calls.filter(call => call.path.endsWith('/drive/upload')).length, uploadsBeforeLimits + 20, '20-file batches are accepted');
+    await page.locator('#ihUploadInput').setInputFiles({ name: 'boundary.png', mimeType: 'image/png', buffer: Buffer.alloc(8 * 1024 * 1024) });
+    await settled(page);
+    assert.equal(calls.filter(call => call.path.endsWith('/drive/upload')).length, uploadsBeforeLimits + 21, 'exactly 8 MiB is accepted');
+    setUploadConflict(true);
+    await page.locator('#ihUploadInput').setInputFiles({ name: 'upload.png', mimeType: 'image/png', buffer: image });
+    await settled(page);
+    assert.match(await page.locator('#imageHostingStatus').innerText(), /upload.png: name conflict.*HTTP 409/);
+    setUploadConflict(false);
+    setFolderEntries(200);
+    await page.getByRole('checkbox', { name: 'Select Campaigns', exact: true }).check();
+    await page.locator('#ihDelete').click();
+    await settled(page);
+    assert.match(await page.locator('#imageHostingStatus').innerText(), /limited to 200 entries/);
+    assert.ok(!calls.some(call => call.path.endsWith('/drive') && call.method === 'DELETE'), 'oversized folder operation makes no mutation');
+    setFolderEntries(199);
+    page.once('dialog', dialog => dialog.accept('Archive'));
+    await page.locator('#ihMove').click();
+    await settled(page);
+    assert.ok(calls.some(call => call.path.endsWith('/drive/move') && call.body.from === 'Campaigns'), 'folder plus 199 descendants fits the 200-entry boundary');
+    setFolderEntries(0);
     await page.getByRole('checkbox', { name: 'Select logo.png', exact: true }).check();
     page.once('dialog', dialog => dialog.accept('Campaigns'));
     await page.locator('#ihMove').click();
@@ -155,6 +203,19 @@ async function main() {
     await page.locator('#ihNewFolder').click();
     await settled(page);
     assert.ok(calls.some(call => call.path.endsWith('/drive/folder') && call.body.path === 'New folder'));
+    setUsedSandboxCount(101);
+    await page.locator('#ihBackupNow').click();
+    await page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
+    await page.locator('#ihBackupStart').click();
+    await settled(page);
+    assert.match(await page.locator('#imageHostingStatus').innerText(), /at most 100 sandboxes/);
+    assert.ok(!calls.some(call => call.path.endsWith('/backups') && call.method === 'POST'), 'oversized backup is blocked before creation');
+    await page.locator('#ihBackupSandboxes input[value="sandbox-100"]').uncheck();
+    await page.locator('#ihBackupStart').click();
+    await page.waitForFunction(() => document.getElementById('imageHostingStatus').textContent.startsWith('Backup complete'));
+    assert.equal(calls.find(call => call.path.endsWith('/backups') && call.method === 'POST').body.sandboxes.length, 100, 'exactly 100 sandboxes are accepted');
+    await page.locator('#ihBackupClose').click();
+    setUsedSandboxCount(2);
     await page.locator('#ihBackupNow').click();
     await page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#ihBackupSandboxes input:checked').count(), 2, 'used sandboxes are preselected');
