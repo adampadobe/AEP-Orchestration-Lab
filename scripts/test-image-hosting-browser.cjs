@@ -264,6 +264,7 @@ async function main() {
     await settled(noWorkspace.page);
     assert.ok(noWorkspace.calls.some(call => call.path.endsWith('/drive')));
     await noWorkspace.page.locator('#ihBackupNow').click();
+    await noWorkspace.page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
     assert.equal(await noWorkspace.page.locator('#ihBackupStart').isEnabled(), false);
     await noWorkspace.page.close();
 
