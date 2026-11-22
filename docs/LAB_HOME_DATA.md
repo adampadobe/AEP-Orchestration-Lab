@@ -68,7 +68,7 @@ compat scripts and are not redirects. Currently untracked nav pages:
   integer; `null` when the previous window had fewer than `minViews` views.
 - `navGroup` is `null` for pages outside the sidebar (for example the classic
   home page). Days are UTC; the current day is partial.
-- `collectionEnabled` mirrors `LAB_USAGE_TELEMETRY_ENABLED` in `functions/index.js`
+- `collectionEnabled` mirrors the `LAB_USAGE_TELEMETRY_ENABLED` constant in `functions/index.js`
   (switched on in production since 2026-11-22). When it is `false` the map only
   shows historical data and the UI shows an empty state.
 - No UIDs, emails, digests or per-person data are ever returned.

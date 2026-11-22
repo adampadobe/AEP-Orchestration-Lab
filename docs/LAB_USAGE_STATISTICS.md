@@ -71,8 +71,9 @@ as the existing onboarding gate. Email verification is not required for
 collection or owner authorization; the owner read gate requires the exact owner
 email and a matching UID from the current enabled Firebase Auth account.
 
-Both usage functions explicitly set `LAB_USAGE_TELEMETRY_ENABLED` in their
-runtime options; it is `'true'` in production since 2026-11-22. Neither browser
+The usage functions read the `LAB_USAGE_TELEMETRY_ENABLED` constant in
+`functions/index.js` (Firebase v2 ignores the `environmentVariables` option);
+it is `true` in production since 2026-11-22. Neither browser
 flags nor this dashboard can change it. Firestore TTL policies on
 `labUsageEvents.expiresAt` and `labUsageAggregates.expiresAt` are enabled.
 
