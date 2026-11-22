@@ -1153,6 +1153,20 @@
         }
       },
       {
+        "source": "/api/lab/usage/heatmap",
+        "function": {
+          "functionId": "labUsageHeatmap",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/lab/whats-new/in-progress",
+        "function": {
+          "functionId": "labWhatsNewInProgress",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/architecture/my-data-flows/trace",
         "function": {
           "functionId": "myDataFlowsTrace",
