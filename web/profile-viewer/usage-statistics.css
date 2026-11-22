@@ -35,13 +35,13 @@
 .usage-statistics-page td small { display: block; margin-top: 4px; color: var(--dash-text-secondary); }
 .usage-statistics-page details { margin-top: 16px; font-size: 14px; line-height: 1.6; }
 .usage-statistics-page summary { cursor: pointer; font-weight: 500; }
-.usage-statistics-page li { margin-bottom: 8px; }
+.usage-statistics-page .dashboard-main li { margin-bottom: 8px; }
 .usage-statistics-page .usage-hours th, .usage-statistics-page .usage-hours td { min-width: 32px; text-align: center; padding: 8px; }
 .usage-statistics-page .usage-hours th:first-child { min-width: 64px; text-align: left; }
 .usage-hours td[data-activity="true"] { background: var(--dash-info-bg); color: var(--dash-info-text); font-weight: 600; }
 .usage-statistics-page :focus-visible { outline: 2px solid var(--dash-blue); outline-offset: 3px; }
 .usage-statistics-page button:disabled { cursor: wait; opacity: 0.6; }
-.usage-statistics-page a { color: var(--dash-blue); }
+.usage-statistics-page .dashboard-main a { color: var(--dash-blue); }
 @media (max-width: 700px) {
   .usage-panel { padding: 16px; }
   .usage-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
