@@ -68,12 +68,16 @@ service, and may be edited by an authorized Firestore administrator:
 }
 ```
 
-The releases defaults select `aep`, `ajo`, `cja`, `target`, `aem` and
-`genstudio`, threshold 0.5 and cap 30. Sources are curated IDs in
+The releases defaults select `aep`, `ajo`, `cja`, `target`, `aem`,
+`genstudio`, `adobeBlog` and `adobeNewsroom`, threshold 0.5 and cap 30.
+Adobe blog and newsroom entries come from Adobe's first-party CaaS
+collection API because the blog's advertised RSS endpoint returns 404.
+The collection is bounded to 5,000 cards and fails explicitly if that
+limit is reached, rather than silently presenting a truncated selection.
+Sources are curated IDs in
 `functions/labFeedsService.js`, not arbitrary URLs; adding a new URL requires a
-reviewed code change to protect server-side fetches. The Adobe blog advertises
-an RSS URL that currently returns 404, so it is not included. Individual
-publishers can also block or rate-limit fetches.
+reviewed code change to protect server-side fetches. Individual publishers can
+also block or rate-limit fetches.
 
 `labFeeds/{feedId}/items/{sha256-of-source-url}` holds classifications with
 `expiresAt`. Configure Firestore's TTL policy for the `items` collection

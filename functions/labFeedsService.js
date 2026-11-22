@@ -15,6 +15,8 @@ const SOURCES = {
   salesforce: { type: 'rss', url: 'https://www.salesforce.com/news/feed/?bc=HL' },
   microsoft: { type: 'rss', url: 'https://news.microsoft.com/source/feed/' },
   google: { type: 'rss', url: 'https://blog.google/rss/' },
+  adobeBlog: { type: 'caas', url: 'https://www.adobe.com/chimera-api/collection?originSelection=adobe-blog&language=en&country=us&size=5000', host: 'blog.adobe.com' },
+  adobeNewsroom: { type: 'caas', url: 'https://www.adobe.com/chimera-api/collection?originSelection=news&language=en&country=us&size=5000', host: 'news.adobe.com' },
   aep: { type: 'markdown', url: 'https://raw.githubusercontent.com/AdobeDocs/experience-platform.en/main/help/release-notes/latest/latest.md', link: 'https://experienceleague.adobe.com/en/docs/experience-platform/release-notes/latest', product: 'AEP' },
   ajo: { type: 'markdown', url: 'https://raw.githubusercontent.com/AdobeDocs/journey-optimizer.en/main/help/using/rn/release-notes.md', link: 'https://experienceleague.adobe.com/en/docs/journey-optimizer/using/whats-new/release-notes', product: 'AJO' },
   cja: { type: 'markdown', url: 'https://raw.githubusercontent.com/AdobeDocs/analytics-platform.en/main/help/release-notes/latest.md', link: 'https://experienceleague.adobe.com/en/docs/analytics-platform/using/releases/latest', product: 'CJA' },
@@ -24,7 +26,7 @@ const SOURCES = {
 };
 const DEFAULTS = {
   'tech-news': { sources: ['techcrunch', 'verge', 'venturebeat', 'cmswire', 'martech', 'salesforce', 'microsoft', 'google'], watchlist: WATCHLIST, threshold: 0.6, promptVersion: '1', dailyCap: 40 },
-  'adobe-releases': { sources: ['aep', 'ajo', 'cja', 'target', 'aem', 'genstudio'], watchlist: WATCHLIST, threshold: 0.5, promptVersion: '1', dailyCap: 30 },
+  'adobe-releases': { sources: ['aep', 'ajo', 'cja', 'target', 'aem', 'genstudio', 'adobeBlog', 'adobeNewsroom'], watchlist: WATCHLIST, threshold: 0.5, promptVersion: '1', dailyCap: 30 },
 };
 const TTL_MS = 90 * 86400000;
 const LEASE_MS = 15 * 60000;
@@ -101,6 +103,22 @@ function parseMarkdown(body, source) {
     content: body.slice(0, 30000), product: source.product, revision: hash(body) }];
 }
 
+function parseCaas(body, source) {
+  const data = JSON.parse(body);
+  if (!Array.isArray(data.cards)) throw new Error('Invalid Adobe CaaS collection');
+  if (data.cards.length >= 5000) throw new Error('Adobe CaaS collection may be truncated');
+  return data.cards.flatMap((card) => {
+    const url = safeUrl(card?.contentArea?.url, source.url);
+    const date = typeof card?.cardDate === 'string' ? new Date(card.cardDate) : new Date(NaN);
+    const title = card?.contentArea?.title;
+    if (!url || new URL(url).hostname !== source.host || Number.isNaN(date.getTime())
+      || typeof title !== 'string' || !title.trim()) return [];
+    const description = card.contentArea.description;
+    return [{ sourceUrl: url, publishedAt: date.toISOString(), title: title.slice(0, 500),
+      content: typeof description === 'string' ? description.slice(0, 8000) : '' }];
+  }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 100);
+}
+
 function validateClassification(item, value) {
   const words = typeof value?.soWhat === 'string' ? value.soWhat.trim().split(/\s+/).filter(Boolean) : [];
   const strings = (array) => Array.isArray(array) && array.length <= 20 && array.every((s) => typeof s === 'string' && s.trim() && s.length <= 100);
@@ -133,15 +151,16 @@ async function fetchSource(source, fetchFn) {
     headers: { 'User-Agent': 'AEP-Orchestration-Lab/1.0', Accept: 'application/rss+xml, application/atom+xml, application/xml, text/plain' },
   });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const maxBytes = source.type === 'caas' ? 8_000_000 : 2_000_000;
   const length = Number(response.headers.get('content-length'));
-  if (length > 2_000_000) throw new Error('Source exceeds size limit');
+  if (length > maxBytes) throw new Error('Source exceeds size limit');
   let body;
   if (response.body) {
     const chunks = [];
     let size = 0;
     for await (const chunk of response.body) {
       size += chunk.length;
-      if (size > 2_000_000) {
+      if (size > maxBytes) {
         throw new Error('Source exceeds size limit');
       }
       chunks.push(chunk);
@@ -149,9 +168,10 @@ async function fetchSource(source, fetchFn) {
     body = Buffer.concat(chunks).toString('utf8');
   } else {
     body = await response.text();
-    if (Buffer.byteLength(body) > 2_000_000) throw new Error('Source exceeds size limit');
+    if (Buffer.byteLength(body) > maxBytes) throw new Error('Source exceeds size limit');
   }
-  return source.type === 'rss' ? parseRss(body, source.url) : parseMarkdown(body, source);
+  if (source.type === 'rss') return parseRss(body, source.url);
+  return source.type === 'caas' ? parseCaas(body, source) : parseMarkdown(body, source);
 }
 
 function createService({ db, fetchFn = fetch, callGemini, now = () => new Date() }) {
@@ -199,7 +219,8 @@ function createService({ db, fetchFn = fetch, callGemini, now = () => new Date()
           metrics.errors.push(`Source ${id} failed`);
         }
       }
-      const entries = [...candidates.values()].sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+      const entries = [...candidates.values()].sort((a, b) =>
+        Number(Boolean(b.revision)) - Number(Boolean(a.revision)) || b.publishedAt.localeCompare(a.publishedAt));
       const refs = entries.map((item) => feed.collection('items').doc(hash(item.sourceUrl)));
       const existing = refs.length ? await db.getAll(...refs) : [];
       for (let i = 0; i < entries.length; i++) {
@@ -289,4 +310,4 @@ function createService({ db, fetchFn = fetch, callGemini, now = () => new Date()
   return { refresh, read, handle };
 }
 
-module.exports = { createService, parseRss, parseMarkdown, validateClassification, validateConfig, DEFAULTS, SOURCES, SCHEMA };
+module.exports = { createService, parseRss, parseMarkdown, parseCaas, validateClassification, validateConfig, DEFAULTS, SOURCES, SCHEMA };

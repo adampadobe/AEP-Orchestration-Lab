@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createService, parseRss, parseMarkdown, validateClassification, DEFAULTS } = require('../labFeedsService');
+const { createService, parseRss, parseMarkdown, parseCaas, validateClassification, DEFAULTS, SOURCES } = require('../labFeedsService');
 
 const fixed = new Date('2026-11-22T10:00:00.000Z');
 const rss = `<rss><channel>
@@ -73,6 +73,20 @@ test('uses source release date and real anchor without inventing a URL', () => {
   assert.throws(() => parseMarkdown('No date', { product: 'AJO', link: 'https://example.com' }), /date/);
 });
 
+test('parses Adobe CaaS cards in date order and rejects missing or non-Adobe links', () => {
+  const card = (url, date) => ({ cardDate: date, contentArea: { title: 'Adobe update', description: 'Details', url } });
+  const body = JSON.stringify({ cards: [
+    card('https://blog.adobe.com/en/old', '2026-01-01T00:00:00Z'),
+    card('https://blog.adobe.com/en/new', '2026-11-01T00:00:00Z'),
+    card('https://other.example/unsafe', '2026-11-02T00:00:00Z'),
+    card('', '2026-11-03T00:00:00Z'),
+  ] });
+  const items = parseCaas(body, SOURCES.adobeBlog);
+  assert.deepEqual(items.map((item) => item.sourceUrl), ['https://blog.adobe.com/en/new', 'https://blog.adobe.com/en/old']);
+  assert.throws(() => parseCaas('{"cards":{}}', SOURCES.adobeBlog), /Invalid/);
+  assert.throws(() => parseCaas(JSON.stringify({ cards: Array(5000).fill({}) }), SOURCES.adobeBlog), /truncated/);
+});
+
 test('rejects invalid structured results and changed source metadata', () => {
   const item = { sourceUrl: 'https://example.com', publishedAt: fixed.toISOString() };
   const value = { relevance: 0.8, category: 'news', competitors: [], products: [], headline: 'x',
@@ -110,6 +124,20 @@ test('daily cap defers remaining new URLs and marks the run partial', async () =
   assert.equal(calls.length, 1);
   assert.equal(db.docs.get('labFeeds/tech-news').lastRun.status, 'partial');
   assert.match(db.docs.get('labFeeds/tech-news').lastRun.errors[0], /cap/);
+});
+
+test('release documents are classified before newer blog items under the cap', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/adobe-releases', { ...DEFAULTS['adobe-releases'], sources: ['adobeBlog', 'aep'], dailyCap: 1 });
+  const calls = [];
+  const blog = JSON.stringify({ cards: [{ cardDate: '2026-11-20T00:00:00Z',
+    contentArea: { title: 'Recent blog', url: 'https://blog.adobe.com/en/recent' } }] });
+  const service = createService({ db, fetchFn: async (url) =>
+    response(url === SOURCES.aep.url ? '---\nlast-update: 2026-10-01T00:00:00.000Z\n---\nRelease' : blog),
+  callGemini: classifier(calls), now: () => fixed });
+  await service.refresh('adobe-releases');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].item.sourceUrl, SOURCES.aep.link);
 });
 
 test('invalid model output is not stored and its failure is recorded', async () => {
