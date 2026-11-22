@@ -262,6 +262,7 @@
           redirectToOnboardingIfNeeded();
           return null;
         }
+        if (detail && detail.source === 'auth-restore') return null;
         return firebase.auth().signInAnonymously().catch(function () {
           return null;
         });
@@ -451,10 +452,24 @@
     if (!ensureFirebase()) return Promise.resolve(null);
     var auth = firebase.auth();
     monitorActiveSession(auth);
-    if (auth.currentUser) return Promise.resolve(auth.currentUser);
-    return auth.signInAnonymously().catch(function (error) {
-      handleAuthFailure(error, { source: 'sign-in-anonymous' });
-      return null;
+    // currentUser is null while Firebase restores persistence; anonymous sign-in would replace that account.
+    return new Promise(function (resolve) {
+      var unsubscribe = auth.onAuthStateChanged(function (user) {
+        unsubscribe();
+        if (user) {
+          resolve(user);
+          return;
+        }
+        resolve(auth.signInAnonymously().catch(function (error) {
+          handleAuthFailure(error, { source: 'sign-in-anonymous' });
+          return null;
+        }));
+      }, function (error) {
+        unsubscribe();
+        handleAuthFailure(error, { source: 'auth-restore' });
+        console.warn('[lab-sync] Firebase session restoration failed; anonymous sign-in was not attempted.');
+        resolve(null);
+      });
     });
   }
 

@@ -19,7 +19,16 @@ const server = createServer(async (req, res) => {
   const pathname = new URL(req.url, 'http://localhost').pathname;
   const file = resolve(root, '.' + pathname);
   if (!file.startsWith(root + '/')) { res.writeHead(404).end(); return; }
-  if (pathname.endsWith('.html')) { res.writeHead(200, { 'Content-Type': 'text/html' }).end(html); return; }
+  if (pathname.endsWith('.html')) {
+    let fixture = html;
+    const params = new URL(req.url, 'http://localhost').searchParams;
+    if (params.has('sync')) fixture = fixture.replace('<script src="/profile-viewer/aep-lab-nav.js">',
+      '<script src="/profile-viewer/aep-lab-sandbox-sync.js"></script><script src="/profile-viewer/aep-lab-nav.js">');
+    if (params.has('deferred')) fixture = fixture.replace('<main class="dashboard-main"><h1>Lab fixture</h1></main>',
+      '<template id="aepDeferredDashboardShell"><main class="dashboard-main"><h1>Lab fixture</h1></main></template>');
+    res.writeHead(200, { 'Content-Type': 'text/html' }).end(fixture);
+    return;
+  }
   try {
     const data = await readFile(file);
     res.writeHead(200, { 'Content-Type': pathname.endsWith('.js') ? 'text/javascript' : 'application/json' })
@@ -33,11 +42,16 @@ try {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const user = { uid: 'fixture-user', email: 'fixture@adobe.com', isAnonymous: false, emailVerified: true };
   async function scenario({ enabled = true, signedIn = true, anonymous = false, onboarding = false,
-    loseFirstReply = false, rejectStatus = 0, loginFails = false, version = 1 } = {}) {
+    loseFirstReply = false, rejectStatus = 0, loginFails = false, version = 1,
+    restoreDelay = 0, restoreFails = false } = {}) {
     const page = await browser.newPage();
     const posts = [];
     const statuses = [];
     const errors = [];
+    const warnings = [];
+    page.on('console', (message) => {
+      if (message.type() === 'warning') warnings.push(message.text());
+    });
     let configResolved;
     const configDone = new Promise((done) => { configResolved = done; });
     page.on('pageerror', (error) => errors.push(error.message));
@@ -64,9 +78,12 @@ try {
       else await route.fulfill({ json: { ok: true, duplicate: posts.length > 1 && body.id === posts[0].id } });
     });
     await page.exposeFunction('__reportUsageStatus', (detail) => statuses.push(detail));
-    await page.addInitScript(({ initialUser, isOnboarding, shouldRejectLogin }) => {
+    await page.addInitScript(({ initialUser, isOnboarding, shouldRejectLogin, restoreDelay, restoreFails }) => {
       window.__testOnboarding = isOnboarding;
       window.__usagePostsReceived = 0;
+      window.addEventListener('aep-access-forced-logout', (event) => {
+        window.__forcedLogout = event.detail;
+      });
       window.firebaseDatabaseConfigIsComplete = () => true;
       window.firebaseDatabaseConfig = { apiKey: 'offline-fixture', appId: 'offline-fixture', projectId: 'offline-fixture' };
       window.addEventListener('aep-lab-usage-status', (event) => {
@@ -74,44 +91,78 @@ try {
         void window.__reportUsageStatus(event.detail);
       });
       const callbacks = [];
+      const tokenCallbacks = [];
       let resolveToken;
       let tokenDelayed = false;
+      let restored = restoreDelay === 0;
+      let anonymousCalls = 0;
+      const restoration = new Promise((done) => {
+        if (restored) { done(); return; }
+        setTimeout(() => {
+          restored = true;
+          if (restoreFails) {
+            callbacks.slice().forEach(({ failed }) => failed?.(Object.assign(
+              new Error('Fixture restoration failed'),
+              typeof restoreFails === 'string' ? { code: restoreFails } : {})));
+          } else {
+            auth.currentUser = makeUser(initialUser);
+            callbacks.slice().forEach(({ callback }) => callback(auth.currentUser));
+            tokenCallbacks.forEach((callback) => callback(auth.currentUser));
+          }
+          done();
+        }, restoreDelay);
+      });
       const makeUser = (value) => value ? {
         ...value, getIdToken: () => tokenDelayed
           ? new Promise((done) => { resolveToken = done; }) : Promise.resolve('fixture-token'),
         reload: async () => {},
       } : null;
       const auth = {
-        currentUser: makeUser(initialUser),
-        onAuthStateChanged(callback) {
-          callbacks.push(callback);
-          queueMicrotask(() => callback(auth.currentUser));
+        currentUser: restored ? makeUser(initialUser) : null,
+        onAuthStateChanged(callback, failed) {
+          const listener = { callback, failed };
+          callbacks.push(listener);
+          if (restored) queueMicrotask(() => callback(auth.currentUser));
+          return () => { const index = callbacks.indexOf(listener); if (index >= 0) callbacks.splice(index, 1); };
+        },
+        onIdTokenChanged(callback) {
+          tokenCallbacks.push(callback);
+          if (restored) queueMicrotask(() => callback(auth.currentUser));
           return () => {};
+        },
+        signInAnonymously: async () => {
+          anonymousCalls += 1;
+          // Firebase waits for persistence internally, then replaces non-anonymous users.
+          await restoration;
+          auth.currentUser = makeUser({ uid: 'fixture-anonymous', isAnonymous: true });
+          callbacks.slice().forEach(({ callback }) => callback(auth.currentUser));
+          return { user: auth.currentUser };
         },
         signInWithEmailAndPassword: async (email) => {
           if (shouldRejectLogin) throw Object.assign(new Error('Fixture failed login'), { code: 'auth/wrong-password' });
           auth.currentUser = makeUser({ uid: 'fixture-user', email, isAnonymous: false, emailVerified: true });
-          callbacks.forEach((callback) => callback(auth.currentUser));
+          callbacks.slice().forEach(({ callback }) => callback(auth.currentUser));
           return { user: auth.currentUser };
         },
         signOut: async () => {
           auth.currentUser = null;
-          callbacks.forEach((callback) => callback(null));
+          callbacks.slice().forEach(({ callback }) => callback(null));
         },
       };
       window.firebase = { apps: [{}], auth: () => auth };
       window.__telemetryAuth = {
-        repeat: () => callbacks.forEach((callback) => callback(auth.currentUser)),
+        anonymousCalls: () => anonymousCalls,
+        repeat: () => callbacks.slice().forEach(({ callback }) => callback(auth.currentUser)),
         setUser(value) {
           auth.currentUser = makeUser(value);
-          callbacks.forEach((callback) => callback(auth.currentUser));
+          callbacks.slice().forEach(({ callback }) => callback(auth.currentUser));
         },
         delayToken: () => { tokenDelayed = true; },
         releaseToken: () => { tokenDelayed = false; resolveToken?.('fixture-token'); },
       };
     }, { initialUser: signedIn ? { ...user, isAnonymous: anonymous } : null,
-      isOnboarding: onboarding, shouldRejectLogin: loginFails });
-    return { page, posts, statuses, errors, configDone };
+      isOnboarding: onboarding, shouldRejectLogin: loginFails, restoreDelay, restoreFails });
+    return { page, posts, statuses, errors, warnings, configDone };
   }
   const disabled = await scenario({ enabled: false });
   await disabled.page.goto(origin + '/profile-viewer/profile.html');
@@ -119,6 +170,61 @@ try {
   assert.equal(disabled.posts.length, 0);
   assert.equal(await disabled.page.locator('#aepLabUsageNotice').count(), 0);
   await disabled.page.close();
+
+  const restored = await scenario({ restoreDelay: 500 });
+  await restored.page.goto(origin + '/profile-viewer/profile.html?sync=1');
+  await restored.page.waitForFunction(() => window.__usagePostsReceived === 1);
+  await restored.page.evaluate(() => window.AepLabSandboxSync.whenReady);
+  assert.equal(await restored.page.evaluate(() => window.__telemetryAuth.anonymousCalls()), 0,
+    'sandbox sync must wait for persisted email auth instead of replacing it with anonymous auth');
+  assert.equal(await restored.page.evaluate(() => window.firebase.auth().currentUser.uid), user.uid);
+  assert.equal(restored.posts[0].type, 'page_view');
+  assert.deepEqual(restored.errors, []);
+  await restored.page.close();
+
+  for (const anonymous of [false, true]) {
+    const fallback = await scenario({ signedIn: anonymous, anonymous, restoreDelay: 100 });
+    await fallback.page.goto(origin + '/profile-viewer/profile.html?sync=1');
+    await fallback.page.waitForFunction(() => window.AepLabUsageTelemetry?.ready);
+    await fallback.page.evaluate(() => window.AepLabSandboxSync.whenReady);
+    assert.equal(await fallback.page.evaluate(() => window.__telemetryAuth.anonymousCalls()), anonymous ? 0 : 1,
+      'only confirmed signed-out sessions create an anonymous account; restored anonymous sessions are reused');
+    assert.equal(fallback.posts.length, 0);
+    assert.deepEqual(fallback.errors, []);
+    await fallback.page.close();
+  }
+
+  for (const restoreFails of [true, 'auth/user-token-expired']) {
+    const restoreFailure = await scenario({ restoreDelay: 500, restoreFails });
+    await restoreFailure.page.goto(origin + '/profile-viewer/profile.html?sync=1');
+    assert.equal(await restoreFailure.page.evaluate(() => window.AepLabSandboxSync.whenReady), null,
+      'restoration failure preserves the resolving readiness contract');
+    assert.equal(await restoreFailure.page.evaluate(() => window.__telemetryAuth.anonymousCalls()), 0,
+      'restoration failure must not create an anonymous replacement, including forced logout');
+    assert.ok(restoreFailure.warnings.some((warning) => warning.includes(
+      '[lab-sync] Firebase session restoration failed; anonymous sign-in was not attempted.')),
+    'restoration failures must be reported');
+    if (typeof restoreFails === 'string') {
+      assert.equal(await restoreFailure.page.evaluate(() => window.__forcedLogout?.source), 'auth-restore');
+    }
+    assert.equal(restoreFailure.posts.length, 0);
+    assert.deepEqual(restoreFailure.errors, []);
+    await restoreFailure.page.close();
+  }
+
+  const deferred = await scenario();
+  await deferred.page.goto(origin + '/profile-viewer/home-new.html?deferred=1');
+  await deferred.page.waitForFunction(() => window.AepLabUsageTelemetry?.ready);
+  assert.equal(deferred.posts.length, 0, 'an inert home shell must not count as a visible page');
+  await deferred.page.evaluate(() => {
+    document.body.appendChild(document.getElementById('aepDeferredDashboardShell').content.cloneNode(true));
+    window.dispatchEvent(new Event('aep-deferred-dashboard-mounted'));
+    window.dispatchEvent(new Event('aep-deferred-dashboard-mounted'));
+  });
+  await deferred.page.waitForFunction(() => window.__usagePostsReceived === 1);
+  assert.equal(deferred.posts[0].route, '/profile-viewer/home-new.html');
+  assert.deepEqual(deferred.errors, []);
+  await deferred.page.close();
 
   const engagement = await scenario({ version: 2 });
   await engagement.page.clock.install();
@@ -285,7 +391,7 @@ try {
   assert.equal(await failedLogin.page.locator('#aepLabUsageNotice').count(), 0);
   assert.deepEqual(failedLogin.errors, []);
   await failedLogin.page.close();
-  console.log('OK: offline collection gate, sign-in notice only, authenticated visits, actual login flow, privacy, retries, reload/BFCache, iframe exclusion and sign-out race');
+  console.log('OK: offline collection gate, sign-in notice only, auth restoration before anonymous fallback, deferred shell, authenticated visits, actual login flow, privacy, retries, reload/BFCache, iframe exclusion and sign-out race');
 } finally {
   if (browser) await browser.close();
   await new Promise((done) => server.close(done));
