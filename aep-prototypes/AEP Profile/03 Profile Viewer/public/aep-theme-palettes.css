@@ -8,7 +8,8 @@
 
 /* ── Menu palettes (sidebar + nav chrome only; main content keeps global --dash-text) ── */
 
-html[data-ajo-sidebar='dark'] body.home-dashboard-concierge {
+html[data-ajo-sidebar='dark'] body.home-dashboard-concierge,
+html[data-aep-theme='dark'][data-ajo-sidebar='dark'] body.home-new-page {
   --dash-sidebar: #0e1628;
   --menu-bg: var(--dash-sidebar);
   --menu-fg: #f8fafc;
@@ -19,7 +20,8 @@ html[data-ajo-sidebar='dark'] body.home-dashboard-concierge {
   --menu-hover: rgba(248, 250, 252, 0.12);
 }
 
-html[data-ajo-sidebar='light'] body.home-dashboard-concierge {
+html[data-ajo-sidebar='light'] body.home-dashboard-concierge,
+html[data-aep-theme='dark'][data-ajo-sidebar='light'] body.home-new-page {
   --dash-sidebar: #f8f8f8;
   --menu-bg: var(--dash-sidebar);
   --menu-fg: #0f172a;
