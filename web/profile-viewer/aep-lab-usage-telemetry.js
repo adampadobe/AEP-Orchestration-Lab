@@ -40,19 +40,8 @@
     form.before(message);
     noticeStyles();
   }
-  function notice() {
-    var main = document.querySelector('.dashboard-main');
-    if (!main) return false;
-    if (!document.getElementById('aepLabUsageNotice')) {
-      var message = document.createElement('p');
-      message.id = 'aepLabUsageNotice';
-      message.className = 'aep-lab-usage-notice';
-      message.textContent = config.notice;
-      message.setAttribute('role', 'note');
-      main.prepend(message);
-      noticeStyles();
-    }
-    return true;
+  function onLabPage() {
+    return !!document.querySelector('.dashboard-main');
   }
   async function transmit(event, user, requestGeneration) {
     for (var attempt = 0; attempt < 2; attempt += 1) {
@@ -117,7 +106,7 @@
     if (!config?.enabled || config.version !== 2 || !eligible(user)
         || document.visibilityState !== 'visible' || !document.hasFocus()
         || previous === null || current - previous > 30000 || current - previous < 1
-        || current - lastInteraction > 60000 || !notice()) return;
+        || current - lastInteraction > 60000 || !onLabPage()) return;
     submit('heartbeat', user, null, Math.floor(current - previous));
   }
   function interacted(event) {
@@ -138,7 +127,7 @@
   global.addEventListener('pagehide', resetHeartbeat);
   function collect() {
     var user = auth && auth.currentUser;
-    if (!config?.enabled || !eligible(user) || document.visibilityState !== 'visible' || !notice()) return;
+    if (!config?.enabled || !eligible(user) || document.visibilityState !== 'visible' || !onLabPage()) return;
     if (viewedUid !== user.uid) {
       viewedUid = user.uid;
       submit('page_view', user);
