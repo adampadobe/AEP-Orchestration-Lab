@@ -12,7 +12,7 @@ function fixture({ principal = { ok: true, uid: 'user', keySandbox: 'demo' }, ow
     onRequest: (_options, handler) => handler, setCors() {},
     labHostingOriginForFunctionConfig: () => 'https://lab.example',
     labGenerationPrefsAuth: { resolveGenerationPrefsPrincipal: async () => principal },
-    labUserSandboxStore: { getWorkspaceProfile: async () => ({ workspaceSlug: 'owner' }) },
+    labUserSandboxStore: { getWorkspaceProfile: async () => ({ workspaceSlug: 'demo' }) },
     labRtdbProvisionService: { userOwnsWorkspace: async () => owns },
     labDemoConfigService: {
       inspect: async () => ({ sections: [] }),
@@ -54,6 +54,11 @@ test('complete-customer routes reject unauthenticated, wrong-sandbox and unowned
     assert.equal(f.response.statusCode, status);
     assert.equal(f.calls.length, 0);
   }
+  const foreign = fixture({ principal: { ok: true, uid: 'user' } });
+  await foreign.invoke({ sandbox: 'other' });
+  assert.equal(foreign.response.statusCode, 403);
+  assert.match(foreign.response.body.error, /workspace sandbox/);
+  assert.equal(foreign.calls.length, 0);
 });
 
 test('legacy combined failures never roll back an asset result replayed from an earlier successful request', async () => {
@@ -71,7 +76,7 @@ test('legacy combined failures never roll back an asset result replayed from an 
 test('owned routes use the principal workspace and fixed-origin public byte/deletion verification', async () => {
   const f = fixture(); await f.invoke();
   assert.equal(f.response.statusCode, 200, JSON.stringify(f.response.body));
-  assert.deepEqual(f.calls[0][0], { uid: 'user', workspaceSlug: 'owner', sandbox: 'demo' });
+  assert.deepEqual(f.calls[0][0], { uid: 'user', workspaceSlug: 'demo', sandbox: 'demo' });
   const verify = f.calls[0][2].verifyPublicFile;
   const original = global.fetch;
   try {

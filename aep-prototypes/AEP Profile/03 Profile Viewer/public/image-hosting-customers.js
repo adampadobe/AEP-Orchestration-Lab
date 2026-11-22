@@ -19,8 +19,8 @@
   const storageKey = () => 'aepCustomerOperation:' + state.sandbox;
   const name = (id) => byId(id).value.trim();
   function report(message, error = false) {
-    byId('customerStatus').textContent = message;
-    byId('customerStatus').dataset.error = String(error);
+    byId('imageHostingStatus').textContent = message;
+    byId('imageHostingStatus').className = 'status ' + (error ? 'err' : 'ok');
     if (dialog.open) {
       byId('customerPreviewStatus').textContent = message;
       byId('customerPreviewStatus').dataset.error = String(error);
@@ -134,7 +134,7 @@
       label.append(input, span);
       container.append(label);
     });
-    if (!state.items.size) container.append(text('p', 'No library files. Upload at least one customer file in the library below, then inspect again. Saving or switching currently requires at least one selected customer file.'));
+    if (!state.items.size) container.append(text('p', 'No published library files. Upload at least one customer file in Files, then inspect again. Saving or switching requires at least one selected customer file.'));
   }
   function renderConfiguration() {
     const container = byId('customerConfiguration');
@@ -419,7 +419,7 @@
     renderInventory(); controls();
   });
   byId('customerSave').addEventListener('click', () => run(async () => {
-    showPreview(await api('customer-save-preview', { ...classification(), customer_name: requiredName('customerSaveName') }), 'Save customer in cloud — review');
+    showPreview(await api('customer-save-preview', { ...classification(), customer_name: requiredName('customerSaveName') }), 'Review package save');
   }));
   byId('customerAddReplacement').addEventListener('click', addReplacement);
   byId('customerPreparePreview').addEventListener('click', () => run(prepare));

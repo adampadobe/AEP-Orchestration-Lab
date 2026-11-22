@@ -10,6 +10,10 @@ This bucket holds two kinds of content with different lifecycles:
 | `<sandbox>/library/**` | Curated per-sandbox assets served at `/cdn/<sandbox>/<path>` | **Never expires.** Only deleted by explicit user actions (Delete button, ZIP restore with replace, or in-place card replacement). |
 | `<sandbox>/library_backups/**` | Legacy/reserved public backup prefix; not used for customer packages | Never expires. Not private. |
 
+Published library APIs and customer-package operations require an owned workspace and only accept its normalized sandbox slug. The Files explorer and new backups use that sandbox; private My drive and existing backups remain accessible without a workspace. Restore preview and restore refuse selections containing files from other sandboxes, including older multi-sandbox backups; select only your workspace files to restore them. A different sandbox selected in the global environment bar may therefore be denied by library consumers.
+
+This restriction applies to authenticated management APIs, not public CDN or bucket URLs: published assets remain publicly readable.
+
 ## Cloud customer packages
 
 Image Hosting's **Cloud customer packages** panel and `/mcp/demo-prep` use the same authenticated `/api/lab/demo-assets` coordinator. They preserve exact `/cdn/<sandbox>/<path>` URLs; no folder rename or local ZIP is required. On first use, inspect and explicitly classify every visible file as customer-specific or shared. A saved package covers all selected paths, not just the five legacy logo/hero/mobile slots. Empty-folder markers and hidden bookkeeping are retained in place, not customer assets.

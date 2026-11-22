@@ -149,6 +149,8 @@ jobs:
         run: npm run test:demo-env-bar
       - name: Exercise private data-flow walkthroughs (local fixtures)
         run: node scripts/test-my-data-flows-browser.cjs
+      - name: Exercise image hosting drive, backups and restore (local fixtures)
+        run: node scripts/test-image-hosting-browser.cjs
       - name: Exercise Riyadh browsing, identity and booking journeys (local fixtures)
         run: npm run test:riyadh-air
       - name: Exercise CP decisioning, attribution and profile refresh (local fixtures)
