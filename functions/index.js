@@ -4621,6 +4621,33 @@ exports.releaseNotesSummaryWeeklyRefresh = onSchedule(
   },
 );
 
+function getLabFeedsService() {
+  const admin = require('firebase-admin');
+  if (!admin.apps.length) admin.initializeApp();
+  return require('./labFeedsService').createService({
+    db: admin.firestore(),
+    callGemini: (...args) => require('./vertexClient').callGemini(...args),
+  });
+}
+
+exports.labFeeds = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 30, memory: '256MiB' },
+  async (req, res) => {
+    setCors(res, 'GET, OPTIONS');
+    await getLabFeedsService().handle(req, res);
+  },
+);
+
+exports.labTechNewsRefresh = onSchedule(
+  { schedule: 'every 2 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('tech-news'),
+);
+
+exports.labAdobeReleasesRefresh = onSchedule(
+  { schedule: 'every 24 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('adobe-releases'),
+);
+
 /**
  * POST /api/demo-use-case/generate
  * Body: { sandbox, scrapeId, brandColour?, useCase?, personaName?, products?,
