@@ -67,13 +67,14 @@
           (logoSrc
             ? '<img class="home-lab-scrape-logo" src="' + esc(logoSrc) + '" alt="" loading="lazy" onerror="this.remove()" />'
             : '') +
+          '<div class="home-lab-compact-item__body">' +
           '<div class="home-lab-compact-item__title">' +
           esc(label) +
           '</div>' +
           (sub ? '<div class="home-lab-compact-item__url">' + esc(sub) + '</div>' : '') +
           '<div class="home-lab-compact-item__meta">' +
           esc(meta) +
-          ' · <a href="brand-scraper.html">Open scraper</a></div></div>'
+          ' · <a href="brand-scraper.html">Open scraper</a></div></div></div>'
         );
       })
       .join('');

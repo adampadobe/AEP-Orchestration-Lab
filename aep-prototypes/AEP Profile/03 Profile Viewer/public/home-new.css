@@ -114,6 +114,7 @@ body.home-new-page .dashboard-info-banner {
 
 .home-release-panel__head {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--s-sp-200);
@@ -175,7 +176,8 @@ body.home-new-page .dashboard-info-banner {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--s-sp-100);
-  flex-shrink: 0;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .home-release-timestamp {
@@ -833,6 +835,8 @@ body.home-new-page .dashboard-nav-pill {
 /* Release panel collapse */
 .home-release-panel__head-main {
   display: flex;
+  flex: 1 1 360px;
+  min-width: 0;
   align-items: flex-start;
   gap: 10px;
 }
@@ -1067,6 +1071,8 @@ body.home-new-page .cc-access-panel.dashboard-panel {
 
 .home-lab-compact-item:last-child { margin-bottom: 0; }
 
+.home-lab-compact-item__body { min-width: 0; }
+
 .home-lab-compact-item__title {
   font-size: 12px;
   font-weight: 600;
@@ -1239,6 +1245,10 @@ html:not([data-aep-theme='dark']) body.home-new-page .home-release-drawer {
     flex-direction: column;
     align-items: stretch;
   }
+
+  .home-release-panel__head-main {
+    flex-basis: auto;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1278,7 +1288,7 @@ html:not([data-aep-theme='dark']) body.home-new-page .home-release-drawer {
   margin: auto 0 0;
   padding: 10px 18px 12px;
   font-size: 11px;
-  color: var(--cc-text-dim);
+  color: var(--cc-text-sec);
 }
 .home-pulse__foot:empty { display: none; }
 
@@ -1330,7 +1340,7 @@ html:not([data-aep-theme='dark']) body.home-new-page .home-release-drawer {
   margin-top: 1px;
 }
 .home-wn-badge--new { color: var(--cc-green); background: var(--cc-green-dim); }
-.home-wn-badge--updated { color: var(--cc-blue); background: var(--cc-blue-dim); }
+.home-wn-badge--updated { color: var(--cc-red); background: var(--cc-red-dim); }
 .home-wn-badge--draft { color: var(--cc-text-dim); background: var(--cc-bg-raised); }
 .home-wn-badge--review { color: var(--cc-amber); background: var(--cc-amber-dim); }
 
@@ -1338,7 +1348,7 @@ html:not([data-aep-theme='dark']) body.home-new-page .home-release-drawer {
 .home-wn-item__title { font-size: 13px; font-weight: 500; line-height: 1.4; color: inherit; }
 .home-wn-item__title a { color: inherit; text-decoration: none; }
 .home-wn-item__title a:hover { text-decoration: underline; }
-.home-wn-item__meta { font-size: 11px; color: var(--cc-text-dim); margin-top: 2px; }
+.home-wn-item__meta { font-size: 11px; color: var(--cc-text-sec); margin-top: 2px; }
 .home-wn-item__pages { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
 
 .home-wn-chip {
