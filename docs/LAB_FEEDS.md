@@ -62,7 +62,7 @@ service, and may be edited by an authorized Firestore administrator:
 
 ```json
 {
-  "sources": ["techcrunch", "verge", "venturebeat", "cmswire", "martech", "salesforce", "microsoft", "google"],
+  "sources": ["techcrunch", "verge", "cmswire", "martech", "salesforce", "microsoft", "google"],
   "watchlist": ["Salesforce", "Oracle", "SAP", "Braze", "Twilio Segment", "Bloomreach", "Optimizely", "Contentsquare", "HubSpot", "Microsoft", "Google"],
   "threshold": 0.6,
   "promptVersion": "1",
