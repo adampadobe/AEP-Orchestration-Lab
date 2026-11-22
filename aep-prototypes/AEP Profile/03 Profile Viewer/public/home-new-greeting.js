@@ -31,7 +31,6 @@
     var c = change != null ? Number(change) : null;
     var px = Number(price);
     if (p != null && Number.isFinite(p)) {
-      if (Math.abs(p) > 0 && Math.abs(p) < 1) return p * 100;
       return p;
     }
     if (c != null && Number.isFinite(c) && Number.isFinite(px)) {

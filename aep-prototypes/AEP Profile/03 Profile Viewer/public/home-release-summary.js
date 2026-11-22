@@ -211,14 +211,14 @@
       })
       .join('');
 
-    var total = totalItems(p);
+    var total = (p.highlights || []).length;
     if (footEl) {
       footEl.textContent =
         'Showing ' +
-        Math.min(COMPACT_LIMIT, (p.highlights || []).length) +
+        items.length +
         ' of ' +
         total +
-        ' items · ' +
+        ' highlights · ' +
         p.name;
     }
   }
