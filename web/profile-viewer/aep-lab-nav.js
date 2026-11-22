@@ -14,7 +14,7 @@
     var usageScript = document.createElement('script');
     usageScript.id = 'aepLabUsageTelemetryScript';
     usageScript.referrerPolicy = 'no-referrer';
-    usageScript.src = new URL('aep-lab-usage-telemetry.js?v=20261006', document.currentScript.src).href;
+    usageScript.src = new URL('aep-lab-usage-telemetry.js?v=20261122', document.currentScript.src).href;
     usageScript.onerror = function () { console.warn('[lab-usage] Usage reporting script could not load; lab use is unaffected.'); };
     document.head.appendChild(usageScript);
   }
