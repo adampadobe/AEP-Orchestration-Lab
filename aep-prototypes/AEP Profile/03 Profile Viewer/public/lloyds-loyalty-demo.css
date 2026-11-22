@@ -81,6 +81,16 @@ body.lloyds-loyalty-page { display: flow-root; }
 .loyalty-content-card-body h3 { font-size: 16px; line-height: 1.35; margin-bottom: 8px; }
 .loyalty-content-card button { padding: 9px 16px; margin: 4px 8px 0 0; border-radius: 24px; border: 0; background: var(--dash-text); color: var(--dash-surface); font-weight: 700; cursor: pointer; }
 .loyalty-content-card button:disabled { opacity: .5; cursor: wait; }
+.loyalty-content-card[hidden] { display: none !important; }
+.loyalty-card-slides { touch-action: pan-y; }
+.loyalty-card-controls { display: flex; align-items: center; justify-content: center; gap: 14px; padding-top: 12px; }
+.loyalty-card-controls button { border: 1px solid var(--dash-border); background: var(--dash-surface); color: var(--dash-text); cursor: pointer; }
+.loyalty-card-controls button:disabled { opacity: .5; cursor: wait; }
+.loyalty-card-arrow { width: 32px; height: 32px; border-radius: 50%; font-size: 20px; }
+.loyalty-card-dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; min-width: 0; }
+.loyalty-card-dots button { width: 24px; height: 24px; padding: 7px; border: 0; background: transparent; }
+.loyalty-card-dots button::after { content: ''; display: block; width: 8px; height: 8px; border: 1px solid var(--dash-border); border-radius: 50%; }
+.loyalty-card-dots button[aria-current="true"]::after { background: var(--dash-text); border-color: var(--dash-text); }
 #loyaltyStatus { max-width: 600px; min-width: 0; font-size: 12px; overflow-wrap: anywhere; }
 #loyaltyStatus[data-error="true"] { color: var(--dash-error-text); }
 .loyalty-evidence { margin-top: 24px; padding: 16px; border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); background: var(--dash-surface); }

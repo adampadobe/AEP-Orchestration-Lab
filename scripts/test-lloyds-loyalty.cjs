@@ -83,6 +83,31 @@ test('content-card links refuse executable protocols', () => {
   assert.equal(model.safeUrl('#tasks', 'https://example.invalid/rewards'), 'https://example.invalid/rewards#tasks');
 });
 
+test('all content cards are ranked stably without merging proposition, item or consequence contexts', () => {
+  const surface = 'web://example.invalid/rewards#ContentCardContainerLoyalty';
+  const content = title => ({ contentType: 'application/json', content: { title: { content: title } } });
+  const first = { id: 'first', scope: surface, scopeDetails: { rank: 1, correlationID: 'first-token' },
+    items: [{ id: 'first-item', data: content('First') }] };
+  const second = { id: 'second', scope: surface, scopeDetails: { rank: 2, correlationID: 'second-token' },
+    items: [{ id: 'second-item', data: { rules: [{ consequences: [
+      { id: 'second-a', detail: { data: content('Second A') } },
+      { id: 'second-b', detail: { data: content('Second B') } },
+    ] }] } }, { id: 'override-item', data: { ...content('Override'), meta: { rank: '3', challengeId: 'dynamic' } } }] };
+  const unranked = { id: 'unranked', scope: surface, scopeDetails: {}, items: [
+    { id: 'last-a', data: content('Last A') }, { id: 'last-b', data: content('Last B') },
+  ] };
+  const before = JSON.stringify([first, second, unranked]);
+  const cards = model.selectCards([first, second, unranked, { ...second, scope: surface + '-other' }], surface);
+  assert.deepEqual(cards.map(card => card.content.title.content), ['Override', 'Second A', 'Second B', 'First', 'Last A', 'Last B']);
+  assert.equal(cards[1].proposition, second);
+  assert.equal(cards[1].item, second.items[0]);
+  assert.equal(cards[2].consequenceId, 'second-b');
+  assert.equal(cards[0].meta, second.items[1].data.meta);
+  assert.equal(model.selectCard([first, second, unranked], surface).consequenceId, cards[0].consequenceId);
+  assert.equal(JSON.stringify([first, second, unranked]), before);
+  assert.deepEqual(model.selectCards([], surface), []);
+});
+
 test('evaluated native journey cards retain their original item and exact surface', () => {
   const surface = 'web://example.invalid/rewards#ContentCardContainerLoyalty';
   const proposition = { id: 'journey', scope: surface, scopeDetails: { decisionProvider: 'CJM' },
