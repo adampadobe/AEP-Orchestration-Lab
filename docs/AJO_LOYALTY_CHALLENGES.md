@@ -41,13 +41,16 @@ decisions nor resets subscriptions, signup receipts or accepted purchase offers.
 The mobile app layout is unchanged. Both previews support light and dark themes
 and narrow browser widths.
 
-The shared challenge-progress panel uses a polished progress ring, task rail,
+The shared challenge-progress panel places the completion count and task caption
+to the right of its text-free progress ring, above the challenge title. It uses a task rail,
 current-task emphasis and a completion banner, while retaining Adobe's actual
 states and the reward-delivery caveat. **Profile offers** beneath it shows only
 the valid items received through `ajo:featured-offers`, in returned order, with
 safe images, available copy/priority fields and expandable complete item response
 details. Local fallback offers are excluded and a profile change clears the prior
 results. This is an inspection view, not an independent eligibility evaluation.
+Joining a challenge no longer scrolls the phone to the static partner-offer list;
+the user stays in place and can use the Featured Offers carousel for purchases.
 
 The **Rewards** tab contains the summary/breakdown, quick navigation and
 **Win £1 million** banner. The original live journey Content Card mount is
