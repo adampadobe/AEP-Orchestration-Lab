@@ -14,6 +14,36 @@ test('task progress uses reported goal type and actual zero counters, never hist
     { value: 25, goal: 100, key: 'spend' });
 });
 
+test('native Spend uses its class/definition and only an actual returned monetary accumulator', () => {
+  const task = { taskType: 'purchase', taskClass: 'spend', variables: { spendMin: 50, include: { valuesSet: ['*'] } } };
+  assert.equal(model.spendTask(task).goal, 50);
+  assert.equal(model.spendTask(task).value, null);
+  assert.equal(model.spendTask({ ...task, accumulators: { spend: 0, qty: 2 } }).value, 0);
+  assert.equal(model.spendTask({ ...task, accumulators: { spend: 10 } }).value, 10);
+  for (const spend of ['10', false, -1, Infinity]) {
+    assert.equal(model.spendTask({ ...task, accumulators: { spend } }).value, null);
+  }
+  assert.equal(model.spendTask({ ...task, taskClass: 'purchase' }), null, 'A spendMin does not override an explicit non-Spend class');
+  assert.equal(model.spendTask({ taskType: 'purchase' }), null, 'A purchase activity alone is not a Spend task');
+  assert.equal(model.spendTask({ taskType: 'purchase', variables: { spendMin: 50 } }).goal, 50);
+  assert.equal(model.spendTask({ taskType: 'purchase', accumulators: { spend: 20 } }, task).value, 20);
+  assert.equal(model.spendTask({ taskType: 'purchase' }, { ...task, accumulators: { spend: 10 } }).value, null,
+    'Definition or previous counters never substitute for returned member state');
+  assert.equal(model.spendTask({ ...task, variables: { spendMin: '50' } }).goal, null);
+  assert.equal(model.spendPurchaseSku(model.spendTask(task)), 'LOYALTY-SPEND-DEMO-10');
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50, singleTrans: true } })), null);
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50, currencyCode: 'EUR' } })), null);
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50,
+    include: { valuesSet: ['EXCLUDED', 'ELIGIBLE'] }, exclude: { valuesSet: ['EXCLUDED'] } } })), 'ELIGIBLE');
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50,
+    include: { values_csv: 'ELIGIBLE' }, exclude: { valuesSet: ['*'] } } })), null);
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50,
+    include: { values_csv: ' BLOCKED, ELIGIBLE ' }, exclude: { valuesSet: [' BLOCKED '] } } })), 'ELIGIBLE');
+  assert.equal(model.spendPurchaseSku(model.spendTask({ ...task, variables: { spendMin: 50,
+    include: { valuesSet: ['A-SKU'] }, exclude: { valuesSet: ['A-*'] } } })), null,
+    'Unsupported filter patterns cannot silently permit an excluded product');
+});
+
 test('challenge classification preserves explicit participation and rejects ambiguous or malformed state', () => {
   const response = { challengeList: [
     { challenge_id: 'joined-fixture', optedIn: true, tasks: [] },

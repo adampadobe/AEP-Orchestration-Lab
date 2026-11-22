@@ -684,12 +684,70 @@ is missing, mark a member eligible from publication alone, or treat an empty
 active page as proof they never completed a challenge.
 
 The Spend task's raw definition/state can instead report
-`variables.spendMin` (the target) and `variables.singleTrans`; a current
-`accumulators.spend`, when returned, would provide the accumulated amount.
-The existing demo progress helper expects normalized `variables.goal/type`,
-so it does not yet interpret raw `spendMin`. The automatic-loading change does
-not add a Spend display or change that helper. Missing accumulators are not zero;
-currency must be confirmed separately before formatting spend as GBP.
+`taskClass:"spend"`, `taskType:"purchase"`, `variables.spendMin` (the target)
+and `variables.singleTrans`. The left-hand Spend display now reads this native
+goal and an actual numeric `accumulators.spend`; it also accepts the existing
+normalized Spend goal/type. A purchase activity alone is not Spend, and an
+explicit non-Spend class takes precedence over a misleading monetary variable.
+Missing accumulators are not zero. Definition counters and completion history
+never substitute for the returned member accumulator. The site's purchase demo
+contract is GBP; an explicitly reported currency takes precedence, and non-GBP
+tasks do not offer this GBP purchase control.
+
+### Real GBP 10 Spend purchase demo
+
+An active, opted-in Spend task for the **resolved Loyalty member** can show
+**Simulate qualifying purchase** beneath its left-hand task row. It is not
+mounted in the phone or customer website. It requires a positive reported goal
+and a usable SKU; single-transaction targets above GBP 10 are not appropriate.
+The included/excluded SKU lists select an eligible product where reported.
+An unrestricted task uses `LOYALTY-SPEND-DEMO-10`, not a partner-offer SKU.
+Adobe still decides actual qualification; other eligibility conditions and
+processing latency can prevent an accepted event from advancing the task.
+
+Each deliberate click calls existing `prepareProfileEvent`, `purchasePayload`
+and `dispatchProfileEvent`, not Featured Offers activation or its receipt/modal
+handler. The order and single product both contain `priceTotal:10`,
+`currencyCode:"GBP"`, and quantity/purchase count 1. Separate UUID event and
+purchase IDs make repeated clicks independent transactions. Existing test-profile,
+active ECID, selected identity, resolved Email/Loyalty ID, tenant and datastream
+checks remain authoritative. No event is retried automatically.
+
+Acceptance re-enables the button and shows **£10 purchase sent**; it does not
+increment a local counter or prove qualification. A read-only state refresh starts
+after approximately two seconds, then retries at five-second intervals, with at
+most six reads and a 32-second scheduling deadline. Busy unrelated requests can
+reduce the number of attempts. The existing `readTasks(..., true)` ignores a
+manual debugging member override. Polling stops on a changed reported Spend,
+Adobe task/challenge completion, a missing/non-opted-in task, an error, context
+invalidation, another deliberate purchase, navigation away or the bound.
+If the initial accumulator was missing, first reporting zero does not stop
+latency polling; zero is displayed honestly while waiting for positive Spend.
+Manual **Get task status** remains available afterward.
+
+Only an actual returned Spend accumulator renders money, remaining amount and
+percentage of the goal. Reaching the goal does not locally complete a task,
+complete its challenge or award points. Those states still come from Adobe.
+The initial member accumulator and the precise live monetary mapping are not
+proven by published metadata or SDK acceptance; inspect the first real readback.
+
+For the first click, open:
+
+- **Browser console:** filter `[Loyalty Spend demo]`. Inspect the exact purchase
+  payload, accepted SDK result and each returned challenge/task. A send error is
+  logged without automatic resubmission.
+- **Last successful response / proposition evidence → Spend purchase and
+  Loyalty state evidence:** the request, UUID purchase ID, full `sdkResponse`,
+  `sdkAccepted`, bounded `poll.responses` and stop reason persist separately from
+  the general evidence panel. Console command:
+  `window.LloydsLoyaltySpendDebug.getLatest()`. `qualification:"Not confirmed"`
+  deliberately is not inferred from acceptance or a concurrent state change.
+- **Challenge API details:** inspect task ID/type/class, `variables.spendMin`,
+  the unmodified returned `accumulators` and task/challenge states. Spend tasks
+  additionally expose full `returnedTask` and matching `definitionTask` JSON.
+  If Adobe returns an unfamiliar accumulator shape, inspect it rather than
+  manufacturing a Spend value. No accumulator means **Progress not yet reported**.
+
 Multiple entries in `challengeList` can include `optedIn:false` records, not just
 joined challenges. Join metadata `_id` to state `challenge_id`, and match tasks
 by `taskId`, never list position.

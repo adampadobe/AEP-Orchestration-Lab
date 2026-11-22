@@ -30,6 +30,35 @@
     return typeof goal === 'number' && Number.isFinite(goal) && goal > 0 &&
       typeof value === 'number' && Number.isFinite(value) ? { goal, value, key } : null;
   }
+  function spendTask(task, definition) {
+    const variables = { ...definition?.variables, ...task.variables };
+    const taskClass = String(task.taskClass || definition?.taskClass || '').trim().toLowerCase();
+    const type = String(variables.type || task.taskType || definition?.taskType || '').trim().toLowerCase();
+    const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
+    const isSpend = taskClass ? taskClass === 'spend' :
+      /^(spend|amount)$/.test(type) || (!type || type === 'purchase') && positive(variables.spendMin);
+    if (!isSpend) return null;
+    const goal = variables.spendMin ?? variables.goal, value = task.accumulators?.spend;
+    return {
+      goal: positive(goal) ? goal : null,
+      value: typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null,
+      currency: variables.currencyCode ?? task.currencyCode ?? definition?.currencyCode ?? 'GBP',
+      variables,
+    };
+  }
+  function spendPurchaseSku(spend) {
+    if (!spend || spend.currency !== 'GBP' || !spend.goal ||
+        spend.variables.singleTrans === true && spend.goal > 10) return null;
+    const values = filter => (Array.isArray(filter?.valuesSet) ? filter.valuesSet :
+      typeof filter?.values_csv === 'string' ? filter.values_csv.split(',') : [])
+      .filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean);
+    const included = spend.variables.include == null ? ['*'] : values(spend.variables.include);
+    const excluded = values(spend.variables.exclude);
+    if (excluded.some(value => value.includes('*') && value !== '*')) return null;
+    const candidates = included.includes('*') ? ['LOYALTY-SPEND-DEMO-10', ...included] : included;
+    return candidates.find(sku => typeof sku === 'string' && sku.trim() && !sku.includes('*') &&
+      !excluded.includes('*') && !excluded.includes(sku))?.trim() || null;
+  }
   function normaliseChallengeResponse(response) {
     if (!response || !Array.isArray(response.challengeList)) {
       throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
@@ -137,7 +166,7 @@
   }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
+    progress, spendTask, spendPurchaseSku, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
