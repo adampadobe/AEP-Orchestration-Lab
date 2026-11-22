@@ -2,11 +2,11 @@
  * Shared Vertex AI Gemini client.
  *
  * Lifted out of brandScraperService.js so multiple Cloud Functions can call
- * Gemini through one cached VertexAI instance with consistent project/location
+ * Gemini through one cached GoogleGenAI instance with consistent project/location
  * resolution. Preserves the original brand-scraper behaviour exactly:
- *   - lazy require of @google-cloud/vertexai (so cold starts of non-Gemini
+ *   - lazy require of @google/genai (so cold starts of non-Gemini
  *     functions don't pull in the SDK)
- *   - GCLOUD_PROJECT / GCP_PROJECT env first, then 'aep-orchestration-lab' fallback
+ *   - GCLOUD_PROJECT / GCP_PROJECT / GOOGLE_CLOUD_PROJECT, then lab fallback
  *   - VERTEX_LOCATION env, default 'us-central1'
  *   - VERTEX_GEMINI_MODEL env, default 'gemini-2.5-pro'
  *   - JSON mode default on, finishReason guard, empty-content guard
@@ -16,22 +16,19 @@ let vertexClientCache;
 
 function getVertexClient() {
   if (!vertexClientCache) {
-    const { VertexAI } = require('@google-cloud/vertexai');
-    const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
+    const { GoogleGenAI } = require('@google/genai');
+    const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT ||
+      process.env.GOOGLE_CLOUD_PROJECT || 'aep-orchestration-lab';
     const location = process.env.VERTEX_LOCATION || 'us-central1';
-    vertexClientCache = new VertexAI({ project, location });
+    vertexClientCache = new GoogleGenAI({ vertexai: true, project, location });
   }
   return vertexClientCache;
 }
 
 // Vertex AI 429 detection.
-// The SDK throws e.g. `[VertexAI.ClientError]: got status: 429 Too Many
-// Requests. {"error":{"code":429,"status":"RESOURCE_EXHAUSTED",...}}` so
-// the cleanest signal we can rely on across SDK versions is a regex over
-// e.message — there's no exported error class with a numeric .status
-// field on every release of @google-cloud/vertexai.
 function isRateLimitedError(e) {
   if (!e) return false;
+  if (Number(e.status) === 429 || Number(e.code) === 429) return true;
   const msg = String(e.message || e);
   return /\b429\b|RESOURCE_EXHAUSTED|too many requests/i.test(msg);
 }
@@ -59,7 +56,7 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
     retryOn429 = false,
     retryOn429DelayMs = 30000,
     retryOn429Attempts = 1,
-    // Optional tools array passed straight through to getGenerativeModel.
+    // Optional tools array passed straight through to generateContent.
     // Default undefined → unchanged behaviour for every existing caller.
     // Callers that want Gemini to use Google Search grounding should
     // pass `tools: [{ googleSearch: {} }]` (Gemini 2.5+) or
@@ -80,24 +77,25 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
   } = opts;
   const client = getVertexClient();
   const modelName = modelOverride || process.env.VERTEX_GEMINI_MODEL || 'gemini-2.5-pro';
-  const generationConfig = { temperature, maxOutputTokens };
-  if (jsonMode) generationConfig.responseMimeType = 'application/json';
-  if (responseSchema) generationConfig.responseSchema = responseSchema;
-  const modelInit = {
-    model: modelName,
+  const config = {
+    temperature,
+    maxOutputTokens,
     systemInstruction: { role: 'system', parts: [{ text: systemPrompt }] },
-    generationConfig,
   };
-  if (Array.isArray(tools) && tools.length > 0) modelInit.tools = tools;
-  const model = client.getGenerativeModel(modelInit);
+  if (jsonMode) config.responseMimeType = 'application/json';
+  if (responseSchema) config.responseSchema = responseSchema;
+  if (Array.isArray(tools) && tools.length > 0) config.tools = tools;
+  const request = {
+    model: modelName,
+    contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+    config,
+  };
 
   let resp;
   const maxAttempts = retryOn429 ? Math.max(1, retryOn429Attempts + 1) : 1;
   for (let attempt = 1; ; attempt++) {
     try {
-      resp = await model.generateContent({
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-      });
+      resp = await client.models.generateContent(request);
       break;
     } catch (e) {
       if (!isRateLimitedError(e)) throw e;
@@ -122,12 +120,11 @@ async function callGemini(systemPrompt, userPrompt, opts = {}) {
       throw err;
     }
   }
-  const candidates = resp && resp.response && resp.response.candidates;
+  const candidates = resp && resp.candidates;
   if (!candidates || !candidates.length) throw new Error('Gemini returned no candidates');
   const finish = candidates[0].finishReason;
-  const parts = (candidates[0].content && candidates[0].content.parts) || [];
-  const text = parts.map(p => p.text || '').join('').trim();
-  const usage = (resp && resp.response && resp.response.usageMetadata) || {};
+  const text = (resp.text || '').trim();
+  const usage = resp.usageMetadata || {};
   if (!text) {
     throw new Error(
       `Gemini returned empty content (finishReason=${finish || 'unknown'}, ` +
