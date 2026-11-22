@@ -53,8 +53,7 @@ function classifier(calls) {
     const item = JSON.parse(input).source;
     calls.push({ item, options });
     return JSON.stringify({ relevance: 0.9, category: 'CRM', competitors: ['Salesforce'], products: [],
-      headline: item.title, soWhat: 'A new CRM feature.', sourceUrl: item.sourceUrl,
-      publishedAt: item.publishedAt, demoableInLab: false });
+      headline: item.title, soWhat: 'A new CRM feature.', demoableInLab: false });
   };
 }
 
@@ -88,14 +87,13 @@ test('parses Adobe CaaS cards in date order and rejects missing or non-Adobe lin
   assert.throws(() => parseCaas(JSON.stringify({ cards: Array(5000).fill({}) }), SOURCES.adobeBlog), /truncated/);
 });
 
-test('rejects invalid structured results and changed source metadata', () => {
+test('rejects invalid structured results', () => {
   const item = { sourceUrl: 'https://example.com', publishedAt: fixed.toISOString() };
   const value = { relevance: 0.8, category: 'news', competitors: [], products: [], headline: 'x',
-    soWhat: 'Relevant update', ...item, demoableInLab: false };
+    soWhat: 'Relevant update', demoableInLab: false };
   assert.ok(validateClassification(item, value));
   assert.ok(!validateClassification(item, { ...value, soWhat: Array(26).fill('word').join(' ') }));
   assert.ok(!validateClassification(item, { ...value, relevance: 2 }));
-  assert.ok(!validateClassification(item, { ...value, sourceUrl: 'https://other.example' }));
 });
 
 test('classifies only new URLs, enforces daily cap, and stores run metrics', async () => {
@@ -114,7 +112,7 @@ test('classifies only new URLs, enforces daily cap, and stores run metrics', asy
   assert.equal(db.docs.get('labFeeds/tech-news').budgetUsed, 1);
 });
 
-test('daily cap defers remaining new URLs and marks the run partial', async () => {
+test('daily cap defers remaining new URLs without failing the run', async () => {
   const db = fakeDb();
   db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch'], dailyCap: 1 });
   const calls = [];
@@ -123,8 +121,8 @@ test('daily cap defers remaining new URLs and marks the run partial', async () =
   const service = createService({ db, fetchFn: async () => response(twoItems), callGemini: classifier(calls), now: () => fixed });
   await service.refresh('tech-news');
   assert.equal(calls.length, 1);
-  assert.equal(db.docs.get('labFeeds/tech-news').lastRun.status, 'partial');
-  assert.match(db.docs.get('labFeeds/tech-news').lastRun.errors[0], /cap/);
+  assert.equal(db.docs.get('labFeeds/tech-news').lastRun.status, 'success');
+  assert.equal(db.docs.get('labFeeds/tech-news').lastRun.deferred, 1);
 });
 
 test('release documents are classified before newer blog items under the cap', async () => {
@@ -247,4 +245,21 @@ test('legacy live release summary never mixes in bundled fallback products', asy
   } finally {
     global.fetch = originalFetch;
   }
+});
+
+test('ignores retired stored sources, sends JSON Accept to CaaS and trims long summaries', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/adobe-releases', { ...DEFAULTS['adobe-releases'], sources: ['retired', 'adobeBlog'] });
+  const accepts = [];
+  const blog = JSON.stringify({ cards: [{ cardDate: '2026-11-20T00:00:00Z',
+    contentArea: { title: 'Recent blog', url: 'https://blog.adobe.com/en/recent' } }] });
+  const service = createService({ db, fetchFn: async (_url, init) => { accepts.push(init.headers.Accept); return response(blog); },
+    callGemini: async () => JSON.stringify({ relevance: 0.9, category: 'news', competitors: [], products: [],
+      headline: 'Recent blog', soWhat: Array(40).fill('word').join(' '), demoableInLab: false }), now: () => fixed });
+  await service.refresh('adobe-releases');
+  assert.deepEqual(accepts, ['application/json']);
+  assert.equal(db.docs.get('labFeeds/adobe-releases').lastRun.status, 'success');
+  const [item] = (await service.read('adobe-releases')).items;
+  assert.equal(item.soWhat.split(' ').length, 25);
+  assert.equal(item.sourceUrl, 'https://blog.adobe.com/en/recent');
 });
