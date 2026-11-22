@@ -407,14 +407,34 @@
   }
   const repr = value => value === undefined || value === null ? 'Not reported' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   async function json(url, options) {
-    const response = await fetch(url, { ...options, signal: aborter.signal });
+    const loyaltyRead = url.startsWith('/api/ajo-loyalty?');
+    const transientStatus = status => [408, 429, 500, 502, 503, 504].includes(status);
+    const failure = (text, status, retryable, details = {}) => Object.assign(new Error(text), {
+      status, retryableLoyaltyRead: loyaltyRead && retryable, ...details,
+    });
+    let response;
+    try { response = await fetch(url, { ...options, signal: aborter.signal }); }
+    catch (error) {
+      throw failure(error.message, null, !aborter.signal.aborted && error instanceof TypeError, { cause: error });
+    }
     const type = response.headers.get('content-type') || '';
-    if (url.startsWith('/api/ajo-loyalty?') && response.status === 404 && !type.includes('application/json')) {
+    if (loyaltyRead && response.status === 404 && !type.includes('application/json')) {
       throw new Error('Loyalty API is not deployed. An authorized release owner must update aepProxy and the Hosting route; SDK injection does not enable task-status reads.');
     }
-    if (!type.includes('application/json')) throw new Error('Expected the deployed lab JSON API; HTTP ' + response.status + '. Check the Functions release.');
-    const data = await response.json();
-    if (!response.ok || data.ok === false || data.error) throw new Error(typeof data.error === 'string' ? data.error : data.message || 'HTTP ' + response.status);
+    if (!type.includes('application/json')) {
+      throw failure('Expected the deployed lab JSON API; HTTP ' + response.status + '. Check the Functions release.',
+        response.status, transientStatus(response.status), { contentType: type });
+    }
+    let data;
+    try { data = await response.json(); }
+    catch (error) {
+      throw failure('Lab API returned an unreadable JSON response; HTTP ' + response.status + ': ' + error.message,
+        response.status, response.ok || transientStatus(response.status), { contentType: type, cause: error });
+    }
+    if (!response.ok || data?.ok === false || data?.error) {
+      throw failure(typeof data?.error === 'string' ? data.error : data?.message || 'HTTP ' + response.status,
+        response.status, transientStatus(response.status));
+    }
     return data;
   }
   function loyaltyAuthHeaders(ctx) {
@@ -1028,7 +1048,12 @@
       poll.timer = setTimeout(async () => {
         if (!active()) { if (spendPoll === poll) stopSpendPolling(); return; }
         if (Date.now() >= poll.deadline || poll.attempts >= 6) {
-          finish('Purchase sent; no updated Spend reported within the retry window. Use Get task status. Qualification is not confirmed.');
+          if (poll.lastFailure) {
+            finish('Purchase sent, but Loyalty state refresh failed after bounded retries: ' + poll.lastFailure +
+              '. Previous progress may be stale. Use Get task status; do not resend this purchase.');
+            status.phase = 'error'; syncSpendControls();
+            message(status.message, true);
+          } else finish('Purchase sent; no updated Spend reported within the retry window. Use Get task status. Qualification is not confirmed.');
           return;
         }
         if (busy) { schedule(1000); return; }
@@ -1039,16 +1064,35 @@
             state = await readTasks(current, currentToken, true);
             message('Spend state refreshed from Adobe. No progress was changed locally.');
           }
-          catch (error) { failure = error; throw error; }
+          catch (error) {
+            failure = error;
+            if (error.retryableLoyaltyRead) {
+              message('Purchase sent; temporary Loyalty read failure. Previous progress may be stale. Retrying the read only.');
+            } else throw error;
+          }
         });
         if (!active()) return;
         if (!state) {
+          if (failure?.retryableLoyaltyRead) {
+            poll.lastFailure = failure.message;
+            const evidence = { attempt: poll.attempts, readAt: new Date().toISOString(),
+              status: failure.status, error: failure.message, retryable: true };
+            (spendEvidence.snapshot.poll.errors ||= []).push(evidence);
+            writeSpendEvidence(spendEvidence.snapshot);
+            console.warn('[Loyalty Spend demo] Temporary state read failure; retrying read only', evidence);
+            status.message = 'Purchase sent; temporary Loyalty state read failure (' + poll.attempts +
+              ' of 6 attempts): ' + failure.message + '. Previous progress may be stale. Purchase will not be resent.';
+            syncSpendControls();
+            schedule(Math.min(5000, Math.max(0, poll.deadline - Date.now())));
+            return;
+          }
           const text = 'Purchase sent, but Loyalty state refresh failed: ' +
             (failure?.message || $('loyaltyStatus').textContent);
           finish(text); status.phase = 'error'; syncSpendControls();
           console.error('[Loyalty Spend demo] Loyalty state refresh failed', failure);
           return;
         }
+        poll.lastFailure = null;
         spendEvidence.snapshot.poll.responses.push({ attempt: poll.attempts, readAt: new Date().toISOString(), state });
         writeSpendEvidence(spendEvidence.snapshot);
         const returnedChallenge = state.challengeList.find(item => item.challenge_id === challenge.challenge_id);

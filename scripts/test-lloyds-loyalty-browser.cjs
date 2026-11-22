@@ -18,6 +18,7 @@ async function main() {
     let challengeListOverride, stateHasName = true, metadataMode = 'success', metadataGate;
     let signupMode = 'success', signupGate, releaseSignup;
     let confirmAvailableSignup = false, spendDefinition;
+    let stateFailures = [];
     await context.addInitScript(() => { localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'); });
     await context.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url());
@@ -109,6 +110,12 @@ async function main() {
         }
         else {
           if (holdState) await new Promise(resolve => { releaseState = resolve; stateStarted(); });
+          if (stateFailures.length) {
+            const failure = stateFailures.shift();
+            if (failure.network) return route.abort('failed');
+            return route.fulfill({ status: failure.status, contentType: failure.contentType,
+              body: failure.body });
+          }
           if (rejectState) return route.fulfill({ status: 403, json: { ok: false, error: 'Fixture: no active enrollment for this sandbox' } });
           data = { ok: true, data: missingState ? {} : { challengeList: challengeListOverride || [{
             challenge_id: stateChallengeId, ...(stateHasName ? { challengeName: 'Everyday rewards (offline fixture)' } : {}), state: 'active',
@@ -2261,6 +2268,80 @@ async function main() {
     assert.match(await spendCard.textContent(), /no active enrollment/);
     assert.equal(await spendButton.isDisabled(), false);
     rejectState = false;
+    const malformedUpstream = { status: 503, contentType: 'application/json',
+      body: 'upstream request timeout' };
+    stateFailures = [malformedUpstream, { status: 502, contentType: 'text/plain',
+      body: 'upstream connect error' }, { network: true }];
+    const beforeTransientPurchases = await spendPage.evaluate(() => window.__spendEvents.length);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.__spendEvents.length === 7 &&
+      window.LloydsLoyaltySpendDebug.getLatest().sdkAccepted);
+    spendTask.accumulators = { spend: 50 };
+    spendTask.taskState = 'completed'; spendChallenge.state = 'completed';
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('reported the task'));
+    const recovered = await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest());
+    assert.equal(recovered.poll.errors.length, 3, 'Malformed JSON, non-JSON gateway and network failures are preserved and retried as reads');
+    assert.deepEqual(recovered.poll.errors.map(error => error.status), [503, 502, null]);
+    assert.match(recovered.poll.errors[0].error, /unreadable JSON.*503.*upstream/);
+    assert.equal(recovered.poll.responses.length, 1, 'Recovery renders only a real successful Loyalty response');
+    assert.equal(recovered.poll.responses[0].attempt, 4);
+    assert.equal(await spendPage.evaluate(() => window.__spendEvents.length), beforeTransientPurchases + 1,
+      'Retries of a final-Spend read never resend the accepted purchase');
+    assert.equal(await spendButton.count(), 0);
+    assert.equal(await spendCard.getAttribute('data-complete'), 'true');
+    assert.match(await spendPage.locator('#loyaltyStatus').textContent(), /refreshed from Adobe/);
+    assert.equal(await spendPage.locator('#loyaltyStatus').getAttribute('data-error'), 'false');
+    spendTask.taskState = 'incomplete'; spendChallenge.state = 'active'; spendTask.accumulators = { spend: 40 };
+    await spendPage.locator('#loyaltyRefresh').click();
+    await spendPage.waitForFunction(() => !document.getElementById('loyaltyRefresh').disabled);
+    stateFailures = Array.from({ length: 6 }, () => malformedUpstream);
+    const beforeExhaustedPurchases = await spendPage.evaluate(() => window.__spendEvents.length);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('bounded retries'));
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest().poll.errors.length), 6);
+    assert.equal(await spendPage.evaluate(() => window.__spendEvents.length), beforeExhaustedPurchases + 1);
+    const afterExhaustion = stateReads();
+    await spendPage.waitForTimeout(150);
+    assert.equal(stateReads(), afterExhaustion, 'Persistent gateway failures stop within the original six-attempt bound');
+    assert.equal(await spendButton.isDisabled(), false);
+    assert.equal(await spendPage.locator('#loyaltyStatus').getAttribute('data-error'), 'true');
+    assert.match(await spendCard.textContent(), /£40 spent.*£10 to go.*Previous progress may be stale/s);
+    stateFailures = [{ status: 403, contentType: 'application/json', body: 'upstream malformed denial' }];
+    const beforeDeniedReads = stateReads();
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('refresh failed'));
+    assert.equal(stateReads(), beforeDeniedReads + 1, 'An unreadable authorization failure is not retried');
+    stateFailures = [{ status: 200, contentType: 'application/json', body: '{"ok":true,"data":{}}' }];
+    const beforeInvalidState = stateReads();
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('Malformed Loyalty state'));
+    assert.equal(stateReads(), beforeInvalidState + 1, 'Valid JSON with a malformed state contract is not retried or rendered as empty');
+    stateFailures = [{ status: 200, contentType: 'application/json', body: 'upstream invalid success body' }];
+    const beforeUnreadableSuccess = await spendPage.evaluate(() => window.__spendEvents.length);
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.errors?.length === 1);
+    assert.match(await spendCard.textContent(), /£40 spent/, 'Unreadable success-shaped responses retain the actual previous Spend');
+    spendTask.accumulators = { spend: 45 };
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.stopReason?.includes('updated Spend'));
+    assert.equal(await spendPage.evaluate(() => window.__spendEvents.length), beforeUnreadableSuccess + 1);
+    assert.match(await spendCard.textContent(), /£45 spent.*£5 to go/);
+    const beforeTransientCancel = await spendPage.evaluate(() => window.__spendEvents.length);
+    stateFailures = [malformedUpstream];
+    await spendPage.evaluate(() => { window.setTimeout = window.__spendTimers; });
+    await spendButton.click();
+    await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest().poll.errors?.length === 1);
+    await spendPage.evaluate(() => document.getElementById('loyaltyChallenge').dispatchEvent(new Event('input', { bubbles: true })));
+    const cancelledRetryReads = stateReads();
+    await spendPage.waitForTimeout(5200);
+    assert.equal(stateReads(), cancelledRetryReads, 'Context invalidation cancels a scheduled transient read retry');
+    assert.equal(await spendPage.evaluate(() => window.__spendEvents.length), beforeTransientCancel + 1);
+    assert.equal(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest()), null);
+    await spendPage.locator('#loyaltyRefresh').click();
+    await spendPage.waitForFunction(() => !document.getElementById('loyaltyRefresh').disabled);
+    await spendPage.evaluate(() => {
+      window.setTimeout = (callback, delay, ...args) => window.__spendTimers(callback,
+        delay === 2000 ? 100 : delay === 5000 ? 100 : delay, ...args);
+    });
     await spendButton.click();
     await spendPage.waitForFunction(() => window.LloydsLoyaltySpendDebug.getLatest()?.sdkAccepted &&
       !document.querySelector('[data-spend-purchase]').disabled);
