@@ -4677,6 +4677,21 @@ exports.demoUseCasePptx = onRequest(
  *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
  *   POST   /api/image-hosting/library/folder          { sandbox, folder } — empty folder marker
  */
+async function imageHostingWorkspace(uid) {
+  const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+  const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
+  if (!workspaceSlug || workspaceSlug === 'users' || imageHostingLibrary.sandboxPrefix(workspaceSlug) !== workspaceSlug
+    || !await labRtdbProvisionService.userOwnsWorkspace(null, uid, workspaceSlug)) return '';
+  return workspaceSlug;
+}
+
+function requireImageHostingWorkspace(workspaceSlug, sandbox) {
+  if (!workspaceSlug) throw imageHostingDrive.error('An owned lab workspace is required to access the published library.', 403);
+  if (sandbox !== workspaceSlug) {
+    throw imageHostingDrive.error('Published library access is limited to your own workspace sandbox.', 403);
+  }
+}
+
 exports.imageHostingPrivate = onRequest(
   { region: REGION, invoker: 'public', timeoutSeconds: 540, memory: '1GiB' },
   async (req, res) => {
@@ -4710,10 +4725,18 @@ exports.imageHostingPrivate = onRequest(
       } else if (path === '/api/image-hosting/drive' && req.method === 'DELETE') {
         result = await imageHostingDrive.remove(uid, body.paths);
       } else if (path === '/api/image-hosting/sandboxes-used' && req.method === 'GET') {
-        result = await imageHostingBackups.sandboxesUsed();
+        const workspaceSlug = await imageHostingWorkspace(uid);
+        result = workspaceSlug
+          ? await imageHostingBackups.sandboxesUsed(workspaceSlug)
+          : { sandboxes: [], reason: 'An owned lab workspace is required to access the published library.' };
       } else if (path === '/api/image-hosting/backups' && req.method === 'GET') {
         result = await imageHostingBackups.list(uid);
       } else if (path === '/api/image-hosting/backups' && req.method === 'POST') {
+        const workspaceSlug = await imageHostingWorkspace(uid);
+        requireImageHostingWorkspace(workspaceSlug, workspaceSlug);
+        if (Array.isArray(body.sandboxes)) {
+          for (const sandbox of body.sandboxes) requireImageHostingWorkspace(workspaceSlug, sandbox);
+        }
         result = await imageHostingBackups.create(uid, body.sandboxes);
       } else {
         const match = /^\/api\/image-hosting\/backups\/([^/]+)(?:\/(files|download|restore|restore\/preview))?$/.exec(path);
@@ -4731,17 +4754,16 @@ exports.imageHostingPrivate = onRequest(
           result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
             () => imageHostingBackups.download(uid, id));
         } else if (action === 'restore/preview' && req.method === 'POST') {
+          const workspaceSlug = await imageHostingWorkspace(uid);
+          requireImageHostingWorkspace(workspaceSlug, workspaceSlug);
           result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
-            () => imageHostingBackups.preview(uid, id, body));
+            () => imageHostingBackups.preview(uid, id, body, { workspaceSlug }));
         } else if (action === 'restore' && req.method === 'POST') {
-          const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
-          const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
-          if (!workspaceSlug || !await labRtdbProvisionService.userOwnsWorkspace(null, uid, workspaceSlug)) {
-            res.status(403).json({ ok: false, error: 'An owned lab workspace is required before modifying Image Hosting.' });
-            return;
-          }
+          const workspaceSlug = await imageHostingWorkspace(uid);
+          requireImageHostingWorkspace(workspaceSlug, workspaceSlug);
           result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
             () => imageHostingBackups.restore(uid, id, body, {
+              workspaceSlug,
               acquireSandboxLock: (sandbox) => labDemoCustomerService.acquireLegacyWrite({ uid, workspaceSlug, sandbox }),
             }));
         } else {
@@ -4779,7 +4801,7 @@ exports.imageHostingLibrary = onRequest(
     let readClaims = null;
     try {
       const path = String(req.path || '').replace(/\/+$/, '');
-      const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim();
+      const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim().toLowerCase();
       if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
       if (req.method === 'GET') {
         readClaims = await labUserSandboxStore.verifyIdTokenClaimsFromRequest(req);
@@ -4787,6 +4809,7 @@ exports.imageHostingLibrary = onRequest(
           res.status(401).json({ ok: false, error: 'Non-anonymous Firebase authentication required.' });
           return;
         }
+        requireImageHostingWorkspace(await imageHostingWorkspace(readClaims.uid), sandbox);
       }
       if (req.method === 'POST' || req.method === 'DELETE') {
         const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, { labWorkspaceAuthService });
@@ -4794,11 +4817,8 @@ exports.imageHostingLibrary = onRequest(
         if (principal.keySandbox && principal.keySandbox !== sandbox) {
           res.status(403).json({ error: 'MCP sandbox scope does not match.' }); return;
         }
-        const profile = await labUserSandboxStore.getWorkspaceProfile(principal.uid);
-        const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
-        if (!workspaceSlug || !await labRtdbProvisionService.userOwnsWorkspace(null, principal.uid, workspaceSlug)) {
-          res.status(403).json({ error: 'An owned lab workspace is required before modifying Image Hosting.' }); return;
-        }
+        const workspaceSlug = await imageHostingWorkspace(principal.uid);
+        requireImageHostingWorkspace(workspaceSlug, sandbox);
         releaseWrite = await labDemoCustomerService.acquireLegacyWrite({ uid: principal.uid, workspaceSlug, sandbox });
       }
 

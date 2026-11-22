@@ -6,6 +6,9 @@ const auth = require('../labUserSandboxStore');
 const drive = require('../imageHostingDrive');
 const backups = require('../imageHostingBackups');
 const library = require('../imageHostingLibrary');
+const provision = require('../labRtdbProvisionService');
+const principalAuth = require('../labGenerationPrefsAuth');
+const customers = require('../labDemoCustomerService');
 const { imageHostingPrivate, imageHostingLibrary, brandScraperClassify } = require('../index');
 const hosting = require('../../firebase.json').hosting.find((site) => site.target === 'app');
 
@@ -44,6 +47,8 @@ test('private APIs, library reads and classification reject missing and anonymou
 
 test('private routes use the verified uid and preserve the agreed response shapes', async (t) => {
   t.mock.method(auth, 'verifyIdTokenClaimsFromRequest', async () => ({ uid: 'real-user', isAnonymous: false }));
+  t.mock.method(auth, 'getWorkspaceProfile', async () => ({ workspaceSlug: 'retail' }));
+  t.mock.method(provision, 'userOwnsWorkspace', async () => true);
   const calls = [];
   t.mock.method(drive, 'list', async (...args) => { calls.push(args); return { items: [], nextCursor: null }; });
   t.mock.method(backups, 'get', async (...args) => { calls.push(args); return { id: args[1], status: 'complete' }; });
@@ -64,6 +69,8 @@ test('private routes use the verified uid and preserve the agreed response shape
 
 test('library paging is opt-in and forwards the cursor and limit', async (t) => {
   t.mock.method(auth, 'verifyIdTokenClaimsFromRequest', async () => ({ uid: 'real-user', isAnonymous: false }));
+  t.mock.method(auth, 'getWorkspaceProfile', async () => ({ workspaceSlug: 'retail' }));
+  t.mock.method(provision, 'userOwnsWorkspace', async () => true);
   const calls = [];
   t.mock.method(library, 'listLibrary', async (...args) => {
     calls.push(args);
@@ -82,6 +89,45 @@ test('library paging is opt-in and forwards the cursor and limit', async (t) => 
   assert.equal((await call({ limit: '1001' })).statusCode, 400);
 });
 
+test('workspace ownership scopes library reads, writes, discovery and backup creation', async (t) => {
+    t.mock.method(auth, 'verifyIdTokenClaimsFromRequest', async () => ({ uid: 'alice', isAnonymous: false }));
+    let slug = 'retail', owned = true;
+    t.mock.method(auth, 'getWorkspaceProfile', async () => ({ workspaceSlug: slug }));
+    t.mock.method(provision, 'userOwnsWorkspace', async () => owned);
+    let keySandbox = null;
+    t.mock.method(principalAuth, 'resolveGenerationPrefsPrincipal', async () => ({ ok: true, uid: 'alice', keySandbox }));
+    t.mock.method(customers, 'acquireLegacyWrite', async () => async () => {});
+    t.mock.method(library, 'listLibrary', async () => []);
+    t.mock.method(library, 'createLibraryFolder', async () => ({ created: true }));
+    t.mock.method(backups, 'sandboxesUsed', async (name) => ({ sandboxes: [{ name, fileCount: 2 }] }));
+    t.mock.method(backups, 'create', async () => ({ backupId: 'test' }));
+    const call = async (handler, method, path, query = {}, body = {}) => {
+      const res = response();
+      await handler({ method, path, query, body, headers: {}, header: () => undefined }, res);
+      return res;
+    };
+    assert.equal((await call(imageHostingLibrary, 'GET', '/api/image-hosting/library', { sandbox: 'retail' })).statusCode, 200);
+    assert.equal((await call(imageHostingLibrary, 'GET', '/api/image-hosting/library', { sandbox: 'other' })).statusCode, 403);
+    assert.equal((await call(imageHostingLibrary, 'GET', '/api/image-hosting/library/download', { sandbox: 'other' })).statusCode, 403);
+    assert.equal((await call(imageHostingLibrary, 'POST', '/api/image-hosting/library/folder', { sandbox: 'retail' }, { folder: 'x' })).statusCode, 200);
+    assert.equal((await call(imageHostingLibrary, 'POST', '/api/image-hosting/library/folder', { sandbox: 'other' }, { folder: 'x' })).statusCode, 403);
+    keySandbox = 'other';
+    assert.equal((await call(imageHostingLibrary, 'POST', '/api/image-hosting/library/folder', { sandbox: 'retail' }, { folder: 'x' })).statusCode, 403);
+    keySandbox = null;
+    assert.deepEqual((await call(imageHostingPrivate, 'GET', '/api/image-hosting/sandboxes-used')).body.sandboxes, [{ name: 'retail', fileCount: 2 }]);
+    assert.equal((await call(imageHostingPrivate, 'POST', '/api/image-hosting/backups', {}, { sandboxes: ['retail'] })).statusCode, 200);
+    assert.equal((await call(imageHostingPrivate, 'POST', '/api/image-hosting/backups', {}, { sandboxes: ['retail', 'other'] })).statusCode, 403);
+    owned = false;
+    assert.equal((await call(imageHostingLibrary, 'GET', '/api/image-hosting/library', { sandbox: 'retail' })).statusCode, 403);
+    const missing = await call(imageHostingPrivate, 'GET', '/api/image-hosting/sandboxes-used');
+    assert.deepEqual(missing.body.sandboxes, []);
+    assert.match(missing.body.reason, /workspace/);
+    slug = '';
+    assert.equal((await call(imageHostingPrivate, 'POST', '/api/image-hosting/backups', {}, { sandboxes: ['retail'] })).statusCode, 403);
+    slug = '-retail';
+    owned = true;
+    assert.equal((await call(imageHostingLibrary, 'GET', '/api/image-hosting/library', { sandbox: '-retail' })).statusCode, 403);
+  });
 test('Hosting routes classification, private APIs and the public CDN to the intended functions', () => {
   const rewrites = hosting.rewrites;
   const rewrite = (source) => rewrites.find((entry) => entry.source === source)?.function?.functionId;

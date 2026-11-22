@@ -13,7 +13,7 @@
       opts.headers = Object.assign({}, opts.headers || {}, auth);
     }
     var response = await window.fetch(url, opts);
-    if (typeof url === 'string' && url.indexOf('/api/') === 0 && [401, 403].includes(response.status)) {
+    if (typeof url === 'string' && url.indexOf('/api/') === 0 && response.status === 401) {
       showSignIn();
       throw new Error('Sign in with an authorized lab account to access images.');
     }
@@ -60,7 +60,7 @@
     clearTimeout(explorer.pollTimer);
     explorer.items = []; explorer.backups = []; lastLibraryItems = [];
     explorer.driveFolders = new Set(['']); explorer.sandboxes = []; lastRecords = [];
-    explorer.path = ''; explorer.backupId = ''; explorer.restore = null;
+    explorer.path = ''; explorer.sandbox = ''; explorer.backupId = ''; explorer.restore = null;
     explorer.uid = ''; explorer.totalBytes = 0;
     explorer.selected.clear();
     byId('imageHostingSignIn').hidden = false;
@@ -223,7 +223,7 @@
     host.replaceChildren(action(locationName(), function () {
       return navigateExplorer(explorer.source === 'backup' ? 'backups' : explorer.source, '', explorer.sandbox);
     }));
-    if (explorer.source === 'published') host.append(node('span', ' / ' + (explorer.sandbox || 'Select a sandbox')));
+    if (explorer.source === 'published') host.append(node('span', ' / ' + (explorer.sandbox || 'No workspace')));
     if (explorer.source === 'backup') {
       var backup = explorer.backups.find(function (item) { return item.id === explorer.backupId; });
       host.append(node('span', ' / ' + (backup ? displayDate(backup.createdAt) : explorer.backupId)));
@@ -239,10 +239,10 @@
     byId('ihNewFolder').disabled = byId('ihUpload').disabled;
     byId('ihPublishedTools').hidden = explorer.source !== 'published' || byId('ihFiles').hidden;
     byId('ihLocationHint').textContent = {
-      published: 'Shared sandbox assets. Moving or renaming a published file changes its CDN path.',
+      published: 'Your workspace sandbox assets. Moving or renaming a published file changes its CDN path.',
       drive: 'Private to your account; no published CDN URL. Upload up to 20 files, 8 MiB each. Folder operations are limited to 200 entries.',
       backups: 'Private snapshots kept until you delete them. Total storage: ' + (formatBytesShort(explorer.totalBytes) || '0 B') + '.',
-      backup: 'Read-only snapshot. Restore to the original published sandbox libraries after reviewing a diff.'
+      backup: 'Read-only snapshot. Restore your workspace files after reviewing a diff.'
     }[explorer.source];
   }
   function selectedItems() {
@@ -360,7 +360,11 @@
     renderBreadcrumb(); renderSelection();
     byId('ihItems').replaceChildren(node('p', 'Loading…', 'ih-empty'));
     if (source === 'published') {
-      if (!explorer.sandbox) { byId('ihItems').replaceChildren(node('p', 'Choose a sandbox in the folder tree.')); return; }
+      if (!explorer.sandbox) {
+        byId('ihItems').replaceChildren(node('p', 'An owned lab workspace is required to access the published library. My drive and Backups remain available.'));
+        renderTree();
+        return;
+      }
       var items = await fetchLibrary(explorer.sandbox);
       if (generation !== explorer.generation) return;
       lastLibraryItems = items.map(function (item) {
@@ -435,13 +439,13 @@
     var used = (result.sandboxes || []).map(function (sandbox) { return sandbox.name; });
     var host = byId('ihBackupSandboxes');
     host.replaceChildren();
-    Array.from(new Set(explorer.sandboxes.concat(used))).forEach(function (sandbox) {
+    used.forEach(function (sandbox) {
       var label = node('label', null, 'ih-sandbox-choice'), checkbox = node('input');
       checkbox.type = 'checkbox'; checkbox.value = sandbox; checkbox.checked = used.includes(sandbox);
       label.append(checkbox, node('span', sandbox)); host.append(label);
     });
-    if (!host.children.length) host.append(node('p', 'No used sandboxes are available yet. Open a sandbox library first.'));
-    byId('ihBackupStart').disabled = !host.children.length;
+    if (!used.length) host.append(node('p', result.reason || 'An owned lab workspace is required to create a backup.'));
+    byId('ihBackupStart').disabled = !used.length;
     byId('ihBackupCheck').hidden = true;
     byId('ihBackupProgress').hidden = true; byId('ihBackupResult').textContent = '';
     byId('ihBackupDialog').showModal();
@@ -547,14 +551,13 @@
       explorer.signedIn = true;
       explorer.uid = window.firebase?.apps?.length ? window.firebase.auth().currentUser?.uid || '' : '';
       byId('imageHostingSignIn').hidden = true;
-      explorer.sandbox = window.AepGlobalSandbox?.getSandboxName() || '';
-      explorer.sandboxes = Array.from(byId('sandboxSelect').options).map(function (option) { return option.value; }).filter(Boolean);
+      explorer.sandbox = '';
+      explorer.sandboxes = [];
       byId('ihFiles').hidden = false;
       renderTree();
       var result = await imageApi('/api/image-hosting/sandboxes-used');
-      explorer.sandboxes = Array.from(new Set((result.sandboxes || []).map(function (sandbox) { return sandbox.name; }).concat(
-        Array.from(byId('sandboxSelect').options).map(function (option) { return option.value; }).filter(Boolean))));
-      explorer.sandbox = getSandbox() || explorer.sandboxes[0] || '';
+      explorer.sandboxes = (result.sandboxes || []).map(function (sandbox) { return sandbox.name; });
+      explorer.sandbox = explorer.sandboxes[0] || '';
       byId('ihFiles').hidden = false;
       await loadBackups();
       await navigateExplorer('published', '', explorer.sandbox);

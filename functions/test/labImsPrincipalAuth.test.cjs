@@ -161,13 +161,13 @@ test('demo routes use IMS enrollment UID and preserve workspace ownership checks
     labUserSandboxStore: {
       getWorkspaceProfile: async (uid) => {
         assert.equal(uid, 'portal-uid');
-        return { workspaceSlug: 'tester' };
+        return { workspaceSlug: 'apalmer' };
       },
     },
     labRtdbProvisionService: {
       userOwnsWorkspace: async (_db, uid, slug) => {
         assert.equal(uid, 'portal-uid');
-        assert.equal(slug, 'tester');
+        assert.equal(slug, 'apalmer');
         return owns;
       },
     },

@@ -47,24 +47,14 @@ async function* pages(bucket, options) {
   } while (pageToken);
 }
 
-async function sandboxesUsed(deps = {}) {
+async function sandboxesUsed(workspaceSlug, deps = {}) {
   const { active } = services(deps);
-  const names = new Set();
-  for await (const page of pages(active, { delimiter: '/' })) {
-    for (const p of page.response.prefixes || []) {
-      const name = p.slice(0, -1);
-      if (name !== 'users' && library.sandboxPrefix(name) === name) names.add(name);
-    }
+  const name = sandboxName(workspaceSlug);
+  let fileCount = 0;
+  for await (const page of pages(active, { prefix: `${library.libraryRoot(name)}/` })) {
+    fileCount += page.files.filter((file) => !file.name.endsWith(`/${library.LIBRARY_FOLDER_MARKER}`)).length;
   }
-  const sandboxes = [];
-  for (const name of names) {
-    let fileCount = 0;
-    for await (const page of pages(active, { prefix: `${library.libraryRoot(name)}/` })) {
-      fileCount += page.files.filter((file) => !file.name.endsWith(`/${library.LIBRARY_FOLDER_MARKER}`)).length;
-    }
-    if (fileCount) sandboxes.push({ name, fileCount });
-  }
-  return { sandboxes: sandboxes.sort((a, b) => a.name.localeCompare(b.name)) };
+  return { sandboxes: [{ name, fileCount }] };
 }
 
 async function create(uid, sandboxes, deps = {}) {
@@ -202,6 +192,17 @@ function selectedFiles(all, filters = {}) {
   return all.filter((item) => (!sandboxSet || sandboxSet.has(item.sandbox)) && (!pathSet || pathSet.has(`${item.sandbox}/${item.relPath}`)));
 }
 
+function scopedRestoreFiles(all, filters, workspaceSlug) {
+  if (!workspaceSlug) throw drive.error('An owned lab workspace is required to restore the published library.', 403);
+  const selected = selectedFiles(all, filters);
+  if (selected.some((item) => item.sandbox !== workspaceSlug)
+    || (filters.sandboxes || []).some((sandbox) => sandbox !== workspaceSlug)
+    || (filters.paths || []).some((path) => !path.startsWith(`${workspaceSlug}/`))) {
+    throw drive.error('Restore contains files outside your workspace sandbox. Select only your workspace files.', 403);
+  }
+  return selected;
+}
+
 function unchanged(item, current) {
   const wanted = item.metadata || {};
   const actual = current.metadata || {};
@@ -213,7 +214,7 @@ function unchanged(item, current) {
 
 async function preview(uid, id, filters, deps = {}) {
   const { active } = services(deps);
-  const all = selectedFiles(await manifest(uid, id, deps), filters);
+  const all = scopedRestoreFiles(await manifest(uid, id, deps), filters, deps.workspaceSlug);
   const counts = { add: 0, overwrite: 0, unchanged: 0 };
   const items = [];
   for (const item of all) {
@@ -236,7 +237,7 @@ async function preview(uid, id, filters, deps = {}) {
 async function restore(uid, id, filters, deps = {}) {
   const { active, private: bucket } = services(deps);
   if (typeof deps.acquireSandboxLock !== 'function') throw new Error('Sandbox write lock is required.');
-  const selected = selectedFiles(await manifest(uid, id, deps), filters);
+  const selected = scopedRestoreFiles(await manifest(uid, id, deps), filters, deps.workspaceSlug);
   const bySandbox = new Map();
   for (const item of selected) {
     sandboxName(item.sandbox);

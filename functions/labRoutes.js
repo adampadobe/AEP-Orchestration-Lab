@@ -551,6 +551,11 @@ function registerLabRoutes(deps) {
         res.status(403).json({ ok: false, error: 'The authenticated user does not own the configured RTDB workspace.', code: 'DEMO_ASSET_WORKSPACE_FORBIDDEN', sandbox });
         return;
       }
+      if (sandbox !== workspaceSlug || sandbox === 'users'
+        || (imageHostingLibrary || require('./imageHostingLibrary')).sandboxPrefix(sandbox) !== sandbox) {
+        res.status(403).json({ ok: false, error: 'Published library access is limited to your own workspace sandbox.', code: 'DEMO_ASSET_WORKSPACE_FORBIDDEN', sandbox });
+        return;
+      }
 
       const context = { uid: principal.uid, workspaceSlug, sandbox };
       if (req.method === 'POST' && String(body.action || '').startsWith('customer-')) {

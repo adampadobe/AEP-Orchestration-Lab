@@ -181,10 +181,10 @@ test('backup captures selected public library files and restores safely with sna
   assert.equal(listing.items[0].relPath, 'logo.png');
   await deps.active.file('retail/library/logo.png').save('changed', { contentType: 'image/png' });
   await deps.active.file('retail/library/unrelated.png').save('untouched', { contentType: 'image/png' });
-  const preview = await backups.preview('alice', backupId, { paths: ['retail/logo.png'] }, deps);
+  const preview = await backups.preview('alice', backupId, { paths: ['retail/logo.png'] }, { ...deps, workspaceSlug: 'retail' });
   assert.deepEqual(preview.counts, { add: 0, overwrite: 1, unchanged: 0 });
   let locks = 0;
-  const options = { ...deps, acquireSandboxLock: async () => { locks += 1; return async () => { locks -= 1; }; } };
+  const options = { ...deps, workspaceSlug: 'retail', acquireSandboxLock: async () => { locks += 1; return async () => { locks -= 1; }; } };
   assert.deepEqual(await backups.restore('alice', backupId, { paths: ['retail/logo.png'] }, options), { restored: 1, skipped: 0 });
   assert.equal(locks, 0);
   assert.equal((await deps.active.file('retail/library/logo.png').download())[0].toString(), 'original');
@@ -231,7 +231,8 @@ test('backup files paginate without exposing other users and sandbox discovery c
   }
   await deps.active.file('retail/library/.aep-library-folder').save('{}');
   await deps.active.file('scrape-cache-images/retail/scrape/not-library.png').save('x');
-  assert.deepEqual((await backups.sandboxesUsed(deps)).sandboxes, [{ name: 'retail', fileCount: 105 }]);
+  assert.deepEqual((await backups.sandboxesUsed('retail', deps)).sandboxes, [{ name: 'retail', fileCount: 105 }]);
+  assert.deepEqual((await backups.sandboxesUsed('other', deps)).sandboxes, [{ name: 'other', fileCount: 0 }]);
   const { backupId } = await backups.create('alice', ['retail'], deps);
   await backups.process('alice', backupId, deps);
   const first = await backups.files('alice', backupId, null, deps);
@@ -250,7 +251,7 @@ test('restore rejects non-image extensions before overwriting live files', async
   await backups.process('alice', backupId, deps);
   await deps.active.file('retail/library/a.html').save('current', { contentType: 'text/html' });
   await assert.rejects(backups.restore('alice', backupId, {}, {
-    ...deps, acquireSandboxLock: async () => async () => {},
+    ...deps, workspaceSlug: 'retail', acquireSandboxLock: async () => async () => {},
   }), /Unsupported/);
   assert.equal((await deps.active.file('retail/library/a.html').download())[0].toString(), 'current');
 });
@@ -269,8 +270,21 @@ test('restore never overwrites an existing object when its snapshot fails', asyn
   };
   let released = false;
   await assert.rejects(backups.restore('alice', backupId, {}, {
-    ...deps, acquireSandboxLock: async () => async () => { released = true; },
+    ...deps, workspaceSlug: 'retail', acquireSandboxLock: async () => async () => { released = true; },
   }), /snapshot failed/);
   assert.equal(released, true);
   assert.equal((await deps.active.file('retail/library/a.png').download())[0].toString(), 'current');
+});
+
+test('legacy multi-sandbox backups cannot preview or restore other workspace files', async () => {
+  const deps = harness();
+  await deps.active.file('retail/library/a.png').save('retail', { contentType: 'image/png' });
+  await deps.active.file('other/library/b.png').save('other', { contentType: 'image/png' });
+  const { backupId } = await backups.create('alice', ['retail', 'other'], deps);
+  await backups.process('alice', backupId, deps);
+  const scoped = { ...deps, workspaceSlug: 'retail', acquireSandboxLock: async () => async () => {} };
+  await assert.rejects(backups.preview('alice', backupId, {}, scoped), { status: 403 });
+  await assert.rejects(backups.restore('alice', backupId, {}, scoped), { status: 403 });
+  await assert.rejects(backups.preview('alice', backupId, { paths: ['other/b.png'] }, scoped), { status: 403 });
+  assert.equal((await backups.preview('alice', backupId, { paths: ['retail/a.png'] }, scoped)).items.length, 1);
 });
