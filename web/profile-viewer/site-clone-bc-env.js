@@ -383,10 +383,14 @@ async function loadSiteCloneBcStyleConfigs() {
   try {
     const params = new URLSearchParams();
     if (sandbox) params.set('sandbox', sandbox);
-    const res = await fetch('/api/image-hosting/library?' + params.toString(), { credentials: 'same-origin' });
+    const headers = await window.AepLabSandboxSync?.getAuthHeaders();
+    const user = window.firebase?.apps?.length ? window.firebase.auth().currentUser : null;
+    if (!headers?.Authorization || user?.isAnonymous) throw new Error('Sign in to the lab to load image-hosting style configs.');
+    const res = await fetch('/api/image-hosting/library?' + params.toString(), { credentials: 'same-origin', headers });
     const data = await res.json().catch(function () {
       return {};
     });
+    if (!res.ok || data.ok === false) throw new Error(data.error || 'Sign in with an authorized lab account to load image-hosting style configs.');
     if (loadGen !== styleConfigLoadGen || sandboxKeyAtStart !== getSandboxKey()) return;
 
     const items = Array.isArray(data.items) ? data.items : [];

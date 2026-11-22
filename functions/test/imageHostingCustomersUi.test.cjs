@@ -125,7 +125,7 @@ test('superseded success clears tracking, but network/server uncertainty never d
   const done = fixture({ pending, operation: { status: 'succeeded', verified: false, operationId: 'op' } });
   await done.ready(); await done.elements.get('customerCheckStatus').click();
   assert.equal(done.storage.size, 0);
-  assert.match(done.elements.get('customerStatus').textContent, /superseded/);
+  assert.match(done.elements.get('imageHostingStatus').textContent, /superseded/);
   const uncertain = fixture({ pending, statusCode: 503 });
   await uncertain.ready(); await uncertain.elements.get('customerCheckStatus').click();
   assert.equal(uncertain.storage.size, 1);
