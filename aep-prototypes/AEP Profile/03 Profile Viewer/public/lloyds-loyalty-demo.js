@@ -158,7 +158,9 @@
     $('loyaltyAbandon').disabled = busy || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
     document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
-    cardMount().querySelectorAll('.loyalty-card-controls button').forEach(button => { button.disabled = busy || !loaded; });
+    cardMount().querySelectorAll('.loyalty-card-controls button').forEach(button => {
+      button.disabled = busy || !loaded || button.dataset.boundaryDisabled === 'true';
+    });
     syncSignupButtons();
   }
   function closeConfiguration() {
@@ -177,7 +179,7 @@
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyWebNotice').textContent = '';
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
-    contentCards = null; contentCardDisplays.clear(); contentCardDismissals.clear();
+    contentCards?.cleanup?.(); contentCards = null; contentCardDisplays.clear(); contentCardDismissals.clear();
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     availableMessages.clear();
@@ -1320,64 +1322,123 @@
   }
   function renderContentCards(presentation) {
     const { cards, captured, ctx, token } = presentation, mount = cardMount();
+    const viewport = node('div', undefined, 'loyalty-card-viewport');
+    viewport.classList.toggle('loyalty-card-multiple', cards.length > 1);
+    viewport.id = 'loyaltyChallengeCarousel';
+    viewport.setAttribute('role', 'group');
+    viewport.setAttribute('aria-label', 'Your challenges');
     const slides = node('div', undefined, 'loyalty-card-slides');
     const articles = cards.map(candidate => renderCard(candidate, captured, ctx, token));
-    slides.append(...articles);
+    slides.append(...articles); viewport.append(slides);
     const dots = [], controls = node('div', undefined, 'loyalty-card-controls');
+    let previous, next, scrollTimer, clickTimer, drag = null, suppressClick = false, lastWidth = 0;
     const update = () => {
       articles.forEach((article, index) => {
-        article.hidden = index !== presentation.active;
+        article.dataset.primary = String(index === presentation.active);
         article.setAttribute('aria-label', (index + 1) + ' of ' + cards.length);
       });
       dots.forEach((dot, index) => dot.setAttribute('aria-current', String(index === presentation.active)));
+      if (previous) { previous.dataset.boundaryDisabled = String(presentation.active === 0); previous.disabled = busy || !loaded || presentation.active === 0; }
+      if (next) { next.dataset.boundaryDisabled = String(presentation.active === cards.length - 1); next.disabled = busy || !loaded || presentation.active === cards.length - 1; }
       $('loyaltyCardHint').textContent = cards.length > 1 ? 'Chosen for you \u00b7 ' + (presentation.active + 1) + ' of ' + cards.length : 'Chosen for you';
     };
-    const move = index => void work(async () => {
-      same(ctx, token);
+    const nearest = () => {
+      if (cards.length < 2) return 0;
+      const step = articles[1].offsetLeft - articles[0].offsetLeft;
+      if (!step) return presentation.active;
+      return viewport.scrollLeft + viewport.clientWidth >= viewport.scrollWidth - 3 ? cards.length - 1 :
+        Math.max(0, Math.min(cards.length - 1, Math.round(viewport.scrollLeft / step)));
+    };
+    const move = (index, behavior = phoneMotion()) => {
       if (contentCards !== presentation) return;
-      const focusInCard = articles[presentation.active].contains(document.activeElement);
-      presentation.active = (index + cards.length) % cards.length;
-      update();
-      if (focusInCard) articles[presentation.active].focus({ preventScroll: true });
-      await displayContentCard(presentation);
-    });
+      const target = Math.max(0, Math.min(cards.length - 1, index));
+      viewport.scrollTo({ left: articles[target].offsetLeft - articles[0].offsetLeft, behavior });
+    };
+    const settle = () => {
+      clearTimeout(scrollTimer);
+      if (contentCards !== presentation || !viewport.clientWidth || drag) return;
+      const active = nearest();
+      if (active === presentation.active) { update(); return; }
+      // Only the settled primary card uses the existing display collector, not the next-card peek.
+      if (busy) { scrollTimer = setTimeout(settle, 120); return; }
+      presentation.active = active; update();
+      void work(async () => {
+        same(ctx, token);
+        if (contentCards === presentation) await displayContentCard(presentation);
+      });
+    };
     mount.removeAttribute('aria-roledescription');
     if (cards.length > 1) {
       mount.setAttribute('aria-roledescription', 'carousel');
+      viewport.setAttribute('aria-roledescription', 'carousel'); viewport.tabIndex = 0;
       const pagination = node('div', undefined, 'loyalty-card-dots');
       cards.forEach((candidate, index) => {
         const dot = node('button'); dot.type = 'button';
         dot.setAttribute('aria-label', 'Show challenge ' + (index + 1) + ': ' + (candidate.content.title?.content || 'Your reward'));
-        dot.setAttribute('aria-controls', mount.id); dot.addEventListener('click', () => move(index));
+        dot.setAttribute('aria-controls', viewport.id); dot.addEventListener('click', () => move(index));
         dots.push(dot); pagination.append(dot);
       });
       const arrow = (label, text, step) => {
         const button = node('button', text, 'loyalty-card-arrow'); button.type = 'button';
-        button.setAttribute('aria-label', label); button.setAttribute('aria-controls', mount.id);
+        button.setAttribute('aria-label', label); button.setAttribute('aria-controls', viewport.id);
         button.addEventListener('click', () => move(presentation.active + step)); return button;
       };
-      controls.append(arrow('Previous challenge', '\u2039', -1), pagination, arrow('Next challenge', '\u203a', 1));
-      let drag = null, suppressClick = false;
-      slides.addEventListener('pointerdown', event => {
+      previous = arrow('Previous challenge', '\u2190', -1); next = arrow('Next challenge', '\u2192', 1);
+      controls.append(previous, pagination, next);
+      viewport.addEventListener('scroll', () => { clearTimeout(scrollTimer); scrollTimer = setTimeout(settle, 120); }, { passive: true });
+      viewport.addEventListener('scrollend', settle);
+      viewport.addEventListener('keydown', event => {
+        if (event.target !== viewport || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        move(event.key === 'Home' ? 0 : event.key === 'End' ? cards.length - 1 :
+          presentation.active + (event.key === 'ArrowRight' ? 1 : -1));
+      });
+      viewport.addEventListener('focusin', event => {
+        const index = articles.findIndex(article => article.contains(event.target));
+        if (index >= 0 && index !== presentation.active) move(index);
+      });
+      viewport.addEventListener('wheel', event => {
+        if (event.shiftKey && !event.deltaX) { event.preventDefault(); viewport.scrollLeft += event.deltaY; }
+      }, { passive: false });
+      viewport.addEventListener('pointerdown', event => {
         drag = null; suppressClick = false;
-        if (event.pointerType === 'touch' && !event.target.closest('button, a')) {
-          drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
-        }
+        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button, a')) return;
+        drag = { id: event.pointerId, x: event.clientX, scroll: viewport.scrollLeft };
       });
-      slides.addEventListener('pointercancel', () => { drag = null; });
-      slides.addEventListener('pointerup', event => {
+      viewport.addEventListener('pointermove', event => {
         if (!drag || drag.id !== event.pointerId) return;
-        const x = event.clientX - drag.x, y = event.clientY - drag.y; drag = null;
-        if (Math.abs(x) >= 40 && Math.abs(x) > Math.abs(y) * 1.5) {
-          suppressClick = true; move(presentation.active + (x < 0 ? 1 : -1));
+        const distance = event.clientX - drag.x;
+        if (Math.abs(distance) > 5) {
+          suppressClick = true; viewport.style.scrollSnapType = 'none';
+          viewport.classList.add('loyalty-card-dragging'); viewport.setPointerCapture(event.pointerId);
         }
+        if (suppressClick) { event.preventDefault(); viewport.scrollLeft = drag.scroll - distance; }
       });
-      slides.addEventListener('click', event => {
+      const endDrag = event => {
+        if (!drag || drag.id !== event.pointerId) return;
+        drag = null; viewport.style.scrollSnapType = ''; viewport.classList.remove('loyalty-card-dragging');
+        if (suppressClick) {
+          move(nearest());
+          clickTimer = setTimeout(() => { suppressClick = false; }, 0);
+        }
+        settle();
+      };
+      viewport.addEventListener('pointerup', endDrag); viewport.addEventListener('pointercancel', endDrag);
+      viewport.addEventListener('lostpointercapture', endDrag);
+      viewport.addEventListener('pointerleave', () => { if (drag && !suppressClick) { drag = null; settle(); } });
+      viewport.addEventListener('click', event => {
         if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; }
       }, true);
     }
     update();
-    mount.replaceChildren(slides, ...(cards.length > 1 ? [controls] : []));
+    mount.replaceChildren(viewport, ...(cards.length > 1 ? [controls] : []));
+    const resize = new ResizeObserver(() => {
+      if (contentCards !== presentation || !viewport.clientWidth || viewport.clientWidth === lastWidth) return;
+      lastWidth = viewport.clientWidth;
+      move(presentation.active, 'instant');
+    });
+    resize.observe(viewport);
+    presentation.cleanup = () => { clearTimeout(scrollTimer); clearTimeout(clickTimer); resize.disconnect(); };
   }
   function captureContentCardEvidence(propositions, ctx, token, responseSource) {
     const evaluated = responseSource === 'evaluated-subscription';
@@ -1530,7 +1591,7 @@
     const cards = candidates.filter(candidate => !contentCardDismissals.has(contentCardKey(candidate, token)));
     if (!cards.length) {
       if (clearMissing) {
-        cardMount().replaceChildren(); contentCards = null; cardMount().removeAttribute('aria-roledescription');
+        contentCards?.cleanup?.(); cardMount().replaceChildren(); contentCards = null; cardMount().removeAttribute('aria-roledescription');
         if (!candidates.length) { deliveredChallenge = null; restoreParticipation(); }
         $('loyaltyCardHint').textContent = candidates.length ? 'All returned cards dismissed.' :
           'No eligible renderable journey card returned for this surface.';
@@ -1551,7 +1612,7 @@
     const previous = contentCards && contentCardId(contentCards.cards[contentCards.active]);
     const active = cards.findIndex(candidate => contentCardId(candidate) === previous);
     const presentation = { key, propositions, cards, captured, ctx, token, active: Math.max(0, active) };
-    contentCards = presentation; renderContentCards(presentation);
+    contentCards?.cleanup?.(); contentCards = presentation; renderContentCards(presentation);
     // Navigation is presentation-only; retain the joined challenge independently of the visible slide.
     const participationCard = (joinedChallenge && candidates.find(candidate => candidate.meta.challengeId === joinedChallenge.id)) ||
       candidates.find(candidate => memberChallenges.some(challenge =>

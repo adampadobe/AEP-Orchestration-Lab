@@ -8,7 +8,7 @@ async function main() {
   const origin = 'http://127.0.0.1:' + server.address().port;
   let browser;
   try {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true, args: ['--touch-events=enabled'] });
     const context = await browser.newContext({ viewport: { width: 1500, height: 1100 }, reducedMotion: 'reduce' });
     const errors = [], writes = [], reads = [], signupRequests = [];
     let quantity = 0, rejectState = false, missingState = false, unavailableState = false, namespace = 'Email', releaseState, stateStarted;
@@ -129,6 +129,24 @@ async function main() {
     };
     const waitForProfile = () => page.waitForFunction(() =>
       !document.getElementById('queryProfileBtn').disabled && !document.getElementById('loyaltyAbandon').disabled);
+    const waitForPrimary = async title => {
+      try {
+        await page.waitForFunction(title =>
+          document.querySelector('#ContentCardContainerLoyalty article[data-primary="true"] h3')?.textContent === title, title);
+      } catch (error) {
+        console.error('Challenge navigation failed', await page.evaluate(expected => {
+          const viewport = document.getElementById('loyaltyChallengeCarousel'), bounds = viewport?.getBoundingClientRect();
+          return { expected, primary: viewport?.querySelector('[data-primary="true"] h3')?.textContent,
+            left: viewport?.scrollLeft, width: viewport?.clientWidth, scrollWidth: viewport?.scrollWidth,
+            hitTarget: bounds && document.elementFromPoint(bounds.x + bounds.width * .75, bounds.y + 20)?.outerHTML.slice(0, 300) };
+        }, title));
+        if (process.env.AEP_LOYALTY_SCREENSHOT) await page.screenshot({
+          path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-navigation-failure.png'),
+        });
+        throw error;
+      }
+      await waitForProfile();
+    };
     const changeIdentifier = async value => {
       // Isolate context invalidation from an independent lookup triggered by hovering the drawer.
       await page.mouse.move(0, 0);
@@ -602,6 +620,8 @@ async function main() {
       'Request the configured shared AJO channel, not the Lloyds document URL');
     assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
     assert.equal(await page.locator('.loyalty-card-controls').count(), 0, 'A single Content Card needs no carousel controls');
+    assert.equal(await page.locator('.loyalty-card-viewport').evaluate(viewport =>
+      viewport.scrollWidth <= viewport.clientWidth + 1), true, 'Single-card presentation has no empty trailing carousel space');
     const originalCard = await page.locator('#ContentCardContainerLoyalty article').elementHandle();
     const sdkCallsBeforeTabs = await page.evaluate(() => window.__sdkCalls.length);
     await homeTab.click();
@@ -998,14 +1018,15 @@ async function main() {
     assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').challengeId, 'synthetic-rule-challenge');
     assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').rank, 3);
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 4, 'Every valid candidate has its own Content Card');
-    const visibleCard = page.locator('#ContentCardContainerLoyalty article:not([hidden])');
+    const visibleCard = page.locator('#ContentCardContainerLoyalty article[data-primary="true"]');
     const nextCard = page.getByRole('button', { name: 'Next challenge', exact: true });
     const previousCard = page.getByRole('button', { name: 'Previous challenge', exact: true });
-    assert.equal(await visibleCard.count(), 1, 'Only one Content Card is visible');
+    assert.equal(await visibleCard.count(), 1, 'One Content Card is primary while its neighbor peeks into view');
     assert.deepEqual(await page.locator('#ContentCardContainerLoyalty article h3').allTextContents(),
       ['Delivered by the journey', 'Rule card', 'Another consequence', 'Second eligible card'],
       'Descending effective Adobe rank determines the carousel order');
     assert.equal(await page.locator('.loyalty-card-dots button').count(), 4);
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), ajoOffers);
     const stateBeforeCardNavigation = await page.locator('#loyaltyTasks').innerHTML();
     const featuredBeforeCardNavigation = await page.locator('#loyaltyFeaturedOffers').innerHTML();
     const apiReadsBeforeCardNavigation = reads.length, signupsBeforeCardNavigation = signupRequests.length;
@@ -1028,12 +1049,12 @@ async function main() {
       return writes;
     }), 0, 'Executing the supplied Tags selector/write paths cannot overwrite either Loyalty mount');
     assert.equal(await visibleCard.locator('h3').textContent(), 'Delivered by the journey');
-    await nextCard.click(); await waitForProfile();
+    await nextCard.click(); await waitForPrimary('Rule card');
     assert.equal(await visibleCard.locator('h3').textContent(), 'Rule card');
     assert.equal(await page.evaluate(() => window.__journeyTracking.at(-1).selected[0].items[0].id), 'rules-item');
-    await nextCard.click(); await waitForProfile();
+    await nextCard.click(); await waitForPrimary('Another consequence');
     assert.equal(await visibleCard.getAttribute('data-consequence-id'), 'second-content');
-    await nextCard.click(); await waitForProfile();
+    await nextCard.click(); await waitForPrimary('Second eligible card');
     assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card');
     assert.equal(await visibleCard.locator('p').textContent(), 'Separate native content');
     assert.equal(await visibleCard.locator('img').getAttribute('src'), 'https://example.invalid/second-card.png');
@@ -1061,24 +1082,96 @@ async function main() {
     await page.evaluate(() => window.__deliverJourney()); await waitForProfile();
     assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card', 'Duplicate callbacks preserve carousel position');
     const displaysBeforeRevisit = await page.evaluate(() => window.__journeyTracking.length);
-    await previousCard.click(); await waitForProfile();
-    await nextCard.click(); await waitForProfile();
+    await previousCard.click(); await waitForPrimary('Another consequence');
+    await nextCard.click(); await waitForPrimary('Second eligible card');
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), displaysBeforeRevisit,
       'Revisiting unchanged slides does not repeat display collection');
-    const slides = page.locator('.loyalty-card-slides');
-    await slides.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 23, clientX: 250, clientY: 100 });
-    await slides.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 23, clientX: 245, clientY: 190 });
-    assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card', 'Vertical scrolling does not navigate cards');
-    await slides.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 24, clientX: 250, clientY: 100 });
-    await slides.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 24, clientX: 100, clientY: 105 });
-    await waitForProfile();
-    assert.equal(await visibleCard.locator('h3').textContent(), 'Delivered by the journey', 'Horizontal swipe advances and wraps the Content Card carousel');
-    await page.locator('.loyalty-card-dots button').last().click(); await waitForProfile();
+    assert.equal(await nextCard.isDisabled(), true, 'The independent strip clamps at its end, like Featured Offers');
+    const challengeViewport = page.locator('#loyaltyChallengeCarousel');
+    await challengeViewport.focus(); await challengeViewport.press('Home'); await waitForPrimary('Delivered by the journey');
+    assert.equal(await previousCard.isDisabled(), true);
+    const dimensions = await page.evaluate(() => {
+      const viewport = document.getElementById('loyaltyChallengeCarousel'), featured = document.getElementById('loyaltyOfferCarousel');
+      const cards = viewport.querySelectorAll('article'), offers = document.querySelectorAll('.loyalty-featured-offer');
+      const bounds = viewport.getBoundingClientRect(), first = cards[0].getBoundingClientRect(), second = cards[1].getBoundingClientRect();
+      return { viewport: bounds.width, featuredViewport: featured.getBoundingClientRect().width,
+        card: first.width, featuredCard: offers[0].getBoundingClientRect().width,
+        gap: second.left - first.right, peek: bounds.right - second.left,
+        radius: getComputedStyle(cards[0]).borderRadius, featuredRadius: getComputedStyle(offers[0]).borderRadius,
+        controls: document.querySelector('.loyalty-card-controls').getBoundingClientRect().height,
+        featuredControls: document.querySelector('.loyalty-carousel-controls').getBoundingClientRect().height };
+    });
+    assert.ok(Math.abs(dimensions.viewport - dimensions.featuredViewport) <= 1, 'Both independent strips have the same phone viewport width');
+    assert.ok(Math.abs(dimensions.card - dimensions.featuredCard) <= 1, 'Challenge card width matches Featured Offers');
+    assert.equal(dimensions.radius, dimensions.featuredRadius);
+    assert.ok(dimensions.gap >= 11 && dimensions.gap <= 13);
+    assert.ok(dimensions.peek >= 20 && dimensions.peek <= 45, 'The next card is visibly clipped at the right edge');
+    assert.ok(dimensions.controls <= dimensions.featuredControls + 1, 'Navigation uses the same compact footprint');
+    await challengeViewport.press('ArrowRight'); await waitForPrimary('Rule card');
+    await challengeViewport.press('End'); await waitForPrimary('Second eligible card');
+    await challengeViewport.press('Home'); await waitForPrimary('Delivered by the journey');
+    await challengeViewport.scrollIntoViewIfNeeded();
+    let challengeBox = await challengeViewport.boundingBox();
+    await page.mouse.move(challengeBox.x + challengeBox.width / 2, challengeBox.y + 20);
+    await page.mouse.wheel(dimensions.card + dimensions.gap, 0);
+    await waitForPrimary('Rule card');
+    await challengeViewport.focus(); await challengeViewport.press('Home'); await waitForPrimary('Delivered by the journey');
+    await page.keyboard.down('Shift'); await page.mouse.wheel(0, dimensions.card + dimensions.gap); await page.keyboard.up('Shift');
+    await waitForPrimary('Rule card');
+    challengeBox = await challengeViewport.boundingBox();
+    await page.mouse.move(challengeBox.x + challengeBox.width * .85, challengeBox.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(challengeBox.x + challengeBox.width * .15, challengeBox.y + 20, { steps: 10 });
+    await page.mouse.up(); await waitForPrimary('Another consequence');
+    const touchSession = await context.newCDPSession(page);
+    await touchSession.send('Emulation.setTouchEmulationEnabled', { enabled: true });
+    challengeBox = await challengeViewport.boundingBox();
+    const swipe = async (dx, dy) => {
+      const x = challengeBox.x + challengeBox.width * .85, y = challengeBox.y + 90;
+      await touchSession.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      for (let step = 1; step <= 12; step++) {
+        await touchSession.send('Input.dispatchTouchEvent', { type: 'touchMove',
+          touchPoints: [{ x: x + dx * step / 12, y: y + dy * step / 12 }] });
+        await page.waitForTimeout(16);
+      }
+      await touchSession.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+    await swipe(-(dimensions.card + dimensions.gap), 0);
+    await waitForPrimary('Second eligible card');
+    await swipe(0, -60);
+    await touchSession.send('Emulation.setTouchEmulationEnabled', { enabled: false }); await touchSession.detach();
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card', 'Native vertical swipes leave the primary challenge unchanged');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await challengeViewport.focus(); await challengeViewport.press('Home'); await waitForPrimary('Delivered by the journey');
+    await challengeViewport.press('ArrowRight'); await waitForPrimary('Rule card');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await challengeViewport.press('End'); await waitForPrimary('Second eligible card');
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), displaysBeforeRevisit,
+      'Native navigation still uses the unchanged per-card display deduplication');
     assert.equal(await page.locator('.loyalty-card-dots button[aria-current="true"]').count(), 1);
     assert.equal(await page.locator('#loyaltyTasks').innerHTML(), stateBeforeCardNavigation);
     assert.equal(await page.locator('#loyaltyFeaturedOffers').innerHTML(), featuredBeforeCardNavigation);
     assert.equal(reads.length, apiReadsBeforeCardNavigation, 'Content Card navigation never calls Loyalty APIs');
     assert.equal(signupRequests.length, signupsBeforeCardNavigation, 'Content Card navigation never enrols the member');
+    await challengeViewport.focus(); await challengeViewport.press('Home'); await waitForPrimary('Delivered by the journey');
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.waitForFunction(() => {
+        const viewport = document.getElementById('loyaltyChallengeCarousel');
+        return viewport.clientWidth > 0 && viewport.scrollLeft < 1;
+      });
+      const mobile = await challengeViewport.evaluate(viewport => {
+        const bounds = viewport.getBoundingClientRect(), cards = viewport.querySelectorAll('article');
+        return { width: bounds.width, card: cards[0].getBoundingClientRect().width,
+          peek: bounds.right - cards[1].getBoundingClientRect().left,
+          leaked: viewport.parentElement.scrollWidth > viewport.parentElement.clientWidth + 1 };
+      });
+      assert.ok(mobile.width <= width && mobile.card < mobile.width && mobile.peek >= 20 && mobile.peek <= 45,
+        'A primary card and next-card peek fit the ' + width + 'px mobile viewport');
+      assert.equal(mobile.leaked, false, 'Horizontal scrolling remains inside the challenge viewport');
+    }
+    await page.setViewportSize({ width: 1500, height: 1100 });
+    await challengeViewport.press('End'); await waitForPrimary('Second eligible card');
     for (const theme of ['light', 'dark']) {
       await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
       assert.equal(await visibleCard.count(), 1);
@@ -1086,12 +1179,19 @@ async function main() {
         const mount = document.getElementById('ContentCardContainerLoyalty');
         return mount.scrollWidth <= mount.clientWidth + 1;
       }), true, 'Content Cards fit the phone in ' + theme + ' mode');
-      if (process.env.AEP_LOYALTY_SCREENSHOT) await page.locator('.loyalty-promotion').screenshot({
-        path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-content-cards-' + theme + '.png'),
-      });
+      if (process.env.AEP_LOYALTY_SCREENSHOT) {
+        await page.evaluate(() => {
+          const section = document.querySelector('.loyalty-promotion'), scroll = document.querySelector('.loyalty-phone-scroll');
+          scroll.scrollTop += section.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 16;
+        });
+        await page.locator('.loyalty-phone').screenshot({
+          path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-content-cards-' + theme + '.png'),
+        });
+      }
     }
     await page.locator('[data-loyalty-preview="web"]').click();
-    assert.equal(await visibleCard.count(), 1, 'Hidden slides remain hidden in the desktop grid layout');
+    await waitForPrimary('Second eligible card');
+    assert.equal(await visibleCard.count(), 1, 'The primary card remains selected when the independent strip moves to desktop');
     assert.equal(await page.locator('#loyaltyWebChallenge .loyalty-card-controls').count(), 1);
     await page.locator('[data-loyalty-preview="mobile"]').click();
     await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
@@ -1120,6 +1220,16 @@ async function main() {
       'An unchanged subscription update completes the loading state');
     assert.equal(await page.evaluate(() => window.__journeyTracking.length), eventsAfterCarousel);
     assert.equal(await page.locator('.loyalty-card-controls').count(), 0, 'Controls are removed when the delivery becomes single-card');
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.waitForFunction(() => document.getElementById('loyaltyChallengeCarousel').clientWidth > 0);
+      assert.equal(await challengeViewport.evaluate(viewport => {
+        const card = viewport.querySelector('article'), style = getComputedStyle(viewport);
+        const available = viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+        return viewport.scrollWidth <= viewport.clientWidth + 1 && Math.abs(card.getBoundingClientRect().width - available) <= 1;
+      }), true, 'One card fills its available width without a blank next-card slot at ' + width + 'px');
+    }
+    await page.setViewportSize({ width: 1500, height: 1100 });
     assert.equal(await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated().totalPropositions), 1,
       'A missing optional diagnostic panel cannot block capture or existing card rendering');
     await page.evaluate(() => window.__deliverJourney());
@@ -1490,15 +1600,15 @@ async function main() {
     assert.equal(await page.locator('.loyalty-card-dots button').count(), 2, 'Two independent Journey propositions have two slides');
     const partnerStateBeforeNavigation = await page.locator('#loyaltyPartnerOffers').innerHTML();
     const sendsBeforeJoinedNavigation = (await loyaltySends()).length, signupsBeforeJoinedNavigation = signupRequests.length;
-    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForProfile();
-    assert.equal(await page.locator('#ContentCardContainerLoyalty article:not([hidden]) h3').textContent(), 'Second signup challenge');
-    await page.getByRole('button', { name: 'Previous challenge', exact: true }).click(); await waitForProfile();
+    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForPrimary('Second signup challenge');
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article[data-primary="true"] h3').textContent(), 'Second signup challenge');
+    await page.getByRole('button', { name: 'Previous challenge', exact: true }).click(); await waitForPrimary('FSI - Sign up challenge (fixture)');
     assert.equal(await page.locator('#loyaltyPartnerOffers').innerHTML(), partnerStateBeforeNavigation,
       'Moving to an unjoined card and back leaves the joined challenge and purchase receipts intact');
     assert.equal((await loyaltySends()).length, sendsBeforeJoinedNavigation);
     assert.equal(signupRequests.length, signupsBeforeJoinedNavigation);
-    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForProfile();
-    await page.locator('#ContentCardContainerLoyalty article:not([hidden]) [data-interact-id="joinChallenge"]').click();
+    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForPrimary('Second signup challenge');
+    await page.locator('#ContentCardContainerLoyalty article[data-primary="true"] [data-interact-id="joinChallenge"]').click();
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge Joined.'));
     assert.equal(signupRequests.length, signupsBeforeJoinedNavigation + 1);
     assert.equal(signupRequests.at(-1).challenge_id, 'carousel-second-fixture', 'The second CTA enrols only its own delivered challenge');

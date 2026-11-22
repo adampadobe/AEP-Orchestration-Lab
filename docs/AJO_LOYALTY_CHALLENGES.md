@@ -306,9 +306,15 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    optional explicit refresh, not an enablement step. No background polling or
    automatic event retry is added.
    **Your challenges** renders every matching renderable JSON Content Card.
-   One card has no carousel controls; multiple cards have independent previous/next
-   controls, pagination dots and horizontal touch swipes, with one card visible.
-   This AJO Content Card carousel is not the Featured Offers Decisioning carousel.
+   One card fills the available width without controls or empty trailing space.
+   Multiple cards use a compact horizontal strip: one primary card plus a peek
+   of the next, native touch/trackpad scrolling, scroll snapping, mouse dragging,
+   compact circular arrows and pagination indicators. A focused viewport supports
+   ArrowLeft/ArrowRight/Home/End; navigation stops at either end. The indicator
+   reports **Chosen for you · N of count**. Width, spacing, corners and image
+   proportions follow Featured Offers, without copying its merchant-logo spacing.
+   These are independent DOM, styling and interaction handlers: this AJO Content
+   Card carousel is not the Featured Offers Decisioning carousel.
    Cards are ordered by descending effective rank (`data.meta.rank`, then
    `scopeDetails.rank`), preserving response order for ties and placing unranked
    cards last. This retains the old selector's highest-ranked first card.
@@ -345,8 +351,9 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    scope details, selected item and selection metadata, SDK identity and
    datastream override. Native journey cards use the SDK-provided `collectEvent`
    for display, interaction and dismissal. Duplicate callbacks do not repeatedly
-   collect display events. Hidden slides do not collect display events until
-   selected; revisiting an unchanged card does not collect again. Each display,
+   collect display events. Only the settled primary card collects a display:
+   a partially visible next-card peek does not. Revisiting an unchanged card does
+   not collect again. Each display,
    click and dismissal uses only that card's original item, retaining its
    proposition scope details and opaque tokens, never all sibling items.
    A dismissed card leaves the carousel without changing member challenge state.
