@@ -49,7 +49,7 @@ try {
         configResolved();
         return;
       }
-      assert.equal(await page.locator('#aepLabUsageNotice').isVisible(), true, 'notice must precede collection');
+      assert.equal(await page.locator('#aepLabUsageNotice').count(), 0, 'no per-page banner');
       assert.equal(route.request().headers().authorization, 'Bearer fixture-token');
       assert.equal(route.request().headers().referer, undefined);
       const body = route.request().postDataJSON();
@@ -285,7 +285,7 @@ try {
   assert.equal(await failedLogin.page.locator('#aepLabUsageNotice').count(), 0);
   assert.deepEqual(failedLogin.errors, []);
   await failedLogin.page.close();
-  console.log('OK: offline collection gate, notice, authenticated visits, actual login flow, privacy, retries, reload/BFCache, iframe exclusion and sign-out race');
+  console.log('OK: offline collection gate, sign-in notice only, authenticated visits, actual login flow, privacy, retries, reload/BFCache, iframe exclusion and sign-out race');
 } finally {
   if (browser) await browser.close();
   await new Promise((done) => server.close(done));
