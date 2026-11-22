@@ -876,6 +876,16 @@ body.home-new-page .dashboard-nav-pill {
   margin-top: 20px;
 }
 
+.cc-grid-bottom > * {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.cc-grid-bottom > * > .cc-card {
+  flex: 1;
+}
+
 .cc-next-steps__list {
   margin: 0;
   padding: 0 0 0 18px;
