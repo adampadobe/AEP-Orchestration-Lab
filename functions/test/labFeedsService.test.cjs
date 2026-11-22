@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createService, parseRss, parseMarkdown, parseCaas, validateClassification, DEFAULTS, SOURCES } = require('../labFeedsService');
+const { createService, parseRss, parseMarkdown, parseCaas, validateClassification, normaliseClassification, DEFAULTS, SOURCES } = require('../labFeedsService');
 
 const fixed = new Date('2026-11-22T10:00:00.000Z');
 const rss = `<rss><channel>
@@ -262,4 +262,16 @@ test('ignores retired stored sources, sends JSON Accept to CaaS and trims long s
   const [item] = (await service.read('adobe-releases')).items;
   assert.equal(item.soWhat.split(' ').length, 25);
   assert.equal(item.sourceUrl, 'https://blog.adobe.com/en/recent');
+});
+
+test('normalises long model lists and headlines but still rejects wrong types', () => {
+  const long = (n) => Array.from({ length: n }, (_, i) => `Product ${i} ${'x'.repeat(i === 0 ? 150 : 0)}`);
+  const value = normaliseClassification({ relevance: 0.7, category: 'release', competitors: [], products: [...long(30), 'Product 1 ', ''],
+    headline: 'h'.repeat(400), soWhat: 'Useful', demoableInLab: true });
+  assert.equal(value.products.length, 20);
+  assert.ok(value.products.every((p) => p.length <= 100));
+  assert.equal(value.headline.length, 300);
+  assert.ok(validateClassification({}, value));
+  assert.ok(!validateClassification({}, normaliseClassification({ ...value, products: 'AEP' })));
+  assert.ok(!validateClassification({}, normaliseClassification({ ...value, demoableInLab: 'yes' })));
 });

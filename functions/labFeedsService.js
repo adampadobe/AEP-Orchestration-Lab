@@ -128,16 +128,42 @@ function parseCaas(body, source) {
   }).sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 100);
 }
 
-function validateClassification(item, value) {
-  const words = typeof value?.soWhat === 'string' ? value.soWhat.trim().split(/\s+/).filter(Boolean) : [];
+function clip(text, max) {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+// Repairs harmless model drift (long lists, summaries or headlines) so only genuinely invalid output is rejected.
+function normaliseClassification(value) {
+  if (!value || typeof value !== 'object') return value;
+  const list = (array) => (Array.isArray(array)
+    ? [...new Set(array.filter((s) => typeof s === 'string' && s.trim()).map((s) => clip(s.trim(), 100)))].slice(0, 20)
+    : array);
+  const out = { ...value, competitors: list(value.competitors), products: list(value.products) };
+  if (typeof out.headline === 'string') out.headline = clip(out.headline.trim(), 300);
+  if (typeof out.category === 'string') out.category = clip(out.category.trim(), 100);
+  if (typeof out.soWhat === 'string') {
+    const words = out.soWhat.trim().split(/\s+/).filter(Boolean);
+    if (words.length > SO_WHAT_WORDS) out.soWhat = `${words.slice(0, SO_WHAT_WORDS).join(' ').replace(/[.,;:]$/, '')}…`;
+  }
+  return out;
+}
+
+function classificationProblem(value) {
+  if (!value || typeof value !== 'object') return 'not an object';
+  const words = typeof value.soWhat === 'string' ? value.soWhat.trim().split(/\s+/).filter(Boolean) : [];
   const strings = (array) => Array.isArray(array) && array.length <= 20 && array.every((s) => typeof s === 'string' && s.trim() && s.length <= 100);
-  return value && typeof value.relevance === 'number' && Number.isFinite(value.relevance)
-    && value.relevance >= 0 && value.relevance <= 1
-    && typeof value.category === 'string' && value.category.trim() && value.category.length <= 100
-    && strings(value.competitors) && strings(value.products)
-    && typeof value.headline === 'string' && value.headline.trim() && value.headline.length <= 300
-    && words.length > 0 && words.length <= 25
-    && typeof value.demoableInLab === 'boolean';
+  if (typeof value.relevance !== 'number' || !Number.isFinite(value.relevance) || value.relevance < 0 || value.relevance > 1) return 'relevance';
+  if (typeof value.category !== 'string' || !value.category.trim() || value.category.length > 100) return 'category';
+  if (!strings(value.competitors)) return 'competitors';
+  if (!strings(value.products)) return 'products';
+  if (typeof value.headline !== 'string' || !value.headline.trim() || value.headline.length > 300) return 'headline';
+  if (words.length === 0 || words.length > SO_WHAT_WORDS) return 'soWhat';
+  if (typeof value.demoableInLab !== 'boolean') return 'demoableInLab';
+  return null;
+}
+
+function validateClassification(_item, value) {
+  return classificationProblem(value) === null;
 }
 
 function validateConfig(config) {
@@ -298,12 +324,9 @@ function createService({ db, fetchFn = fetch, callGemini, authorize, now = () =>
             JSON.stringify({ feedId, watchlist: config.watchlist, adobeProducts: PRODUCTS, promptVersion: config.promptVersion, labFeedback, source: item }),
             { model: 'gemini-2.5-flash', responseSchema: SCHEMA, temperature: 0.1, maxOutputTokens: 4096 },
           );
-          const result = JSON.parse(answer);
-          if (typeof result?.soWhat === 'string') {
-            const words = result.soWhat.trim().split(/\s+/).filter(Boolean);
-            if (words.length > SO_WHAT_WORDS) result.soWhat = `${words.slice(0, SO_WHAT_WORDS).join(' ').replace(/[.,;:]$/, '')}…`;
-          }
-          if (!validateClassification(item, result)) throw new Error('Invalid classification schema');
+          const result = normaliseClassification(JSON.parse(answer));
+          const problem = classificationProblem(result);
+          if (problem) throw new Error(`Invalid classification schema (${problem})`);
           metrics.classified++;
           const visible = result.relevance >= config.threshold;
           await refs[i].set({
@@ -383,4 +406,4 @@ function createService({ db, fetchFn = fetch, callGemini, authorize, now = () =>
   return { refresh, read, vote, handle };
 }
 
-module.exports = { createService, parseRss, parseMarkdown, parseCaas, validateClassification, validateConfig, DEFAULTS, SOURCES, SCHEMA };
+module.exports = { createService, parseRss, parseMarkdown, parseCaas, validateClassification, normaliseClassification, validateConfig, DEFAULTS, SOURCES, SCHEMA };
