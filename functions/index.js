@@ -186,6 +186,9 @@ const bcGeminiPrepService = lazyRequireMod('./bcGeminiPrepService');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
+const imageHostingExports = lazyRequireMod('./imageHostingExports');
+const imageHostingDrive = lazyRequireMod('./imageHostingDrive');
+const imageHostingBackups = lazyRequireMod('./imageHostingBackups');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
@@ -4394,6 +4397,12 @@ exports.brandScraperClassify = onRequest(
   },
   async (req, res) => {
     setCors(res, 'POST, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    const claims = await labUserSandboxStore.verifyIdTokenClaimsFromRequest(req);
+    if (!claims || claims.isAnonymous) {
+      res.status(401).json({ ok: false, error: 'Non-anonymous Firebase authentication required.' });
+      return;
+    }
     await brandScraperService.handleClassifyAssets(req, res);
   }
 );
@@ -4668,6 +4677,91 @@ exports.demoUseCasePptx = onRequest(
  *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
  *   POST   /api/image-hosting/library/folder          { sandbox, folder } — empty folder marker
  */
+exports.imageHostingPrivate = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 540, memory: '1GiB' },
+  async (req, res) => {
+    setCors(res, 'GET, POST, DELETE, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    try {
+      const claims = await labUserSandboxStore.verifyIdTokenClaimsFromRequest(req);
+      if (!claims || claims.isAnonymous) {
+        res.status(401).json({ ok: false, error: 'Non-anonymous Firebase authentication required.' });
+        return;
+      }
+      const uid = claims.uid;
+      const path = String(req.path || '').replace(/\/+$/, '');
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      let result;
+      if (path === '/api/image-hosting/drive' && req.method === 'GET') {
+        result = await imageHostingDrive.list(uid, String(req.query.path || ''), req.query.cursor);
+      } else if (path === '/api/image-hosting/drive/folder' && req.method === 'POST') {
+        result = await imageHostingDrive.folder(uid, body.path);
+      } else if (path === '/api/image-hosting/drive/upload' && req.method === 'POST') {
+        result = await imageHostingDrive.upload(uid, body.path, body.files, body);
+      } else if (path === '/api/image-hosting/drive/move' && req.method === 'POST') {
+        result = await imageHostingDrive.move(uid, body.from, body.to);
+      } else if (path === '/api/image-hosting/drive/rename' && req.method === 'POST') {
+        const from = imageHostingDrive.pathOf(body.path);
+        const newName = imageHostingDrive.pathOf(body.newName);
+        if (newName.includes('/')) throw imageHostingDrive.error('newName must be a single path segment.');
+        const parent = from.lastIndexOf('/');
+        result = await imageHostingDrive.move(uid, from, `${parent < 0 ? '' : from.slice(0, parent + 1)}${newName}`);
+      } else if (path === '/api/image-hosting/drive' && req.method === 'DELETE') {
+        result = await imageHostingDrive.remove(uid, body.paths);
+      } else if (path === '/api/image-hosting/sandboxes-used' && req.method === 'GET') {
+        result = await imageHostingBackups.sandboxesUsed();
+      } else if (path === '/api/image-hosting/backups' && req.method === 'GET') {
+        result = await imageHostingBackups.list(uid);
+      } else if (path === '/api/image-hosting/backups' && req.method === 'POST') {
+        result = await imageHostingBackups.create(uid, body.sandboxes);
+      } else {
+        const match = /^\/api\/image-hosting\/backups\/([^/]+)(?:\/(files|download|restore|restore\/preview))?$/.exec(path);
+        if (!match) { res.status(404).json({ ok: false, error: 'Not found.' }); return; }
+        const id = match[1];
+        const action = match[2] || '';
+        if (!action && req.method === 'GET') {
+          result = { backup: await imageHostingBackups.get(uid, id) };
+        } else if (!action && req.method === 'DELETE') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.remove(uid, id));
+        } else if (action === 'files' && req.method === 'GET') {
+          result = await imageHostingBackups.files(uid, id, req.query.cursor);
+        } else if (action === 'download' && req.method === 'GET') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.download(uid, id));
+        } else if (action === 'restore/preview' && req.method === 'POST') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.preview(uid, id, body));
+        } else if (action === 'restore' && req.method === 'POST') {
+          const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+          const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
+          if (!workspaceSlug || !await labRtdbProvisionService.userOwnsWorkspace(null, uid, workspaceSlug)) {
+            res.status(403).json({ ok: false, error: 'An owned lab workspace is required before modifying Image Hosting.' });
+            return;
+          }
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.restore(uid, id, body, {
+              acquireSandboxLock: (sandbox) => labDemoCustomerService.acquireLegacyWrite({ uid, workspaceSlug, sandbox }),
+            }));
+        } else {
+          res.status(405).json({ ok: false, error: 'Method not allowed.' }); return;
+        }
+      }
+      res.status(200).json({ ok: true, ...result });
+    } catch (e) {
+      console.error('[imageHostingPrivate]', e.message);
+      res.status(Number(e.status) || 500).json({ ok: false, error: e.message || 'Image Hosting request failed.' });
+    }
+  }
+);
+
+exports.imageHostingBackupWorker = onDocumentCreated(
+  { document: 'imageHostingDrive/{uid}/backups/{backupId}', region: REGION,
+    timeoutSeconds: 540, memory: '1GiB', retry: true },
+  async (event) => imageHostingBackups.process(event.params.uid, event.params.backupId)
+);
+
 exports.imageHostingLibrary = onRequest(
   {
     region: REGION,
@@ -4682,10 +4776,18 @@ exports.imageHostingLibrary = onRequest(
     setCors(res, 'GET, POST, DELETE, OPTIONS');
     if (req.method === 'OPTIONS') { res.status(204).end(); return; }
     let releaseWrite = null;
+    let readClaims = null;
     try {
       const path = String(req.path || '').replace(/\/+$/, '');
       const sandbox = String((req.query && req.query.sandbox) || (req.body && req.body.sandbox) || '').trim();
       if (!sandbox) { res.status(400).json({ error: 'sandbox is required' }); return; }
+      if (req.method === 'GET') {
+        readClaims = await labUserSandboxStore.verifyIdTokenClaimsFromRequest(req);
+        if (!readClaims || readClaims.isAnonymous) {
+          res.status(401).json({ ok: false, error: 'Non-anonymous Firebase authentication required.' });
+          return;
+        }
+      }
       if (req.method === 'POST' || req.method === 'DELETE') {
         const principal = await labGenerationPrefsAuth.resolveGenerationPrefsPrincipal(req, { labWorkspaceAuthService });
         if (!principal.ok) { res.status(principal.status).json(principal.body); return; }
@@ -4700,63 +4802,29 @@ exports.imageHostingLibrary = onRequest(
         releaseWrite = await labDemoCustomerService.acquireLegacyWrite({ uid: principal.uid, workspaceSlug, sandbox });
       }
 
-      // Must run before the generic GET list handler — otherwise download
-      // requests return JSON and the browser saves a non-ZIP as .zip.
-      //
-      // Build the ZIP fully in memory before flipping any response headers
-      // so any error during enumeration / per-file download surfaces as a
-      // JSON 500 (rather than mid-stream truncation of an
-      // application/zip response, which yields a file that macOS Archive
-      // Utility refuses to open). Sending a single buffer with a real
-      // Content-Length and Cache-Control: no-transform also stops Hosting
-      // / intermediaries from re-framing the bytes.
       if (req.method === 'GET' && /\/download$/.test(path)) {
         const customer = String((req.query && req.query.customer) || 'library').trim();
         const safe = customer.toLowerCase().replace(/[^a-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'library';
         const fileName = `logo_${safe}.zip`;
-        const { buffer, entries, skipped } = await imageHostingLibrary.buildLibraryZipBuffer(sandbox);
-
-        // Cloud Run gen2 caps a single response at 32 MiB. When the
-        // assembled ZIP would exceed our safe inline threshold, upload
-        // it to GCS and hand the browser a short-lived V4 signed URL
-        // instead — the inline path used to silently fail with an
-        // empty-bodied response (see Cloud Functions log line
-        // "Response size was too large. Please consider reducing
-        // response size.") which the UI surfaces as a bare
-        // "Download failed:" with no detail.
-        if (buffer.length > imageHostingLibrary.BACKUP_INLINE_MAX_BYTES) {
-          const { storagePath, downloadUrl, expiresAt } =
-            await imageHostingLibrary.uploadBackupZipAndSign(sandbox, buffer, fileName);
-          res.setHeader('Content-Type', 'application/json');
-          res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate, no-transform');
-          res.status(200).json({
-            mode: 'redirect',
-            reason: 'inline-size-limit',
-            fileName,
-            size: buffer.length,
-            entries,
-            skipped: skipped.length,
-            downloadUrl,
-            expiresAt,
-            storagePath,
-          });
-          return;
-        }
-
-        res.setHeader('Content-Type', 'application/zip');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        res.setHeader('Content-Length', String(buffer.length));
-        res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate, no-transform');
-        res.setHeader('X-Content-Type-Options', 'nosniff');
-        // Surface count + skipped-file count as response headers so the
-        // client can sanity-check what came back without parsing the ZIP.
-        res.setHeader('X-Library-Entries', String(entries));
-        res.setHeader('X-Library-Skipped', String(skipped.length));
-        res.status(200).end(buffer);
+        const result = await imageHostingExports.streamExport(
+          readClaims.uid, imageHostingLibrary.libraryExportEntries(sandbox), fileName
+        );
+        res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+        res.status(200).json(result);
         return;
       }
 
       if (req.method === 'GET') {
+        const query = req.query || {};
+        if (query.limit !== undefined || query.cursor !== undefined) {
+          const limit = query.limit === undefined ? 100 : Number(query.limit);
+          if (!Number.isInteger(limit) || limit < 1 || limit > 1000 || (query.cursor !== undefined && typeof query.cursor !== 'string')) {
+            res.status(400).json({ error: 'Invalid limit or cursor.' }); return;
+          }
+          const page = await imageHostingLibrary.listLibrary(sandbox, { limit, cursor: query.cursor });
+          res.status(200).json({ sandbox, ...page });
+          return;
+        }
         const items = await imageHostingLibrary.listLibrary(sandbox);
         res.status(200).json({ sandbox, items });
         return;
