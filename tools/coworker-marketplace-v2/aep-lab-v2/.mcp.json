@@ -92,15 +92,6 @@
         "tool_timeout_seconds": 180
       },
       {
-        "name": "lab-v2-command",
-        "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre",
-        "transport": "streamable_http",
-        "headers": {
-          "X-AEP-Lab-Mcp-Key": "${user_secrets.aep_lab_mcp_key}"
-        },
-        "tool_timeout_seconds": 300
-      },
-      {
         "name": "lab-v2-weather",
         "source": "https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/weather",
         "transport": "streamable_http",

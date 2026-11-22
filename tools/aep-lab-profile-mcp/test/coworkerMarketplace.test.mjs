@@ -26,7 +26,6 @@ const expectedEndpoints = new Map([
   ['aep-lab-decisioning', '/mcp/decisioning'],
   ['aep-lab-ajo-cleanup', '/mcp/ajo-cleanup'],
   ['aep-lab-ajo-oc-datasets', '/mcp/ajo-oc-datasets'],
-  ['aep-lab-command-centre', '/mcp/command-centre'],
   ['aep-lab-weather', '/mcp/weather'],
   ['aep-lab-geo-insights', '/mcp/geo-insights'],
   ['aep-lab-commerce', '/mcp/commerce'],
@@ -132,7 +131,6 @@ const registrars = new Map([
   ['/mcp/decisioning', registrations.registerFocusedDecisioningTools],
   ['/mcp/ajo-cleanup', registrations.registerFocusedAjoCleanupTools],
   ['/mcp/ajo-oc-datasets', registrations.registerFocusedAjoOcDatasetTools],
-  ['/mcp/command-centre', registrations.registerFocusedCommandCentreTools],
   ['/mcp/weather', registrations.registerFocusedWeatherTools],
   ['/mcp/geo-insights', registrations.registerFocusedGeoInsightsTools],
   ['/mcp/commerce', registrations.registerFocusedCommerceTools],
@@ -283,7 +281,7 @@ test('Claude plugin prompts securely for one Portal key and preserves the workfl
   assert.equal(target, join(pluginRoot, 'skills', 'aep-lab-profile-mcp'));
 });
 
-test('Claude and Coworker packages expose General plus the same nineteen focused endpoints', async () => {
+test('Claude and Coworker packages expose General plus the same eighteen focused endpoints', async () => {
   const coworker = await readJson(join(pluginRoot, '.mcp.json'));
   const claude = await readJson(join(claudePluginRoot, '.mcp.json'));
   const coworkerServers = new Map(coworker.mcp_servers.servers.map((server) => [server.name, server]));

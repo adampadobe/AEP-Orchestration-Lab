@@ -4,14 +4,14 @@ One-click Adobe CX Coworker install for the AEP Orchestration Lab's MCP connecti
 
 ## What this installs
 
-Twenty MCP connections: the complete General catalog plus nineteen focused capabilities.
+Nineteen MCP connections: the complete General catalog plus eighteen focused capabilities.
 The Snowflake workspace addition requires a server release and a refreshed plugin;
 it remains disabled until its administrator-managed policy is configured.
 
 | Connection | Endpoint | Purpose |
 |---|---|---|
 | `aep-lab-entry` | `/mcp/entry` | Capability directory and workflow recommender |
-| `lab-all` | `/mcp` | Complete 236-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, AJO Orchestrated Campaign datasets, and administration |
+| `lab-all` | `/mcp` | Complete 242-tool catalog, including advanced onboarding, infrastructure, Snowflake, Commerce, Commerce Optimizer, Firefly, creative production, Adobe API discovery, measurement diagnostics, geo insights, AJO Orchestrated Campaign datasets, and administration |
 | `aep-lab-snowflake` | `/mcp/snowflake` | SQL jobs, metadata, data checks, separately approved table/data/grant changes, Cortex Agent delegation |
 | `aep-lab-profiles` | `/mcp/profile` | Profile lifecycle, industry events, Snowflake dual-load |
 | `aep-lab-demo-prep` | `/mcp/demo-prep` | Brand scrape, customer switch, RTDB demo config |
@@ -20,7 +20,6 @@ it remains disabled until its administrator-managed policy is configured.
 | `lab-dps` | `/mcp/decisioning` | Edge decision evaluation, catalog management, governed bulk migration, and job polling |
 | `aep-lab-ajo-cleanup` | `/mcp/ajo-cleanup` | Governed AJO journey/campaign list/audit/delete |
 | `aep-lab-ajo-oc-datasets` | `/mcp/ajo-oc-datasets` | Read-only Orchestrated Campaign dataset status, validation, and owned job status; preview/apply are General-only |
-| `aep-lab-command-centre` | `/mcp/command-centre` | Your own Command Centre engagements, tasks, meetings |
 | `aep-lab-weather` | `/mcp/weather` | Live weather + Google Maps for demo scenarios |
 | `aep-lab-geo-insights` | `/mcp/geo-insights` | AEP audience geo-hotspots with live weather context; aggregate-only, k=10 suppression |
 | `aep-lab-commerce` | `/mcp/commerce` | Governed ACCS storefront preparation: products, attributes, categories, assignments, inventory, media, GraphQL discovery, preview/apply, and audited deletion |
@@ -37,11 +36,11 @@ Use a focused connection for ordinary tasks and `lab-all` when a required advanc
 
 The Coworker connection names for General, Decisioning, and Commerce Optimizer are now `lab-all`, `lab-dps`, and `lab-aco`. Their endpoints and tool names are unchanged. The old names made `<connection>__<tool>` exceed a 64-character callable-name budget for offer-eligibility preview and five Optimizer tools (attribute metadata plus the four ingestion lifecycle tools), matching the observed Coworker omissions. The shorter names also leave room for an additional `mcp__` namespace. Claude/API-key configuration names and the execution framework's context IDs remain unchanged; the directory supplies `coworkerConnectionName` for these three contexts.
 
-Refresh the marketplace and update the plugin (or reinstall it if Coworker retains the old connections), then start a new chat to discover the new endpoint and tools. Plugin 1.10.0 adds the focused read-only Orchestrated Campaign dataset connection; preview/apply remain in `lab-all`. Existing users upgrading from 1.8.0 should also remove or disconnect the old `aep-lab-general`, `aep-lab-decisioning`, and `aep-lab-commerce-optimizer` names. Confirm discovery shows General 236 tools, Orchestrated Campaign datasets 4 tools, Commerce Optimizer 15, and Decisioning 24. Do not paste a Portal key or change IMS settings to resolve tool discovery.
+Refresh the marketplace and update the plugin (or reinstall it if Coworker retains the old connections), then start a new chat to discover the new endpoint and tools. Plugin 1.10.0 adds the focused read-only Orchestrated Campaign dataset connection; preview/apply remain in `lab-all`. Existing users upgrading from 1.8.0 should also remove or disconnect the old `aep-lab-general`, `aep-lab-decisioning`, and `aep-lab-commerce-optimizer` names. Confirm discovery shows General 242 tools, Orchestrated Campaign datasets 4 tools, Commerce Optimizer 15, and Decisioning 24. Do not paste a Portal key or change IMS settings to resolve tool discovery.
 
 ## Setup: signed-in Adobe IMS
 
-All twenty connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Adobe creative service credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
+All nineteen connections use Coworker's signed-in Adobe IMS session. The plugin forwards `Authorization`, the selected IMS org, and Coworker identity headers to Cloud Run. Cloud Run validates the bearer token with Adobe IMS before accepting an MCP request; forwarded identity headers alone are never trusted. Adobe creative service credentials remain in Cloud Run Secret Manager and are never sent to Coworker.
 
 Before first use, create at least one sandbox-scoped MCP key from the Profile Viewer's MCP key panel. That creates the server-side enrollment tying your verified Adobe email to the permitted sandbox. You do **not** paste that key into Coworker; Coworker needs only your existing Adobe sign-in.
 

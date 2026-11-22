@@ -44,7 +44,6 @@ import { registerDemoAssetTools } from './demoAssets.mjs';
 import { registerAjoCleanupTools } from './ajoCleanupTools.mjs';
 import { registerMcpGuideTools } from './mcpGuideTools.mjs';
 import { registerPdfTools } from './pdfTools.mjs';
-import { registerCommandCentreTools } from './commandCentreTools.mjs';
 import { registerLoadToolsetTool } from './loadToolset.mjs';
 import { registerWeatherTools } from './weatherTools.mjs';
 import { registerFigmaTools } from './figmaTools.mjs';
@@ -120,7 +119,6 @@ export function registerProfileTools(mcpServer) {
   registerGenerateProfileFromBrandScrapeTools(mcpServer);
   registerPrepareDemoFromBrandScrapeTool(mcpServer);
   registerCreateJourneyFromBrandScrapeTool(mcpServer);
-  registerCommandCentreTools(mcpServer);
   registerWeatherTools(mcpServer);
   registerCommerceTools(mcpServer);
   registerCommerceOptimizerTools(mcpServer);
@@ -217,7 +215,6 @@ const LOADABLE_TOOLSETS = {
   decisioning: registerDecisioningDomainTools,
   'demo-prep': registerDemoPrepDomainTools,
   pdf: registerPdfTools,
-  'command-centre': registerCommandCentreTools,
   weather: registerWeatherTools,
   commerce: registerCommerceDomainTools,
   'commerce-optimizer': registerCommerceOptimizerDomainTools,
@@ -290,12 +287,6 @@ export function registerFocusedDemoPrepTools(mcpServer) {
 export function registerFocusedPdfTools(mcpServer) {
   registerMcpAccessInfoTool(mcpServer);
   registerPdfTools(mcpServer);
-}
-
-/** Focused Command Centre admin layer: list/add/update/delete your own customer engagements, tasks, meetings. */
-export function registerFocusedCommandCentreTools(mcpServer) {
-  registerMcpAccessInfoTool(mcpServer);
-  registerCommandCentreTools(mcpServer);
 }
 
 /** Focused weather lookups from OpenWeatherMap: current conditions and 5-day/3-hour forecast. */

@@ -8,10 +8,8 @@ const { registerAdobeApiCapabilityRoutes } = require('../adobeApiCapabilityRoute
 const { registerMeasurementQualityRoutes } = require('../measurementQualityRoutes');
 const { registerCommerceRoutes } = require('../commerceRoutes');
 const { registerCommerceOptimizerRoutes } = require('../commerceOptimizerRoutes');
-const { registerHomeCommandMcpRoutes } = require('../homeCommandMcpRoutes');
 const { registerSnowflakeRoutes } = require('../snowflakeRoutes');
 const { registerLiveActivityRoutes } = require('../liveActivityRoutes');
-const homeCommandMcpAuth = require('../homeCommandMcpAuth');
 const snowflakePrincipalAuth = require('../snowflakePrincipalAuth');
 const labGenerationPrefsAuth = require('../labGenerationPrefsAuth');
 
@@ -27,7 +25,7 @@ function request(overrides = {}) {
     },
     query: { sandbox: 'apalmer' },
     body: {},
-    url: '/api/home-command/mcp/state',
+    url: '/api/commerce/access',
     ...overrides,
   };
 }
@@ -44,7 +42,7 @@ function response() {
 }
 
 function harness() {
-  const state = { entries: [{ principalUid: 'portal-uid', sandbox: 'apalmer', revoked: false }], calls: [], owner: 'owned-workspace' };
+  const state = { entries: [{ principalUid: 'portal-uid', sandbox: 'apalmer', revoked: false }], calls: [] };
   const read = async (params) => { state.calls.push(params); return { ok: true }; };
   const deps = {
     onRequest: (_options, handler) => handler,
@@ -61,15 +59,7 @@ function harness() {
         };
       },
     },
-    rtdb: { ref: (path) => {
-      assert.equal(path, 'userWorkspaceOwners/portal-uid');
-      return { once: async () => ({ val: () => state.owner }) };
-    } },
     labUserSandboxStore: {
-      getWorkspaceProfile: async (uid) => {
-        assert.equal(uid, 'portal-uid');
-        return { workspaceSlug: 'profile-workspace' };
-      },
       verifyIdTokenClaimsFromRequest: async () => { throw new Error('IMS must not use Firebase token verification'); },
     },
     getAdobeAccessToken: async () => 'platform-token',
@@ -83,8 +73,6 @@ function harness() {
     measurementService: { listAssuranceSessions: read },
     commerceService: { accessInfo: read },
     commerceOptimizerService: { accessInfo: () => read({}) },
-    homeCommandMcpAuth,
-    homeCommandMcpStore: { getState: (slug) => read({ slug }) },
     snowflakePrincipalAuth,
     resolveSandboxFromQuery: (req) => req.query.sandbox || 'apalmer',
     snowflakeService: { handleConfigGet: read },
@@ -98,7 +86,6 @@ function harness() {
     [registerMeasurementQualityRoutes(deps).measurementQualityProxy, { action: 'assurance_sessions' }],
     [registerCommerceRoutes(deps).commercePrepProxy, { action: 'access' }],
     [registerCommerceOptimizerRoutes(deps).commerceOptimizerPrepProxy, { action: 'access' }],
-    [registerHomeCommandMcpRoutes(deps).homeCommandMcp, {}],
     [registerSnowflakeRoutes(deps).snowflakeConfig, {}],
     [registerLiveActivityRoutes(deps).ajoLiveActivityTemplates, {}],
   ];
@@ -114,7 +101,6 @@ test('all key-only route families accept independently validated IMS enrollment'
   }
   assert.equal(state.calls.length, cases.length);
   assert.ok(state.calls.some((call) => call.labUser === 'portal-uid' && call.sandbox === 'apalmer'));
-  assert.ok(state.calls.some((call) => call.slug === 'owned-workspace'));
 });
 
 test('all route families deny revoked, wrong-sandbox, absent and ambiguous IMS enrollment before service calls', async () => {
@@ -150,43 +136,15 @@ test('IMS never rescues an explicitly supplied invalid key', async () => {
   assert.equal(state.calls.length, 0);
 });
 
-test('Command Centre preserves owner-record then workspace-profile priority for the enrolled UID', async () => {
+test('Commerce routes can validate the forwarded enrolled sandbox without a tool sandbox argument', async () => {
   const { state, cases } = harness();
-  const [handler] = cases[6];
-  state.owner = null;
-  await handler(request(), response());
-  assert.deepEqual(state.calls, [{ slug: 'profile-workspace' }]);
-});
-
-test('workspace and Commerce routes can validate the forwarded enrolled sandbox without a tool sandbox argument', async () => {
-  const { state, cases } = harness();
-  for (const index of [4, 5, 6]) {
+  for (const index of [4, 5]) {
     const [handler, query] = cases[index];
     const res = response();
     await handler(request({ query }), res);
     assert.equal(res.code, 200, JSON.stringify(res.body));
   }
-  assert.equal(state.calls.length, 3);
-});
-
-test('Command Centre preserves valid user-key and Firebase auth, while rejecting anonymous browser auth', async () => {
-  const { deps } = harness();
-  deps.mcpApiKeyStore.validateUserApiKey = async () => ({
-    ok: true, principalUid: 'portal-uid', principalEmail: 'tester@adobe.com',
-  });
-  const key = await homeCommandMcpAuth.resolveHomeCommandPrincipal(
-    request({ headers: { 'x-aep-lab-mcp-key': 'valid-user-key' } }), deps,
-  );
-  assert.equal(key.authSource, 'mcp_key');
-  assert.equal(key.workspaceSlug, 'owned-workspace');
-  deps.labUserSandboxStore.verifyIdTokenClaimsFromRequest = async () => ({
-    uid: 'portal-uid', email: 'tester@adobe.com', isAnonymous: false,
-  });
-  const firebase = await homeCommandMcpAuth.resolveHomeCommandPrincipal(request({ headers: {} }), deps);
-  assert.equal(firebase.authSource, 'firebase');
-  assert.equal(firebase.workspaceSlug, key.workspaceSlug);
-  deps.labUserSandboxStore.verifyIdTokenClaimsFromRequest = async () => ({ uid: 'anonymous', isAnonymous: true });
-  assert.equal((await homeCommandMcpAuth.resolveHomeCommandPrincipal(request({ headers: {} }), deps)).status, 403);
+  assert.equal(state.calls.length, 2);
 });
 
 test('IMS audience deletion still requires exact confirmation and re-reads the audience', async () => {
@@ -215,7 +173,7 @@ test('IMS rejects conflicting body/query sandboxes and Snowflake GET-body scope 
     assert.equal(res.code, 403);
   }
   const res = response();
-  await cases[7][0](request({ query: {}, body: { sandbox: 'other' } }), res);
+  await cases[6][0](request({ query: {}, body: { sandbox: 'other' } }), res);
   assert.equal(res.code, 403);
   assert.equal(state.calls.length, 0);
 });
@@ -259,7 +217,7 @@ test('Snowflake AEP dual-load returns structured errors with the matching correl
 test('IMS Live Activity sandboxName alias cannot override the validated enrollment scope', async () => {
   const { state, cases } = harness();
   const res = response();
-  await cases[8][0](request({ query: {}, body: { sandboxName: 'other' } }), res);
+  await cases[7][0](request({ query: {}, body: { sandboxName: 'other' } }), res);
   assert.equal(res.code, 403);
   assert.equal(state.calls.length, 0);
 });

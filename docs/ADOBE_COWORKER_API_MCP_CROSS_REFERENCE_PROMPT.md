@@ -47,7 +47,6 @@ The target marketplace configuration contains the following 16 connections. Veri
 | `aep-lab-audiences` | Governed audience inventory, audit, and deletion |
 | `aep-lab-decisioning` | AEP Edge decision evaluation, explanation, and catalog diagnostics |
 | `aep-lab-ajo-cleanup` | Governed AJO journey and campaign cleanup |
-| `aep-lab-command-centre` | User-scoped engagements, tasks, and meetings |
 | `aep-lab-weather` | Weather and map context for demos |
 | `aep-lab-commerce` | Adobe Commerce as a Cloud Service storefront and governed administration |
 | `aep-lab-commerce-optimizer` | Commerce Optimizer reads and governed ingestion |

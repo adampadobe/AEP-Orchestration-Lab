@@ -34,7 +34,7 @@ Version **0.3.1** includes skill `aep-lab-profile-mcp-v2` with its full workflow
 playbook, adapted for v2 names and personal-secret authentication. Its distinct
 name avoids ambiguity when v1 is also installed. The 20
 connections cover Entry, General, Snowflake, Profiles, Demo Prep, PDF, Audiences,
-Decisioning, AJO cleanup, Orchestrated Campaign datasets, Command Centre, Weather,
+Decisioning, AJO cleanup, Orchestrated Campaign datasets, Weather,
 Geo Insights, Commerce, Commerce Optimizer, Firefly, Creativity, Adobe
 Capabilities, Measurement Quality, and Figma.
 

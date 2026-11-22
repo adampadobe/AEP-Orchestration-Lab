@@ -14,7 +14,7 @@ repository-root marketplace and separate `tools/claude-marketplace` package.
 ## V2: all Lab connections, one personal secret
 
 The separate `tools/coworker-marketplace-v2` marketplace packages General and
-all 19 focused Lab connections in plugin **AEP-Orchestration-Lab-v2**, version
+all 18 focused Lab connections in plugin **AEP-Orchestration-Lab-v2**, version
 **0.3.1**. Use **AEP-Orchestration-Lab-v2** as the Coworker marketplace name.
 It preserves the installed pilot's plugin identity and its
 `lab-v2-entry` and `lab-v2-demo` connection names. It does not replace v1 or the
@@ -35,7 +35,7 @@ remained Connected after a browser refresh. Before the key was configured, Test
 returned HTTP 502; an incorrectly entered key produced a generic HTTP 403, and
 correcting the saved secret resolved it. These observations do not constitute a
 dedicated key-revocation test. The expanded 0.2.0 bundle subsequently passed
-native read-only discovery on all 20 connections, including General's 252 tools.
+native read-only discovery on all 19 connections, including General's 242 tools.
 This does not prove downstream service permissions for every operation.
 
 | Connection | Context |
@@ -50,7 +50,6 @@ This does not prove downstream service permissions for every operation.
 | `lv2-dps` | Decisioning |
 | `lab-v2-ajo-clean` | AJO cleanup |
 | `lab-v2-ajo-oc` | AJO Orchestrated Campaign datasets |
-| `lab-v2-command` | Command Centre |
 | `lab-v2-weather` | Weather |
 | `lab-v2-geo` | Geographic insights |
 | `lab-v2-commerce` | Commerce |
@@ -132,7 +131,7 @@ Once added, install the **AEP Orchestration Lab** plugin from the marketplace's 
 ```
 tools/coworker-marketplace/
 ├── .claude-plugin/marketplace.json   # marketplace manifest — lists installable plugins
-└── aep-lab/                          # General plus all 19 focused Lab connections
+└── aep-lab/                          # General plus all 18 focused Lab connections
     ├── .claude-plugin/plugin.json
     ├── .mcp.json                     # MCP server definitions (URL + header per connection)
     ├── skills/aep-lab-profile-mcp/   # workflow guidance, mirrored from .agents/skills/

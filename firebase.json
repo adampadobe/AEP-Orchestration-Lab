@@ -166,20 +166,6 @@
         }
       },
       {
-        "source": "/api/home-command/extract-work",
-        "function": {
-          "functionId": "homeCommandExtractWork",
-          "region": "us-central1"
-        }
-      },
-      {
-        "source": "/api/home-command/mcp/**",
-        "function": {
-          "functionId": "homeCommandMcp",
-          "region": "us-central1"
-        }
-      },
-      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",
