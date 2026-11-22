@@ -7,19 +7,18 @@ const root = path.resolve(__dirname, '../web');
 const screenshotDir = process.env.IMAGE_HOSTING_SCREENSHOTS;
 const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=', 'base64');
 
-async function fixture(browser, { theme = 'light', width = 1280, anonymous = false, signedOut = false } = {}) {
+async function fixture(browser, { theme = 'light', width = 1280, anonymous = false, signedOut = false, noWorkspace = false } = {}) {
   const page = await browser.newPage({ viewport: { width, height: 1000 } });
   const calls = [];
   let polls = 0;
   let failure = false;
   let folderEntries = 0;
-  let usedSandboxCount = 2;
   let uploadConflict = false;
   const drive = [
     { name: 'Campaigns', path: 'Campaigns', kind: 'folder' },
     { name: 'logo.png', path: 'logo.png', kind: 'file', size: 12000, contentType: 'image/png', previewUrl: 'https://images.test/logo.png', updatedAt: '2026-11-22T11:00:00Z' }
   ];
-  const backup = { id: 'snapshot', status: 'completed', sandboxes: ['demo', 'retail'], fileCount: 3, bytes: 34000, createdAt: '2026-11-22T10:00:00Z' };
+  const backup = { id: 'snapshot', status: 'completed', sandboxes: ['demo'], fileCount: 3, bytes: 34000, createdAt: '2026-11-22T10:00:00Z' };
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.addInitScript(({ theme, anonymous, signedOut }) => {
@@ -59,9 +58,10 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       assert.equal(request.headers().authorization, 'Bearer fixture', 'every API request is authenticated');
       if (failure && url.pathname.endsWith('/drive')) return route.fulfill({ status: 500, json: { ok: false, error: 'Storage unavailable' } });
       let result = { ok: true };
-      if (url.pathname.endsWith('/sandboxes-used')) result.sandboxes = usedSandboxCount === 2 ?
-        [{ name: 'demo', fileCount: 2 }, { name: 'retail', fileCount: 1 }] :
-        Array.from({ length: usedSandboxCount }, (_, index) => ({ name: 'sandbox-' + index, fileCount: 1 }));
+      if (url.pathname.endsWith('/sandboxes-used')) {
+        result.sandboxes = noWorkspace ? [] : [{ name: 'demo', fileCount: 2 }];
+        if (noWorkspace) result.reason = 'An owned lab workspace is required.';
+      }
       else if (url.pathname.endsWith('/library') && request.method() === 'GET') {
         assert.equal(url.searchParams.get('limit'), '100');
         result.items = url.searchParams.has('cursor') ?
@@ -86,12 +86,12 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       } else if (url.pathname.endsWith('/files')) {
         result.items = [
           { sandbox: 'demo', relPath: 'logo/logo.png', size: 12000, contentType: 'image/png', previewUrl: 'https://images.test/logo.png' },
-          { sandbox: 'retail', relPath: 'hero.png', size: 22000, contentType: 'image/png', previewUrl: 'https://images.test/hero.png' }
+          { sandbox: 'demo', relPath: 'hero.png', size: 22000, contentType: 'image/png', previewUrl: 'https://images.test/hero.png' }
         ];
       } else if (url.pathname.endsWith('/restore/preview')) {
         result.items = [
           { sandbox: 'demo', relPath: 'logo/logo.png', action: 'overwrite' },
-          { sandbox: 'retail', relPath: 'hero.png', action: 'add' },
+          { sandbox: 'demo', relPath: 'hero.png', action: 'add' },
           { sandbox: 'demo', relPath: 'unchanged.png', action: 'unchanged' }
         ];
         result.counts = { add: 1, overwrite: 1, unchanged: 1 };
@@ -114,7 +114,7 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
   await page.goto('http://aep.test/profile-viewer/image-hosting.html');
   return {
     page, calls, errors, setFailure: value => { failure = value; }, setFolderEntries: value => { folderEntries = value; },
-    setUsedSandboxCount: value => { usedSandboxCount = value; }, setUploadConflict: value => { uploadConflict = value; }
+    setUploadConflict: value => { uploadConflict = value; }
   };
 }
 
@@ -127,7 +127,7 @@ async function settled(page) {
 async function main() {
   const browser = await chromium.launch({ headless: true, ...(process.env.CHROME_EXECUTABLE_PATH ? { executablePath: process.env.CHROME_EXECUTABLE_PATH } : {}) });
   try {
-    const { page, calls, errors, setFailure, setFolderEntries, setUsedSandboxCount, setUploadConflict } = await fixture(browser);
+    const { page, calls, errors, setFailure, setFolderEntries, setUploadConflict } = await fixture(browser);
     await ready(page);
     assert.ok(calls.some(call => call.query.get('cursor') === 'page-two'), 'published library fetches every page');
     assert.equal(await page.locator('#ihItems .ih-item').count(), 2, 'root contains one folder and one file');
@@ -203,22 +203,10 @@ async function main() {
     await page.locator('#ihNewFolder').click();
     await settled(page);
     assert.ok(calls.some(call => call.path.endsWith('/drive/folder') && call.body.path === 'New folder'));
-    setUsedSandboxCount(101);
     await page.locator('#ihBackupNow').click();
     await page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
-    await page.locator('#ihBackupStart').click();
-    await settled(page);
-    assert.match(await page.locator('#imageHostingStatus').innerText(), /at most 100 sandboxes/);
-    assert.ok(!calls.some(call => call.path.endsWith('/backups') && call.method === 'POST'), 'oversized backup is blocked before creation');
-    await page.locator('#ihBackupSandboxes input[value="sandbox-100"]').uncheck();
-    await page.locator('#ihBackupStart').click();
-    await page.waitForFunction(() => document.getElementById('imageHostingStatus').textContent.startsWith('Backup complete'));
-    assert.equal(calls.find(call => call.path.endsWith('/backups') && call.method === 'POST').body.sandboxes.length, 100, 'exactly 100 sandboxes are accepted');
-    await page.locator('#ihBackupClose').click();
-    setUsedSandboxCount(2);
-    await page.locator('#ihBackupNow').click();
-    await page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
-    assert.equal(await page.locator('#ihBackupSandboxes input:checked').count(), 2, 'used sandboxes are preselected');
+    assert.equal(await page.locator('#ihBackupSandboxes input:checked').count(), 1, 'only the owned sandbox is available');
+    assert.equal(await page.locator('#ihBackupSandboxes input:checked').inputValue(), 'demo');
     await page.locator('#ihBackupStart').click();
     await page.waitForFunction(() => document.getElementById('imageHostingStatus').textContent.startsWith('Backup complete'));
     assert.ok(calls.filter(call => call.path.endsWith('/new-snapshot')).length >= 2, 'backup document is polled');
@@ -266,6 +254,18 @@ async function main() {
     assert.equal(await page.locator('#ihDetails').innerText(), '', 'sign-out clears private preview details');
     assert.deepEqual(errors, []);
     await page.close();
+
+    const noWorkspace = await fixture(browser, { noWorkspace: true });
+    await ready(noWorkspace.page);
+    assert.match(await noWorkspace.page.locator('#ihItems').innerText(), /owned lab workspace/i);
+    assert.ok(!(await noWorkspace.page.locator('#ihTree').innerText()).includes('retail'));
+    assert.ok(!noWorkspace.calls.some(call => call.path.endsWith('/library')));
+    await noWorkspace.page.locator('#ihTree').getByRole('button', { name: 'My drive', exact: true }).click();
+    await settled(noWorkspace.page);
+    assert.ok(noWorkspace.calls.some(call => call.path.endsWith('/drive')));
+    await noWorkspace.page.locator('#ihBackupNow').click();
+    assert.equal(await noWorkspace.page.locator('#ihBackupStart').isEnabled(), false);
+    await noWorkspace.page.close();
 
     for (const options of [{ signedOut: true }, { anonymous: true }]) {
       const f = await fixture(browser, options);
