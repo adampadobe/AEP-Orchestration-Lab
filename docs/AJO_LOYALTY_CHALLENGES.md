@@ -226,9 +226,17 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    missing later pages remain errors. This correction requires a Functions
    release of `profileEventsProxy`; changing Hosting or `aepProxy` alone is not
    sufficient.
-3. Select **Get task status**. SDK injection, Decisioning enablement and the event
-   tenant are not prerequisites for this read. Optionally enable the 30-second
-   state refresh in the top-bar API options after a successful manual read. Only
+3. Resolving a profile with a scalar Loyalty ID automatically performs the existing
+   read-only state lookup. It waits for profile resolution to finish, displays
+   only records explicitly reporting `optedIn:true`, and never submits signup.
+   Repeated notifications for the same resolved profile are deduplicated; a fresh
+   lookup reads again. Context changes discard queued reads and stale responses.
+   The automatic read resolves the loaded profile in the configured namespace,
+   ignoring the manual debugging member override.
+   **Get task status** remains available for debugging, including non-opted-in
+   records and the existing filters. SDK injection, Decisioning enablement and the event
+   tenant are not prerequisites for either read. Optionally enable the 30-second
+   state refresh in the top-bar API options after a successful read. Only
    Adobe's returned `taskState` marks a task complete. Numeric progress requires
    both a reported goal/type and the corresponding numeric accumulator.
    Zero, false, missing counters and previous-cycle completions remain distinct.
@@ -241,7 +249,7 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    `sent` proves that points were credited to the profile's balance.
    Automatic reads pause when hidden, after an error or after configuration changes;
    a successful manual task read resumes them. Polling is off by default and profile
-   lookup does not start it. No task-completion events are
+   lookup performs a one-off read without enabling the polling option. No task-completion events are
    synthesized.
 4. To personalize, select your Tags environment/event
    destination in the shared configuration bar and inject Tags. Enter the reviewed event schema's tenant
@@ -587,6 +595,17 @@ For example, "buy three items" can be **one task** with a goal of three:
 accumulator and returned state. Do not fabricate "0 of 3" when the accumulator
 is missing, mark a member eligible from publication alone, or treat an empty
 active page as proof they never completed a challenge.
+
+The Spend task's raw definition/state can instead report
+`variables.spendMin` (the target) and `variables.singleTrans`; a current
+`accumulators.spend`, when returned, would provide the accumulated amount.
+The existing demo progress helper expects normalized `variables.goal/type`,
+so it does not yet interpret raw `spendMin`. The automatic-loading change does
+not add a Spend display or change that helper. Missing accumulators are not zero;
+currency must be confirmed separately before formatting spend as GBP.
+Multiple entries in `challengeList` can include `optedIn:false` records, not just
+joined challenges. Join metadata `_id` to state `challenge_id`, and match tasks
+by `taskId`, never list position.
 
 The saved metadata response can validate parsing locally, but does not contain
 a member's task status. Live namespace, region, member read and Loyalty

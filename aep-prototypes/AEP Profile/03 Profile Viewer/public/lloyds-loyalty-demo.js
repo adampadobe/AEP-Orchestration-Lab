@@ -17,6 +17,7 @@
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   let featuredRequest = null, pendingFeaturedRequest = false;
+  let pendingTaskState = false, automaticTaskState = null;
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
   const activatedOffers = new Map();
@@ -176,7 +177,7 @@
     $('loyaltyCardHint').textContent = 'Your next challenge will appear here.';
   }
   function invalidate(clearProfile) {
-    version++; aborter?.abort(); pendingProfile = null; autoBlocked = true; clearResults();
+    version++; aborter?.abort(); pendingProfile = null; pendingTaskState = false; automaticTaskState = null; autoBlocked = true; clearResults();
     global.DecisioningProfileRuntime?.invalidateProfileLookupCache();
     if (clearProfile) {
       loaded = null; $('loyaltyMember').value = '';
@@ -542,10 +543,10 @@
     same(ctx, token);
     return new Map(entries);
   }
-  async function readTasks(ctx, token) {
+  async function readTasks(ctx, token, joinedOnly = false) {
     if (ctx.participation === 'complete' && ctx.test) throw new Error('Adobe\'s completed-challenges endpoint does not support State API test mode. Turn test mode off or select Active.');
     const config = await loyalty(ctx, { action: 'config' }); same(ctx, token);
-    const member = memberId(ctx, config);
+    const member = memberId(joinedOnly ? { ...ctx, member: '' } : ctx, config);
     $('loyaltyNamespace').textContent = 'State member: ' + config.namespace + ' / ' + member;
     const region = ctx.region ? { region: ctx.region } : {};
     const input = ctx.participation === 'complete'
@@ -555,7 +556,8 @@
     if (!Array.isArray(state?.challengeList)) throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
     reconcileSignupState(state, ctx, member);
     const metadata = await readChallengeMetadata(state, ctx, token);
-    renderTasks(state, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
+    const displayedState = joinedOnly ? { ...state, challengeList: state.challengeList.filter(challenge => challenge.optedIn === true) } : state;
+    renderTasks(displayedState, metadata, ctx, config.namespace.toLowerCase() === 'loyaltyid' && member === loaded.profileLoyaltyId);
     $('loyaltyUpdated').textContent = 'Read ' + new Date().toLocaleTimeString();
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, namespace: config.namespace,
       member, region: ctx.region || 'va7', state, metadata: Object.fromEntries(metadata) }, null, 2);
@@ -877,7 +879,7 @@
       if (token === version) {
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
-        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; pendingFeaturedRequest = false; }
+        if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; pendingFeaturedRequest = false; pendingTaskState = false; }
       }
     } finally {
       controller.signal.removeEventListener('abort', onAbort);
@@ -886,7 +888,8 @@
         const detail = pendingProfile; pendingProfile = null;
         adoptDrawerProfile(detail);
       }
-      if (pendingFeaturedRequest) { pendingFeaturedRequest = false; void requestFeaturedOffers(); }
+      if (pendingTaskState) { pendingTaskState = false; requestAutomaticTaskState(); }
+      else if (pendingFeaturedRequest) { pendingFeaturedRequest = false; void requestFeaturedOffers(); }
       else if (pendingCard) { pendingCard = false; requestAutomaticCard(); }
     }
   }
@@ -896,6 +899,17 @@
         detail.identifier !== ctx.identifier || String(detail.namespace).toLowerCase() !== ctx.namespace) return;
     if (busy) { pendingProfile = detail; return; }
     void work((current, token) => lookup(current, token, true));
+  }
+  function requestAutomaticTaskState() {
+    if (!loaded?.profileLoyaltyId) return;
+    if (automaticTaskState?.profile === loaded && automaticTaskState.token === version) return;
+    if (busy) { pendingTaskState = true; return; }
+    automaticTaskState = { profile: loaded, token: version };
+    void work(async (ctx, token) => {
+      await readTasks(ctx, token, true);
+      autoBlocked = false;
+      message('Existing challenge participation read from Adobe. No signup was submitted.');
+    });
   }
   function requestAutomaticCard() {
     if (!loaded || typeof global.alloy !== 'function') return;
@@ -1288,6 +1302,7 @@
     $(prefix + 'Ns').addEventListener('change', identityChanged);
     global.addEventListener('aep-profile-drawer-loaded', event => adoptDrawerProfile(event.detail));
     global.addEventListener('tui-profile-changed', () => {
+      requestAutomaticTaskState();
       if (loaded && typeof global.alloy === 'function') void requestFeaturedOffers();
     });
     global.addEventListener('aep-global-sandbox-change', () => {
