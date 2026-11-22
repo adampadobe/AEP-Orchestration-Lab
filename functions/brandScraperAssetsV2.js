@@ -147,17 +147,13 @@ async function signedUrlFor(path) {
 }
 
 async function classifyWithGemini(bytes, contentType) {
-  const { VertexAI } = require('@google-cloud/vertexai');
+  const { GoogleGenAI } = require('@google/genai');
   const project = process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || 'aep-orchestration-lab';
   const location = process.env.VERTEX_LOCATION || 'us-central1';
+  const client = new GoogleGenAI({ vertexai: true, project, location });
   const modelName = process.env.VERTEX_GEMINI_VISION_MODEL || 'gemini-2.5-flash';
-  const vertex = new VertexAI({ project, location });
-  const model = vertex.getGenerativeModel({
+  const resp = await client.models.generateContent({
     model: modelName,
-    systemInstruction: { role: 'system', parts: [{ text: CLASSIFY_SYSTEM }] },
-    generationConfig: { temperature: 0.1, maxOutputTokens: 512, responseMimeType: 'application/json' },
-  });
-  const resp = await model.generateContent({
     contents: [{
       role: 'user',
       parts: [
@@ -165,8 +161,14 @@ async function classifyWithGemini(bytes, contentType) {
         { text: 'Classify this image.' },
       ],
     }],
+    config: {
+      systemInstruction: { role: 'system', parts: [{ text: CLASSIFY_SYSTEM }] },
+      temperature: 0.1,
+      maxOutputTokens: 512,
+      responseMimeType: 'application/json',
+    },
   });
-  const candidates = resp && resp.response && resp.response.candidates;
+  const candidates = resp && resp.candidates;
   if (!candidates || !candidates.length) throw new Error('no candidates');
   const finish = candidates[0].finishReason;
   const parts = (candidates[0].content && candidates[0].content.parts) || [];
@@ -246,4 +248,5 @@ module.exports = {
   classifyScrapeAssets,
   signedUrlFor,
   getBucket,
+  classifyWithGemini,
 };
