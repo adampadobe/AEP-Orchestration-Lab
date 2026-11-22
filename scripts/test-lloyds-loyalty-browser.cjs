@@ -1324,12 +1324,13 @@ async function main() {
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-two-fixture'; window.__deliverSignupCard(); });
     await page.evaluate(() => { window.__rejectLoyaltyTracking = false; });
     unavailableState = false;
-    stateChallengeId = 'challenge-two-fixture'; optedIn = true; namespace = 'loyaltyId';
+    stateChallengeId = 'challenge-two-fixture'; optedIn = false; namespace = 'loyaltyId';
     await openApiOptions();
     await page.locator('#loyaltyRegion').selectOption('nld2');
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
-    assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false, 'A lookup clears local signup receipts');
+    assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false,
+      'A lookup cannot restore participation when the automatic state read reports optedIn false');
     await openApiOptions();
     await page.locator('#loyaltyMember').fill('other-member-fixture');
     await page.locator('#queryProfileBtn').click();
@@ -1340,6 +1341,7 @@ async function main() {
       'An explicit state read for another Loyalty member cannot authorize purchases for the loaded profile');
     await openApiOptions();
     await page.locator('#loyaltyMember').fill('');
+    optedIn = true;
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();
     await page.locator('#loyaltyRefresh').click();
@@ -1621,6 +1623,68 @@ async function main() {
     assert.match(await requestPage.locator('#loyaltyStatus').textContent(), /interrupted featured-offers response.*No automatic retry/);
     assert.equal(await retainedOffer.evaluate(card => card.isConnected), true, 'An unsuccessful refresh retains existing offers');
     await requestPage.close();
+    const progressPage = await context.newPage();
+    namespace = 'loyaltyId'; profileLoyaltyId = 'automatic-member'; optedIn = true;
+    quantity = 3; challengeListOverride = undefined; rejectState = false;
+    const stateReads = () => reads.filter(read => read.action === 'profile_state').length;
+    const beforeAutomaticReads = stateReads(), beforeAutomaticSignups = signupRequests.length;
+    await progressPage.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
+    await progressPage.waitForFunction(() =>
+      document.getElementById('loyaltyStatus')?.textContent.includes('SDK injection is only needed'));
+    await progressPage.evaluate(() => { window.AepGlobalSandbox.setSelected('kirkham'); delete window.alloy; });
+    await progressPage.locator('#customerEmail').fill('automatic-progress@example.invalid');
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    assert.equal(stateReads(), beforeAutomaticReads + 1, 'Profile resolution loads state once without SDK or a card click');
+    assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).profile_id, 'automatic-member');
+    assert.match(await progressPage.locator('#loyaltyPhoneTasks').textContent(), /Everyday rewards.*Make three purchases.*Completed/s);
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').textContent(), '1 / 2');
+    await progressPage.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('tui-profile-changed'));
+      window.dispatchEvent(new CustomEvent('tui-profile-changed'));
+    });
+    assert.equal(stateReads(), beforeAutomaticReads + 1, 'Duplicate profile-ready notifications do not repeat the read');
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    assert.equal(stateReads(), beforeAutomaticReads + 2, 'Looking up the same profile again refreshes participation');
+    optedIn = false;
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').count(), 0,
+      'Available but non-opted-in challenges are not presented as joined progress');
+    await progressPage.locator('#loyaltyRefresh').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Task state refreshed'));
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').count(), 1,
+      'Manual task status retains the original debugging view');
+    if (!await progressPage.locator('#customerEmail').isVisible()) await progressPage.locator('#aepLabEnvMinimizeBtn').click();
+    if (!await progressPage.locator('.loyalty-settings').evaluate(element => element.open)) {
+      await progressPage.locator('.loyalty-settings summary').click();
+    }
+    await progressPage.locator('#loyaltyMember').fill('debugging-other-member');
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('No signup was submitted'));
+    assert.equal(reads.filter(read => read.action === 'profile_state').at(-1).profile_id, 'automatic-member',
+      'Automatic reads resolve the loaded profile rather than a manual debugging member override');
+    profileLoyaltyId = undefined;
+    const beforeMissingMemberReads = stateReads();
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(stateReads(), beforeMissingMemberReads, 'No automatic state request without a resolved scalar Loyalty ID');
+    profileLoyaltyId = 'automatic-member'; optedIn = true; holdState = true;
+    const automaticStateStarted = new Promise(resolve => { stateStarted = resolve; });
+    await progressPage.locator('#queryProfileBtn').click();
+    await automaticStateStarted;
+    await progressPage.locator('#customerEmail').fill('different-progress@example.invalid');
+    holdState = false; releaseState();
+    await progressPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await progressPage.locator('#loyaltyTasks .loyalty-progress-count').count(), 0,
+      'An old member response cannot restore progress after selected identity changes');
+    rejectState = true;
+    await progressPage.locator('#queryProfileBtn').click();
+    await progressPage.waitForFunction(() => document.getElementById('loyaltyStatus').dataset.error === 'true');
+    assert.match(await progressPage.locator('#loyaltyStatus').textContent(), /no active enrollment.*No automatic retry/);
+    assert.equal(signupRequests.length, beforeAutomaticSignups, 'Automatic reads never submit challenge signup');
+    await progressPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');
