@@ -1,0 +1,375 @@
+{
+  "source": "web/profile-viewer/aep-lab-nav.js",
+  "generator": "scripts/build-lab-nav-catalogue.mjs",
+  "pages": [
+    {
+      "route": "/profile-viewer/home-new.html",
+      "label": "Home",
+      "navGroup": null,
+      "navGroupId": null,
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/global-settings.html",
+      "label": "Global values",
+      "navGroup": null,
+      "navGroupId": null,
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/usage-statistics.html",
+      "label": "Usage statistics",
+      "navGroup": null,
+      "navGroupId": null,
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/index.html",
+      "label": "Profile Viewer",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/schema-viewer.html",
+      "label": "Data viewer",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/audience-membership.html",
+      "label": "Audience",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/profile-generation.html",
+      "label": "Profile generation",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/profile-generation-snowflake.html",
+      "label": "Profile generation – Snowflake",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/consent.html",
+      "label": "Consent",
+      "navGroup": "Profiles",
+      "navGroupId": "profiles",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/journeys.html",
+      "label": "Journeys",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/event-tool.html",
+      "label": "Event tool",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/orchestrated-campaign-trigger.html",
+      "label": "Orchestrated campaign triggers",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/webhooks.html",
+      "label": "Webhooks",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/live-activities.html",
+      "label": "Live activities",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/brand-scraper.html",
+      "label": "Brand scraper",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/image-hosting.html",
+      "label": "Image hosting",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/demo-asset-library.html",
+      "label": "Demo asset library",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/demo-studio.html",
+      "label": "Demo Studio",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/demo-flows.html",
+      "label": "Demo flows",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/pdf-personalisation.html",
+      "label": "PDF conversion",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/firebase-database.html",
+      "label": "Real-time database",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/loyalty-reward-provider.html",
+      "label": "Loyalty reward provider",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/audit-events.html",
+      "label": "Audit events",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/mcp-servers.html",
+      "label": "MCP servers",
+      "navGroup": "Tools",
+      "navGroupId": "tools",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/content-decision-live-edge.html",
+      "label": "Decisioning lab (Edge)",
+      "navGroup": "Decisioning",
+      "navGroupId": "decisioning",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/decisioning-catalog.html",
+      "label": "Decisioning catalog",
+      "navGroup": "Decisioning",
+      "navGroupId": "decisioning",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/decisioning-visualiser.html",
+      "label": "Decisioning visualiser",
+      "navGroup": "Decisioning",
+      "navGroupId": "decisioning",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/experience-decisioning.html",
+      "label": "Decisioning overview",
+      "navGroup": "Decisioning",
+      "navGroupId": "decisioning",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/journey-arbitration-v3.html",
+      "label": "Journey arbitration",
+      "navGroup": "Decisioning",
+      "navGroupId": "decisioning",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/tags.html",
+      "label": "Tags",
+      "navGroup": "Data Collection",
+      "navGroupId": "dataCollection",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/my-data-flows.html",
+      "label": "My data flows",
+      "navGroup": "Architecture",
+      "navGroupId": "architecture",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/aep-architecture-apps.html",
+      "label": "AEP & Apps",
+      "navGroup": "Architecture",
+      "navGroupId": "architecture",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/agentic-ai-v2.html",
+      "label": "Agentic layer",
+      "navGroup": "Architecture",
+      "navGroupId": "architecture",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/eds-quickstart.html",
+      "label": "EDS Demo Creator",
+      "navGroup": "AEM",
+      "navGroupId": "aem",
+      "subgroup": null,
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/demos/llm-demo/llm-demo.html",
+      "label": "Brand Visibility Demo",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Brand Visibility",
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/ipad-demo.html",
+      "label": "iPad",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "iPad",
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/call-centre-demo-v1.html",
+      "label": "Call Centre – Contact centre",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Call Centre",
+      "inNav": true,
+      "tracked": false
+    },
+    {
+      "route": "/profile-viewer/cp-decisioning-demo.html",
+      "label": "Center Parcs – Decisioning",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Center Parcs",
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/lloyds-loyalty-demo.html",
+      "label": "Lloyds – Loyalty",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Lloyds",
+      "inNav": true,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/home.html",
+      "label": "Home (classic)",
+      "navGroup": null,
+      "navGroupId": null,
+      "subgroup": null,
+      "inNav": false,
+      "tracked": true
+    },
+    {
+      "route": "/profile-viewer/profile.html",
+      "label": "Profile",
+      "navGroup": null,
+      "navGroupId": null,
+      "subgroup": null,
+      "inNav": false,
+      "tracked": true
+    }
+  ]
+}

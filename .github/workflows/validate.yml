@@ -55,8 +55,10 @@ jobs:
       - name: Verify production deployment policy
         run: node --test scripts/predeploy-policy.test.mjs
 
-      - name: Verify owner-only usage statistics
-        run: node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs
+      - name: Verify owner-only usage statistics, home heat map and What's new
+        run: |
+          npm run verify:lab-nav-catalogue
+          node --test functions/test/labUsage.test.cjs functions/test/labUsageTelemetry.test.cjs functions/test/labUsageInvocations.test.cjs functions/test/labUsageEngagement.test.cjs functions/test/labUsageHeatmap.test.cjs functions/test/labWhatsNew.test.cjs scripts/build-whats-new.test.mjs
 
       - name: Verify private architecture, live trace and read-only evidence
         run: node --test functions/test/myDataFlows*.test.cjs

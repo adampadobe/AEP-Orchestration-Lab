@@ -146,3 +146,12 @@ const stamp = spawnSync(process.execPath, [join(__dirname, 'build-version.mjs')]
 if (stamp.status !== 0) {
   fail(`build-version.mjs exited with code ${stamp.status} — refusing to deploy with a missing version stamp`, stamp.status || 1);
 }
+
+// Home page "What's new" feed (web/whats-new.json) from merged PR history.
+const whatsNew = spawnSync(process.execPath, [join(__dirname, 'build-whats-new.mjs')], {
+  cwd: repoRoot,
+  stdio: 'inherit',
+});
+if (whatsNew.status !== 0) {
+  fail(`build-whats-new.mjs exited with code ${whatsNew.status} — refusing to deploy without the What's new feed`, whatsNew.status || 1);
+}
