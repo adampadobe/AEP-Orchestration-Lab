@@ -113,6 +113,11 @@ test('HTTP discovery delivers tool changes over an authenticated same-session st
   await full.json();
   const fullNames = (await (await post('/mcp', 'tools/list', {}, full.headers.get('mcp-session-id'))).json())
     .result.tools.map((tool) => tool.name);
+  assert.equal(fullNames.some((name) => name.startsWith('lab_command_centre_')), false);
+  assert.equal((await post('/mcp/command-centre', 'initialize', {
+    protocolVersion: '2025-11-25', capabilities: {},
+    clientInfo: { name: 'retired-endpoint-test', version: '1' },
+  })).status, 404);
   for (const name of names.filter((name) => name.startsWith('lab_platform_asset_'))) {
     assert.ok(fullNames.includes(name), 'Full endpoint must expose cleanup at initialization');
   }

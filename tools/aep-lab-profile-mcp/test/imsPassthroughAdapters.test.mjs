@@ -40,16 +40,13 @@ test('governed adapters forward IMS without shared keys, with an enrolled sandbo
         api.commerceOptimizerAccessInfo, api.commerceOptimizerCapabilities,
         (p) => api.commerceOptimizerQuery('view_check', p),
         (p) => api.commerceOptimizerQuery('ingestion_change_apply', p),
-        api.homeCommandGetState, api.homeCommandAddCustomer, api.homeCommandUpdateCustomer, api.homeCommandDeleteCustomer,
-        api.homeCommandAddTask, api.homeCommandUpdateTask, api.homeCommandDeleteTask,
-        api.homeCommandAddMeeting, api.homeCommandUpdateMeeting, api.homeCommandDeleteMeeting,
         api.getSnowflakeConfig, api.snowflakeConnectionTest,
         api.liveActivityListRuns,
       ]) {
         assert.equal((await call(params)).ok, true);
       }
     });
-    assert.equal(seen.length, 40);
+    assert.equal(seen.length, 30);
     for (const { init } of seen) {
       assert.equal(init.headers.Authorization, imsAuthHeaders.Authorization);
       assert.equal(init.headers['x-gw-ims-org-id'], imsAuthHeaders['x-gw-ims-org-id']);

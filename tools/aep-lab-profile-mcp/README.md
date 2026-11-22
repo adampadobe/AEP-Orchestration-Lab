@@ -2,7 +2,7 @@
 
 Streamable HTTP [Model Context Protocol](https://modelcontextprotocol.io/) server that exposes AEP Orchestration Lab demo-preparation APIs, including governed Adobe Commerce, Commerce Optimizer, and Firefly creative-media workflows, to **Adobe AI Coworker** and other MCP clients. Calls the hosted lab at `https://aep-orchestration-lab.web.app/api/...` (configurable).
 
-**Version 3.57.1.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key`
+**Version 3.58.0.** Lab tools authenticate with either `X-AEP-Lab-Mcp-Key`
 (recommended Coworker v2 and other API-key clients) or a validated Adobe IMS
 bearer session (legacy Coworker v1). The latter can use Adobe's authenticated
 `POST /ims/profile/v1` endpoint when the IMS `email` scope is missing; forwarded
@@ -11,18 +11,53 @@ identity headers remain consistency checks only.
 **Set up Coworker:** follow the [v2 onboarding guide](../../docs/COWORKER_MARKETPLACE_V2.md).
 Add `adampadobe/AEP-Orchestration-Lab-v2` with **no subdirectory**, save your
 personal Portal key once as `aep_lab_mcp_key`, and install `aep-lab-v2`.
-It supplies all 20 connections plus skill `aep-lab-profile-mcp-v2`.
+It supplies all 19 connections plus skill `aep-lab-profile-mcp-v2`.
 
 ## Focused endpoints for Coworker
 
-The original `/mcp` endpoint remains backward compatible and this source tree
-registers the complete 252-tool catalog. Coworker v2 installs General as
-`lv2-all` alongside nineteen focused endpoints, all referencing one personal
+The original `/mcp` endpoint remains available and this source tree
+registers the complete 242-tool catalog. Coworker v2 installs General as
+`lv2-all` alongside eighteen focused endpoints, all referencing one personal
 secret in `X-AEP-Lab-Mcp-Key`. Legacy v1 uses `lab-all` and IMS passthrough.
 Canonical/v1 names elsewhere in this server reference are not v2 connection
 names; use the [v2 connection table](../../docs/COWORKER_MARKETPLACE_V2.md#included-connections)
 when selecting a Coworker v2 integration.
 Ingestion diagnostics, governed cleanup, and AJO Loyalty additions require deployment of their Firebase functions and the MCP service. Refresh the connection and start a new chat after a release that changes tool registration:
+
+### Command Centre retirement (3.58.0)
+
+Customer-engagement, opportunity, task and meeting tracking is retired. The ten
+`lab_command_centre_*` tools, `/mcp/command-centre`, the standalone
+`tools/aep-lab-command-centre-mcp` package, and the Firebase
+`homeCommandExtractWork` / `homeCommandMcp` exports and Hosting rewrites are removed.
+Other user-workspace APIs and shared authentication remain unchanged. Update
+installed plugins and remove any separately configured Command Centre connection.
+
+**Post-merge release order (designated release owner, approved identities):**
+
+1. From clean, validated `main` matching freshly fetched `origin/main`, pause any
+   remaining Command Centre clients and verify ADC access to
+   `aep-orchestration-lab`. Run the read-only backup:
+   `node scripts/backup-command-centre-rtdb.mjs --project aep-orchestration-lab --database-url https://aep-orchestration-lab-default-rtdb.firebaseio.com`.
+   It enumerates workspace keys with a shallow read, then reads only
+   `userWorkspaces/{slug}/commandCentre`, including every saved bucket. The export
+   goes to gitignored `scripts/data/command-centre-backup-*.local.json` with mode
+   `0600`, without overwriting an existing file. Keep it local and private.
+   Reads are sequential, not a globally atomic snapshot; any failed read aborts
+   before writing a backup. The script never writes to RTDB.
+2. Verify Firebase identity/project and deploy Functions using the existing
+   guarded workflow: `npx -y firebase-tools@latest deploy --only functions --project aep-orchestration-lab`.
+   Review and confirm deletion of the two retired deployed functions; do not
+   approve unrelated deletions. Publish the removed Hosting rewrites with the
+   coordinated homepage Hosting release (Functions deployment alone does not
+   change Hosting routes).
+3. Verify the named `aep-orchestration` gcloud configuration, account and project,
+   then run `bash tools/aep-lab-profile-mcp/scripts/release-main.sh <full-main-sha>`.
+   Verify health, the 242-tool General catalog, missing retired tools/endpoint,
+   and preserved runtime bindings. Publish updated marketplace packages through
+   their existing release process and refresh clients.
+
+No RTDB data deletion or deployment is part of this source change.
 
 ### Read-only AJO Loyalty inspection
 
@@ -169,7 +204,6 @@ does not relax health; see [the relational-layer recovery boundary](../../docs/S
 | `/mcp/decisioning` | 29 | Capabilities inventory, Edge evaluation, explanation, treatment resolution, catalog health, governed create/update/delete, async bulk migration and job polling, cloning across all seven entity types (adds tags), compound builders, offer-level eligibility attach/detach, schema extension, bulk tagging, and five read-only AJO Loyalty configuration/challenge/member-state tools |
 | `/mcp/demo-prep` | 24 | Cloud customer packages, staged attachments, recovery, brand scrape, Gemini image classification, stable asset restore, RTDB, and demo preparation |
 | `/mcp/pdf` | 14 | HTML/document upload, draft and merge preview, PDF generation/storage, recent jobs, and server-template management |
-| `/mcp/command-centre` | 11 | List/add/update/delete the caller's own customer engagements, tasks, and meetings |
 | `/mcp/weather` | 4 | Current conditions, 5-day/3-hour forecast, and a map-rendered current-conditions lookup (OpenWeatherMap + Google Static Maps) by city or lat/lon — no AEP or Lab API calls |
 | `/mcp/geo-insights` | 4 | Current weather plus aggregate audience geo-hotspots (k=10 suppression; served from the lab geo mirror of profile place context — see [docs/GEO_AUDIENCE_MIRROR.md](../../docs/GEO_AUDIENCE_MIRROR.md)), and confirmation-gated demo seeding in any featured area or catalog city |
 | `/mcp/commerce` | 19 | Access check plus catalog, attribute, category, inventory, media, GraphQL discovery/query, and confirmation-gated ACCS admin tools |
@@ -216,9 +250,9 @@ infrastructure, full Snowflake workflows and administration. The
 [onboarding guide](../../docs/COWORKER_MARKETPLACE_V2.md) includes key creation,
 all connection names, safe acceptance checks and optional v1 removal.
 
-**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same nineteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
+**One-click Claude install:** add `https://github.com/adampadobe/AEP-Orchestration-Lab` as a marketplace with no subdirectory and install `aep-lab`. Claude prompts once for a sandbox-scoped Portal MCP key, stores it as sensitive plugin configuration, and uses it for the same eighteen focused connections through the standard `mcpServers` schema. The Claude package is under `tools/claude-marketplace`; it does not alter Coworker's IMS configuration.
 
-**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus nineteen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
+**GitHub Copilot CLI install:** load your sandbox-scoped Portal key into the local `AEP_LAB_MCP_KEY` environment variable, then run `copilot plugin marketplace add adampadobe/AEP-Orchestration-Lab` and `copilot plugin install aep-lab@aep-orchestration-lab-copilot`. Start a new CLI session. The Copilot marketplace at `.github/plugin/marketplace.json` uses the separate `tools/copilot-marketplace` package for General plus eighteen focused connections; Claude and Coworker retain their existing manifests and authentication. See the [Copilot setup guide](../copilot-marketplace/README.md) for secret-safe key entry and installation details. This is a CLI plugin, not a VS Code marketplace extension.
 
 ### Troubleshooting legacy Coworker v1 IMS HTTP 403
 
@@ -264,7 +298,7 @@ check the Portal enrollment's configured sandbox rather than bypassing the gate.
 
 ### Entry point (Phase 3.38)
 
-Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
+Configure `aep-lab-entry` as a lightweight companion connection: it describes the available Lab contexts, recommends the smallest useful one, and can pull a domain toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the same session via `lab_load_toolset`. It deliberately does **not** expose a generic proxy or `call_any_tool` operation, and cannot load capabilities that require a separately configured Adobe-hosted MCP.
 
 **Dynamic discovery requires notification delivery and a client refresh.** POST responses remain JSON; authenticated `GET` requests open the same session's SSE notification stream. Sessions are bound to their initializing principal and endpoint. Earlier server builds returned HTTP 405 for GET, so a successful `lab_load_toolset` changed the server catalog without delivering `notifications/tools/list_changed` to the client. Explicit protocol-level `tools/list` still returned the added tools. This transport failure does not establish that a host ignores delivered notifications.
 
@@ -321,7 +355,7 @@ For clients that do not refresh their callable catalog, **directly connect the f
 | `lab_mcp_contexts` | Copy-ready context names, URLs, capabilities, access method, and safety posture |
 | `lab_mcp_recommend_context` | Deterministic goal-to-context recommendation with a suggested handoff prompt |
 | `lab_mcp_workflow` | Read-only multi-context plans such as customer demo preparation or governed cleanup |
-| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `command-centre`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed on clients that refresh tools. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
+| `lab_load_toolset` | Registers another toolset (`profile`, `audiences`, `ajo-cleanup`, `platform-cleanup`, `decisioning`, `demo-prep`, `pdf`, `weather`, `commerce`, `commerce-optimizer`, `firefly`, `creativity`, `adobe-capabilities`, `measurement-quality`, `figma`) into the *current* session via `McpServer.registerTool` + `sendToolListChanged` — no reconnect needed on clients that refresh tools. Guide-endpoint only; the full `/mcp` catalog already has everything, and the other focused endpoints stay intentionally scoped. |
 | `lab://mcp/contexts` | Static capability directory resource |
 | `lab://mcp/workflows/{workflow}` | Static workflow plan resource |
 
@@ -1272,9 +1306,9 @@ IMS support and v1 package, not v2 setup.
 
 The Coworker marketplace manifest forwards the signed-in user's `Authorization` token and IMS identity headers. Cloud Run validates the token with Adobe IMS UserInfo and requires a verified `@adobe.com` identity. An active Portal-generated MCP key record for that email supplies the permitted sandbox enrollment and its Firebase `principalUid`; Coworker never receives or stores the plaintext key. That verified UID gives Coworker the same profile-generation preferences as the signed-in Profile Viewer. Existing API-key clients are unchanged.
 
-Firebase independently revalidates the forwarded IMS bearer and active Portal enrollment for audience management, AJO cleanup, Adobe API capabilities, measurement quality, Snowflake, Command Centre, Commerce, Commerce Optimizer, and Live Activities. It never trusts forwarded principal UID headers. Request-local IMS credentials take precedence over the MCP server's shared ops key; an explicitly supplied invalid user key still fails closed without IMS fallback.
+Firebase independently revalidates the forwarded IMS bearer and active Portal enrollment for audience management, AJO cleanup, Adobe API capabilities, measurement quality, Snowflake, Commerce, Commerce Optimizer, and Live Activities. It never trusts forwarded principal UID headers. Request-local IMS credentials take precedence over the MCP server's shared ops key; an explicitly supplied invalid user key still fails closed without IMS fallback.
 
-Sandbox-scoped tools send the requested sandbox in their body or query. Command Centre and Commerce tools have no sandbox argument: the MCP client forwards the first sandbox in the resolved `allowedSandboxes` as `x-sandbox-name`, and Firebase validates enrollment in that scope before resolving the Portal UID. Conflicting body/query sandbox values are rejected. Command Centre resolves the same owner-record → workspace-profile → email-derived workspace as the Portal; Snowflake credentials remain per Portal UID and sandbox.
+Sandbox-scoped tools send the requested sandbox in their body or query. Commerce tools have no sandbox argument: the MCP client forwards the first sandbox in the resolved `allowedSandboxes` as `x-sandbox-name`, and Firebase validates enrollment in that scope before resolving the Portal UID. Conflicting body/query sandbox values are rejected. Snowflake credentials remain per Portal UID and sandbox.
 
 Audience/AJO deletion still requires exact asset confirmation and a fresh read; Commerce mutation preview/apply gates remain unchanged. No marketplace manifest change is needed. The execution framework reports the version from the MCP package rather than a separately maintained literal. These changes require releasing both the affected Firebase Functions and the MCP Cloud Run service through the normal reviewed release workflow; they do not change live behavior before deployment. Existing public profile read routes and PDF authentication are unchanged.
 

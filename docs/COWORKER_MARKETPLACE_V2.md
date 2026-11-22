@@ -109,7 +109,6 @@ focused catalog. Tool availability can change with server releases.
 | `lv2-dps` | Decisioning, `/mcp/decisioning` |
 | `lab-v2-ajo-clean` | AJO cleanup, `/mcp/ajo-cleanup` |
 | `lab-v2-ajo-oc` | Orchestrated Campaign dataset reads, `/mcp/ajo-oc-datasets` |
-| `lab-v2-command` | Command Centre, `/mcp/command-centre` |
 | `lab-v2-weather` | Weather, `/mcp/weather` |
 | `lab-v2-geo` | Geographic insights, `/mcp/geo-insights` |
 | `lab-v2-commerce` | Commerce, `/mcp/commerce` |
@@ -142,7 +141,7 @@ does not depend on the IMS-passthrough domain allowlist used by v1. This is not 
 general network-policy bypass; normal Coworker connection policy still applies.
 The earlier v1 discovery failure was not conclusively attributed to one cause.
 
-"One key" means all 20 connections share one user's current key, not one key for
+"One key" means all 19 connections share one user's current key, not one key for
 every user or sandbox. Changing that saved secret changes the identity/sandbox
 scope used by all 20. The Lab's principal, sandbox and tool-specific checks
 remain enforced. Snowflake and other services may still need the colleague's
