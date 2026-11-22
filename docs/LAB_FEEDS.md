@@ -16,7 +16,9 @@ read Firestore-cached data only; requests do not start a refresh.
       "soWhat": "A concise explanation of its relevance.",
       "sourceUrl": "https://example.com/article",
       "publishedAt": "2026-11-21T10:00:00.000Z",
-      "demoableInLab": false
+      "demoableInLab": false,
+      "id": "<64-hex sha256 of sourceUrl>",
+      "votes": { "up": 3, "down": 0 }
     }
   ],
   "meta": {
@@ -80,10 +82,25 @@ reviewed code change to protect server-side fetches. Individual publishers can
 also block or rate-limit fetches.
 
 `labFeeds/{feedId}/items/{sha256-of-source-url}` holds classifications with
-`expiresAt`. Configure Firestore's TTL policy for the `items` collection
-group and `expiresAt` field separately; until then the read endpoint filters
-expired items but Firestore will not delete them automatically. Latest run
+`expiresAt`. A Firestore TTL policy on the `items` collection group's
+`expiresAt` field deletes expired items; the read endpoint also filters them. Latest run
 counts, source status, errors, budget, and lease state are stored in
 `labFeeds/{feedId}`. Existing `/api/release-notes/summary` fallback responses
 remain explicitly labelled `fallback`; live responses no longer blend in
 bundled product highlights.
+
+## Feedback
+
+`POST /api/lab/feeds/{feedId}/feedback` with
+`Authorization: Bearer <Firebase ID token>` and body
+`{"id": "<item id>", "vote": "up" | "down" | "none"}` records one vote per
+signed-in, approved, non-anonymous user and item (`none` withdraws it). It
+returns `{ok, id, vote, votes: {up, down}}`; 400 for invalid input, 401/403
+for auth failures, 404 for unknown feeds or items, and 503 otherwise.
+
+Votes are stored at `labFeeds/{feedId}/feedback/{sha256(uid:itemId)}` with the
+item headline and category only, and counted on the item document. Items whose
+down-votes exceed up-votes by two or more are hidden from the read endpoint.
+Each refresh passes up to 15 liked and 15 disliked headlines from the last 90
+days to Gemini as `labFeedback`, so future classifications calibrate relevance
+toward what lab users found useful. Already-classified items are not rescored.

@@ -1446,6 +1446,24 @@ html:not([data-aep-theme='dark']) body.home-new-page .home-release-drawer {
 }
 .home-radar__chip--comp { color: var(--cc-red); border-color: var(--cc-red-dim); background: var(--cc-red-dim); }
 .home-radar__chip--demo { color: var(--cc-green); border-color: var(--cc-green-dim); background: var(--cc-green-dim); }
+.home-radar__votes { display: flex; gap: 6px; margin-top: 10px; }
+.home-radar__vote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--cc-border);
+  background: transparent;
+  color: var(--cc-text-sec);
+  cursor: pointer;
+}
+.home-radar__vote:hover { border-color: var(--cc-text-dim); }
+.home-radar__vote:focus-visible { outline: 2px solid var(--cc-blue); outline-offset: 1px; }
+.home-radar__vote.is-active { color: var(--rs-text); border-color: var(--cc-blue); background: var(--cc-bg-raised); }
+.home-radar__vote span { font-family: var(--cc-mono); }
 
 @media (max-width: 900px) {
   .home-pulse { grid-template-columns: 1fr; }

@@ -27,9 +27,10 @@ function fakeDb() {
   });
   const collection = (path) => ({
     doc: (id) => doc(`${path}/${id}`),
-    orderBy: () => ({ limit: () => ({ get: async () => ({
+    orderBy: (field) => ({ limit: (count) => ({ get: async () => ({
       docs: [...docs.keys()].filter((key) => key.startsWith(`${path}/`) && !key.slice(path.length + 1).includes('/'))
-        .map(snap).sort((a, b) => b.data().publishedAt.localeCompare(a.data().publishedAt)).slice(0, 200),
+        .sort((a, b) => (docs.get(a)[field] < docs.get(b)[field] ? 1 : -1)).slice(0, count)
+        .map((key) => ({ id: key.slice(path.length + 1), ...snap(key) })),
     }) }) }),
   });
   return {
@@ -180,6 +181,55 @@ test('HTTP handler supports ETag and rejects unknown feeds', async () => {
   const missing = res();
   await service.handle({ method: 'GET', path: '/api/lab/feeds/nope', headers: {} }, missing);
   assert.equal(missing.code, 404);
+});
+
+test('feedback votes are counted per user, can change, and hide heavily down-voted items', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch'] });
+  const service = createService({ db, fetchFn: async () => response(), callGemini: classifier([]), now: () => fixed });
+  await service.refresh('tech-news');
+  const [item] = (await service.read('tech-news')).items;
+  assert.match(item.id, /^[0-9a-f]{64}$/);
+  assert.deepEqual(item.votes, { up: 0, down: 0 });
+  assert.deepEqual((await service.vote('tech-news', 'a', { id: item.id, vote: 'up' })).votes, { up: 1, down: 0 });
+  assert.deepEqual((await service.vote('tech-news', 'a', { id: item.id, vote: 'up' })).votes, { up: 1, down: 0 });
+  assert.deepEqual((await service.vote('tech-news', 'a', { id: item.id, vote: 'down' })).votes, { up: 0, down: 1 });
+  assert.equal((await service.read('tech-news')).items.length, 1);
+  await service.vote('tech-news', 'b', { id: item.id, vote: 'down' });
+  assert.equal((await service.read('tech-news')).items.length, 0);
+  await service.vote('tech-news', 'b', { id: item.id, vote: 'none' });
+  assert.deepEqual((await service.read('tech-news')).items[0].votes, { up: 0, down: 1 });
+  await assert.rejects(service.vote('tech-news', 'a', { id: 'x', vote: 'up' }), (e) => e.status === 400);
+  await assert.rejects(service.vote('tech-news', 'a', { id: 'f'.repeat(64), vote: 'up' }), (e) => e.status === 404);
+});
+
+test('refresh passes recent liked and disliked headlines to Gemini', async () => {
+  const db = fakeDb();
+  db.docs.set('labFeedConfig/tech-news', { ...DEFAULTS['tech-news'], sources: ['techcrunch'] });
+  db.docs.set('labFeeds/tech-news/feedback/1', { vote: 'up', headline: 'Liked', category: 'CRM', updatedAt: fixed });
+  db.docs.set('labFeeds/tech-news/feedback/2', { vote: 'down', headline: 'Disliked', category: 'AI', updatedAt: fixed });
+  db.docs.set('labFeeds/tech-news/feedback/3', { vote: 'up', headline: 'Old', category: 'AI', updatedAt: new Date('2026-01-01T00:00:00Z') });
+  const inputs = [];
+  const base = classifier([]);
+  const service = createService({ db, fetchFn: async () => response(), now: () => fixed,
+    callGemini: async (system, input, options) => { inputs.push({ system, input: JSON.parse(input) }); return base(system, input, options); } });
+  await service.refresh('tech-news');
+  assert.deepEqual(inputs[0].input.labFeedback, { liked: [{ headline: 'Liked', category: 'CRM' }], disliked: [{ headline: 'Disliked', category: 'AI' }] });
+  assert.match(inputs[0].system, /labFeedback/);
+});
+
+test('feedback endpoint requires POST and an authorized user', async () => {
+  const unauthorized = Object.assign(new Error('Sign in'), { status: 401 });
+  const service = createService({ db: fakeDb(), callGemini: classifier([]), now: () => fixed, authorize: async () => { throw unauthorized; } });
+  const res = () => ({ headers: {}, set(k, v) { this.headers[k] = v; return this; },
+    status(code) { this.code = code; return this; }, json(value) { this.body = value; return this; } });
+  const denied = res();
+  await service.handle({ method: 'POST', path: '/api/lab/feeds/tech-news/feedback', headers: {}, body: {} }, denied);
+  assert.equal(denied.code, 401);
+  assert.equal(denied.headers['Cache-Control'], 'private, no-store');
+  const get = res();
+  await service.handle({ method: 'GET', path: '/api/lab/feeds/tech-news/feedback', headers: {} }, get);
+  assert.equal(get.code, 405);
 });
 
 test('legacy live release summary never mixes in bundled fallback products', async () => {
