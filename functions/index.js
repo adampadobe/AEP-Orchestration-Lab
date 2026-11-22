@@ -352,6 +352,26 @@ Object.assign(exports, registerLabUsageRoutes({
   setCors,
 }));
 
+/** Hourly aggregate-only roll-up of labUsageEvents into labUsageAggregates (home page heat map). */
+exports.labUsageRollup = onSchedule(
+  { schedule: 'every 60 minutes', region: REGION, timeoutSeconds: 300, memory: '256MiB' },
+  async () => {
+    const { runRollup } = require('./labUsageHeatmap');
+    await runRollup({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
+
+Object.assign(exports, require('./labWhatsNew').registerWhatsNewRoutes({ onRequest, fnOpts: CONSENT_STORE_FN_OPTS, setCors }));
+
+/** Every 30 minutes: cache open pull requests for the home page "What's new → in progress" list. */
+exports.labWhatsNewRefresh = onSchedule(
+  { schedule: 'every 30 minutes', region: REGION, timeoutSeconds: 60, memory: '256MiB' },
+  async () => {
+    const { refreshInProgress } = require('./labWhatsNew');
+    await refreshInProgress({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
+
 /**
  * Snowflake handlers route ALL outbound traffic through the Serverless VPC
  * Access connector `snowflake-egress`, which exits Cloud NAT through the

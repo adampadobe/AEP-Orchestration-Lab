@@ -83,21 +83,22 @@ documents. The collector uses the public configuration's strict route allowlist
 and the live Firebase SDK identity, **never stored email hints**. It does not
 sign in anonymously or instrument the AEP demo profile.
 
-The inventory at implementation time contained 111 top-level HTML files:
-83 used the shared navigation and 72 also loaded Firebase Auth compat.
-The initial allowlist deliberately covers **19 core lab pages**:
+The allowlist is generated from the sidebar catalogue: `npm run
+build:lab-nav-catalogue` reads the `NAV` array in `aep-lab-nav.js` (plus the
+classic home and Profile pages) and writes `functions/labNavCatalogue.json`.
+A page is **tracked** only if its HTML exists, loads the shared nav and Firebase
+Auth compat scripts, and is not a redirect; untracked nav pages stay in the
+catalogue for labels but are never accepted. The server still validates exact
+`/profile-viewer/*.html` paths. CI runs `npm run verify:lab-nav-catalogue`, so a
+nav change without a regenerated catalogue fails validation. The original 19
+core pages remain tracked (35 at the time of writing).
 
-`home.html`, `home-new.html`, `global-settings.html`, `profile.html`,
-`schema-viewer.html`, `audience-membership.html`, `profile-generation.html`,
-`consent.html`, `journeys.html`, `event-tool.html`, `webhooks.html`,
-`live-activities.html`, `brand-scraper.html`, `image-hosting.html`,
-`firebase-database.html`, `audit-events.html`, `mcp-servers.html`,
-`usage-statistics.html`, and `journey-arbitration-v3.html`.
-
-Global values and Journey arbitration now load the existing Firebase Auth
-compat/config pattern so these two core pages can use the real signed-in
-identity. The inventory test requires every allowlisted route to exist, load
+The inventory test requires every allowlisted route to exist, load
 the shared nav/Auth scripts, and not be a redirect.
+
+Signed-in lab users can also read **aggregate** page-view counts through the
+home page heat map (`GET /api/lab/usage/heatmap`); see
+[LAB_HOME_DATA.md](LAB_HOME_DATA.md). The visitor notice says so.
 
 When enabled, the collector inserts a visible, theme-token-based usage notice
 in the main content **before sending any event**, after auth and visible content

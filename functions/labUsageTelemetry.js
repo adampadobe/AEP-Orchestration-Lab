@@ -7,15 +7,12 @@ const DAY_MS = 86400000;
 const SKEW_MS = 5 * 60000;
 const RATE_LIMIT = 60;
 const RETENTION_DAYS = 90;
-const ROUTES = Object.freeze([
-  'home.html', 'home-new.html', 'global-settings.html', 'profile.html',
-  'schema-viewer.html', 'audience-membership.html', 'profile-generation.html', 'consent.html',
-  'journeys.html', 'event-tool.html', 'webhooks.html', 'live-activities.html',
-  'brand-scraper.html', 'image-hosting.html', 'firebase-database.html',
-  'audit-events.html', 'mcp-servers.html', 'usage-statistics.html',
-  'journey-arbitration-v3.html',
-].map((page) => '/profile-viewer/' + page));
-const NOTICE = 'Lab usage reporting: signed-in page visits, successful lab logins and capped visible/recently-active time estimates are linked to your account and visible only to the lab owner. No keystrokes, query strings, profile data, referrers or page contents are collected. Detailed events are eligible for deletion after 90 days.';
+// Generated from the sidebar NAV by scripts/build-lab-nav-catalogue.mjs (CI checks it is current).
+const CATALOGUE = require('./labNavCatalogue.json');
+const ROUTES = Object.freeze(CATALOGUE.pages
+  .filter((page) => page.tracked && /^\/profile-viewer\/[a-z0-9][a-z0-9/_.-]*\.html$/i.test(page.route))
+  .map((page) => page.route));
+const NOTICE = 'Lab usage reporting: signed-in page visits, successful lab logins and capped visible/recently-active time estimates are linked to your account and visible only to the lab owner. Signed-in lab users can also see anonymous, aggregate page-view counts (never names, emails or per-person activity) in the home page heat map. No keystrokes, query strings, profile data, referrers or page contents are collected. Detailed events are eligible for deletion after 90 days.';
 
 function telemetryEnabled() {
   return process.env.LAB_USAGE_TELEMETRY_ENABLED === 'true';
@@ -190,6 +187,6 @@ function summarizeTelemetry({ records, users, now, days, truncated, enabled }) {
 }
 
 module.exports = {
-  ROUTES, NOTICE, EVENT_LIMIT, telemetryEnabled, requireTelemetryUser, validateEvent,
+  CATALOGUE, ROUTES, NOTICE, DAY_MS, RETENTION_DAYS, EVENT_LIMIT, telemetryEnabled, requireTelemetryUser, validateEvent,
   collectEvent, readTelemetry, summarizeTelemetry,
 };
