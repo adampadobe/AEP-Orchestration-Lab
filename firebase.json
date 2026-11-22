@@ -236,6 +236,41 @@
         }
       },
       {
+        "source": "/api/image-hosting/drive/**",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/drive",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/backups/**",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/backups",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/sandboxes-used",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/image-hosting/library/**",
         "function": {
           "functionId": "imageHostingLibrary",

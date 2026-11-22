@@ -187,6 +187,8 @@ const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
 const imageHostingExports = lazyRequireMod('./imageHostingExports');
+const imageHostingDrive = lazyRequireMod('./imageHostingDrive');
+const imageHostingBackups = lazyRequireMod('./imageHostingBackups');
 const brandScrapeStore = lazyRequireMod('./brandScrapeStore');
 const clientJourneyAssetV2Service = lazyRequireMod('./clientJourneyAssetV2Service');
 const clientJourneyAssetV2ImportService = lazyRequireMod('./clientJourneyAssetV2ImportService');
@@ -4675,6 +4677,91 @@ exports.demoUseCasePptx = onRequest(
  *   POST   /api/image-hosting/library/rename          { sandbox, relPath, newRelPath }
  *   POST   /api/image-hosting/library/folder          { sandbox, folder } — empty folder marker
  */
+exports.imageHostingPrivate = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 540, memory: '1GiB' },
+  async (req, res) => {
+    setCors(res, 'GET, POST, DELETE, OPTIONS');
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    if (req.method === 'OPTIONS') { res.status(204).end(); return; }
+    try {
+      const claims = await labUserSandboxStore.verifyIdTokenClaimsFromRequest(req);
+      if (!claims || claims.isAnonymous) {
+        res.status(401).json({ ok: false, error: 'Non-anonymous Firebase authentication required.' });
+        return;
+      }
+      const uid = claims.uid;
+      const path = String(req.path || '').replace(/\/+$/, '');
+      const body = req.body && typeof req.body === 'object' ? req.body : {};
+      let result;
+      if (path === '/api/image-hosting/drive' && req.method === 'GET') {
+        result = await imageHostingDrive.list(uid, String(req.query.path || ''), req.query.cursor);
+      } else if (path === '/api/image-hosting/drive/folder' && req.method === 'POST') {
+        result = await imageHostingDrive.folder(uid, body.path);
+      } else if (path === '/api/image-hosting/drive/upload' && req.method === 'POST') {
+        result = await imageHostingDrive.upload(uid, body.path, body.files, body);
+      } else if (path === '/api/image-hosting/drive/move' && req.method === 'POST') {
+        result = await imageHostingDrive.move(uid, body.from, body.to);
+      } else if (path === '/api/image-hosting/drive/rename' && req.method === 'POST') {
+        const from = imageHostingDrive.pathOf(body.path);
+        const newName = imageHostingDrive.pathOf(body.newName);
+        if (newName.includes('/')) throw imageHostingDrive.error('newName must be a single path segment.');
+        const parent = from.lastIndexOf('/');
+        result = await imageHostingDrive.move(uid, from, `${parent < 0 ? '' : from.slice(0, parent + 1)}${newName}`);
+      } else if (path === '/api/image-hosting/drive' && req.method === 'DELETE') {
+        result = await imageHostingDrive.remove(uid, body.paths);
+      } else if (path === '/api/image-hosting/sandboxes-used' && req.method === 'GET') {
+        result = await imageHostingBackups.sandboxesUsed();
+      } else if (path === '/api/image-hosting/backups' && req.method === 'GET') {
+        result = await imageHostingBackups.list(uid);
+      } else if (path === '/api/image-hosting/backups' && req.method === 'POST') {
+        result = await imageHostingBackups.create(uid, body.sandboxes);
+      } else {
+        const match = /^\/api\/image-hosting\/backups\/([^/]+)(?:\/(files|download|restore|restore\/preview))?$/.exec(path);
+        if (!match) { res.status(404).json({ ok: false, error: 'Not found.' }); return; }
+        const id = match[1];
+        const action = match[2] || '';
+        if (!action && req.method === 'GET') {
+          result = { backup: await imageHostingBackups.get(uid, id) };
+        } else if (!action && req.method === 'DELETE') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.remove(uid, id));
+        } else if (action === 'files' && req.method === 'GET') {
+          result = await imageHostingBackups.files(uid, id, req.query.cursor);
+        } else if (action === 'download' && req.method === 'GET') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.download(uid, id));
+        } else if (action === 'restore/preview' && req.method === 'POST') {
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.preview(uid, id, body));
+        } else if (action === 'restore' && req.method === 'POST') {
+          const profile = await labUserSandboxStore.getWorkspaceProfile(uid);
+          const workspaceSlug = normalizeLdapSlug(profile && profile.workspaceSlug);
+          if (!workspaceSlug || !await labRtdbProvisionService.userOwnsWorkspace(null, uid, workspaceSlug)) {
+            res.status(403).json({ ok: false, error: 'An owned lab workspace is required before modifying Image Hosting.' });
+            return;
+          }
+          result = await imageHostingDrive.withLock(require('firebase-admin').firestore(), uid,
+            () => imageHostingBackups.restore(uid, id, body, {
+              acquireSandboxLock: (sandbox) => labDemoCustomerService.acquireLegacyWrite({ uid, workspaceSlug, sandbox }),
+            }));
+        } else {
+          res.status(405).json({ ok: false, error: 'Method not allowed.' }); return;
+        }
+      }
+      res.status(200).json({ ok: true, ...result });
+    } catch (e) {
+      console.error('[imageHostingPrivate]', e.message);
+      res.status(Number(e.status) || 500).json({ ok: false, error: e.message || 'Image Hosting request failed.' });
+    }
+  }
+);
+
+exports.imageHostingBackupWorker = onDocumentCreated(
+  { document: 'imageHostingDrive/{uid}/backups/{backupId}', region: REGION,
+    timeoutSeconds: 540, memory: '1GiB', retry: true },
+  async (event) => imageHostingBackups.process(event.params.uid, event.params.backupId)
+);
+
 exports.imageHostingLibrary = onRequest(
   {
     region: REGION,
