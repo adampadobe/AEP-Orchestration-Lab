@@ -336,16 +336,14 @@ const CONSENT_STORE_FN_OPTS = {
   environmentVariables: consentStoreRuntimeEnv(),
 };
 
+// Firebase v2 ignores the environmentVariables runtime option, so the switch is passed in code.
+const LAB_USAGE_TELEMETRY_ENABLED = true;
+
 Object.assign(exports, registerLabUsageRoutes({
   onRequest,
-  CONSENT_STORE_FN_OPTS: {
-    ...CONSENT_STORE_FN_OPTS,
-    environmentVariables: {
-      ...CONSENT_STORE_FN_OPTS.environmentVariables,
-      LAB_USAGE_TELEMETRY_ENABLED: 'true',
-    },
-  },
+  CONSENT_STORE_FN_OPTS,
   setCors,
+  isTelemetryEnabled: () => LAB_USAGE_TELEMETRY_ENABLED,
 }));
 
 /** Hourly aggregate-only roll-up of labUsageEvents into labUsageAggregates (home page heat map). */

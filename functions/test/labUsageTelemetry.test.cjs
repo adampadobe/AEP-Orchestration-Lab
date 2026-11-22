@@ -250,6 +250,6 @@ test('route inventory exists, excludes redirects/embedded/SPA routes and is wire
   const hosting = Array.isArray(config.hosting) ? config.hosting : [config.hosting];
   const rewrite = hosting.flatMap((host) => host.rewrites || []).find((entry) => entry.source === '/api/lab/usage/events');
   assert.deepEqual(rewrite.function, { functionId: 'labUsageEvents', region: 'us-central1' });
-  assert.match(fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8'), /LAB_USAGE_TELEMETRY_ENABLED: 'true'/);
+  assert.match(fs.readFileSync(path.join(root, 'functions/index.js'), 'utf8'), /const LAB_USAGE_TELEMETRY_ENABLED = true;[\s\S]*isTelemetryEnabled: \(\) => LAB_USAGE_TELEMETRY_ENABLED/);
   assert.match(fs.readFileSync(path.join(root, 'web/profile-viewer/aep-lab-nav.js'), 'utf8'), /aep-lab-usage-telemetry\.js/);
 });
