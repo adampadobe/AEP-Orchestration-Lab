@@ -586,6 +586,13 @@
         }
       },
       {
+        "source": "/api/lab/feeds/**",
+        "function": {
+          "functionId": "labFeeds",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/webhook-listener",
         "function": {
           "functionId": "webhookListenerProxy",
