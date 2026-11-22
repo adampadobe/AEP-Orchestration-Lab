@@ -57,7 +57,10 @@ including failed attempts. Items beyond the cap are recorded as `deferred` and
 picked up on a later run; reaching the cap does not make a run partial. Runs
 with source or classification errors are reported as partial. Gemini does not
 echo source metadata: `sourceUrl` and `publishedAt` are always taken from the
-source, and summaries longer than 25 words are trimmed rather than rejected. A
+source. Harmless drift is repaired rather than rejected: summaries over 25
+words, headlines over 300 characters and lists over 20 entries or with entries
+over 100 characters are trimmed. Genuinely invalid output is rejected and the
+failing field is named in the run's `errors`. A
 Firestore lease prevents overlapping refreshes. The initial result appears
 only after a scheduled run; deployment does not execute one.
 
