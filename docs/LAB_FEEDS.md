@@ -53,12 +53,19 @@ classifies only newly observed URLs and changed AdobeDocs revisions; invalid
 model output is rejected. Source data is treated as untrusted input.
 Classifications below the relevance threshold remain hidden. Failed
 classifications can be retried on a later run. A daily UTC cap counts attempts,
-including failed attempts, and partial runs are reported as such. A
+including failed attempts. Items beyond the cap are recorded as `deferred` and
+picked up on a later run; reaching the cap does not make a run partial. Runs
+with source or classification errors are reported as partial. Gemini does not
+echo source metadata: `sourceUrl` and `publishedAt` are always taken from the
+source, and summaries longer than 25 words are trimmed rather than rejected. A
 Firestore lease prevents overlapping refreshes. The initial result appears
 only after a scheduled run; deployment does not execute one.
 
 `labFeedConfig/{feedId}` is seeded on first run, never overwritten by the
-service, and may be edited by an authorized Firestore administrator:
+service, and may be edited by an authorized Firestore administrator. Stored
+sources that no longer exist in code are skipped, so retiring a source (for
+example `venturebeat`) does not break refreshes; raise other changed defaults,
+such as `dailyCap`, in the stored document too:
 
 ```json
 {
@@ -66,7 +73,7 @@ service, and may be edited by an authorized Firestore administrator:
   "watchlist": ["Salesforce", "Oracle", "SAP", "Braze", "Twilio Segment", "Bloomreach", "Optimizely", "Contentsquare", "HubSpot", "Microsoft", "Google"],
   "threshold": 0.6,
   "promptVersion": "1",
-  "dailyCap": 40
+  "dailyCap": 100
 }
 ```
 

@@ -995,7 +995,7 @@ html[data-aep-theme='dark'] body.home-new-page {
 
 .cc-empty { margin: 0; font-size: 11px; color: var(--cc-text-dim); }
 
-.cc-access-panel.dashboard-panel {
+body.home-new-page .cc-access-panel.dashboard-panel {
   background: transparent;
   border: none;
   padding: 0;
@@ -1013,7 +1013,7 @@ html[data-aep-theme='dark'] body.home-new-page {
 
 .cc-quick-links__nav a {
   font-size: 12px;
-  color: var(--cc-blue);
+  color: var(--cc-red);
   text-decoration: none;
   padding: 4px 0;
   border-bottom: 1px solid var(--cc-border);
