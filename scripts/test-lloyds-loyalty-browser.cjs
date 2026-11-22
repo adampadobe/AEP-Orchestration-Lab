@@ -150,6 +150,9 @@ async function main() {
     });
     assert.equal(await page.locator('#sandboxSelect').isDisabled(), false, 'Sandbox is never pinned to the page author');
     assert.equal(await page.locator('#ContentCardContainer').count(), 1);
+    assert.equal(await page.locator('.ContentCardContainer, .ContentCardContainerLoyalty').count(), 0,
+      'Neither selector used by the supplied Tags renderer can target this website-owned page');
+    assert.equal(await page.locator('#loyaltyPromotionTitle').textContent(), 'Your challenges');
     assert.equal(await page.locator('.loyalty-phone #ContentCardContainerLoyalty').count(), 1,
       'The journey placement is inside the mobile app, not the hero or desktop rail');
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 0, 'No invented journey content before SDK response');
@@ -598,6 +601,7 @@ async function main() {
     assert.deepEqual(decision.personalization.surfaces, [sharedCardSurface],
       'Request the configured shared AJO channel, not the Lloyds document URL');
     assert.equal(await page.locator('#ContentCardContainerLoyalty h3').textContent(), '<b>Your rewards</b>');
+    assert.equal(await page.locator('.loyalty-card-controls').count(), 0, 'A single Content Card needs no carousel controls');
     const originalCard = await page.locator('#ContentCardContainerLoyalty article').elementHandle();
     const sdkCallsBeforeTabs = await page.evaluate(() => window.__sdkCalls.length);
     await homeTab.click();
@@ -895,6 +899,7 @@ async function main() {
     await page.evaluate(() => {
       window.__journeySubscriptions = [];
       window.__journeyTracking = [];
+      window.__journeyInteractions = [];
       window.__journeyCommands = [];
       window.__diagnosticMultiCard = true;
       window.alloy = async (command, options) => {
@@ -902,6 +907,7 @@ async function main() {
         if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
         if (command === 'sendEvent' && options.personalization?.surfaces?.[0] === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers') return { propositions: [] };
         if (command === 'subscribeRulesetItems') { window.__journeySubscriptions.push(options); return; }
+        if (options?.xdm?.eventType === 'decisioning.propositionInteract') window.__journeyInteractions.push(options);
         if (command === 'sendEvent' && options.personalization?.surfaces) {
           if (options.renderDecisions !== true || options.personalization.schemas !== undefined) {
             throw new Error('Use SDK ruleset evaluation and default supported schemas, not the legacy decision-only schema list');
@@ -918,7 +924,9 @@ async function main() {
               activity: { id: 'synthetic-activity', priority: 0 } };
             propositions[0].items.push({ id: 'second-native-card',
               schema: 'https://ns.adobe.com/personalization/message/content-card',
-              data: { content: { title: 'Second eligible card', body: 'Separate native content' },
+              data: { content: { title: 'Second eligible card', body: 'Separate native content',
+                imageUrl: 'https://example.invalid/second-card.png', dismissBtn: { style: 'button' },
+                buttons: [{ text: { content: 'Second reward CTA' }, interactId: 'secondReward' }] },
                 meta: { rank: 1, challengeId: 'synthetic-second-challenge' } } });
             propositions.push({ id: 'rules-card', scope: subscription.surfaces[0],
               scopeDetails: { decisionProvider: 'AJO', rank: 2 }, items: [{ id: 'rules-item', data: { rules: [{
@@ -968,6 +976,7 @@ async function main() {
     assert.equal(journey.tracking.length, 1);
     assert.equal(journey.tracking[0].type, 'display');
     assert.equal(journey.tracking[0].selected[0].items[0].id, 'native-card');
+    assert.equal(journey.tracking[0].selected[0].items.length, 1, 'Display attribution excludes hidden sibling items');
     const evaluatedDiagnostic = await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated());
     assert.equal(evaluatedDiagnostic.evaluated, true);
     assert.equal(evaluatedDiagnostic.totalPropositions, 3);
@@ -988,7 +997,112 @@ async function main() {
     assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').body, 'Rule body');
     assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').challengeId, 'synthetic-rule-challenge');
     assert.equal(evaluatedDiagnostic.inventory.find(entry => entry.consequenceId === 'first-content').rank, 3);
-    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 1, 'Diagnostics do not render the other eligible candidates');
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 4, 'Every valid candidate has its own Content Card');
+    const visibleCard = page.locator('#ContentCardContainerLoyalty article:not([hidden])');
+    const nextCard = page.getByRole('button', { name: 'Next challenge', exact: true });
+    const previousCard = page.getByRole('button', { name: 'Previous challenge', exact: true });
+    assert.equal(await visibleCard.count(), 1, 'Only one Content Card is visible');
+    assert.deepEqual(await page.locator('#ContentCardContainerLoyalty article h3').allTextContents(),
+      ['Delivered by the journey', 'Rule card', 'Another consequence', 'Second eligible card'],
+      'Descending effective Adobe rank determines the carousel order');
+    assert.equal(await page.locator('.loyalty-card-dots button').count(), 4);
+    const stateBeforeCardNavigation = await page.locator('#loyaltyTasks').innerHTML();
+    const featuredBeforeCardNavigation = await page.locator('#loyaltyFeaturedOffers').innerHTML();
+    const apiReadsBeforeCardNavigation = reads.length, signupsBeforeCardNavigation = signupRequests.length;
+    assert.equal(await page.evaluate(() => {
+      const propositions = [...window.__lastEvaluatedPropositions, {
+        scope: 'web://example.invalid/#ContentCardContainer', items: [{ data: { content: { title: { content: 'Generic' } } } }],
+      }];
+      let writes = 0;
+      propositions.forEach(payload => {
+        const scope = payload.scope || '';
+        const selector = scope.includes('ContentCardContainerLoyalty') ? '.ContentCardContainerLoyalty' :
+          scope.includes('ContentCardContainer') ? '.ContentCardContainer' : null;
+        if (!selector) return;
+        payload.items.forEach(item => {
+          if (!item.data?.content || item.data.content === 'undefined') return;
+          const container = document.querySelector(selector);
+          if (container) { container.innerHTML = '<p>Tags overwrite fixture</p>'; container.style.height = '500px'; writes++; }
+        });
+      });
+      return writes;
+    }), 0, 'Executing the supplied Tags selector/write paths cannot overwrite either Loyalty mount');
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Delivered by the journey');
+    await nextCard.click(); await waitForProfile();
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Rule card');
+    assert.equal(await page.evaluate(() => window.__journeyTracking.at(-1).selected[0].items[0].id), 'rules-item');
+    await nextCard.click(); await waitForProfile();
+    assert.equal(await visibleCard.getAttribute('data-consequence-id'), 'second-content');
+    await nextCard.click(); await waitForProfile();
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card');
+    assert.equal(await visibleCard.locator('p').textContent(), 'Separate native content');
+    assert.equal(await visibleCard.locator('img').getAttribute('src'), 'https://example.invalid/second-card.png');
+    assert.equal(await visibleCard.getAttribute('data-challenge-id'), 'synthetic-second-challenge');
+    const secondDisplay = await page.evaluate(() => window.__journeyTracking.at(-1));
+    assert.equal(secondDisplay.type, 'display');
+    assert.equal(secondDisplay.selected[0].id, 'journey-card');
+    assert.deepEqual(secondDisplay.selected[0].items.map(item => item.id), ['second-native-card']);
+    assert.equal(secondDisplay.selected[0].scopeDetails.characteristics.eventToken, 'synthetic-event-token');
+    await visibleCard.getByRole('button', { name: 'Second reward CTA' }).click(); await waitForProfile();
+    const secondInteraction = await page.evaluate(() => window.__journeyInteractions.at(-1));
+    assert.equal(secondInteraction.xdm._experience.decisioning.propositionAction.id, 'secondReward');
+    assert.deepEqual(secondInteraction.xdm._experience.decisioning.propositions[0].items.map(item => item.id), ['second-native-card']);
+    assert.equal(secondInteraction.xdm._experience.decisioning.propositions[0].scopeDetails.correlationID, 'synthetic-correlation');
+    assert.equal(secondInteraction.edgeConfigOverrides.datastreamId, 'native-fixture-stream');
+    assert.equal(secondInteraction.xdm.identityMap.Email[0].id, 'journey-fixture@example.invalid');
+    await page.evaluate(() => {
+      window.__lastEvaluatedPropositions[0].scopeDetails.characteristics.eventToken = 'refreshed-synthetic-token';
+      window.__deliverJourney();
+    }); await waitForProfile();
+    await visibleCard.getByRole('button', { name: 'Second reward CTA' }).click(); await waitForProfile();
+    assert.equal(await page.evaluate(() => window.__journeyInteractions.at(-1).xdm._experience.decisioning
+      .propositions[0].scopeDetails.characteristics.eventToken), 'refreshed-synthetic-token',
+      'Refreshed attribution tokens update click context even when card content and IDs are unchanged');
+    await page.evaluate(() => window.__deliverJourney()); await waitForProfile();
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card', 'Duplicate callbacks preserve carousel position');
+    const displaysBeforeRevisit = await page.evaluate(() => window.__journeyTracking.length);
+    await previousCard.click(); await waitForProfile();
+    await nextCard.click(); await waitForProfile();
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), displaysBeforeRevisit,
+      'Revisiting unchanged slides does not repeat display collection');
+    const slides = page.locator('.loyalty-card-slides');
+    await slides.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 23, clientX: 250, clientY: 100 });
+    await slides.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 23, clientX: 245, clientY: 190 });
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Second eligible card', 'Vertical scrolling does not navigate cards');
+    await slides.dispatchEvent('pointerdown', { pointerType: 'touch', pointerId: 24, clientX: 250, clientY: 100 });
+    await slides.dispatchEvent('pointerup', { pointerType: 'touch', pointerId: 24, clientX: 100, clientY: 105 });
+    await waitForProfile();
+    assert.equal(await visibleCard.locator('h3').textContent(), 'Delivered by the journey', 'Horizontal swipe advances and wraps the Content Card carousel');
+    await page.locator('.loyalty-card-dots button').last().click(); await waitForProfile();
+    assert.equal(await page.locator('.loyalty-card-dots button[aria-current="true"]').count(), 1);
+    assert.equal(await page.locator('#loyaltyTasks').innerHTML(), stateBeforeCardNavigation);
+    assert.equal(await page.locator('#loyaltyFeaturedOffers').innerHTML(), featuredBeforeCardNavigation);
+    assert.equal(reads.length, apiReadsBeforeCardNavigation, 'Content Card navigation never calls Loyalty APIs');
+    assert.equal(signupRequests.length, signupsBeforeCardNavigation, 'Content Card navigation never enrols the member');
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => document.documentElement.setAttribute('data-aep-theme', theme), theme);
+      assert.equal(await visibleCard.count(), 1);
+      assert.equal(await page.evaluate(() => {
+        const mount = document.getElementById('ContentCardContainerLoyalty');
+        return mount.scrollWidth <= mount.clientWidth + 1;
+      }), true, 'Content Cards fit the phone in ' + theme + ' mode');
+      if (process.env.AEP_LOYALTY_SCREENSHOT) await page.locator('.loyalty-promotion').screenshot({
+        path: process.env.AEP_LOYALTY_SCREENSHOT.replace(/\.png$/, '-content-cards-' + theme + '.png'),
+      });
+    }
+    await page.locator('[data-loyalty-preview="web"]').click();
+    assert.equal(await visibleCard.count(), 1, 'Hidden slides remain hidden in the desktop grid layout');
+    assert.equal(await page.locator('#loyaltyWebChallenge .loyalty-card-controls').count(), 1);
+    await page.locator('[data-loyalty-preview="mobile"]').click();
+    await page.evaluate(() => document.documentElement.removeAttribute('data-aep-theme'));
+    await visibleCard.getByRole('button', { name: 'Dismiss', exact: true }).click(); await waitForProfile();
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 3);
+    assert.equal(await page.locator('.loyalty-card-dots button').count(), 3);
+    const dismissal = await page.evaluate(() => window.__journeyTracking.find(event => event.type === 'dismiss'));
+    assert.deepEqual(dismissal.selected[0].items.map(item => item.id), ['second-native-card']);
+    await page.evaluate(() => window.__deliverJourney()); await waitForProfile();
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 3, 'Duplicate delivery cannot resurrect a dismissed card');
+    const eventsAfterCarousel = await page.evaluate(() => window.__journeyTracking.length);
     assert.equal(JSON.parse(await page.locator('#loyaltyCardPreselectionEvidence').textContent()).totalContentCardCandidates, 4);
     assert.equal(JSON.parse(await page.locator('#loyaltyEvidence').textContent()).proposition.id, 'journey-card',
       'Existing selected-card evidence remains unchanged');
@@ -1004,11 +1118,12 @@ async function main() {
     await page.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled);
     assert.match(await page.locator('#loyaltyStatus').textContent(), /unchanged/i,
       'An unchanged subscription update completes the loading state');
-    assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1);
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), eventsAfterCarousel);
+    assert.equal(await page.locator('.loyalty-card-controls').count(), 0, 'Controls are removed when the delivery becomes single-card');
     assert.equal(await page.evaluate(() => window.LloydsLoyaltyContentCardDebug.getEvaluated().totalPropositions), 1,
       'A missing optional diagnostic panel cannot block capture or existing card rendering');
     await page.evaluate(() => window.__deliverJourney());
-    assert.equal(await page.evaluate(() => window.__journeyTracking.length), 1,
+    assert.equal(await page.evaluate(() => window.__journeyTracking.length), eventsAfterCarousel,
       'Repeated ruleset callbacks cannot loop display collection');
     await page.evaluate(() => { window.__journeyTitle = 'Updated journey content'; window.__staleDirectResponse = true; });
     await page.locator('#loyaltyRun').click();
@@ -1353,6 +1468,47 @@ async function main() {
     assert.equal(await page.locator('#loyaltyPartnerOffers [data-loyalty-purchase]').count(), 3,
       'Static challenge offers remain until real ingestion and Loyalty evaluation have been verified');
     assert.equal(await page.locator('.loyalty-phone-tick').count(), 0);
+    await page.evaluate(() => {
+      const callback = window.__loyaltySubscription.callback;
+      window.__loyaltySubscription.callback = (result, collect) => {
+        if (window.__additionalSignupCard && result.propositions.length) {
+          result.propositions[0].scopeDetails.rank = 2;
+          const second = structuredClone(result.propositions[0]);
+          second.id = 'signup-second-proposition'; second.scopeDetails.rank = 1;
+          second.items[0].id = 'signup-second-item';
+          const consequence = second.items[0].data.rules[0].consequences[0];
+          consequence.id = 'signup-second-consequence';
+          consequence.detail.data.meta.challengeId = 'carousel-second-fixture';
+          consequence.detail.data.content.title.content = 'Second signup challenge';
+          result.propositions.push(second);
+        }
+        return callback(result, collect);
+      };
+      window.__additionalSignupCard = true; window.__deliverSignupCard();
+    });
+    await waitForProfile();
+    assert.equal(await page.locator('.loyalty-card-dots button').count(), 2, 'Two independent Journey propositions have two slides');
+    const partnerStateBeforeNavigation = await page.locator('#loyaltyPartnerOffers').innerHTML();
+    const sendsBeforeJoinedNavigation = (await loyaltySends()).length, signupsBeforeJoinedNavigation = signupRequests.length;
+    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForProfile();
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article:not([hidden]) h3').textContent(), 'Second signup challenge');
+    await page.getByRole('button', { name: 'Previous challenge', exact: true }).click(); await waitForProfile();
+    assert.equal(await page.locator('#loyaltyPartnerOffers').innerHTML(), partnerStateBeforeNavigation,
+      'Moving to an unjoined card and back leaves the joined challenge and purchase receipts intact');
+    assert.equal((await loyaltySends()).length, sendsBeforeJoinedNavigation);
+    assert.equal(signupRequests.length, signupsBeforeJoinedNavigation);
+    await page.getByRole('button', { name: 'Next challenge', exact: true }).click(); await waitForProfile();
+    await page.locator('#ContentCardContainerLoyalty article:not([hidden]) [data-interact-id="joinChallenge"]').click();
+    await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Challenge Joined.'));
+    assert.equal(signupRequests.length, signupsBeforeJoinedNavigation + 1);
+    assert.equal(signupRequests.at(-1).challenge_id, 'carousel-second-fixture', 'The second CTA enrols only its own delivered challenge');
+    const secondSignupTracking = (await signupInteractions()).at(-1);
+    assert.equal(secondSignupTracking.xdm._experience.decisioning.propositions[0].id, 'signup-second-proposition');
+    assert.deepEqual(secondSignupTracking.xdm._experience.decisioning.propositions[0].items.map(item => item.id), ['signup-second-item']);
+    assert.equal(await page.locator('#loyaltyPartnerOffers').getAttribute('data-challenge-id'), 'carousel-second-fixture',
+      'The clicked card retains its participation context through the existing post-signup state refresh');
+    await page.evaluate(() => { window.__additionalSignupCard = false; window.__deliverSignupCard(); });
+    await waitForProfile();
     await page.evaluate(() => { window.__cardChallengeId = 'challenge-two-fixture'; window.__deliverSignupCard(); window.__rejectLoyaltyTracking = true; });
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false, 'A new delivered challenge cannot reuse the previous signup');
     await joinButton.click();

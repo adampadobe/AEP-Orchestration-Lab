@@ -95,7 +95,7 @@
     try { const url = new URL(raw, base); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; }
     catch { return ''; }
   }
-  function selectCard(propositions, surface) {
+  function selectCards(propositions, surface) {
     const candidates = [];
     const rank = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value)) ? Number(value) : -Infinity;
     for (const proposition of propositions || []) {
@@ -130,11 +130,14 @@
         }
       }
     }
-    return candidates.reduce((best, value) => !best || value.rank > best.rank ? value : best, null);
+    return candidates.sort((left, right) => left.rank === right.rank ? 0 : left.rank > right.rank ? -1 : 1);
+  }
+  function selectCard(propositions, surface) {
+    return selectCards(propositions, surface)[0] || null;
   }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, partnerOffers };
+    progress, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

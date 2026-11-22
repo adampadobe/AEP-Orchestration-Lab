@@ -305,8 +305,14 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    can evaluate the subscribed rulesets again. **Refresh content card** is an
    optional explicit refresh, not an enablement step. No background polling or
    automatic event retry is added.
-   The highest-ranked renderable JSON card is used; a hero proposition is never
-   treated as a card. JSON title/body, image, action buttons and dismissal follow
+   **Your challenges** renders every matching renderable JSON Content Card.
+   One card has no carousel controls; multiple cards have independent previous/next
+   controls, pagination dots and horizontal touch swipes, with one card visible.
+   This AJO Content Card carousel is not the Featured Offers Decisioning carousel.
+   Cards are ordered by descending effective rank (`data.meta.rank`, then
+   `scopeDetails.rank`), preserving response order for ties and placing unranked
+   cards last. This retains the old selector's highest-ranked first card.
+   A hero proposition is never treated as a card. JSON title/body, image, action buttons and dismissal follow
    the supplied Luma content-card contract. Direct decision-response JSON cards
    remain supported. Native AJO string `title`/`body`, `imageUrl`, `actionUrl`
    and `meta.buttonLabel` are also supported. The request enables SDK ruleset
@@ -316,14 +322,15 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    and [`subscribeRulesetItems`](https://experienceleague.adobe.com/en/docs/experience-platform/collection/js/commands/subscriberulesetitems).
 
    Temporary read-only Content Card diagnostics capture the complete callback
-   `propositions` before single-card selection. Open **Last successful response /
+   `propositions` before ranking/presentation. Open **Last successful response /
    proposition evidence → Content Card pre-selection diagnostics** beneath the
    demo, or run `window.LloydsLoyaltyContentCardDebug.getEvaluated()` in DevTools.
    Its `propositions` preserves the full response array. `inventory` lists every
    matching-surface item/consequence, including rejected/default entries, with
    title/body, CTA, challenge metadata, rank, priority and original attribution
    fields. `totalContentCardCandidates` counts candidates accepted by the existing
-   selector; `selectedCandidate` reports its unchanged winner. `totalPropositions`
+   selector; `selectedCandidate` reports the highest-ranked first candidate for
+   backwards-compatible evidence. `totalPropositions`
    counts the full input array; `surfacePropositions` counts exact surface matches.
 
    `window.LloydsLoyaltyContentCardDebug.getLatest()` also exposes direct-response
@@ -333,16 +340,35 @@ preview, not a native Mobile SDK integration or journey authoring interface.
    page memory only, preserve opaque event tokens without decoding them and send
    no additional SDK requests or tracking events. Treat exported evidence as
    profile-specific data; do not publish tokens or check live responses into Git.
-   The existing selected-card evidence and customer-facing rendering are unchanged.
+   The main proposition evidence shows the currently visible card and its position.
 5. Explicit card display/click events retain the original proposition ID, scope,
    scope details, selected item and selection metadata, SDK identity and
    datastream override. Native journey cards use the SDK-provided `collectEvent`
    for display, interaction and dismissal. Duplicate callbacks do not repeatedly
-   collect display events, and callbacks for a previous profile/sandbox are
+   collect display events. Hidden slides do not collect display events until
+   selected; revisiting an unchanged card does not collect again. Each display,
+   click and dismissal uses only that card's original item, retaining its
+   proposition scope details and opaque tokens, never all sibling items.
+   A dismissed card leaves the carousel without changing member challenge state.
+   Navigation never switches the joined challenge or resets purchase receipts.
+   Joining still uses the clicked card's `meta.challengeId` and existing signup API.
+   Callbacks for a previous profile/sandbox are
    ignored. Failures are not retried automatically. Missing card
    content does not establish that the member has no challenges. The authored
    hero remains on the page; `manageMounts:false` prevents the manual runtime
    from replacing or relocating the authored mounts.
+
+   **Renderer ownership:** this page's evaluated website renderer is authoritative.
+   The supplied Adobe Tags action selects `.ContentCardContainerLoyalty` for the
+   Loyalty surface and `.ContentCardContainer` for generic card surfaces, then
+   replaces `innerHTML`. Neither class exists on this page: the retained
+   `#ContentCardContainer` wrapper uses `loyalty-card-wrapper`, and
+   `#ContentCardContainerLoyalty` uses `ContentCardLoyalty` with
+   `data-content-card-renderer="website"`. Thus that Tags action finds no target,
+   including for generic propositions, and cannot overwrite the carousel or set
+   its height to 500px. Surface URIs and IDs are unchanged; the shared Tags action
+   is not edited or republished, preserving other pages' rendering. Do not add
+   either Tags-target class to this page or retarget that action to these IDs.
 6. To express interest for the separately configured **Interested in Rewards**
    edge audience, load an AEP test
    profile, inject Tags/Web SDK, and select the reviewed event datastream and event

@@ -14,7 +14,7 @@
   const stateChallengeName = challenge => [challenge?.challengeName, challenge?.name].find(value =>
     typeof value === 'string' && value.trim() && value.trim() !== challenge.challenge_id)?.trim() || '';
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
-  let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, displayedCard = '';
+  let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, contentCards = null;
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
@@ -25,6 +25,7 @@
     getEvaluated: () => readContentCardEvidence(evaluatedContentCardEvidence),
   });
   const availableMessages = new Map();
+  const contentCardDisplays = new Set(), contentCardDismissals = new Set();
   const purchaseReceipts = new Map();
   const signupReceipts = new Map();
   const activatedOffers = new Map();
@@ -157,6 +158,7 @@
     $('loyaltyAbandon').disabled = busy || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
     document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
+    cardMount().querySelectorAll('.loyalty-card-controls button').forEach(button => { button.disabled = busy || !loaded; });
     syncSignupButtons();
   }
   function closeConfiguration() {
@@ -175,7 +177,7 @@
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyWebNotice').textContent = '';
     $('loyaltyPartnerOffers').replaceChildren(); $('loyaltyPartnerOffers').hidden = true;
-    displayedCard = '';
+    contentCards = null; contentCardDisplays.clear(); contentCardDismissals.clear();
     cardMount().replaceChildren(); $('loyaltyTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     $('loyaltyPhoneTasks').replaceChildren(node('p', 'State not loaded for this context.', 'loyalty-empty'));
     availableMessages.clear();
@@ -187,7 +189,7 @@
     contentCardEvidence = evaluatedContentCardEvidence = null;
     const diagnosticPanel = $('loyaltyCardPreselectionEvidence');
     if (diagnosticPanel) diagnosticPanel.textContent = 'No Content Card response captured for this context.';
-    $('loyaltyCardHint').textContent = 'Your next challenge will appear here.';
+    $('loyaltyCardHint').textContent = 'Your challenges will appear here.';
   }
   function invalidate(clearProfile) {
     version++; aborter?.abort(); pendingProfile = null; pendingTaskState = false; automaticTaskState = null; autoBlocked = true; clearResults();
@@ -417,11 +419,14 @@
     const ctx = context();
     cardMount().querySelectorAll('[data-interact-id="joinChallenge"]').forEach(button => {
       const receipt = signupReceipts.get(signupKey(ctx, loaded?.profileLoyaltyId, button.dataset.challengeId));
-      button.disabled = busy || !!receipt;
+      const alreadyJoined = memberChallenges.some(challenge =>
+        challenge.challenge_id === button.dataset.challengeId && challenge.optedIn === true);
+      button.disabled = busy || !!receipt || alreadyJoined;
       button.textContent = receipt?.state === 'joined' ? 'Challenge Joined' :
         receipt?.state === 'already' ? 'Challenge Already Joined' :
         receipt?.state === 'unknown' ? 'Check challenge status' :
-        receipt?.state === 'pending' ? 'Joining Challenge...' : button.dataset.joinLabel;
+        receipt?.state === 'pending' ? 'Joining Challenge...' :
+        alreadyJoined ? 'Challenge Already Joined' : button.dataset.joinLabel;
     });
     document.querySelectorAll('[data-available-join]').forEach(button => {
       const receipt = signupReceipts.get(signupKey(ctx, loaded?.profileLoyaltyId, button.dataset.availableJoin));
@@ -505,7 +510,8 @@
     }
     const { result, receipt } = await submitSignup(ctx, token, challengeId, member);
     same(ctx, token);
-    joinedChallenge = { id: challengeId, title: candidate.content.title?.content || 'Your challenge', confirmed: true };
+    deliveredChallenge = { id: challengeId, title: candidate.content.title?.content || 'Your challenge' };
+    joinedChallenge = { ...deliveredChallenge, confirmed: true };
     purchaseReceipts.clear(); renderPartnerOffers(); renderPendingChallenge(); syncSignupButtons();
     const evidence = { sandbox: ctx.sandbox, signup: result, enrollmentVerified: true,
       journeyEntryVerified: false, proposition: candidate.proposition,
@@ -1218,7 +1224,7 @@
         web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
         _experience: { decisioning: {
           propositions: [{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails,
-            items: proposition.items.map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}),
+            items: [candidate.item].map(item => ({ id: item.id, ...(item.name ? { name: item.name } : {}),
               ...(item.itemSelection ? { itemSelection: item.itemSelection } : {}) })) }],
           propositionEventType: { [kind]: 1 },
           ...(button ? { propositionAction: { id: button.interactId || button.id || candidate.consequenceId, label: button.text?.content || 'Open reward' } } : {}),
@@ -1226,6 +1232,10 @@
   }
   function renderCard(candidate, captured, ctx, token) {
     const content = candidate.content, card = node('article', undefined, 'loyalty-content-card');
+    card.tabIndex = -1;
+    card.dataset.propositionId = candidate.proposition.id; card.dataset.itemId = candidate.item.id;
+    card.dataset.consequenceId = candidate.consequenceId;
+    if (typeof candidate.meta.challengeId === 'string') card.dataset.challengeId = candidate.meta.challengeId;
     const imageUrl = model.safeUrl(content.image?.url, location.href);
     if (imageUrl) { const image = node('img'); image.src = imageUrl; image.alt = content.image?.alt || ''; card.append(image); }
     const body = node('div', undefined, 'loyalty-content-card-body');
@@ -1251,8 +1261,9 @@
               return;
             }
             if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
-            if (button.interactId) await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
-            else if (captured.collectEvent) await captured.collectEvent('interact', [candidate.proposition]);
+            if (button.interactId || button.id || candidate.consequenceId !== candidate.item.id) {
+              await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
+            } else if (captured.collectEvent) await captured.collectEvent('interact', [cardProposition(candidate)]);
             else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
             same(ctx, token);
             message('Proposition interaction accepted. Task completion is determined by Adobe state.');
@@ -1270,12 +1281,103 @@
       const dismiss = node('button', 'Dismiss'); dismiss.type = 'button';
       dismiss.addEventListener('click', () => void work(async () => {
         same(ctx, token);
-        if (captured.collectEvent) await captured.collectEvent('dismiss', [candidate.proposition]);
-        same(ctx, token); card.remove(); $('loyaltyCardHint').textContent = 'Card dismissed. Member challenge state is unchanged.';
+        if (captured.collectEvent) await captured.collectEvent('dismiss', [cardProposition(candidate)]);
+        same(ctx, token);
+        contentCardDismissals.add(contentCardKey(candidate, token));
+        await showCard(contentCards?.propositions || [], captured, ctx, token, true);
+        $('loyaltyCardHint').textContent = 'Card dismissed. Member challenge state is unchanged.';
       }));
       body.append(dismiss);
     }
-    card.append(body); cardMount().replaceChildren(card);
+    card.append(body); return card;
+  }
+  const cardProposition = candidate => ({ ...candidate.proposition, items: [candidate.item] });
+  const contentCardId = candidate => JSON.stringify([candidate.proposition.id, candidate.item.id, candidate.consequenceId]);
+  const contentCardKey = (candidate, token) => JSON.stringify([token, contentCardId(candidate), candidate.content, candidate.meta]);
+  async function displayContentCard(presentation) {
+    same(presentation.ctx, presentation.token);
+    if (presentation !== contentCards || !presentation.cards.length) return;
+    const candidate = presentation.cards[presentation.active], { captured, ctx, token } = presentation;
+    $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
+      renderedConsequence: candidate.consequenceId, renderedItem: candidate.item.id,
+      cardPosition: presentation.active + 1, totalCards: presentation.cards.length }, null, 2);
+    const key = contentCardKey(candidate, token);
+    if (contentCardDisplays.has(key)) {
+      message('Content card unchanged. No duplicate display event sent.'); return;
+    }
+    // Reserve before collection: SDK reevaluation can synchronously deliver the same cards again.
+    contentCardDisplays.add(key);
+    message('Content card displayed; collecting the original proposition display...');
+    try {
+      if (captured.collectEvent) await captured.collectEvent('display', [cardProposition(candidate)]);
+      else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
+    } catch (error) {
+      console.error('[Loyalty] Content Card display collection failed', error);
+      throw new Error('Content Card display was not confirmed. No automatic retry.', { cause: error });
+    }
+    same(ctx, token);
+    if (presentation === contentCards) message('Content card displayed; original proposition display accepted. Task state refreshes independently.');
+  }
+  function renderContentCards(presentation) {
+    const { cards, captured, ctx, token } = presentation, mount = cardMount();
+    const slides = node('div', undefined, 'loyalty-card-slides');
+    const articles = cards.map(candidate => renderCard(candidate, captured, ctx, token));
+    slides.append(...articles);
+    const dots = [], controls = node('div', undefined, 'loyalty-card-controls');
+    const update = () => {
+      articles.forEach((article, index) => {
+        article.hidden = index !== presentation.active;
+        article.setAttribute('aria-label', (index + 1) + ' of ' + cards.length);
+      });
+      dots.forEach((dot, index) => dot.setAttribute('aria-current', String(index === presentation.active)));
+      $('loyaltyCardHint').textContent = cards.length > 1 ? 'Chosen for you \u00b7 ' + (presentation.active + 1) + ' of ' + cards.length : 'Chosen for you';
+    };
+    const move = index => void work(async () => {
+      same(ctx, token);
+      if (contentCards !== presentation) return;
+      const focusInCard = articles[presentation.active].contains(document.activeElement);
+      presentation.active = (index + cards.length) % cards.length;
+      update();
+      if (focusInCard) articles[presentation.active].focus({ preventScroll: true });
+      await displayContentCard(presentation);
+    });
+    mount.removeAttribute('aria-roledescription');
+    if (cards.length > 1) {
+      mount.setAttribute('aria-roledescription', 'carousel');
+      const pagination = node('div', undefined, 'loyalty-card-dots');
+      cards.forEach((candidate, index) => {
+        const dot = node('button'); dot.type = 'button';
+        dot.setAttribute('aria-label', 'Show challenge ' + (index + 1) + ': ' + (candidate.content.title?.content || 'Your reward'));
+        dot.setAttribute('aria-controls', mount.id); dot.addEventListener('click', () => move(index));
+        dots.push(dot); pagination.append(dot);
+      });
+      const arrow = (label, text, step) => {
+        const button = node('button', text, 'loyalty-card-arrow'); button.type = 'button';
+        button.setAttribute('aria-label', label); button.setAttribute('aria-controls', mount.id);
+        button.addEventListener('click', () => move(presentation.active + step)); return button;
+      };
+      controls.append(arrow('Previous challenge', '\u2039', -1), pagination, arrow('Next challenge', '\u203a', 1));
+      let drag = null, suppressClick = false;
+      slides.addEventListener('pointerdown', event => {
+        drag = null; suppressClick = false;
+        if (event.pointerType === 'touch' && !event.target.closest('button, a')) {
+          drag = { id: event.pointerId, x: event.clientX, y: event.clientY };
+        }
+      });
+      slides.addEventListener('pointercancel', () => { drag = null; });
+      slides.addEventListener('pointerup', event => {
+        if (!drag || drag.id !== event.pointerId) return;
+        const x = event.clientX - drag.x, y = event.clientY - drag.y; drag = null;
+        if (Math.abs(x) >= 40 && Math.abs(x) > Math.abs(y) * 1.5) {
+          suppressClick = true; move(presentation.active + (x < 0 ? 1 : -1));
+        }
+      });
+      slides.addEventListener('click', event => {
+        if (suppressClick) { event.preventDefault(); event.stopPropagation(); suppressClick = false; }
+      }, true);
+    }
+    update();
+    mount.replaceChildren(slides, ...(cards.length > 1 ? [controls] : []));
   }
   function captureContentCardEvidence(propositions, ctx, token, responseSource) {
     const evaluated = responseSource === 'evaluated-subscription';
@@ -1420,38 +1522,46 @@
   }
   async function showCard(propositions, captured, ctx, token, clearMissing) {
     same(ctx, token);
-    const candidate = model.selectCard(propositions, ctx.surface);
-    if (!candidate) {
+    const candidates = model.selectCards(propositions, ctx.surface);
+    const availableKeys = new Set(candidates.map(candidate => contentCardKey(candidate, token)));
+    for (const keys of [contentCardDisplays, contentCardDismissals]) {
+      for (const key of keys) if (!availableKeys.has(key)) keys.delete(key);
+    }
+    const cards = candidates.filter(candidate => !contentCardDismissals.has(contentCardKey(candidate, token)));
+    if (!cards.length) {
       if (clearMissing) {
-        cardMount().replaceChildren(); displayedCard = '';
-        deliveredChallenge = null; restoreParticipation();
-        $('loyaltyCardHint').textContent = 'No eligible renderable journey card returned for this surface.';
+        cardMount().replaceChildren(); contentCards = null; cardMount().removeAttribute('aria-roledescription');
+        if (!candidates.length) { deliveredChallenge = null; restoreParticipation(); }
+        $('loyaltyCardHint').textContent = candidates.length ? 'All returned cards dismissed.' :
+          'No eligible renderable journey card returned for this surface.';
         $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, surface: ctx.surface, propositions }, null, 2);
-        message('No eligible content card returned. The previous card was removed; refresh does not change Adobe eligibility.');
+        message(candidates.length ? 'All Content Cards dismissed. Member challenge state is unchanged.' :
+          'No eligible content card returned. The previous card was removed; refresh does not change Adobe eligibility.');
       }
       return;
     }
-    const cardKey = JSON.stringify([token, candidate.proposition.id, candidate.item.id, candidate.content, candidate.meta]);
-    if (displayedCard === cardKey) {
+    const key = JSON.stringify(cards.map(candidate => [contentCardKey(candidate, token), candidate.proposition]));
+    if (contentCards?.key === key) {
       message('Content card unchanged. Adobe returned the same card; no duplicate display event sent.'); return;
     }
-    if (!candidate.item.id || typeof captured?.alloy !== 'function' || !captured.identityMap ||
+    if (cards.some(candidate => !candidate.item.id) || typeof captured?.alloy !== 'function' || !captured.identityMap ||
         !Object.values(captured.identityMap).some(ids => Array.isArray(ids) && ids.some(id => typeof id?.id === 'string' && id.id))) {
       throw new Error('Original proposition request identity is missing. No display event sent.');
     }
-    renderCard(candidate, captured, ctx, token);
-    deliveredChallenge = typeof candidate.meta.challengeId === 'string' && candidate.meta.challengeId.trim()
-      ? { id: candidate.meta.challengeId, title: candidate.content.title?.content || 'Your challenge' } : null;
+    const previous = contentCards && contentCardId(contentCards.cards[contentCards.active]);
+    const active = cards.findIndex(candidate => contentCardId(candidate) === previous);
+    const presentation = { key, propositions, cards, captured, ctx, token, active: Math.max(0, active) };
+    contentCards = presentation; renderContentCards(presentation);
+    // Navigation is presentation-only; retain the joined challenge independently of the visible slide.
+    const participationCard = (joinedChallenge && candidates.find(candidate => candidate.meta.challengeId === joinedChallenge.id)) ||
+      candidates.find(candidate => memberChallenges.some(challenge =>
+        challenge.challenge_id === candidate.meta.challengeId && challenge.optedIn === true) ||
+        ['joined', 'already'].includes(signupReceipts.get(signupKey(ctx, loaded?.profileLoyaltyId, candidate.meta.challengeId))?.state)) ||
+      candidates[0];
+    deliveredChallenge = typeof participationCard.meta.challengeId === 'string' && participationCard.meta.challengeId.trim()
+      ? { id: participationCard.meta.challengeId, title: participationCard.content.title?.content || 'Your challenge' } : null;
     restoreParticipation();
-    displayedCard = cardKey;
-    $('loyaltyCardHint').textContent = 'Chosen for you';
-    $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, proposition: candidate.proposition,
-      renderedConsequence: candidate.consequenceId }, null, 2);
-    message('Content card displayed; collecting the original proposition display...');
-    if (captured.collectEvent) await captured.collectEvent('display', [candidate.proposition]);
-    else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
-    same(ctx, token);
-    message('Content card displayed; original proposition display accepted. Task state refreshes independently.');
+    await displayContentCard(presentation);
   }
   global.TuiDecisioningDrawer = { getSignals: () => loaded ? global.TuiDecisioningProfile.signals(loaded.rows) : null };
   function syncParticipation() {
