@@ -9,7 +9,6 @@ const PRODUCTS = ['AEP', 'AJO', 'CJA', 'Target', 'AEM', 'GenStudio', 'Real-Time 
 const SOURCES = {
   techcrunch: { type: 'rss', url: 'https://techcrunch.com/feed/' },
   verge: { type: 'rss', url: 'https://www.theverge.com/rss/index.xml' },
-  venturebeat: { type: 'rss', url: 'https://venturebeat.com/category/ai/feed/' },
   cmswire: { type: 'rss', url: 'https://feeds2.feedburner.com/CMSWire' },
   martech: { type: 'rss', url: 'https://martech.org/feed/' },
   salesforce: { type: 'rss', url: 'https://www.salesforce.com/news/feed/?bc=HL' },
@@ -25,7 +24,7 @@ const SOURCES = {
   genstudio: { type: 'markdown', url: 'https://raw.githubusercontent.com/AdobeDocs/genstudio-for-performance-marketing.en/main/help/user-guide/release-notes.md', link: 'https://experienceleague.adobe.com/en/docs/genstudio-for-performance-marketing/user-guide/release-notes', product: 'GenStudio' },
 };
 const DEFAULTS = {
-  'tech-news': { sources: ['techcrunch', 'verge', 'venturebeat', 'cmswire', 'martech', 'salesforce', 'microsoft', 'google'], watchlist: WATCHLIST, threshold: 0.6, promptVersion: '1', dailyCap: 40 },
+  'tech-news': { sources: ['techcrunch', 'verge', 'cmswire', 'martech', 'salesforce', 'microsoft', 'google'], watchlist: WATCHLIST, threshold: 0.6, promptVersion: '1', dailyCap: 40 },
   'adobe-releases': { sources: ['aep', 'ajo', 'cja', 'target', 'aem', 'genstudio', 'adobeBlog', 'adobeNewsroom'], watchlist: WATCHLIST, threshold: 0.5, promptVersion: '1', dailyCap: 30 },
 };
 const TTL_MS = 90 * 86400000;
