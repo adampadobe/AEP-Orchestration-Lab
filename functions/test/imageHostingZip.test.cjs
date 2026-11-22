@@ -21,6 +21,49 @@ const assert = require('node:assert');
 const archiver = require('archiver');
 const { Writable } = require('stream');
 const unzipper = require('unzipper');
+const Module = require('node:module');
+
+let activeBucket;
+const originalLoad = Module._load;
+Module._load = function (request, ...args) {
+  if (request === 'firebase-admin') {
+    return { apps: [{}], storage: () => ({ bucket: () => activeBucket }) };
+  }
+  return originalLoad.call(this, request, ...args);
+};
+let restoreLibraryFromZip;
+let listLibrary;
+try {
+  ({ restoreLibraryFromZip, listLibrary } = require('../imageHostingLibrary'));
+} finally {
+  Module._load = originalLoad;
+}
+
+function fakeBucket(failPath) {
+  const objects = new Map([
+    ['test/library/old.png', Buffer.from('old')],
+    ['test/library/keep.jpg', Buffer.from('before')],
+  ]);
+  const actions = [];
+  function file(name) {
+    return {
+      name,
+      async save(bytes) {
+        actions.push(`save:${name}`);
+        if (name === failPath) throw new Error('injected failure');
+        objects.set(name, bytes);
+      },
+      async makePublic() {},
+      async delete() { actions.push(`delete:${name}`); objects.delete(name); },
+    };
+  }
+  return {
+    objects,
+    actions,
+    file,
+    async getFiles({ prefix }) { return [[...objects.keys()].filter((name) => name.startsWith(prefix)).map(file)]; },
+  };
+}
 
 async function buildZipBufferFromEntries(entries) {
   const archive = archiver('zip', { zlib: { level: 6 } });
@@ -96,4 +139,58 @@ test('empty-but-with-README ZIP is still a valid archive', async () => {
   const files = directory.files.filter((f) => f.type === 'File');
   assert.strictEqual(files.length, 1);
   assert.strictEqual(files[0].path, 'README-empty-library.txt');
+});
+
+test('ZIP replace writes accepted images before deleting stale files', async () => {
+  activeBucket = fakeBucket();
+  const zip = await buildZipBufferFromEntries([
+    { name: 'keep.jpg', buffer: Buffer.from('after') },
+    { name: 'new.png', buffer: Buffer.from('new') },
+    { name: 'ignored.html', buffer: Buffer.from('not an image') },
+  ]);
+  const restored = await restoreLibraryFromZip('test', zip, { replace: true });
+  assert.deepStrictEqual(restored.map((item) => item.relPath), ['keep.jpg', 'new.png']);
+  assert.deepStrictEqual(activeBucket.actions, [
+    'save:test/library/keep.jpg', 'save:test/library/new.png', 'delete:test/library/old.png',
+  ]);
+  assert.strictEqual(activeBucket.objects.has('test/library/ignored.html'), false);
+});
+
+test('ZIP replace does not delete stale files when any upload fails', async () => {
+  activeBucket = fakeBucket('test/library/new.png');
+  const zip = await buildZipBufferFromEntries([
+    { name: 'keep.jpg', buffer: Buffer.from('after') },
+    { name: 'new.png', buffer: Buffer.from('new') },
+  ]);
+  await assert.rejects(restoreLibraryFromZip('test', zip, { replace: true }), { name: 'PartialRestoreError' });
+  assert.strictEqual(activeBucket.objects.has('test/library/old.png'), true);
+  assert.ok(activeBucket.actions.every((action) => !action.startsWith('delete:')));
+});
+
+test('ZIP containing only disallowed files cannot replace the library', async () => {
+  activeBucket = fakeBucket();
+  const zip = await buildZipBufferFromEntries([{ name: 'payload.html', buffer: Buffer.from('html') }]);
+  await assert.rejects(restoreLibraryFromZip('test', zip, { replace: true }), { name: 'EmptyZipError' });
+  assert.deepStrictEqual(activeBucket.actions, []);
+});
+
+test('library listing preserves public paths and exposes opt-in GCS pagination', async () => {
+  const calls = [];
+  activeBucket = {
+    async getFiles(options) {
+      calls.push(options);
+      return [[{ name: 'test/library/logo/logo.png', metadata: { size: '4', contentType: 'image/png' } }],
+        options.autoPaginate === false ? { pageToken: 'next-page' } : undefined];
+    },
+  };
+  const all = await listLibrary('test');
+  assert.equal(all[0].path, 'test/library/logo/logo.png');
+  assert.equal(all[0].cdnUrl, '/cdn/test/logo/logo.png');
+  const page = await listLibrary('test', { limit: 25, cursor: 'first-page' });
+  assert.equal(page.items[0].relPath, 'logo/logo.png');
+  assert.equal(page.nextCursor, 'next-page');
+  assert.deepStrictEqual(calls, [
+    { prefix: 'test/library/' },
+    { prefix: 'test/library/', autoPaginate: false, maxResults: 25, pageToken: 'first-page' },
+  ]);
 });

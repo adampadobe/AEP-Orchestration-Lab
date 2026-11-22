@@ -166,6 +166,13 @@
         }
       },
       {
+        "source": "/api/brand-scraper/scrapes/classify",
+        "function": {
+          "functionId": "brandScraperClassify",
+          "region": "us-central1"
+        }
+      },
+      {
         "source": "/api/brand-scraper/scrapes/**",
         "function": {
           "functionId": "brandScraperScrapes",
@@ -225,6 +232,41 @@
         "source": "/api/demo-use-case/pptx",
         "function": {
           "functionId": "demoUseCasePptx",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/drive/**",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/drive",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/backups/**",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/backups",
+        "function": {
+          "functionId": "imageHostingPrivate",
+          "region": "us-central1"
+        }
+      },
+      {
+        "source": "/api/image-hosting/sandboxes-used",
+        "function": {
+          "functionId": "imageHostingPrivate",
           "region": "us-central1"
         }
       },
