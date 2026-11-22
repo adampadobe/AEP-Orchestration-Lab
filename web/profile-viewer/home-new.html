@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css?v=20260711a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="home-new.css?v=20260820h-chat-transcript">
+  <link rel="stylesheet" href="home-new.css?v=20261122-votes">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
@@ -40,7 +40,7 @@
         <section class="home-greeting-bar" id="homeGreetingBar" aria-label="Welcome">
           <div class="home-greeting-bar__main">
             <h2 class="home-greeting-bar__title">Hello <span id="homeGreetingName">there</span></h2>
-            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab — Solutions Consultant Command Centre<button type="button" class="map-egg-speck" data-map-egg-flavor="home" title="" aria-label="A stray ink dot on the margin"></button></p>
+            <p class="home-greeting-bar__subtitle">AEP Orchestration Lab<button type="button" class="map-egg-speck" data-map-egg-flavor="home" title="" aria-label="A stray ink dot on the margin"></button></p>
           </div>
           <div class="home-greeting-bar__stats">
             <div class="home-greeting-stat">
@@ -51,18 +51,38 @@
               <span class="home-greeting-stat__label">Adobe Stock</span>
               <a class="home-greeting-stat__value home-greeting-stock-link" id="homeGreetingStock" href="https://www.google.com/finance/beta/quote/ADBE:NASDAQ" target="_blank" rel="noopener">ADBE — loading…</a>
             </div>
-            <div class="home-greeting-stat">
-              <span class="home-greeting-stat__label">Open Engagements</span>
-              <span class="home-greeting-stat__value home-greeting-stat__value--accent" id="homeGreetingEngagements">0</span>
-            </div>
-            <div class="home-greeting-stat home-greeting-stat--alert" id="homeGreetingOverdueWrap">
-              <span class="home-greeting-stat__label">Overdue Actions</span>
-              <span class="home-greeting-stat__value" id="homeGreetingOverdue">0</span>
-            </div>
           </div>
         </section>
 
-        <div class="cc-metrics-row cc-metrics-row--top" id="ccMetricsRow" aria-label="Engagement metrics"></div>
+        <section class="home-pulse" aria-label="Lab pulse">
+          <section class="home-pulse__panel" id="homeWhatsNew" aria-labelledby="homeWhatsNewHeading">
+            <div class="cc-section-header">
+              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeWhatsNewHeading">What's new in the Lab</span></div>
+              <div class="home-seg" role="tablist" aria-label="What's new view">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-wn-view="shipped">Shipped</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-wn-view="progress">In progress</button>
+              </div>
+            </div>
+            <div class="cc-card cc-card--flush">
+              <ol class="home-wn-list" id="homeWhatsNewList" aria-live="polite"><li class="home-pulse__empty" role="status">Loading…</li></ol>
+              <p class="home-pulse__foot" id="homeWhatsNewMeta"></p>
+            </div>
+          </section>
+
+          <section class="home-pulse__panel" id="homeHeatmap" aria-labelledby="homeHeatmapHeading">
+            <div class="cc-section-header">
+              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeHeatmapHeading">Most used in the Lab</span></div>
+              <div class="home-seg" role="tablist" aria-label="Heat map window">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-hm-window="7d">7 days</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-hm-window="30d">30 days</button>
+              </div>
+            </div>
+            <div class="cc-card">
+              <div class="home-heatmap" id="homeHeatmapGrid" aria-live="polite"><p class="home-pulse__empty" role="status">Loading…</p></div>
+              <p class="home-pulse__foot" id="homeHeatmapMeta">Anonymous, aggregate page views. Pages with fewer than 5 views are hidden.</p>
+            </div>
+          </section>
+        </section>
 
         <section class="home-release-panel" id="homeReleasePanel" aria-labelledby="homeReleaseHeading">
           <header class="home-release-panel__head">
@@ -71,7 +91,7 @@
                 <svg class="home-release-collapse-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
               </button>
               <div>
-              <p class="home-release-panel__eyebrow">Adobe Experience Cloud · <span id="homeReleasePeriod">June 2026</span></p>
+              <p class="home-release-panel__eyebrow">Adobe Experience Cloud · <span id="homeReleasePeriod">Latest</span></p>
               <h3 class="home-release-panel__title" id="homeReleaseHeading">
                 Experience Cloud — <span class="home-release-panel__title-accent">Latest releases</span>
               </h3>
@@ -111,144 +131,32 @@
           </div>
         </section>
 
-        <details class="cc-composer" id="ccComposer" open>
-          <summary class="cc-composer__heading">
-            <div>
-              <span class="cc-composer__mark" aria-hidden="true">✨</span>
-              <div>
-                <h5>Add from screenshot or notes</h5>
-                <p>Type an update, or attach a screenshot below — AI turns it into a tracked engagement here.</p>
-              </div>
-            </div>
-            <span class="cc-composer__badge">AI-assisted</span>
+        <details class="home-radar" id="homeRadar">
+          <summary class="home-radar__summary">
+            <span class="cc-section-title"><span class="cc-section-dot"></span>Industry radar</span>
+            <span class="home-radar__hint">Tech, competitor and Adobe release signals, curated by a Gemini agent</span>
           </summary>
-          <div class="cc-composer__body">
-            <div class="cc-extract-warning" role="note">
-              Don't paste confidential customer data (contracts, pricing, personal information). This is for your own work tracking only — screenshots and text are sent to Gemini for parsing.
-            </div>
-            <div class="cc-composer__transcript" id="ccComposerTranscript" aria-live="polite" hidden></div>
-            <div class="cc-composer__attachment" id="ccComposerAttachment" hidden>
-              <img id="ccComposerAttachmentImg" alt="Attached screenshot">
-              <button type="button" class="cc-composer__attachment-remove" id="ccComposerAttachmentRemove" aria-label="Remove attached screenshot">×</button>
-            </div>
-            <textarea id="ccComposerText" rows="3" maxlength="8000" placeholder="e.g. Sky — governance blocker resolved, move to On track. Or paste an email, a deal request ID, meeting details… Drop or paste a screenshot anywhere in this box to attach it."></textarea>
-            <input type="file" id="ccComposerFileInput" accept="image/*" hidden>
-            <div class="cc-composer__footer">
-              <span id="ccComposerCount">0 / 8,000</span>
-              <div>
-                <label class="dashboard-btn-outline cc-composer__small-btn cc-composer__attach-label" for="ccComposerFileInput">📎 Attach screenshot</label>
-                <button type="button" class="dashboard-btn-primary" id="ccComposerSubmitBtn"><span aria-hidden="true">✦</span> Add to tracker</button>
+          <div class="home-radar__body">
+            <div class="home-radar__toolbar">
+              <div class="home-seg" role="tablist" aria-label="Radar feed">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-radar-feed="tech-news">Tech &amp; competitors</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-radar-feed="adobe-releases">Adobe releases</button>
               </div>
+              <p class="home-pulse__foot" id="homeRadarMeta"></p>
             </div>
-            <p id="ccComposerStatus" class="cc-composer__status" aria-live="polite" hidden></p>
+            <ul class="home-radar__list" id="homeRadarList" aria-live="polite"></ul>
           </div>
         </details>
 
-        <div id="ccCommandCentre" class="cc-command-centre">
-          <div class="cc-grid-main">
-            <div class="cc-engagements-block">
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>Customer Engagements</div>
-                <span class="cc-section-meta" id="ccSyncStatus" title="Persistence">Loading…</span>
-                <button type="button" class="cc-section-action" id="ccAddCustomerBtn">+ Add customer</button>
-              </div>
-              <div class="cc-card cc-card--flush">
-                <div class="cc-table-scroll">
-                  <table class="cc-customer-table">
-                    <thead>
-                      <tr>
-                        <th class="cc-th-customer">Customer</th>
-                        <th>Notes</th>
-                        <th>DR Link</th>
-                        <th>Status</th>
-                        <th>ETA</th>
-                        <th>Last Meeting</th>
-                        <th class="cc-th-steps">Next Steps</th>
-                        <th class="cc-th-action">Next Action</th>
-                        <th class="cc-th-chevron" aria-label="Expand"></th>
-                      </tr>
-                    </thead>
-                    <tbody id="ccCustomerTableBody"></tbody>
-                  </table>
-                  <button type="button" class="cc-add-row" id="ccAddCustomerRow">+ Add new customer engagement</button>
-                </div>
-                <div class="cc-table-footer">
-                  <span id="ccCustomerTableFoot">Showing 0 engagements</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="cc-execution-block cc-meetings-panel">
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>Upcoming Meetings</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccMeetingsList"></div>
-            </div>
-
-            <div class="cc-execution-block cc-actions-panel">
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>My Actions</div>
-                <span class="cc-section-meta" id="ccTasksOverdueLabel">—</span>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccTasksList"></div>
-            </div>
-          </div>
-
-          <div class="cc-grid-three">
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>PoC / Demo Tracker</div>
-                <button type="button" class="cc-section-action" id="ccAddPocBtn">+ Add PoC</button>
-              </div>
-              <div class="cc-card cc-card--flush" id="ccPocTracker"></div>
-            </div>
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>Pipeline &amp; ARR Health</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccPipelineHealth"></div>
-            </div>
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>Competitive Intelligence</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccCompetitiveIntel"></div>
-            </div>
-          </div>
-
-          <div class="cc-grid-three cc-grid-three--mid">
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>My Capacity This Week</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccCapacityPlanner"></div>
-            </div>
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>Recent Activity</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccActivityFeed"></div>
-            </div>
-            <div>
-              <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span>SC Knowledge Base</div>
-              </div>
-              <div class="cc-card cc-card--compact" id="ccKnowledgeBase"></div>
-            </div>
-          </div>
-
+        <div class="home-new-lower">
           <div class="cc-grid-bottom">
             <section class="home-lab-updates home-lab-updates--compact" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
               <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Latest in the Lab</span></div>
+                <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Recent brand scrapes</span></div>
                 <a class="cc-section-action" href="brand-scraper.html">Open scraper</a>
               </div>
               <div class="cc-card cc-card--flush home-lab-updates__card">
                 <div class="home-lab-updates__section">
-                  <h4 class="home-lab-updates__col-title">Demo Pages</h4>
-                  <div class="home-lab-updates__list" id="homeLabDemosList"></div>
-                </div>
-                <div class="home-lab-updates__section home-lab-updates__section--border">
                   <h4 class="home-lab-updates__col-title">Recent Scrapes</h4>
                   <div class="home-lab-updates__list" id="homeLabScrapesList">
                     <p class="home-lab-updates-loading" role="status">Loading…</p>
@@ -299,110 +207,6 @@
       </main>
     </div>
   </template>
-
-  <div class="cc-modal-backdrop" id="ccCustomerModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccCustomerModalTitle">
-    <div class="cc-modal">
-      <header class="cc-modal__head">
-        <h2 id="ccCustomerModalTitle">Add customer engagement</h2>
-        <button type="button" class="cc-modal__close" id="ccCustomerModalClose" aria-label="Close">×</button>
-      </header>
-      <form id="ccCustomerForm" class="cc-modal__body">
-        <input type="hidden" name="customerId" value="">
-        <label class="cc-field">Customer name<input name="name" required autocomplete="organization"></label>
-        <label class="cc-field">Brand scrape
-          <select name="scrapeId" id="ccCustomerScrapeSelect">
-            <option value="">— None —</option>
-          </select>
-          <span class="cc-field__hint">Links a scrape for logo and competitive intel on this engagement</span>
-        </label>
-        <input type="hidden" name="scrapeBrand" value="">
-        <input type="hidden" name="scrapeLogoUrl" value="">
-        <div class="cc-scrape-preview" id="ccCustomerScrapePreview" hidden>
-          <img id="ccCustomerScrapePreviewImg" alt="" class="cc-scrape-preview__img">
-          <span id="ccCustomerScrapePreviewLabel" class="cc-scrape-preview__label"></span>
-        </div>
-        <div class="cc-field">
-          <span class="cc-field__label">Products</span>
-          <p class="cc-field__hint">Same product names as release notes — select all that apply</p>
-          <div class="cc-product-picker" id="ccProductPickerGrid" role="group" aria-label="Products"></div>
-        </div>
-        <label class="cc-field">Tags (comma-separated)<input name="tags" placeholder="Journey Arbitration, UAT"></label>
-        <label class="cc-field">Notes<textarea name="notes" rows="3"></textarea></label>
-        <div class="cc-field-row">
-          <label class="cc-field">DR reference<input name="drLink" placeholder="DR-2024-0441"></label>
-          <label class="cc-field">DR URL<input name="drUrl" type="url" placeholder="https://…"></label>
-        </div>
-        <label class="cc-field">Status
-          <select name="status">
-            <option>On track</option>
-            <option>At risk</option>
-            <option>Delayed</option>
-            <option>Discovery</option>
-            <option>UAT</option>
-            <option>Stalled</option>
-            <option>Onboarding</option>
-          </select>
-        </label>
-        <div class="cc-field-row">
-          <label class="cc-field">ETA<input name="eta" type="date"></label>
-          <label class="cc-field">Last meeting<input name="lastMeeting" type="date"></label>
-        </div>
-        <label class="cc-field">Next action<input name="nextAction"></label>
-        <label class="cc-field">Demo link<input name="demoLink" type="url" placeholder="profile-viewer/…"></label>
-        <footer class="cc-modal__foot">
-          <button type="button" class="cc-btn cc-btn-ghost" id="ccCustomerModalCancel">Cancel</button>
-          <button type="submit" class="cc-btn cc-btn-primary">Save</button>
-        </footer>
-      </form>
-    </div>
-  </div>
-
-  <div class="cc-modal-backdrop" id="ccPocModal" hidden aria-hidden="true" role="dialog" aria-labelledby="ccPocModalTitle">
-    <div class="cc-modal">
-      <header class="cc-modal__head">
-        <h2 id="ccPocModalTitle">Edit PoC / demo</h2>
-        <button type="button" class="cc-modal__close" id="ccPocModalClose" aria-label="Close">×</button>
-      </header>
-      <form id="ccPocForm" class="cc-modal__body">
-        <input type="hidden" name="pocId" value="">
-        <label class="cc-field">PoC / demo name<input name="name" required></label>
-        <label class="cc-field">Customer engagement
-          <select name="customerId" id="ccPocCustomerSelect">
-            <option value="">— None —</option>
-          </select>
-        </label>
-        <div class="cc-field">
-          <span class="cc-field__label">Products</span>
-          <p class="cc-field__hint">Same product names as release notes — select all that apply</p>
-          <div class="cc-product-picker" id="ccPocProductPickerGrid" role="group" aria-label="PoC products"></div>
-        </div>
-        <label class="cc-field">Target date<input name="target" placeholder="2026-07-14"></label>
-        <label class="cc-field">Status
-          <select name="status">
-            <option>In build</option>
-            <option>Scoping</option>
-            <option>UAT</option>
-            <option>Blocked</option>
-            <option>Complete</option>
-          </select>
-        </label>
-        <label class="cc-field">Progress %<input name="progress" type="number" min="0" max="100" value="0"></label>
-        <footer class="cc-modal__foot">
-          <button type="button" class="cc-btn cc-btn-ghost" id="ccPocModalCancel">Cancel</button>
-          <button type="submit" class="cc-btn cc-btn-primary">Save</button>
-        </footer>
-      </form>
-    </div>
-  </div>
-
-  <div class="cc-customer-backdrop" id="ccCustomerBackdrop" hidden></div>
-  <aside class="cc-customer-drawer" id="ccCustomerDrawer" aria-hidden="true" aria-label="Customer detail">
-    <header class="cc-customer-drawer__head">
-      <h2>Customer detail</h2>
-      <button type="button" class="cc-modal__close" id="ccCustomerDrawerClose" aria-label="Close">×</button>
-    </header>
-    <div class="cc-customer-drawer__body" id="ccCustomerDrawerBody"></div>
-  </aside>
 
   <div class="home-release-drawer-backdrop" id="homeReleaseBackdrop" hidden></div>
   <aside class="home-release-drawer" id="homeReleaseDrawer" aria-hidden="true" aria-labelledby="homeReleaseDrawerTitle">
@@ -519,17 +323,11 @@
   <script defer src="aep-theme.js?v=20260421-fs-helper"></script>
   <script defer src="aep-theme-prefs.js?v=20260416d"></script>
   <script defer src="aep-ldap-slug.js"></script>
-  <script defer src="home-release-summary-catalog.js?v=20260625d"></script>
-  <script defer src="home-release-summary.js?v=20260625d"></script>
-  <script defer src="home-command-products.js?v=20260625m"></script>
-  <script defer src="home-command-scrapes.js?v=20260625k"></script>
-  <script defer src="home-command-rtdb.js?v=20260820b-no-sandboxkey"></script>
-  <script defer src="home-command-store.js?v=20260820b-no-sandboxkey"></script>
-  <script defer src="home-command-data.js?v=20260820b-no-seed"></script>
-  <script defer src="home-command-centre.js?v=20260820b-empty-state"></script>
-  <script defer src="home-command-extract.js?v=20260820k-init-hardening"></script>
-  <script defer src="home-new-greeting.js?v=20260711a"></script>
-  <script defer src="home-new-lab-updates.js?v=20260824a-logo-onerror"></script>
+  <script defer src="home-release-summary-catalog.js?v=20261121-live"></script>
+  <script defer src="home-release-summary.js?v=20261121-live"></script>
+  <script defer src="home-new-greeting.js?v=20261122-stock-refresh"></script>
+  <script defer src="home-new-pulse.js?v=20261122-votes"></script>
+  <script defer src="home-new-lab-updates.js?v=20261122-pulse"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
   <script defer src="marauders-map-egg.js?v=20260519a"></script>
 </body>

@@ -4,7 +4,7 @@
  * Env: see tools/aep-lab-profile-mcp/.env.mcp.example
  * Local: copy to .env.mcp (gitignored).
  *
- * Endpoints: POST /mcp and focused /mcp/{entry,profile,snowflake,audiences,ajo-cleanup,decisioning,demo-prep,pdf,command-centre,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality,figma}
+ * Endpoints: POST /mcp and focused /mcp/{entry,profile,snowflake,audiences,ajo-cleanup,decisioning,demo-prep,pdf,weather,geo-insights,commerce,commerce-optimizer,firefly,creativity,adobe-capabilities,measurement-quality,figma}
  * Health:   GET /health
  */
 
@@ -38,7 +38,6 @@ import {
   registerFocusedSnowflakeTools,
   registerFocusedMcpGuideTools,
   registerFocusedPdfTools,
-  registerFocusedCommandCentreTools,
   registerFocusedWeatherTools,
   registerFocusedCommerceTools,
   registerFocusedCommerceOptimizerTools,
@@ -131,15 +130,6 @@ const ENDPOINTS = [
     bodyLimit: '24mb',
     instructions:
       'Focused PDF preparation: inspect capabilities, upload HTML or documents, preview, generate and find stored PDFs, and manage user-owned server templates. Use fresh idempotency keys for new PDFs and exact confirmation before publishing or archiving templates.',
-  },
-  {
-    path: '/mcp/command-centre',
-    toolset: 'command-centre',
-    register: registerFocusedCommandCentreTools,
-    instructions:
-      'Admin layer for the caller\'s own Solutions Consultant Command Centre (opportunities/customer engagements, ' +
-      'tasks, and meetings tracked on their AEP Orchestration Lab home page). List, add, update, and delete — all ' +
-      'scoped to whichever user generated the connected MCP key. Requires a user-generated key, not a shared ops key.',
   },
   {
     path: '/mcp/weather',

@@ -29,7 +29,7 @@
       section: 'lab',
       dropdownLabel: 'General demo prep',
       name: 'AEP Lab — General demo preparation',
-      product: 'Complete Lab MCP · 247 tools',
+      product: 'Complete Lab MCP · 242 tools',
       mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp',
       summary:
         'The complete, backward-compatible Lab MCP for broad and multi-step demo preparation. Existing connections continue to work unchanged.',
@@ -42,9 +42,9 @@
         'Preview and apply audited skip-only scheduler recovery',
       ],
       configNotes:
-        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins also install all nineteen focused integrations.',
+        'Choose this key-based connection for broad work, first-run setup, infrastructure, Snowflake, or administration. The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins also install all eighteen focused integrations.',
       connectionKind: 'Complete · backward compatible',
-      toolCount: 247,
+      toolCount: 242,
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'AEP Orchestration Lab MCP README',
@@ -65,7 +65,7 @@
         'Plan a customer demo workflow across several Lab domains',
       ],
       configNotes:
-        'The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins install this directory, General, and all nineteen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
+        'The Adobe CX Coworker v2 and GitHub Copilot CLI marketplace plugins install this directory, General, and all eighteen focused integrations. In Coworker, use those installed integrations directly: Coworker does not refresh tools loaded later by lab_load_toolset.',
       connectionKind: 'Focused · read-only entry point',
       toolCount: 5,
       docUrl:
@@ -426,29 +426,6 @@
       docUrl:
         'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
       docLabel: 'Orchestrated Campaign dataset tools reference',
-    },
-    {
-      id: 'aep-lab-command-centre',
-      configName: 'aep-lab-command-centre',
-      section: 'lab',
-      dropdownLabel: 'Command Centre',
-      name: 'AEP Lab — Command Centre',
-      product: 'Focused Lab MCP · 11 tools',
-      mcpUrl: 'https://aep-lab-profile-mcp-109406613852.us-central1.run.app/mcp/command-centre',
-      summary:
-        'Admin layer for your own Solutions Consultant Command Centre home page — track opportunities/customer engagements, tasks, and meetings from any MCP client, no browser required.',
-      useCases: [
-        'List your current customer engagements, tasks, and meetings',
-        'Add, update, or remove a customer engagement (status, next action, ETA, DR link)',
-        'Add, update, or remove a task or meeting, optionally linked to a customer',
-      ],
-      configNotes:
-        'Scoped to your own Firebase uid. Coworker v2 and Copilot require a personal Portal key, not a shared ops key. Changes appear in the browser Command Centre on reload and vice versa.',
-      connectionKind: 'Focused',
-      toolCount: 11,
-      docUrl:
-        'https://github.com/adampadobe/AEP-Orchestration-Lab/blob/main/tools/aep-lab-profile-mcp/README.md',
-      docLabel: 'Command Centre tools reference',
     },
     {
       id: 'aep-lab-weather',

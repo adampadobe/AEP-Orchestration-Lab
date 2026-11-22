@@ -11,12 +11,12 @@ test('context directory exposes copy-ready unique names and URLs', () => {
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').url.endsWith('/mcp/entry'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-entry').toolCount, 5);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').url.endsWith('/mcp/ajo-oc-datasets'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 252);
+  assert.equal(contexts.find((context) => context.id === 'aep-lab-general').toolCount, 242);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-ajo-oc-datasets').toolCount, 4);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-profiles').toolCount, 23);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-decisioning').toolCount, 29);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-pdf-prep').url.endsWith('/mcp/pdf'), true);
-  assert.equal(contexts.find((context) => context.id === 'aep-lab-command-centre').url.endsWith('/mcp/command-centre'), true);
+  assert.equal(contexts.some((context) => context.id === 'aep-lab-command-centre'), false);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-weather').url.endsWith('/mcp/weather'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-geo-insights').url.endsWith('/mcp/geo-insights'), true);
   assert.equal(contexts.find((context) => context.id === 'aep-lab-geo-insights').toolCount, 4);
@@ -45,7 +45,6 @@ test('recommender selects narrow contexts and reports cross-context work', () =>
   assert.equal(recommendMcpContexts('upload a DOCX and generate a PDF').primary.id, 'aep-lab-pdf-prep');
   assert.equal(recommendMcpContexts('show the weather forecast').primary.id, 'aep-lab-weather');
   assert.equal(recommendMcpContexts('show camping gear customers around Riyadh with current weather').primary.id, 'aep-lab-geo-insights');
-  assert.equal(recommendMcpContexts('update my command centre task list').primary.id, 'aep-lab-command-centre');
   assert.equal(recommendMcpContexts('inspect ACCS product inventory').primary.id, 'aep-lab-commerce');
   assert.equal(recommendMcpContexts('inspect ACO catalog view recommendations').primary.id, 'aep-lab-commerce-optimizer');
   assert.equal(recommendMcpContexts('validate Orchestrated Campaign dataset eligibility').primary.id, 'aep-lab-ajo-oc-datasets');
@@ -155,11 +154,12 @@ test('Profile Viewer MCP page matches the deployed catalog and separates Coworke
   const keys = readFileSync(new URL('../../../web/profile-viewer/mcp-servers-keys.js', import.meta.url), 'utf8');
 
   assert.match(html, /v3\.55\.0/);
-  assert.match(html, /installs General plus nineteen focused integrations/i);
-  assert.match(html, /Add <code>https:\/\/github\.com\/adampadobe\/AEP-Orchestration-Lab<\/code> as a marketplace with no subdirectory/i);
-  assert.match(html, /Claude stores the key as sensitive plugin configuration/i);
+  assert.match(html, /install(?:s)? General plus eighteen focused (?:integrations|connections)/i);
+  assert.match(html, /Set <strong>GitHub Repository<\/strong> to <code>adampadobe\/AEP-Orchestration-Lab-v2<\/code>/);
+  assert.match(html, /<code>copilot plugin marketplace add adampadobe\/AEP-Orchestration-Lab<\/code>/);
   assert.doesNotMatch(html, /First Coworker session: call <code>lab_mcp_first_run_setup/);
-  assert.match(catalog, /Complete Lab MCP · 247 tools/);
+  assert.match(catalog, /Complete Lab MCP · 242 tools/);
+  assert.doesNotMatch(catalog, /aep-lab-command-centre/);
   assert.match(catalog, /id: 'aep-lab-snowflake'/);
   assert.match(catalog, /\/mcp\/snowflake/);
   assert.match(catalog, /id: 'aep-lab-commerce'/);

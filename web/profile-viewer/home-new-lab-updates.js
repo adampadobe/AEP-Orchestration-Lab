@@ -4,38 +4,6 @@
 (function attachHomeNewLabUpdates(global) {
   'use strict';
 
-  var DEMO_PAGES = [
-    {
-      title: 'Brand Scraper',
-      desc: 'Crawl brand sites, extract design tokens, personas, and campaign ideas.',
-      href: 'brand-scraper.html',
-    },
-    {
-      title: 'Journey arbitration v3',
-      desc: 'Decisioning pipeline lab with industry labels and anatomy embed.',
-      href: 'journey-arbitration-v3.html',
-    },
-    {
-      title: 'Content decision live edge',
-      desc: 'Edge Network decisioning demo with brand scrape integration.',
-      href: 'content-decision-live-edge.html',
-    },
-    {
-      title: 'Experimentation accelerator',
-      desc: 'Target-style experimentation playground with industry presets.',
-      href: 'experimentation-accelerator.html',
-    },
-    {
-      title: 'Image hosting',
-      desc: 'Curated image library and scrape-sourced assets per sandbox.',
-      href: 'image-hosting.html',
-    },
-    {
-      title: 'Profile generation',
-      desc: 'Generate sandbox-friendly test profiles aligned to your schema.',
-      href: 'profile-generation.html',
-    },
-  ];
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -70,23 +38,6 @@
     } catch (_e) {
       return '—';
     }
-  }
-
-  function renderDemos(container) {
-    if (!container) return;
-    container.innerHTML = DEMO_PAGES.slice(0, 3).map(function (page) {
-      return (
-        '<div class="home-lab-compact-item">' +
-        '<div class="home-lab-compact-item__title"><a href="' +
-        esc(page.href) +
-        '">' +
-        esc(page.title) +
-        '</a></div>' +
-        '<div class="home-lab-compact-item__desc">' +
-        esc(page.desc) +
-        '</div></div>'
-      );
-    }).join('');
   }
 
   function renderScrapes(container, items, err) {
@@ -160,7 +111,6 @@
     var root = document.getElementById('homeLabUpdates');
     if (!root || root.getAttribute('data-home-lab-updates-init') === '1') return;
     root.setAttribute('data-home-lab-updates-init', '1');
-    renderDemos(document.getElementById('homeLabDemosList'));
     loadScrapes();
     global.addEventListener('aep-global-sandbox-change', loadScrapes);
   }

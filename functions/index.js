@@ -154,9 +154,6 @@ const labProfileGenerationPrefsStore = lazyRequireMod('./labProfileGenerationPre
 const labProfileRecentGeneratedStore = lazyRequireMod('./labProfileRecentGeneratedStore');
 const labGenerationPrefsAuth = lazyRequireMod('./labGenerationPrefsAuth');
 const snowflakePrincipalAuth = lazyRequireMod('./snowflakePrincipalAuth');
-const homeCommandMcpAuth = lazyRequireMod('./homeCommandMcpAuth');
-const homeCommandMcpStore = lazyRequireMod('./homeCommandMcpStore');
-const { registerHomeCommandMcpRoutes } = require('./homeCommandMcpRoutes');
 const { createLabMcpFirstRunService } = require('./labMcpFirstRunService');
 const labWorkspaceAuthService = lazyRequireMod('./labWorkspaceAuthService');
 const labRtdbProvisionService = lazyRequireMod('./labRtdbProvisionService');
@@ -186,7 +183,6 @@ const brandScraperService = lazyRequireMod('./brandScraperService');
 const bcGeminiTrainingService = lazyRequireMod('./bcGeminiTrainingService');
 const bcGeminiAnswerService = lazyRequireMod('./bcGeminiAnswerService');
 const bcGeminiPrepService = lazyRequireMod('./bcGeminiPrepService');
-const homeCommandExtractWorkService = lazyRequireMod('./homeCommandExtractWork');
 const brandScraperDemoHost = lazyRequireMod('./brandScraperDemoHost');
 const llmDemoPersonalizeService = lazyRequireMod('./llmDemoPersonalizeService');
 const imageHostingLibrary = lazyRequireMod('./imageHostingLibrary');
@@ -346,11 +342,31 @@ Object.assign(exports, registerLabUsageRoutes({
     ...CONSENT_STORE_FN_OPTS,
     environmentVariables: {
       ...CONSENT_STORE_FN_OPTS.environmentVariables,
-      LAB_USAGE_TELEMETRY_ENABLED: 'false',
+      LAB_USAGE_TELEMETRY_ENABLED: 'true',
     },
   },
   setCors,
 }));
+
+/** Hourly aggregate-only roll-up of labUsageEvents into labUsageAggregates (home page heat map). */
+exports.labUsageRollup = onSchedule(
+  { schedule: 'every 60 minutes', region: REGION, timeoutSeconds: 300, memory: '256MiB' },
+  async () => {
+    const { runRollup } = require('./labUsageHeatmap');
+    await runRollup({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
+
+Object.assign(exports, require('./labWhatsNew').registerWhatsNewRoutes({ onRequest, fnOpts: CONSENT_STORE_FN_OPTS, setCors }));
+
+/** Every 30 minutes: cache open pull requests for the home page "What's new → in progress" list. */
+exports.labWhatsNewRefresh = onSchedule(
+  { schedule: 'every 30 minutes', region: REGION, timeoutSeconds: 60, memory: '256MiB' },
+  async () => {
+    const { refreshInProgress } = require('./labWhatsNew');
+    await refreshInProgress({ db: require('./adminFirestore').getAdminFirestore() });
+  },
+);
 
 /**
  * Snowflake handlers route ALL outbound traffic through the Serverless VPC
@@ -4310,48 +4326,6 @@ exports.bcGeminiPrepExport = onRequest(
   },
 );
 
-/**
- * POST /api/home-command/extract-work — Gemini extraction of Command Centre
- * work items (customers/tasks/meetings) from a pasted screenshot and/or
- * text. See functions/homeCommandExtractWork.js.
- */
-exports.homeCommandExtractWork = onRequest(
-  {
-    region: REGION,
-    invoker: 'public',
-    timeoutSeconds: 60,
-    memory: '512MiB',
-  },
-  async (req, res) => {
-    try {
-      await homeCommandExtractWorkService.handleExtractWork(req, res);
-    } catch (e) {
-      if (!res.headersSent) {
-        res.status(500).json({ ok: false, error: String((e && e.message) || e) });
-      } else {
-        console.error('[homeCommandExtractWork] error after response started', String((e && e.message) || e));
-      }
-    }
-  },
-);
-
-Object.assign(
-  exports,
-  registerHomeCommandMcpRoutes({
-    onRequest,
-    HOME_COMMAND_MCP_FN_OPTS: {
-      region: REGION,
-      invoker: 'public',
-      timeoutSeconds: 30,
-      memory: '256MiB',
-    },
-    setCors,
-    homeCommandMcpAuth,
-    mcpApiKeyStore,
-    homeCommandMcpStore,
-  }),
-);
-
 /** POST /api/brand-scraper/demo-build — dedicated demo website worker (separate CF budget from analyse). */
 exports.brandScraperDemoBuild = onRequest(
   {
@@ -4599,6 +4573,42 @@ exports.releaseNotesSummaryWeeklyRefresh = onSchedule(
   async () => {
     await releaseNotesSummaryService.resolveSummary({ forceRefresh: true });
   },
+);
+
+function getLabFeedsService() {
+  const admin = require('firebase-admin');
+  if (!admin.apps.length) admin.initializeApp();
+  return require('./labFeedsService').createService({
+    db: admin.firestore(),
+    callGemini: (...args) => require('./vertexClient').callGemini(...args),
+    authorize: async (req) => {
+      const claims = await require('./labUsageTelemetry').requireTelemetryUser(req, admin.auth());
+      const token = req.headers.authorization.split(/\s+/)[1];
+      const access = await require('./labWorkspaceAuthService').getLabAccessStatusFromIdTokenRequest({ idToken: token });
+      if (!['approved', 'missing', 'not_applicable'].includes(access.status)) {
+        throw Object.assign(new Error('Lab access is pending approval.'), { status: 403 });
+      }
+      return claims;
+    },
+  });
+}
+
+exports.labFeeds = onRequest(
+  { region: REGION, invoker: 'public', timeoutSeconds: 30, memory: '256MiB' },
+  async (req, res) => {
+    setCors(res, 'GET, POST, OPTIONS');
+    await getLabFeedsService().handle(req, res);
+  },
+);
+
+exports.labTechNewsRefresh = onSchedule(
+  { schedule: 'every 2 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('tech-news'),
+);
+
+exports.labAdobeReleasesRefresh = onSchedule(
+  { schedule: 'every 24 hours', region: REGION, timeoutSeconds: 540, memory: '512MiB' },
+  async () => getLabFeedsService().refresh('adobe-releases'),
 );
 
 /**
