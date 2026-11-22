@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="home-spectrum-dark-tokens.css?v=20260711a">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
-  <link rel="stylesheet" href="home-new.css?v=20261121-home-declutter">
+  <link rel="stylesheet" href="home-new.css?v=20261122-pulse">
   <link rel="stylesheet" href="marauders-map-egg.css?v=20260419">
   <noscript><style>.dashboard-shell { visibility: hidden; }</style></noscript>
 </head>
@@ -52,6 +52,36 @@
               <a class="home-greeting-stat__value home-greeting-stock-link" id="homeGreetingStock" href="https://www.google.com/finance/beta/quote/ADBE:NASDAQ" target="_blank" rel="noopener">ADBE — loading…</a>
             </div>
           </div>
+        </section>
+
+        <section class="home-pulse" aria-label="Lab pulse">
+          <section class="home-pulse__panel" id="homeWhatsNew" aria-labelledby="homeWhatsNewHeading">
+            <div class="cc-section-header">
+              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeWhatsNewHeading">What's new in the Lab</span></div>
+              <div class="home-seg" role="tablist" aria-label="What's new view">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-wn-view="shipped">Shipped</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-wn-view="progress">In progress</button>
+              </div>
+            </div>
+            <div class="cc-card cc-card--flush">
+              <ol class="home-wn-list" id="homeWhatsNewList" aria-live="polite"><li class="home-pulse__empty" role="status">Loading…</li></ol>
+              <p class="home-pulse__foot" id="homeWhatsNewMeta"></p>
+            </div>
+          </section>
+
+          <section class="home-pulse__panel" id="homeHeatmap" aria-labelledby="homeHeatmapHeading">
+            <div class="cc-section-header">
+              <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeHeatmapHeading">Most used in the Lab</span></div>
+              <div class="home-seg" role="tablist" aria-label="Heat map window">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-hm-window="7d">7 days</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-hm-window="30d">30 days</button>
+              </div>
+            </div>
+            <div class="cc-card">
+              <div class="home-heatmap" id="homeHeatmapGrid" aria-live="polite"><p class="home-pulse__empty" role="status">Loading…</p></div>
+              <p class="home-pulse__foot" id="homeHeatmapMeta">Anonymous, aggregate page views. Pages with fewer than 5 views are hidden.</p>
+            </div>
+          </section>
         </section>
 
         <section class="home-release-panel" id="homeReleasePanel" aria-labelledby="homeReleaseHeading">
@@ -101,19 +131,32 @@
           </div>
         </section>
 
+        <details class="home-radar" id="homeRadar">
+          <summary class="home-radar__summary">
+            <span class="cc-section-title"><span class="cc-section-dot"></span>Industry radar</span>
+            <span class="home-radar__hint">Tech, competitor and Adobe release signals, curated by a Gemini agent</span>
+          </summary>
+          <div class="home-radar__body">
+            <div class="home-radar__toolbar">
+              <div class="home-seg" role="tablist" aria-label="Radar feed">
+                <button type="button" class="home-seg__btn is-active" role="tab" aria-selected="true" data-radar-feed="tech-news">Tech &amp; competitors</button>
+                <button type="button" class="home-seg__btn" role="tab" aria-selected="false" data-radar-feed="adobe-releases">Adobe releases</button>
+              </div>
+              <p class="home-pulse__foot" id="homeRadarMeta"></p>
+            </div>
+            <ul class="home-radar__list" id="homeRadarList" aria-live="polite"></ul>
+          </div>
+        </details>
+
         <div class="home-new-lower">
           <div class="cc-grid-bottom">
             <section class="home-lab-updates home-lab-updates--compact" id="homeLabUpdates" aria-labelledby="homeLabUpdatesHeading">
               <div class="cc-section-header">
-                <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Latest in the Lab</span></div>
+                <div class="cc-section-title"><span class="cc-section-dot"></span><span id="homeLabUpdatesHeading">Recent brand scrapes</span></div>
                 <a class="cc-section-action" href="brand-scraper.html">Open scraper</a>
               </div>
               <div class="cc-card cc-card--flush home-lab-updates__card">
                 <div class="home-lab-updates__section">
-                  <h4 class="home-lab-updates__col-title">Demo Pages</h4>
-                  <div class="home-lab-updates__list" id="homeLabDemosList"></div>
-                </div>
-                <div class="home-lab-updates__section home-lab-updates__section--border">
                   <h4 class="home-lab-updates__col-title">Recent Scrapes</h4>
                   <div class="home-lab-updates__list" id="homeLabScrapesList">
                     <p class="home-lab-updates-loading" role="status">Loading…</p>
@@ -282,8 +325,9 @@
   <script defer src="aep-ldap-slug.js"></script>
   <script defer src="home-release-summary-catalog.js?v=20261121-live"></script>
   <script defer src="home-release-summary.js?v=20261121-live"></script>
-  <script defer src="home-new-greeting.js?v=20260711a"></script>
-  <script defer src="home-new-lab-updates.js?v=20260824a-logo-onerror"></script>
+  <script defer src="home-new-greeting.js?v=20261122-stock-refresh"></script>
+  <script defer src="home-new-pulse.js?v=20261122-pulse"></script>
+  <script defer src="home-new-lab-updates.js?v=20261122-pulse"></script>
   <script defer src="aep-lab-nav.js?v=20261110-my-data-flows"></script>
   <script defer src="marauders-map-egg.js?v=20260519a"></script>
 </body>

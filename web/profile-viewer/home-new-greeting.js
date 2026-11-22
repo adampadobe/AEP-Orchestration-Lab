@@ -6,6 +6,7 @@
 
   var GOOGLE_FINANCE_URL = 'https://www.google.com/finance/quote/ADBE:NASDAQ';
   var STOCK_FETCH_TIMEOUT_MS = 8000;
+  var STOCK_REFRESH_MS = 2 * 60 * 1000;
   var ADBE_MIN_PRICE = 80;
   var ADBE_MAX_PRICE = 2000;
 
@@ -358,17 +359,45 @@
       });
   }
 
-  function loadStock() {
+  function loadStock(quiet) {
     var el = document.getElementById('homeGreetingStock');
     if (!el) return;
-    el.innerHTML = '<span class="home-greeting-stock-symbol">ADBE</span> loading…';
+    if (!quiet) el.innerHTML = '<span class="home-greeting-stock-symbol">ADBE</span> loading…';
     loadStockChain()
       .then(function (payload) {
         renderStock(el, normalizeQuote(payload) || payload);
       })
       .catch(function () {
-        renderStock(el, null);
+        if (!quiet) renderStock(el, null);
       });
+  }
+
+  // True during regular NASDAQ hours (Mon–Fri 09:30–16:00 America/New_York).
+  function isMarketOpen(now) {
+    try {
+      var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'short',
+        hour: 'numeric',
+        minute: 'numeric',
+        hourCycle: 'h23',
+      }).formatToParts(now || new Date());
+      var get = function (type) {
+        var p = parts.find(function (x) { return x.type === type; });
+        return p ? p.value : '';
+      };
+      if (get('weekday') === 'Sat' || get('weekday') === 'Sun') return false;
+      var mins = Number(get('hour')) * 60 + Number(get('minute'));
+      return mins >= 570 && mins < 960;
+    } catch (_e) {
+      return false;
+    }
+  }
+
+  function startStockRefresh() {
+    global.setInterval(function () {
+      if (document.visibilityState === 'visible' && isMarketOpen()) loadStock(true);
+    }, STOCK_REFRESH_MS);
   }
 
   function renderGreeting(firstName) {
@@ -408,6 +437,7 @@
     resolveFirstName().then(renderGreeting);
     renderSandbox();
     loadStock();
+    startStockRefresh();
 
     global.addEventListener('aep-global-sandbox-change', renderSandbox);
     global.addEventListener('aep-lab-email-session-updated', function () {
