@@ -30,6 +30,66 @@
     return typeof goal === 'number' && Number.isFinite(goal) && goal > 0 &&
       typeof value === 'number' && Number.isFinite(value) ? { goal, value, key } : null;
   }
+  function normaliseChallengeResponse(response) {
+    if (!response || !Array.isArray(response.challengeList)) {
+      throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
+    }
+    const ids = new Set();
+    const challengeList = response.challengeList.map(challenge => {
+      if (!challenge || typeof challenge !== 'object' || Array.isArray(challenge) ||
+          typeof challenge.challenge_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/.test(challenge.challenge_id)) {
+        throw new Error('Malformed Loyalty state: a challenge has no valid challenge ID.');
+      }
+      if (ids.has(challenge.challenge_id)) throw new Error('Malformed Loyalty state: duplicate challenge ID ' + challenge.challenge_id + '.');
+      ids.add(challenge.challenge_id);
+      for (const key of ['name', 'challengeName', 'desc', 'state']) {
+        if (challenge[key] != null && typeof challenge[key] !== 'string') throw new Error('Malformed challenge: ' + key + ' must be text.');
+      }
+      if (challenge.tasks != null && !Array.isArray(challenge.tasks)) throw new Error('Malformed challenge: tasks must be an array.');
+      const tasks = (challenge.tasks || []).map(task => {
+        if (!task || typeof task !== 'object' || Array.isArray(task)) throw new Error('Malformed task in Loyalty state.');
+        for (const key of ['taskId', 'taskName', 'desc', 'taskState', 'taskType', 'taskClass']) {
+          if (task[key] != null && typeof task[key] !== 'string') throw new Error('Malformed task: ' + key + ' must be text.');
+        }
+        for (const key of ['variables', 'accumulators']) {
+          if (task[key] != null && (typeof task[key] !== 'object' || Array.isArray(task[key]))) {
+            throw new Error('Malformed task: ' + key + ' must be an object.');
+          }
+        }
+        return { ...task };
+      });
+      const optedIn = typeof challenge.optedIn === 'string' && /^(true|false)$/i.test(challenge.optedIn.trim())
+        ? challenge.optedIn.trim().toLowerCase() === 'true' : challenge.optedIn;
+      if (optedIn != null && typeof optedIn !== 'boolean') throw new Error('Malformed challenge: optedIn must be a Boolean.');
+      return { ...challenge, optedIn, tasks, tasksReported: Array.isArray(challenge.tasks) };
+    });
+    return { ...response, challengeList };
+  }
+  function classifyChallenges(challenges) {
+    return {
+      joinedChallenges: challenges.filter(challenge => challenge.optedIn === true),
+      availableChallenges: challenges.filter(challenge => challenge.optedIn === false),
+      unknownChallenges: challenges.filter(challenge => typeof challenge.optedIn !== 'boolean'),
+    };
+  }
+  function getChallengeSummary(challenge) {
+    return (challenge.tasks || []).map(task => {
+      if (typeof task.desc === 'string' && task.desc.trim()) return task.desc.trim();
+      const variables = task.variables || {};
+      const positive = value => typeof value === 'number' && Number.isFinite(value) && value > 0;
+      if (positive(variables.spendMin)) {
+        const currency = variables.currencyCode || task.currencyCode || challenge.currencyCode;
+        return 'Qualifying spend target: ' + variables.spendMin +
+          (typeof currency === 'string' && /^[A-Z]{3}$/.test(currency) ? ' ' + currency : '');
+      }
+      if (positive(variables.qtyMin)) return variables.qtyMin + ' qualifying items';
+      if (positive(variables.daysMin)) return variables.daysMin + ' qualifying days';
+      if (positive(variables.goal) && typeof variables.type === 'string') {
+        return (task.taskName || 'Task') + ' target: ' + variables.goal;
+      }
+      return typeof task.taskName === 'string' ? task.taskName.trim() : '';
+    }).filter(Boolean).join('; ');
+  }
   function safeUrl(raw, base) {
     if (typeof raw !== 'string' || !raw.trim()) return '';
     try { const url = new URL(raw, base); return ['https:', 'http:'].includes(url.protocol) ? url.href : ''; }
@@ -74,7 +134,7 @@
   }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, safeUrl, selectCard, partnerOffers };
+    progress, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
