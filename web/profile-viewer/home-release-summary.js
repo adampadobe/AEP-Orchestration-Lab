@@ -1,12 +1,15 @@
 /**
  * Experience Cloud release summary panel for home-new.html.
- * Reads GET /api/release-notes/summary when deployed; falls back to bundled catalog.
+ * Reads GET /api/release-notes/summary on load and every 30 min; bundled catalog is an
+ * explicitly labelled archive used only when the API fails.
  */
 (function attachHomeReleaseSummary(global) {
   'use strict';
 
   var API_PATH = '/api/release-notes/summary';
   var COMPACT_LIMIT = 8;
+  var LIVE_PERIOD_ID = '__live__';
+  var AUTO_REFRESH_MS = 30 * 60 * 1000;
 
   function getCatalog() {
     return global.HomeReleaseCatalog || null;
@@ -32,13 +35,16 @@
       sourceUrl: entry.sourceUrl,
       periodId: entry.id,
       products: entry.products,
+      source: 'archive',
     };
   }
 
   var state = {
     activeProduct: 'cdp',
-    activePeriodId: 'june-2026',
+    activePeriodId: LIVE_PERIOD_ID,
     data: null,
+    live: null,
+    lastFetchAt: 0,
     loading: false,
     error: '',
   };
@@ -100,28 +106,44 @@
     if (!selectEl.getAttribute('data-bound')) {
       selectEl.setAttribute('data-bound', '1');
       selectEl.addEventListener('change', function () {
-        state.activePeriodId = selectEl.value;
-        var bundled = buildSampleFromCatalog(state.activePeriodId);
-        if (bundled) applyData(bundled);
+        if (selectEl.value === LIVE_PERIOD_ID) {
+          if (state.live) applyData(state.live, LIVE_PERIOD_ID);
+          return;
+        }
+        var bundled = buildSampleFromCatalog(selectEl.value);
+        if (bundled) applyData(bundled, selectEl.value);
       });
     }
 
-    selectEl.innerHTML = cat.periodOrder
-      .map(function (id) {
-        var entry = cat.periods[id];
-        if (!entry) return '';
-        var selected = id === state.activePeriodId;
-        return (
-          '<option value="' +
-          esc(id) +
-          '"' +
-          (selected ? ' selected' : '') +
-          '>' +
-          esc(entry.label || entry.period) +
-          '</option>'
-        );
-      })
-      .join('');
+    function option(value, label) {
+      return (
+        '<option value="' +
+        esc(value) +
+        '"' +
+        (value === state.activePeriodId ? ' selected' : '') +
+        '>' +
+        esc(label) +
+        '</option>'
+      );
+    }
+
+    var options = [];
+    if (state.live) {
+      options.push(option(LIVE_PERIOD_ID, (state.live.period || 'Latest') + ' (latest)'));
+    }
+    cat.periodOrder.forEach(function (id) {
+      var entry = cat.periods[id];
+      if (!entry) return;
+      if (state.live && entry.period === state.live.period) return;
+      options.push(option(id, (entry.period || entry.label) + ' (archived)'));
+    });
+    selectEl.innerHTML = options.join('');
+  }
+
+  function sourceLabel(data) {
+    if (!data) return '';
+    if (data.source === 'archive' || data.source === 'fallback') return 'Archived snapshot';
+    return 'Live';
   }
 
   function renderTabs() {
@@ -314,9 +336,11 @@
     if (periodEl) periodEl.textContent = state.data.period || '—';
     var tsEl = document.getElementById('homeReleaseTimestamp');
     if (tsEl) {
+      var label = sourceLabel(state.data);
       tsEl.textContent = state.data.fetchedAt
-        ? 'Updated ' + formatFetched(state.data.fetchedAt)
-        : '';
+        ? label + ' · updated ' + formatFetched(state.data.fetchedAt)
+        : label;
+      tsEl.setAttribute('data-source', state.data.source || '');
     }
     renderPeriodSelect();
   }
@@ -329,9 +353,9 @@
     renderCompact();
   }
 
-  function applyData(data) {
+  function applyData(data, periodKey) {
     state.data = data;
-    if (data.periodId) state.activePeriodId = data.periodId;
+    state.activePeriodId = periodKey || LIVE_PERIOD_ID;
     var order = getProductOrder();
     if (order.indexOf(state.activeProduct) === -1) state.activeProduct = order[0] || 'cdp';
     renderAll();
@@ -343,16 +367,17 @@
     return buildSampleFromCatalog(periodId);
   }
 
-  function fetchSummary(forceRefresh) {
+  function fetchSummary(forceRefresh, background) {
     if (state.loading) return;
     state.loading = true;
-    hideError();
+    state.lastFetchAt = Date.now();
+    if (!background) hideError();
     var btn = document.getElementById('homeReleaseRefresh');
     if (btn) {
       btn.disabled = true;
       btn.classList.add('is-loading');
     }
-    showLoading();
+    if (!background) showLoading();
 
     var url = API_PATH + (forceRefresh ? '?refresh=1' : '');
     fetch(url, { credentials: 'same-origin' })
@@ -362,14 +387,23 @@
       })
       .then(function (payload) {
         if (!payload || !payload.products) throw new Error('Invalid response');
-        applyData(payload);
-      })
-      .catch(function () {
-        var bundled = defaultBundledData();
-        if (bundled) applyData(bundled);
-        if (forceRefresh) {
-          showError('API not available yet — showing bundled release catalog.');
+        state.live = payload;
+        if (!background || state.activePeriodId === LIVE_PERIOD_ID) {
+          applyData(payload, LIVE_PERIOD_ID);
+        } else {
+          renderPeriodSelect();
         }
+        if (payload.source === 'fallback') {
+          showError(' — the live source could not be parsed, so an archived snapshot is shown.');
+        }
+      })
+      .catch(function (err) {
+        if (background && state.data) return;
+        var bundled = defaultBundledData();
+        if (bundled) applyData(bundled, (getCatalog() || {}).defaultPeriodId);
+        showError(
+          ' (' + ((err && err.message) || 'request failed') + ') — showing an archived snapshot.'
+        );
       })
       .finally(function () {
         state.loading = false;
@@ -385,10 +419,17 @@
     if (!root || root.getAttribute('data-home-release-init') === '1') return;
     root.setAttribute('data-home-release-init', '1');
 
-    var cat = getCatalog();
-    if (cat && cat.defaultPeriodId) state.activePeriodId = cat.defaultPeriodId;
-    var bundled = defaultBundledData();
-    if (bundled) applyData(bundled);
+    fetchSummary(false);
+
+    // Keep the panel current without a manual refresh: re-poll the cached endpoint.
+    global.setInterval(function () {
+      if (document.visibilityState === 'visible') fetchSummary(false, true);
+    }, AUTO_REFRESH_MS);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible' && Date.now() - state.lastFetchAt > AUTO_REFRESH_MS) {
+        fetchSummary(false, true);
+      }
+    });
 
     var refreshBtn = document.getElementById('homeReleaseRefresh');
     if (refreshBtn) {
