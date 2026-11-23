@@ -7,6 +7,7 @@ const TIME_ZONE = 'Asia/Riyadh';
 const DAILY_CAP = 50;
 const MINUTE = 60_000;
 const MAX_RUN_AGE_MS = 2 * 60 * MINUTE;
+const MAX_ACTIVE_FLOW_WAIT_MS = 10 * MINUTE;
 const IDLE_POLICY = 'verified_empty_snowflake_copy_v1';
 const fail = (code) => Object.assign(new Error(code), { code });
 const SLOT_FAILURE_STAGES = Object.freeze({
@@ -19,7 +20,7 @@ const SLOT_FAILURE_STAGES = Object.freeze({
 const SLOT_ERROR_CODES = [
   'SEED_INGESTION_NOT_HEALTHY', 'SEED_PREFERENCES_CHANGED', 'SEED_WINDOW_CLOSED',
   'SEED_PREPARED_IDENTITIES_INVALID', 'SEED_COMMITTED_NEEDS_INSPECTION', 'SEED_OUTCOME_UNKNOWN',
-  'SEED_GENERATION_FAILED',
+  'SEED_GENERATION_FAILED', 'SEED_FLOW_WAIT_EXPIRED',
 ];
 const DISPATCHER_ERROR_CODES = [
   'SEED_HEALTH_POLICY_INVALID', 'SEED_SCHEDULE_CONFIG_INVALID', 'SEED_OWNER_MISMATCH',
@@ -209,6 +210,24 @@ function assertFlowHealth(snapshot, now, policy) {
   }
 }
 
+function canWaitForActiveFlows(snapshot, diagnostic, now) {
+  const allowedReasons = new Set(['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown']);
+  if (!diagnostic.complete || !diagnostic.flows.length
+    || diagnostic.issues.some((issue) => !issue.flowId || !allowedReasons.has(issue.code))) return false;
+  const ids = new Set();
+  return snapshot.flows.every((flow, index) => {
+    if (typeof flow?.id !== 'string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(flow.id)
+      || ids.has(flow.id)) return false;
+    ids.add(flow.id);
+    if (diagnostic.flows[index].healthy) return true;
+    const run = flow.lastRun;
+    const started = typeof run?.startedAt === 'string' ? Date.parse(run.startedAt) : NaN;
+    return run?.state === 'inProgress' && typeof run.id === 'string' && !!run.id
+      && Number.isFinite(started) && started <= +now && +now - started <= MAX_ACTIVE_FLOW_WAIT_MS
+      && run.completedAt === null && (run.failedCount === null || run.failedCount === 0);
+  });
+}
+
 function createProfileSeedScheduleService({
   store, snowflake, getOwner, flowSnapshot, now = () => new Date(), logger = console,
 }) {
@@ -254,11 +273,28 @@ function createProfileSeedScheduleService({
       stage = SLOT_FAILURE_STAGES.flowSnapshot;
       const snapshot = await flowSnapshot(slot.industry);
       stage = SLOT_FAILURE_STAGES.flowHealth;
-      const health = diagnoseFlowHealth(snapshot, now(), config);
+      const clock = now();
+      const health = diagnoseFlowHealth(snapshot, clock, config);
+      if (slot.healthWaitStartedAt
+        && (!Number.isFinite(Date.parse(slot.healthWaitStartedAt))
+          || +clock < Date.parse(slot.healthWaitStartedAt)
+          || +clock - Date.parse(slot.healthWaitStartedAt) >= MAX_ACTIVE_FLOW_WAIT_MS)) {
+        flowHealthAtFailure = health;
+        throw fail('SEED_FLOW_WAIT_EXPIRED');
+      }
       if (!health.healthy) {
         flowHealthAtFailure = health;
+        if (canWaitForActiveFlows(snapshot, health, clock)) {
+          await store.deferFlowHealth(local.day, slot.id, config, clock);
+          logger.info('[profile-seed-schedule] Waiting for active ingestion before preparation', {
+            event: 'profile_seed_flow_health_deferred', ...logFields,
+            flowHealth: flowHealthLogFields(health),
+          });
+          return { state: 'waiting_flow_health' };
+        }
         throw fail('SEED_INGESTION_NOT_HEALTHY');
       }
+      if (!businessTime(clock).open || businessTime(clock).day !== local.day) throw fail('SEED_WINDOW_CLOSED');
       stage = SLOT_FAILURE_STAGES.preflight;
       const ready = await snowflake.preflight({ uid: owner.uid, industry: slot.industry });
       if (!ready?.ready || ready.baseEmail !== config.expectedBaseEmail

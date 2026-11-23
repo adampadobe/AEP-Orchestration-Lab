@@ -17,14 +17,29 @@ const config = {
   days: [0, 1, 2, 3, 4, 5], dailyCap: 50, campaignIsolationReviewed: true,
   unrelated: { retained: true, privateValue: 'never-output' },
 };
-function fixture(idle = false, media = false, travel = false, sports = false, retail = false) {
-  const day = retail ? '2026-11-19' : sports ? '2026-11-17' : media || travel ? '2026-11-15' : '2026-11-11';
+function fixture(idle = false, media = false, travel = false, sports = false, retail = false, telecom = false) {
+  const day = telecom ? '2026-11-22' : retail ? '2026-11-19' : sports ? '2026-11-17' : media || travel ? '2026-11-15' : '2026-11-11';
   const dayKey = `${root}/days/${day}`;
-  const slotId = retail || media ? '01' : sports ? '14' : '15';
-  let clock = new Date(retail ? '2026-11-20T03:12:00Z' : sports ? '2026-11-19T02:45:00Z' : media ? '2026-11-15T09:00:00Z'
+  const slotId = telecom ? '07' : retail || media ? '01' : sports ? '14' : '15';
+  let clock = new Date(telecom ? '2026-11-23T11:13:03Z' : retail ? '2026-11-20T03:12:00Z' : sports ? '2026-11-19T02:45:00Z' : media ? '2026-11-15T09:00:00Z'
     : travel ? '2026-11-15T14:00:00Z' : '2026-11-13T12:00:00Z');
   let owner = { uid: 'owner', disabled: false };
-  const recoverySlot = retail ? {
+  const recoverySlot = telecom ? {
+    id: slotId, industry: 'telecom', count: 2, state: 'needs_attention',
+    dueAt: '2026-11-22T08:44:00.000Z', identities: [],
+    startedAt: '2026-11-22T08:45:14.070Z', updatedAt: '2026-11-22T08:45:18.804Z',
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY', failureStage: 'flow_health', ingestion: 'unverified',
+    flowHealth: {
+      healthy: false, complete: true, observedAt: '2026-11-22T08:45:18.804Z', flowCount: 11,
+      issues: ['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown']
+        .map((code) => ({ code, flowId: '065f3b53-df40-43d1-9d91-c42f031996d6' })),
+      flows: Array.from({ length: 11 }, (_, index) => index === 0 ? ({
+        flowId: '065f3b53-df40-43d1-9d91-c42f031996d6', healthy: false, state: 'enabled',
+        lastRun: { state: 'inProgress', completedAt: null, readCount: 3, writtenCount: null, failedCount: null },
+        reasons: ['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown'],
+      }) : ({ flowId: `flow-${index}`, healthy: true })),
+    },
+  } : retail ? {
     id: slotId, industry: 'retail', count: 3, state: 'needs_attention',
     dueAt: '2026-11-19T05:29:00.000Z', identities: [],
     startedAt: '2026-11-19T05:30:19.585Z', updatedAt: '2026-11-19T05:30:25.871Z',
@@ -75,7 +90,7 @@ function fixture(idle = false, media = false, travel = false, sports = false, re
     [root, structuredClone(config)],
     [control, { blocked: true, active: null, attention: { day, id: slotId }, unrelated: 'retained' }],
     [dayKey, { day, fingerprint: validateConfig(config).fingerprint,
-      attemptedCount: retail ? 4 : sports ? 31 : media ? 3 : travel ? 6 : 5, plannedCount: 35,
+      attemptedCount: telecom ? 18 : retail ? 4 : sports ? 31 : media ? 3 : travel ? 6 : 5, plannedCount: 35,
       seed: 'retain-seed', unrelated: 'retained', slots: [
         { id: sports ? '13' : '14', state: 'committed', identities: [{ email: 'old-private@example.test' }] },
         recoverySlot,
@@ -152,6 +167,47 @@ function fixture(idle = false, media = false, travel = false, sports = false, re
     } }),
   };
 }
+
+test('exact telecom incident supports only an audited prewrite skip and preserves its budget', async () => {
+  const f = fixture(false, false, false, false, false, true);
+  const key = `${root}/days/2026-11-22`;
+  const original = structuredClone(f.data.get(key));
+  const p = await f.preview();
+  assert.equal(p.status, 'ready');
+  assert.equal(p.confirmation_phrase, 'SKIP ONLY 2026-11-22/07');
+  assert.deepEqual(p.target, { day: '2026-11-22', slot_id: '07', industry: 'telecom',
+    count: 2, attempted_count: 18, ingestion: 'not_started' });
+  assert.equal((await f.apply(p)).dispatcher_unblocked, true);
+  assert.equal(f.slot().state, 'skipped');
+  assert.deepEqual(f.slot().flowHealth, original.slots[1].flowHealth);
+  assert.equal(f.data.get(key).attemptedCount, 18);
+  assert.deepEqual(f.data.get(key).slots[0], original.slots[0]);
+  assert.deepEqual(f.data.get(key).slots[2], original.slots[2]);
+  await assert.rejects(f.apply(p), { status: 409 });
+});
+
+test('telecom recovery rejects changed incident evidence and fresh unhealthy flows', async () => {
+  for (const mutate of [
+    (f) => { f.slot().dueAt = '2026-11-22T08:45:00.000Z'; },
+    (f) => { f.slot().failureStage = 'source_write'; },
+    (f) => { f.slot().identities.push({ email: 'private' }); },
+    (f) => { f.slot().flowHealth.observedAt = '2026-11-22T08:45:18.803Z'; },
+    (f) => { f.slot().flowHealth.flows[0].lastRun.readCount = 2; },
+    (f) => { f.slot().flowHealth.issues.pop(); },
+    (f) => { f.data.get(`${root}/days/2026-11-22`).attemptedCount = 19; },
+    (f) => { f.slot().sourceWrite = true; },
+  ]) {
+    const f = fixture(false, false, false, false, false, true);
+    mutate(f);
+    await assert.rejects(f.preview(), { status: 409 });
+    assert.equal(f.writes, 0);
+  }
+  const f = fixture(false, false, false, false, false, true);
+  const p = await f.preview();
+  f.snapshot().flows[0].lastRun.state = 'failed';
+  await assert.rejects(f.apply(p), { code: 'SEED_RECOVERY_FLOW_NOT_HEALTHY' });
+  assert.equal(f.data.get(control).blocked, true);
+});
 
 test('exact reviewed retail stale-flow incident skips only its prewrite slot', async () => {
   const f = fixture(false, false, false, false, true);

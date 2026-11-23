@@ -133,10 +133,19 @@ async function main() {
     await ready(page);
     assert.ok(calls.some(call => call.query.get('cursor') === 'page-two'), 'published library fetches every page');
     assert.equal(await page.locator('#ihItems .ih-item').count(), 2, 'root contains one folder and one file');
+    const folder = page.locator('#ihItems .ih-item', { has: page.getByRole('button', { name: 'logo', exact: true }) });
+    assert.equal(await folder.getByRole('img', { name: 'Folder' }).locator('svg').count(), 1, 'folder displays an accessible icon');
+    assert.equal((await folder.locator('.ih-file-placeholder').innerText()).trim(), '', 'folder preview uses an icon rather than text');
     await page.locator('#ihItems').getByRole('button', { name: 'logo', exact: true }).click();
     await settled(page);
     await page.getByRole('button', { name: 'logo.png', exact: true }).click();
     assert.ok((await page.locator('#ihDetails').innerText()).includes('/cdn/demo/logo/logo.png'));
+    for (const name of ['Grid view', 'Waterfall view', 'List view']) {
+      const button = page.getByRole('group', { name: 'File view' }).getByRole('button', { name, exact: true });
+      assert.equal(await button.count(), 1, `${name} has an accessible label`);
+      assert.equal(await button.locator('svg[aria-hidden="true"]').count(), 1, `${name} has an icon`);
+      assert.equal((await button.innerText()).trim(), '', `${name} is icon-only`);
+    }
     await page.locator('#ihWaterfallView').click();
     assert.equal(await page.locator('.ih-items--waterfall').count(), 1, 'waterfall view applies masonry layout');
     assert.equal(await page.locator('#ihWaterfallView').getAttribute('aria-pressed'), 'true');
@@ -299,6 +308,24 @@ async function main() {
       for (const width of [1600, 1280, 900, 390]) {
         const f = await fixture(browser, { theme, width });
         await ready(f.page);
+        if (width === 1280) {
+          await f.page.locator('#ihBackupNow').click();
+          await f.page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
+          const contrast = await f.page.locator('#ihBackupStart').evaluate(button => {
+            const style = getComputedStyle(button);
+            function luminance(color) {
+              const rgb = color.match(/\d+/g).slice(0, 3).map(Number).map(value => {
+                value /= 255;
+                return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+              });
+              return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+            }
+            const colors = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => b - a);
+            return (colors[0] + 0.05) / (colors[1] + 0.05);
+          });
+          assert.ok(contrast >= 4.5, `${theme} create backup button has readable text (contrast ${contrast})`);
+          await f.page.locator('#ihBackupClose').click();
+        }
         await f.page.locator('#ihListView').click();
         await f.page.getByRole('button', { name: 'hero.png', exact: true }).click();
         const overflow = await f.page.evaluate(() => document.documentElement.scrollWidth > innerWidth);
