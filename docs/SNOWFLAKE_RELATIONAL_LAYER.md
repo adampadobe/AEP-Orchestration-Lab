@@ -51,6 +51,12 @@ this is not a general recovery interface for arbitrary future incidents. The
 receipt interface is unchanged: `expected_count` counts reviewed recovery
 targets, not the slot's generation count.
 
+It also includes **2026-11-22 / slot 07 / telecom / count 2**, attempted
+budget 18, with the exact due/start/update timestamps, `flow_health` failure
+stage and saved 11-flow snapshot. Only the shared base flow was in progress;
+the slot had no prepared identities. Its later successful AEP run does not
+itself clear the block.
+
 The media review combines the original preparation-stage log, empty saved
 identities/no preparation stamp, the durable `onPrepared` barrier before
 `writeSeedRecords`, and a bounded source inspection: no rows were created in
@@ -109,6 +115,17 @@ the durable transition succeeded; inspect owner-scoped diagnostics and do not re
 The diagnostics report separately labels saved failure evidence, current flow
 health, and errors that make current health unknown. A healthy current read does
 not erase the saved failure or unblock the dispatcher.
+
+For new attempts, a complete, otherwise healthy snapshot with a recent,
+identified `inProgress` run can defer the already-reserved slot before
+Snowflake preflight or identity preparation. The next scheduled tick rechecks
+the same reservation; it never creates another attempt or starts source writes
+while waiting. Waiting is bounded to ten minutes, after which the slot requires
+attention even if a later observation becomes healthy. Missing or future start
+times, stale active runs, failed records, incomplete snapshots, other health
+issues, and abandoned writers fail closed. A deferred slot can cross the usual
+ten-minute missed-slot window; later pending slots still expire normally.
+`profile_seed_flow_health_deferred` records the sanitized flow reasons.
 
 Final acceptance requires the next real scheduled run's provenance and complete
 stored Snowflake source, current XDM and REL readback. Keep the shared Agentic

@@ -38,10 +38,21 @@ const INCIDENTS = Object.freeze([
         ageMs: 12188549, readCount: 0, writtenCount: null, failedCount: null },
       idleRunId: '5b126cfe-7691-4d41-b046-b6590022f234',
     } },
+  { day: '2026-11-22', slotId: '07', industry: 'telecom', count: 2,
+    errorCode: 'SEED_INGESTION_NOT_HEALTHY', failureStage: 'flow_health', attemptedCount: 18,
+    dueAt: '2026-11-22T08:44:00.000Z', startedAt: '2026-11-22T08:45:14.070Z',
+    updatedAt: '2026-11-22T08:45:18.804Z',
+    failureSnapshot: {
+      observedAt: '2026-11-22T08:45:18.804Z', flowCount: 11,
+      flowId: '065f3b53-df40-43d1-9d91-c42f031996d6',
+      issueCodes: ['last_run_not_success', 'last_run_completion_missing', 'failed_count_unknown'],
+      lastRun: { state: 'inProgress', completedAt: null, readCount: 3, writtenCount: null, failedCount: null },
+    } },
 ]);
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const reject = (status, code) => { throw Object.assign(new Error(code), { status, code }); };
+const isReviewedRecoverySlotId = (slotId) => INCIDENTS.some((incident) => incident.slotId === slotId);
 function canonical(value) {
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonical);
@@ -99,6 +110,7 @@ function targetState({ config, dispatcher, day }, target) {
     && (!incident.slotKeys || JSON.stringify(Object.keys(slot).sort()) === JSON.stringify(incident.slotKeys));
   if (!hasNoPreparedIdentities || slot.state !== 'needs_attention'
     || slot.errorCode !== incident.errorCode
+    || (incident.failureStage && slot.failureStage !== incident.failureStage)
     || (incident.dueAt && slot.dueAt !== incident.dueAt)
     || slot.industry !== incident.industry || slot.count !== incident.count || day.attemptedCount < slot.count
     || (incident.attemptedCount !== undefined && day.attemptedCount !== incident.attemptedCount)
@@ -256,4 +268,4 @@ function createProfileSeedScheduleRecoveryService({ store, flowSnapshot, getOwne
   return { preview, apply };
 }
 
-module.exports = { createProfileSeedScheduleRecoveryService };
+module.exports = { createProfileSeedScheduleRecoveryService, isReviewedRecoverySlotId };

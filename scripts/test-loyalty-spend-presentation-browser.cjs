@@ -21,6 +21,7 @@ async function main() {
       const available = { ...spendChallenge, challenge_id: 'available-fixture', optedIn: false,
         tasks: [{ ...task, accumulators: { spend: 30 } }] };
       let state = [spendChallenge, nonSpend, available], definition = task;
+      let events = [], schemaSupported = true, registeredDatastream = 'fixture-stream';
       await context.addInitScript(() => localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'));
       await context.route('**/*', async route => {
         const request = route.request(), url = new URL(request.url());
@@ -42,7 +43,14 @@ async function main() {
             ? { _id: url.searchParams.get('challenge_id'), name: 'Definition', tasks: [definition] } : { challengeList: state } };
         } else if (url.pathname === '/api/env-bar-config') data = { config: null };
         else if (url.pathname === '/api/profile/consent') data = { found: true, channels: {} };
-        else if (url.pathname === '/api/profile/events') data = { events: [] };
+        else if (url.pathname === '/api/profile/events') data = { events };
+        else if (url.pathname === '/api/events/config') data = { record: { datastreamId: registeredDatastream, schemaId: 'fixture-schema' } };
+        else if (url.pathname === '/api/schema-viewer/registry') data = { schema: { properties: schemaSupported ? {
+          _experience: { properties: { ajo: { properties: { loyalty: { properties: { challenge: { properties: {
+            id: { type: 'string' }, name: { type: 'string' },
+            metadata: { type: 'object', additionalProperties: { type: 'string' } },
+          } } } } } } } },
+        } : {} } };
         else if (url.pathname === '/api/profile/audiences') data = { realized: [], exited: [] };
         else if (url.pathname === '/api/events/generator-targets') data = { targets: [] };
         else if (url.pathname === '/api/image-hosting/library') data = { items: [] };
@@ -60,21 +68,29 @@ async function main() {
       assert.equal(await page.locator('#loyaltyReturnedOffers').isVisible(), false);
       await page.evaluate(() => {
         window.AepGlobalSandbox.setSelected('kirkham');
-        window.__tracking = []; window.__interactions = [];
-        window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'fixture-stream' } });
+        window.__tracking = []; window.__interactions = []; window.__purchases = [];
+        window.__eventStream = 'fixture-stream';
+        window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.__eventStream } });
         window.alloy = async (command, options) => {
           if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
           if (command === 'subscribeRulesetItems') { window.__subscription = options; return; }
           if (command !== 'sendEvent') return {};
+          if (options.xdm?.eventType === 'commerce.purchases') {
+            window.__purchases.push(options);
+            await new Promise(resolve => { window.__releasePurchase = resolve; });
+            return { requestId: 'offline-purchase' };
+          }
           if (options.xdm?.eventType === 'decisioning.propositionInteract') window.__interactions.push(options);
           if (options.personalization?.surfaces?.[0]?.endsWith('#featured-offers')) return { propositions: [] };
           if (options.personalization?.surfaces && window.__subscription) {
             window.__cards = ['spend-fixture', 'non-spend-fixture', 'available-fixture', null].map((challengeId, index) => ({
               id: 'proposition-' + index, scope: window.__subscription.surfaces[0],
-              scopeDetails: { decisionProvider: 'AJO', rank: 4 - index, correlationID: 'correlation-' + index },
+              scopeDetails: { decisionProvider: 'AJO', rank: 4 - index, correlationID: 'correlation-' + index + (window.__cardRevision || ''),
+                activity: { id: 'journey-activity-' + index }, characteristics: { source: 'journey', eventToken: 'token-' + index } },
               items: [{ id: 'item-' + index, schema: 'https://ns.adobe.com/personalization/message/content-card',
                 data: { content: { title: 'Identical title', body: 'Adobe body ' + index,
-                  buttons: [{ text: { content: 'Join Challenge' }, interactId: 'joinChallenge' }] },
+                  buttons: [{ text: { content: 'Join Challenge' }, interactId: 'joinChallenge' },
+                    { text: { content: 'View tasks' }, interactId: 'viewTasks' }, { text: { content: 'View details' } }] },
                   meta: challengeId ? { challengeId } : {} } }],
             }));
             window.__subscription.callback({ propositions: window.__cards }, async (type, selected) => window.__tracking.push({ type, selected }));
@@ -99,6 +115,76 @@ async function main() {
       };
       assert.equal(await card.locator('.loyalty-customer-spend').count(), 0, 'Missing accumulator is not zero');
       assert.equal(await card.locator('[data-interact-id="joinChallenge"]').textContent(), 'Challenge Already Joined');
+      await card.locator('[data-interact-id="viewTasks"]').click();
+      await page.waitForFunction(() => window.__interactions.length === 1 && !document.getElementById('queryProfileBtn').disabled);
+      const interaction = await page.evaluate(() => window.__interactions[0]);
+      assert.deepEqual(interaction.xdm._experience.ajo.loyalty.challenge, {
+        id: 'spend-fixture', name: 'Unrelated title',
+        metadata: { contextType: 'cardInteraction', consequenceId: 'item-0', cardTitle: 'Identical title', interactId: 'viewTasks' },
+      });
+      assert.deepEqual(interaction.xdm._experience.decisioning.propositions[0].scopeDetails,
+        await page.evaluate(() => window.__cards[0].scopeDetails), 'Original Journey rank, attribution and tokens are unchanged');
+      assert.deepEqual(interaction.xdm._experience.decisioning.propositions[0].items, [{ id: 'item-0' }]);
+      await card.getByRole('button', { name: 'View details', exact: true }).click();
+      await page.waitForFunction(() => window.__interactions.length === 2 && !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.evaluate(() => window.__interactions[1].xdm._experience.ajo.loyalty.challenge.metadata.interactId), 'item-0');
+      assert.equal(await page.evaluate(() => window.__tracking.filter(event => event.type === 'interact').length), 0,
+        'An enriched explicit interaction does not also call native collection');
+      const purchaseControl = page.locator('#loyaltyTasks [data-spend-purchase]').first();
+      await purchaseControl.click();
+      await page.waitForFunction(() => typeof window.__releasePurchase === 'function');
+      const purchase = await page.evaluate(() => window.__purchases[0]);
+      assert.deepEqual(purchase.xdm._experience.ajo.loyalty.challenge, {
+        id: 'spend-fixture', name: 'Unrelated title',
+        metadata: { contextType: 'spendDemoPurchase', taskId: task.taskId, taskName: task.taskName, qualification: 'notConfirmed' },
+      });
+      assert.equal(purchase.xdm._experience.decisioning, undefined, 'Inspector purchase does not borrow the visible card proposition');
+      assert.equal(purchase.xdm.commerce.order.priceTotal, 10);
+      task.accumulators = { spend: 10 };
+      await page.evaluate(() => { window.__releasePurchase(); delete window.__releasePurchase; });
+      await page.waitForFunction(() => window.LoyaltyDemoSpendDebug.getLatest()?.sdkAccepted === true);
+      assert.equal(await card.locator('.loyalty-customer-spend').count(), 0, 'Context does not imply qualification or advance progress');
+      await page.waitForFunction(() => window.LoyaltyDemoSpendDebug.getLatest()?.poll?.stopReason?.startsWith('Adobe returned updated Spend: 10.'));
+      const toEvent = payload => {
+        const rows = [];
+        const flatten = (value, prefix) => {
+          if (value && typeof value === 'object') for (const [key, child] of Object.entries(value)) flatten(child, prefix ? prefix + '.' + key : key);
+          else rows.push({ path: prefix, value: String(value) });
+        };
+        flatten(payload.xdm, '');
+        return { eventType: payload.xdm.eventType, timestamp: Date.now(), rows };
+      };
+      events = [toEvent(purchase), toEvent(interaction)];
+      await page.evaluate(() => window.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+      assert.match(await page.locator('#profileDrawerEvents').textContent(), /Loyalty challenge: Unrelated title/);
+      assert.match(await page.locator('#profileDrawerEvents').textContent(), /Task: Generic Spend/);
+      assert.match(await page.locator('#profileDrawerEvents').textContent(), /qualification not confirmed/);
+      assert.match(await page.locator('#profileDrawerEvents').textContent(), /Adobe activity ID: journey-activity-0/);
+      schemaSupported = false; registeredDatastream = 'unsupported-stream';
+      await page.evaluate(() => { window.__eventStream = 'unsupported-stream'; window.__cardRevision = '-unsupported'; });
+      await page.locator('#loyaltyRun').click();
+      await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Featured Offers response refreshed') &&
+        !document.getElementById('queryProfileBtn').disabled);
+      await card.locator('[data-interact-id="viewTasks"]').click();
+      await page.waitForFunction(() => window.__interactions.length === 3 && !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.evaluate(() => window.__interactions[2].xdm._experience.ajo), undefined, 'Unsupported schema never receives invented fields');
+      assert.match(await page.evaluate(() => window.LoyaltyDemoEventContextDebug.getLatest().error), /does not support Loyalty/);
+      assert.equal(await page.evaluate(() => window.LoyaltyDemoEventContextDebug.getLatest().supported), false);
+      await card.getByRole('button', { name: 'View details', exact: true }).click();
+      await page.waitForFunction(() => window.__tracking.filter(event => event.type === 'interact').length === 1 &&
+        !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.evaluate(() => window.__interactions.length), 3,
+        'Unsupported enrichment preserves native collection without a second interaction');
+      schemaSupported = true; registeredDatastream = 'fixture-stream';
+      await page.evaluate(() => { window.__eventStream = 'mismatch-stream'; window.__cardRevision = '-mismatch'; });
+      await page.locator('#loyaltyRun').click();
+      await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('Featured Offers response refreshed') &&
+        !document.getElementById('queryProfileBtn').disabled);
+      await card.locator('[data-interact-id="viewTasks"]').click();
+      await page.waitForFunction(() => window.__interactions.length === 4 && !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.evaluate(() => window.__interactions[3].xdm._experience.ajo), undefined, 'A mismatched schema cannot authorize enrichment');
+      assert.match(await page.evaluate(() => window.LoyaltyDemoEventContextDebug.getLatest().error), /does not match/);
+      await page.evaluate(() => { window.__eventStream = 'fixture-stream'; });
       await page.evaluate(() => {
         window.__originalViewport = document.getElementById('loyaltyChallengeCarousel');
         window.__originalCard = document.querySelector('[data-proposition-id="proposition-0"]');
