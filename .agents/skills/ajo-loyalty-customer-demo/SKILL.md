@@ -145,6 +145,17 @@ Never include credentials, private customer identities or production tokens.
   then explicit Spend variables when class is absent. Use spendMin/goal and
   actual returned accumulators.spend. A purchase class alone is not Spend.
   Missing/invalid accumulator is not zero; metadata/history never replaces state.
+- Customer Content Cards match the returned joined challenge by exact
+  `meta.challengeId`, never title/visible slide. Shared `spendPresentation`
+  formats both inspector and customer progress from the same state/definition
+  references. Use the Rewards `.loyalty-added` treatment with brand tokens;
+  hide the joined CTA only while real Spend presentation is available.
+  State refreshes update existing panels without rebuilding/retracking the
+  carousel. Only Adobe task/challenge completion replaces the meter with
+  completion copy; never claim points issued. Preserve true zero versus missing.
+- Both pages use session-only web/inspector width sliders and a native collapsed
+  Profile offers disclosure. Keep these presentation controls separate from
+  profile, event, Decisioning or progress state.
 - Only an opted-in, incomplete appropriate GBP Spend task for the resolved member
   shows the small left inspector demo control. Respect include/exclude SKU filters
   and singleTrans constraints; do not insert it in the customer previews.
@@ -185,6 +196,8 @@ Run existing model/browser tests and add focused customer tests to
 read, joined/available, one/multiple cards and per-card metadata, independent
 Featured Offers, GBP purchase/Adobe-only Spend, mobile/web switching, light/dark,
 small viewport, navigation and no accidental writes. Preserve Lloyds regressions.
+Run `npm run test:loyalty-spend-presentation` for the shared real-zero/missing,
+Spend mapping, completion, no-retracking and adjustable-layout cases on both brands.
 Run `verify:profile-viewer-routes`, `verify:demo-env-strip`,
 `verify:decisioning-mount-zones`, `git diff --check` and mirror parity.
 

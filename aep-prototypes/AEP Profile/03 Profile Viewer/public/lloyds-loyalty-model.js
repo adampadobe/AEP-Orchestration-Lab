@@ -59,6 +59,19 @@
     return candidates.find(sku => typeof sku === 'string' && sku.trim() && !sku.includes('*') &&
       !excluded.includes('*') && !excluded.includes(sku))?.trim() || null;
   }
+  function spendPresentation(spend) {
+    if (!spend?.goal || spend.value === null) return null;
+    const money = amount => new Intl.NumberFormat('en-GB', {
+      style: 'currency', currency: spend.currency, maximumFractionDigits: 2, minimumFractionDigits: 0,
+    }).format(amount);
+    const remaining = Math.max(spend.goal - spend.value, 0);
+    const percent = Math.min(spend.value / spend.goal * 100, 100);
+    return {
+      summary: money(spend.value) + ' spent \u00b7 ' + money(remaining) + ' to go',
+      target: percent.toLocaleString('en-GB', { maximumFractionDigits: 1 }) + '% of spend target',
+      goalLabel: money(spend.goal), percent,
+    };
+  }
   function normaliseChallengeResponse(response) {
     if (!response || !Array.isArray(response.challengeList)) {
       throw new Error('Malformed Loyalty state: challengeList is missing. This is not an empty member-state response.');
@@ -166,7 +179,7 @@
   }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, spendTask, spendPurchaseSku, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
+    progress, spendTask, spendPurchaseSku, spendPresentation, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);

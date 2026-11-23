@@ -104,7 +104,7 @@ async function main() {
                 imageUrl: new URL('/profile-viewer/jet2-loyalty/beach.jpg', location.href).href,
                 actionUrl: '#loyalty-challenges',
                 buttons: [{ text: { content: 'View tasks ' + rank }, interactId: 'viewTasks' }] },
-                meta: { challengeId: 'jet2-challenge-' + rank } } }],
+                meta: { challengeId: rank === 2 ? 'jet2-spend-fixture' : 'jet2-challenge-' + rank } } }],
           }));
           window.__subscription.callback({ propositions: window.__cards }, async (type, selected) => {
             window.__tracking.push({ type, selected });
@@ -182,6 +182,8 @@ async function main() {
     await page.setViewportSize({ width: 1500, height: 1100 });
     await page.locator('[data-loyalty-preview="mobile"]').click();
     assert.equal(await page.locator('.loyalty-phone #ContentCardContainerLoyalty article').count(), 1);
+    await page.evaluate(() => window.__subscription.callback({ propositions: window.__cards }, async () => {}));
+    await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 2);
     const control = page.locator('#loyaltyTasks [data-spend-purchase]');
     assert.equal(await page.locator('.loyalty-phone [data-spend-purchase]').count(), 0);
     assert.match(await page.locator('#loyaltyTasks').textContent(), /Progress not yet reported/);
@@ -196,9 +198,12 @@ async function main() {
       assert.equal(await page.evaluate(() => window.LoyaltyDemoSpendDebug.getLatest().poll.responses.length), 0);
       assert.doesNotMatch(await page.locator('#loyaltyTasks').textContent(), new RegExp('£' + spend + ' spent'),
         'SDK acceptance alone never adds local Spend progress');
+      assert.doesNotMatch(await page.locator('#ContentCardContainerLoyalty').textContent(), new RegExp('£' + spend + ' spent'),
+        'The customer card also waits for Adobe state, not purchase acceptance');
       await page.waitForFunction(spend => window.LoyaltyDemoSpendDebug.getLatest()?.poll?.stopReason
         ?.startsWith('Adobe returned updated Spend: ' + spend + '.'), spend);
       assert.match(await page.locator('#loyaltyTasks').textContent(), new RegExp('£' + spend + ' spent'));
+      assert.match(await page.locator('#ContentCardContainerLoyalty .loyalty-customer-spend').textContent(), new RegExp('£' + spend + ' spent'));
     }
     const purchases = await page.evaluate(() => window.__sdkPurchases);
     assert.notEqual(purchases[0].xdm._id, purchases[1].xdm._id);

@@ -68,6 +68,19 @@ test('challenge classification preserves explicit participation and rejects ambi
     { joinedChallenges: [], availableChallenges: [], unknownChallenges: [] });
 });
 
+test('Spend presentation shares real zero, money and capped percentages without inferring completion', () => {
+  const task = { taskClass: 'spend', variables: { spendMin: 50 } };
+  for (const [value, percent, remaining] of [[0, 0, 50], [20, 40, 30], [30, 60, 20], [40, 80, 10], [60, 100, 0]]) {
+    const display = model.spendPresentation(model.spendTask({ ...task, accumulators: { spend: value } }));
+    assert.equal(display.summary, `£${value} spent · £${remaining} to go`);
+    assert.equal(display.percent, percent);
+    assert.equal(display.target, `${percent}% of spend target`);
+    assert.equal(display.completed, undefined, 'Meeting the goal is never completion authority');
+  }
+  assert.equal(model.spendPresentation(model.spendTask(task)), null);
+  assert.equal(model.spendPresentation(model.spendTask({ ...task, taskClass: 'purchase' })), null);
+});
+
 test('available summaries describe arbitrary task goals without inferring currency or accumulated progress', () => {
   assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 75 } }] }), 'Qualifying spend target: 75');
   assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 80, currencyCode: 'EUR' }, accumulators: { spend: 20 } }] }),

@@ -38,6 +38,7 @@
     "test:cp-decisioning": "node --test scripts/test-cp-decisioning.cjs scripts/test-tui-decisioning-runtime.cjs && node scripts/test-cp-decisioning-browser.cjs",
     "test:lloyds-loyalty": "node --test scripts/test-lloyds-loyalty.cjs && node scripts/test-lloyds-loyalty-browser.cjs",
     "test:jet2-loyalty": "node scripts/test-jet2-loyalty-browser.cjs",
+    "test:loyalty-spend-presentation": "node scripts/test-loyalty-spend-presentation-browser.cjs",
     "preview:cp-decisioning": "node scripts/preview-cp-decisioning.mjs",
     "test:sidebar-account-theme": "node scripts/test-sidebar-account-theme.mjs",
     "test:my-data-flows": "node --test functions/test/myDataFlows*.test.cjs && node scripts/test-my-data-flows-browser.cjs",
