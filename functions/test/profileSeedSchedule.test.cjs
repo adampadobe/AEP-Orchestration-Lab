@@ -325,6 +325,112 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
   }
 });
 
+test('active flow defers the same prewrite slot, then rechecks health without another reservation', async () => {
+  const health = { complete: true, flows: [{
+    id: '065f3b53-df40-43d1-9d91-c42f031996d6', state: 'enabled',
+    schedule: { frequency: 'minute', interval: 15 },
+    lastRun: { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
+      completedAt: null, failedCount: null },
+  }] };
+  const f = fixture({ health });
+  assert.equal((await f.service.tick()).state, 'waiting_flow_health');
+  assert.equal(f.calls.preflight, 0);
+  assert.equal(f.calls.generate, 0);
+  assert.deepEqual(f.db.data.get(dayKey()).slots[0].identities, []);
+  assert.equal(f.db.data.get(dayKey()).attemptedCount, 2);
+  assert.equal(f.db.data.get(controlKey).active.waitingFlowHealth, true);
+  f.advance(5 * 60_000);
+  health.flows[0].lastRun = { id: 'run-a', state: 'success',
+    completedAt: f.now().toISOString(), failedCount: 0 };
+  await Promise.all([f.service.tick(), f.service.tick()]);
+  assert.equal(f.calls.generate, 1);
+  assert.equal(f.db.data.get(dayKey()).attemptedCount, 2);
+  assert.equal(f.db.data.get(dayKey()).slots[0].state, 'committed');
+  assert.deepEqual(f.db.data.get(controlKey), { blocked: false, active: null });
+});
+
+test('active-flow deferral is bounded and fails closed for ambiguous or unhealthy evidence', async () => {
+  const active = {
+    id: '065f3b53-df40-43d1-9d91-c42f031996d6', state: 'enabled',
+    schedule: { frequency: 'minute', interval: 15 },
+    lastRun: { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
+      completedAt: null, failedCount: null },
+  };
+  const badFlows = [
+    { ...active, lastRun: { ...active.lastRun, state: 'failed' } },
+    { ...active, lastRun: { ...active.lastRun, startedAt: null } },
+    { ...active, lastRun: { ...active.lastRun, startedAt: `${day}T05:06:00.000Z` } },
+    { ...active, lastRun: { ...active.lastRun, startedAt: `${day}T04:54:59.000Z` } },
+    { ...active, lastRun: { ...active.lastRun, completedAt: `${day}T05:04:00.000Z` } },
+    { ...active, lastRun: { ...active.lastRun, failedCount: 1 } },
+    { ...active, state: 'disabled' },
+    { ...active, lastRun: { ...active.lastRun, id: null } },
+  ];
+  for (const flow of badFlows) {
+    const f = fixture({ health: { complete: true, flows: [flow] } });
+    assert.equal((await f.service.tick()).state, 'needs_attention');
+    assert.equal(f.calls.generate, 0);
+    assert.equal(f.db.data.get(controlKey).blocked, true);
+  }
+  const mixed = fixture({ health: { complete: false, flows: [active] } });
+  assert.equal((await mixed.service.tick()).state, 'needs_attention');
+  const otherFailure = fixture({ health: { complete: true, flows: [active, {
+    ...active, id: 'af445651-b6ab-4a37-a58d-744a6d6800ac',
+    lastRun: { state: 'failed', completedAt: null, failedCount: 1 },
+  }] } });
+  assert.equal((await otherFailure.service.tick()).state, 'needs_attention');
+  const health = { complete: true, flows: [structuredClone(active)] };
+  const f = fixture({ health });
+  assert.equal((await f.service.tick()).state, 'waiting_flow_health');
+  f.advance(10 * 60_000);
+  health.flows[0].lastRun = { id: 'run-a', state: 'success',
+    completedAt: f.now().toISOString(), failedCount: 0 };
+  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal(f.db.data.get(dayKey()).slots[0].errorCode, 'SEED_FLOW_WAIT_EXPIRED');
+  assert.equal(f.calls.preflight, 0);
+  assert.equal(f.calls.generate, 0);
+  assert.equal(f.db.data.get(dayKey()).attemptedCount, 2);
+});
+
+test('a deferred slot rejects changed write evidence and terminal flow failure', async () => {
+  const health = { complete: true, flows: [{
+    id: '065f3b53-df40-43d1-9d91-c42f031996d6', state: 'enabled',
+    schedule: { frequency: 'minute', interval: 15 },
+    lastRun: { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
+      completedAt: null, failedCount: null },
+  }] };
+  const f = fixture({ health });
+  assert.equal((await f.service.tick()).state, 'waiting_flow_health');
+  f.advance(5 * 60_000);
+  health.flows[0].lastRun = { id: 'run-a', state: 'failed', completedAt: f.now().toISOString(), failedCount: 3 };
+  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal(f.calls.generate, 0);
+  assert.equal(f.db.data.get(controlKey).blocked, true);
+
+  health.flows[0].lastRun = { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
+    completedAt: null, failedCount: null };
+  const changed = fixture({ health });
+  assert.equal((await changed.service.tick()).state, 'waiting_flow_health');
+  changed.db.data.get(dayKey()).slots[0].runStamp = 'possible-write';
+  changed.advance(5 * 60_000);
+  await assert.rejects(changed.service.tick(), { code: 'SEED_CLAIM_LOST' });
+  assert.equal(changed.calls.generate, 0);
+});
+
+test('abandoned deferred health checks never restart generation after the writer deadline', async () => {
+  const f = fixture({ health: { complete: true, flows: [{
+    id: '065f3b53-df40-43d1-9d91-c42f031996d6', state: 'enabled',
+    schedule: { frequency: 'minute', interval: 15 },
+    lastRun: { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
+      completedAt: null, failedCount: null },
+  }] } });
+  assert.equal((await f.service.tick()).state, 'waiting_flow_health');
+  f.advance(16 * 60_000);
+  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, 'abandoned_writer');
+  assert.equal(f.calls.generate, 0);
+});
+
 test('flow-health failure persists safe per-flow evidence and never reaches Snowflake', async () => {
   const flowId = '065f3b53-df40-43d1-9d91-c42f031996d6';
   const health = {
