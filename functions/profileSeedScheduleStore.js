@@ -56,6 +56,24 @@ function createProfileSeedScheduleStore(db) {
             industry: slot.industry, count: slot.count, writerAgeMs, maxWriterAgeMs: MAX_WRITER_AGE_MS,
           };
         }
+        if (current.active.waitingFlowHealth === true && current.active.day === day) {
+          const plan = saved.data();
+          const slot = plan?.slots?.find((item) => item.id === current.active.id);
+          if (slot?.state !== 'waiting_flow_health' || !Array.isArray(slot.identities)
+            || slot.identities.length || typeof slot.healthWaitStartedAt !== 'string'
+            || !Number.isFinite(Date.parse(slot.healthWaitStartedAt))
+            || !Number.isFinite(Date.parse(slot.startedAt))
+            || slot.startedAt !== current.active.startedAt
+            || Date.parse(slot.healthWaitStartedAt) < Date.parse(slot.startedAt)
+            || Date.parse(slot.healthWaitStartedAt) > now.getTime()
+            || Object.keys(slot).some((key) => /(write|commit|prepar|stamp|outcome|rowcount|batch|receipt)/i.test(key))) {
+            throw fail('SEED_CLAIM_LOST');
+          }
+          slot.state = 'running';
+          tx.set(dayRef(day), plan);
+          tx.set(control, { ...current, active: { ...current.active, waitingFlowHealth: false } });
+          return slot;
+        }
         return null;
       }
       const plan = saved.data();
@@ -92,6 +110,26 @@ function createProfileSeedScheduleStore(db) {
       slot.runStamp = receipt.runStamp;
       slot.updatedAt = now.toISOString();
       tx.set(dayRef(day), plan);
+    });
+  }
+  async function deferFlowHealth(day, id, config, now) {
+    await db.runTransaction(async (tx) => {
+      const [settings, state, saved] = await Promise.all([tx.get(root), tx.get(control), tx.get(dayRef(day))]);
+      check(settings.data(), config);
+      const plan = saved.data();
+      const slot = plan?.slots?.find((item) => item.id === id);
+      const current = state.data();
+      if (current?.blocked || current?.active?.day !== day || current?.active?.id !== id
+        || current.active.waitingFlowHealth === true || slot?.state !== 'running'
+        || slot.startedAt !== current.active.startedAt || !Array.isArray(slot.identities) || slot.identities.length
+        || Object.keys(slot).some((key) => /(write|commit|prepar|stamp|outcome|rowcount|batch|receipt)/i.test(key))) {
+        throw fail('SEED_CLAIM_LOST');
+      }
+      slot.state = 'waiting_flow_health';
+      slot.healthWaitStartedAt ||= now.toISOString();
+      slot.updatedAt = now.toISOString();
+      tx.set(dayRef(day), plan);
+      tx.set(control, { ...current, active: { ...current.active, waitingFlowHealth: true } });
     });
   }
   async function finish(day, id, patch, now) {
@@ -138,7 +176,7 @@ function createProfileSeedScheduleStore(db) {
       return changes.result;
     });
   }
-  return { getConfig, getDispatcher, getDay, ensureDay, claim, prepared, finish,
+  return { getConfig, getDispatcher, getDay, ensureDay, claim, prepared, deferFlowHealth, finish,
     createRecoveryReceipt, getRecoveryReceipt, applyRecovery };
 }
 

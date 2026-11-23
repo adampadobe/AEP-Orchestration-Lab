@@ -143,6 +143,10 @@ health failure: attempted budget 4, exact timestamps, zero prepared identities,
 and the 13-flow snapshot with only `REL.REL_RETAIL_ORDER` stale. The last
 successful empty-copy run was over two hours old at failure. Fresh healthy
 flow evidence is required again when applying the receipt.
+It also covers the exact **2026-11-22 / slot 07 / telecom / count 2**
+prewrite health failure: attempted budget 18, exact timestamps and failure
+stage, zero prepared identities, and the saved 11-flow snapshot with only the
+shared base flow in progress. This scope requires the Function and MCP releases.
 The backend enforces each reviewed day/slot pair and prewrite attempt despite
 the unchanged receipt interface;
 `expected_count` counts reviewed recovery targets, not generated profiles.
