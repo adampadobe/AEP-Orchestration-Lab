@@ -305,6 +305,24 @@ async function main() {
       for (const width of [1600, 1280, 900, 390]) {
         const f = await fixture(browser, { theme, width });
         await ready(f.page);
+        if (width === 1280) {
+          await f.page.locator('#ihBackupNow').click();
+          await f.page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
+          const contrast = await f.page.locator('#ihBackupStart').evaluate(button => {
+            const style = getComputedStyle(button);
+            function luminance(color) {
+              const rgb = color.match(/\d+/g).slice(0, 3).map(Number).map(value => {
+                value /= 255;
+                return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+              });
+              return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
+            }
+            const colors = [luminance(style.color), luminance(style.backgroundColor)].sort((a, b) => b - a);
+            return (colors[0] + 0.05) / (colors[1] + 0.05);
+          });
+          assert.ok(contrast >= 4.5, `${theme} create backup button has readable text (contrast ${contrast})`);
+          await f.page.locator('#ihBackupClose').click();
+        }
         await f.page.locator('#ihListView').click();
         await f.page.getByRole('button', { name: 'hero.png', exact: true }).click();
         const overflow = await f.page.evaluate(() => document.documentElement.scrollWidth > innerWidth);

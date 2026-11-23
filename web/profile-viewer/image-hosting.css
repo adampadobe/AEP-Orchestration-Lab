@@ -2,7 +2,7 @@
 
 .image-hosting-page [hidden] { display: none !important; }
 .ih-tabs { display: flex; gap: .35rem; border-bottom: 1px solid var(--dash-border); padding-bottom: .6rem; }
-.ih-tabs button, .ih-view button, .ih-selection button, .ih-tree button, .ih-file-open, .ih-backup-title, .ih-dialog button, .ih-details button, #ihBreadcrumb button {
+.ih-tabs button, .ih-view button, .ih-selection button, .ih-tree button, .ih-file-open, .ih-backup-title, .ih-dialog button:not(.dashboard-btn-primary), .ih-details button, #ihBreadcrumb button {
   font: inherit; background: var(--dash-surface); color: var(--dash-text);
   border: 1px solid var(--dash-border); border-radius: var(--dash-radius-sm); padding: .55rem .75rem; cursor: pointer;
 }
