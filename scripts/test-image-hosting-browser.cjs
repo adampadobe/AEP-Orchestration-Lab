@@ -137,6 +137,12 @@ async function main() {
     await settled(page);
     await page.getByRole('button', { name: 'logo.png', exact: true }).click();
     assert.ok((await page.locator('#ihDetails').innerText()).includes('/cdn/demo/logo/logo.png'));
+    for (const name of ['Grid view', 'Waterfall view', 'List view']) {
+      const button = page.getByRole('group', { name: 'File view' }).getByRole('button', { name, exact: true });
+      assert.equal(await button.count(), 1, `${name} has an accessible label`);
+      assert.equal(await button.locator('svg[aria-hidden="true"]').count(), 1, `${name} has an icon`);
+      assert.equal((await button.innerText()).trim(), '', `${name} is icon-only`);
+    }
     await page.locator('#ihWaterfallView').click();
     assert.equal(await page.locator('.ih-items--waterfall').count(), 1, 'waterfall view applies masonry layout');
     assert.equal(await page.locator('#ihWaterfallView').getAttribute('aria-pressed'), 'true');
