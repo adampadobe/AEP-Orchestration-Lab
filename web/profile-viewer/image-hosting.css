@@ -1011,3 +1011,5 @@
 .image-hosting-backup-customer-actions {
   margin-top: 0.35rem;
 }
+.ih-backup-name { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 .75rem; font-weight: 600; color: var(--dash-text); }
+.ih-backup-name input { font: inherit; font-weight: 400; padding: .5rem .65rem; border: 1px solid var(--dash-input-border); border-radius: var(--dash-radius-sm); background: var(--dash-input-bg); color: var(--dash-text); }
