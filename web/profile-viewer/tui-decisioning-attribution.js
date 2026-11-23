@@ -54,7 +54,18 @@
       return '';
     }
   }
-  const api = { details, preview, items };
+  function loyalty(event) {
+    const fields = {};
+    for (const row of Array.isArray(event?.rows) ? event.rows : []) {
+      const match = String(row.path || '').match(/^(?:xdm\.)?_experience\.ajo\.loyalty\.challenge\.(id|name|metadata\.[A-Za-z][A-Za-z0-9]*)$/);
+      if (match && typeof row.value === 'string' && row.value.trim()) fields[match[1]] = row.value.trim();
+    }
+    if (!fields.id) return null;
+    return { id: fields.id, name: fields.name || '',
+      metadata: Object.fromEntries(Object.entries(fields).filter(([key]) => key.startsWith('metadata.'))
+        .map(([key, value]) => [key.slice(9), value])) };
+  }
+  const api = { details, preview, items, loyalty };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TuiDecisioningAttribution = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
