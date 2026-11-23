@@ -167,6 +167,9 @@ Never include credentials, private customer identities or production tokens.
   attribution; missing storage never triggers another notification. Timeline
   labels distinguish delivery/send, display and interaction using actual event
   types/flags, without relabeling delivery as an impression or a Journey as a campaign.
+  Catalog IDs use `dps:<namespace>:<itemId>`; recognize the `dps:` prefix,
+  not a literal `dps:offer:` namespace. Cover native namespaced IDs in delivery
+  timeline fixtures so real delivered offer names are not hidden.
 
 - Featured Offers are Experience Decisioning with independent retrieval, renderer,
   ranking and interaction metadata. Similar presentation is not shared business

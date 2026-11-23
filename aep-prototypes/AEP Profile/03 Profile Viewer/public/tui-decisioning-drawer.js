@@ -3812,7 +3812,7 @@ function renderCompactEventTimeline(events) {
     const loyaltyJourney = ev.rows?.some(row => /\.scope$/.test(row.path || '') &&
       String(row.value).endsWith('#ContentCardContainerLoyalty'));
     if (isDisplay && !loyaltyJourney || ['send', 'interact'].includes(decisionKind) &&
-        global.TuiDecisioningAttribution?.items(ev).some(item => item.wrapperItemId || String(item.offerId).startsWith('dps:offer:'))) {
+        global.TuiDecisioningAttribution?.items(ev).some(item => item.wrapperItemId || String(item.offerId).startsWith('dps:'))) {
       appendTuiDecisionItems(text, title, ev);
       appendTuiAttribution(text, ev);
     }

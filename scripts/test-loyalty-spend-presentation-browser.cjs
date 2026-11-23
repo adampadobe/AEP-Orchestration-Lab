@@ -296,7 +296,7 @@ async function main() {
             activity: { id: 'original-featured-campaign' }, characteristics: { eventToken: 'original-featured-token' } },
           items: [{ id: 'original-wrapper-item', name: 'Original wrapper', trackingToken: 'original-item-token',
             characteristics: { originalValue: 'preserved' }, schema: 'https://ns.adobe.com/personalization/json-content-item',
-            data: { content: [0, 1, 2].map(index => ({ id: 'dps:offer:visible-' + index, merchant: 'Fixture merchant',
+            data: { content: [0, 1, 2].map(index => ({ id: 'dps:fixture-namespace:visible-' + index, merchant: 'Fixture merchant',
               title: 'Visible offer ' + index, sku: 'visible-' + index })) } }],
         };
         window.addEventListener('ajo:featured-offers-response', event => {
@@ -325,13 +325,23 @@ async function main() {
       assert.equal(attributed.items[0].trackingToken, 'original-item-token');
       assert.equal(attributed.scopeDetails.characteristics.eventToken, 'original-featured-token');
       assert.deepEqual(attributed.items[0].characteristics, { originalValue: 'preserved',
-        displayedOfferId: 'dps:offer:visible-0', displayedOfferName: 'Fixture merchant: Visible offer 0' });
-      events = [{ eventType: firstDisplay.xdm.eventType, rows: [
+        displayedOfferId: 'dps:fixture-namespace:visible-0', displayedOfferName: 'Fixture merchant: Visible offer 0' });
+      events = [{ eventType: '', eventName: 'Fixture Loyalty', timestamp: Date.now(), rows: [
+        { path: '_experience.decisioning.propositionEventType.send', value: '1' },
+        { path: '_experience.decisioning.propositions.0.scope', value: attributed.scope },
+        { path: '_experience.decisioning.propositions.0.items.0.id', value: 'delivery-wrapper-item' },
+        { path: '_experience.decisioning.propositions.1.items.0.id', value: 'dps:fixture-namespace:waitrose' },
+        { path: '_experience.decisioning.propositions.1.items.0.name', value: 'Rewards - Waitrose 15% Cashback' },
+      ] }, { eventType: firstDisplay.xdm.eventType, timestamp: Date.parse(firstDisplay.xdm.timestamp), rows: [
         { path: '_experience.decisioning.propositions.0.id', value: attributed.id },
         { path: '_experience.decisioning.propositions.0.items.0.id', value: attributed.items[0].id },
-        { path: '_experience.decisioning.propositions.0.items.0.characteristics.displayedOfferId', value: 'dps:offer:visible-0' },
+        { path: '_experience.decisioning.propositions.0.items.0.characteristics.displayedOfferId', value: 'dps:fixture-namespace:visible-0' },
       ] }];
       await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.storedInProfile === true);
+      await page.evaluate(() => DemoProfileDrawer.refreshDrawerEventsForLoadedProfile());
+      const deliveryCard = page.locator('.aep-profile-drawer-event-item').filter({ hasText: 'PropositionDelivery (send)' });
+      assert.equal(await deliveryCard.count(), 1, 'Delivery remains distinct from an impression');
+      assert.match(await deliveryCard.textContent(), /Rewards - Waitrose 15% Cashback/, 'Actual namespaced DPS IDs appear on delivery cards');
       await page.evaluate(() => __emitFeatured());
       await page.locator('[data-loyalty-preview="web"]').click();
       await page.locator('#loyaltyOfferCarousel').evaluate(element => element.scrollIntoView({ block: 'center' }));
@@ -340,7 +350,7 @@ async function main() {
       await page.locator('#loyaltyNextOffer').click();
       await page.waitForFunction(() => __featuredDisplays.length === 2);
       assert.equal(await page.evaluate(() => __featuredDisplays[1].xdm._experience.decisioning.propositions[0].items[0].characteristics.displayedOfferId),
-        'dps:offer:visible-1', 'Only the settled primary card, not its peek, is displayed');
+        'dps:fixture-namespace:visible-1', 'Only the settled primary card, not its peek, is displayed');
       await page.locator('#loyaltyPreviousOffer').click();
       await page.waitForTimeout(1300);
       assert.equal(await page.evaluate(() => __featuredDisplays.length), 2, 'Returning to the same attributed offer is deduplicated');
