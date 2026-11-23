@@ -3578,6 +3578,7 @@ function appendDrawerEventTimelineItem(ev) {
   titleEl.className = 'aep-profile-drawer-event-title';
   const titleText = formatExperienceEventDisplayTitle(ev);
   titleEl.textContent = titleText && String(titleText).trim() ? titleText : drawerEventTitleFallback(ev);
+  if (global.TuiDecisioningAttribution?.kind?.(ev) === 'send') titleEl.textContent = 'Proposition delivery';
 
   const subEl = document.createElement('span');
   subEl.className = 'aep-profile-drawer-event-sub';
@@ -3795,7 +3796,9 @@ function renderCompactEventTimeline(events) {
   for (const [index, ev] of list.entries()) {
     appendDrawerEventTimelineItem(ev);
     const card = profileDrawerEvents.lastElementChild;
-    const isDisplay = String(ev.eventType || ev.eventName || '').toLowerCase() === 'decisioning.propositiondisplay';
+    const decisionKind = global.TuiDecisioningAttribution?.kind?.(ev);
+    const isDisplay = decisionKind === 'display' ||
+      String(ev.eventType || ev.eventName || '').toLowerCase() === 'decisioning.propositiondisplay';
     if (isDisplay) card.classList.add('aep-event-decision');
     if (index === 0) card.classList.add('aep-event-latest');
     const text = card.lastElementChild;
@@ -3806,14 +3809,19 @@ function renderCompactEventTimeline(events) {
     const title = text.querySelector('.aep-profile-drawer-event-title');
     title.title = title.textContent;
     text.querySelectorAll('.aep-profile-drawer-event-decision-detail').forEach(node => node.remove());
-    if (isDisplay) {
+    const loyaltyJourney = ev.rows?.some(row => /\.scope$/.test(row.path || '') &&
+      String(row.value).endsWith('#ContentCardContainerLoyalty'));
+    if (isDisplay && !loyaltyJourney || ['send', 'interact'].includes(decisionKind) &&
+        global.TuiDecisioningAttribution?.items(ev).some(item => item.wrapperItemId || String(item.offerId).startsWith('dps:offer:'))) {
       appendTuiDecisionItems(text, title, ev);
       appendTuiAttribution(text, ev);
     }
     appendLoyaltyEventContext(text, ev);
     const sub = text.querySelector('.aep-profile-drawer-event-sub') || document.createElement('span');
     sub.className = 'aep-profile-drawer-event-sub';
-    const eventType = isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event');
+    const eventType = ({ display: 'PropositionDisplay', send: 'PropositionDelivery (send)',
+      interact: 'PropositionInteract', dismiss: 'PropositionDismiss' })[decisionKind] ||
+      (isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event'));
     sub.textContent = formatDrawerEventChannelDisplay(ev) + ' · ' + eventType + ' · ' + fullDate.split(', ')[0];
     sub.title = sub.textContent;
     text.appendChild(sub);
