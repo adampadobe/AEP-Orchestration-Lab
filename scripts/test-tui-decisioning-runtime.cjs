@@ -221,7 +221,8 @@ test('TUI, CP and Loyalty demos opt into the compatible manual runtime; other de
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
   assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
   assert.match(fs.readFileSync(path.join(root, 'jet2-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'qatar-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html', 'qatar-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes("runtimeScript: 'tui-decisioning-runtime.js'"), file);
   }
 });
@@ -239,7 +240,8 @@ test('TUI, CP and Loyalty demos load the decisioning drawer with offer/strategy 
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
   assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
   assert.match(fs.readFileSync(path.join(root, 'jet2-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'qatar-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html', 'qatar-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-drawer.'), file);
   }
 });

@@ -29,6 +29,7 @@ async function main() {
         assert.equal(request.postDataJSON().method, 'GET');
         data = { status: 200, platform_response: { sandboxes: [
           { name: 'kirkham', title: 'Offline sandbox', type: 'development', state: 'active' },
+          { name: 'apalmer', title: 'Offline sandbox', type: 'development', state: 'active' },
         ] } };
       } else if (request.method() !== 'GET') {
         writes.push(url.pathname);
@@ -74,7 +75,7 @@ async function main() {
     const page = await context.newPage();
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(origin + '/profile-viewer/jet2-loyalty-demo.html');
-    await page.waitForFunction(() => document.getElementById('loyaltyStatus')?.textContent.includes('SDK injection is only needed'));
+    await page.waitForFunction(() => document.getElementById('loyaltyTenant') && window.LoyaltyDemoSpendDebug);
     assert.equal(await page.title(), 'Jet2holidays | Loyalty');
     assert.equal(await page.locator('#jet2LoyaltyNs').count(), 1);
     assert.equal(await page.locator('#lloydsLoyaltyNs').count(), 0, 'Jet2 owns independent environment/identity controls');
@@ -240,6 +241,69 @@ async function main() {
     assert.deepEqual(writes, [], 'No automatic signup, provider write or production request');
     assert.deepEqual(errors, []);
     console.log('Jet2 Loyalty: isolated settings, real-state fixtures, ranked cards/attribution, mobile/themes, one-card layout and real purchase contract passed.');
+
+    await page.goto(origin + '/profile-viewer/qatar-loyalty-demo.html');
+    await page.waitForFunction(() => document.getElementById('loyaltyTenant') && window.LoyaltyDemoSpendDebug);
+    assert.equal(await page.title(), 'Qatar Airways | Loyalty');
+    assert.equal(await page.locator('#qatarLoyaltyNs').count(), 1);
+    assert.equal(await page.locator('#jet2LoyaltyNs').count(), 0);
+    await page.evaluate(() => {
+      localStorage.setItem('aepDemoNavOwnerHandle', 'apalmer');
+      window.AepGlobalSandbox.setSelected('apalmer');
+      document.getElementById('loyaltyTenant').value = '_demoemea';
+      window.__qatarPurchases = [];
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'jet2-offline-stream' } });
+      window.alloy = async (command, options) => {
+        if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
+        if (command === 'subscribeRulesetItems') { window.__qatarSubscription = options; return; }
+        if (command === 'sendEvent' && options.xdm?.eventType === 'commerce.purchases') {
+          window.__qatarPurchases.push(options);
+          return { requestId: 'qatar-offline-accepted' };
+        }
+        if (command === 'sendEvent' && options.personalization?.surfaces?.[0]?.endsWith('#ContentCardContainerLoyalty') && window.__qatarSubscription) {
+          const cards = [1, 2].map(rank => ({
+            id: 'qatar-proposition-' + rank, scope: window.__qatarSubscription.surfaces[0],
+            scopeDetails: { decisionProvider: 'AJO', rank, correlationID: 'qatar-correlation-' + rank },
+            items: [{ id: 'qatar-item-' + rank, schema: 'https://ns.adobe.com/personalization/message/content-card',
+              data: { content: { title: 'Adobe travel card ' + rank, body: 'Adobe supplied content' },
+                meta: { challengeId: rank === 2 ? 'jet2-spend-fixture' : 'another-fixture' } } }],
+          }));
+          window.__qatarSubscription.callback({ propositions: cards }, async () => {});
+        }
+        return { propositions: [] };
+      };
+    });
+    await page.locator('#customerEmail').fill('qatar-fixture@example.invalid');
+    await page.locator('#queryProfileBtn').click();
+    await page.waitForFunction(() => document.querySelector('#loyaltyTasks [data-spend-purchase]') &&
+      !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(stateReads.at(-1).profile_id, 'jet2-member-fixture');
+    assert.equal(stateReads.at(-1).sandbox, 'apalmer');
+    assert.match(await page.locator('#loyaltyTasks').textContent(), /QAR/);
+    assert.ok((await page.evaluate(() => window.__qatarSubscription.surfaces[0])).includes('/qatar-loyalty-demo.html#ContentCardContainerLoyalty'));
+    await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 2);
+    assert.equal(await page.locator('#ContentCardContainerLoyalty article').first().locator('h3').textContent(), 'Adobe travel card 2');
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers:
+      Array.from({ length: 9 }, (_, index) => ({ id: 'travel-' + index, merchant: 'Travel', title: 'Offer ' + index })),
+    } })));
+    assert.equal(await page.locator('#loyaltyFeaturedOffers .loyalty-featured-offer').count(), 9);
+    await page.locator('[data-loyalty-preview="web"]').click();
+    assert.equal(await page.locator('#loyaltyWebChallenge #ContentCardContainerLoyalty article').count(), 2);
+    for (const theme of ['light', 'dark']) {
+      await page.setViewportSize({ width: 390, height: 1100 });
+      await page.evaluate(value => document.documentElement.setAttribute('data-aep-theme', value), theme);
+      assert.equal(await page.locator('#loyaltyWebPreview').evaluate(element => element.getBoundingClientRect().width <= innerWidth), true);
+    }
+    await page.setViewportSize({ width: 1500, height: 1100 });
+    await page.locator('#loyaltyTasks [data-spend-purchase]').click();
+    await page.waitForFunction(() => window.__qatarPurchases.length === 1);
+    const qatarPurchase = await page.evaluate(() => window.__qatarPurchases[0]);
+    assert.equal(qatarPurchase.xdm.commerce.order.currencyCode, 'QAR');
+    assert.equal(qatarPurchase.xdm.productListItems[0].currencyCode, 'QAR');
+    assert.equal(qatarPurchase.xdm.commerce.order.priceTotal, 10);
+    assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false);
+    assert.deepEqual(writes, []);
+    assert.deepEqual(errors, []);
   } finally {
     if (browser) await browser.close();
     await new Promise(resolve => server.close(resolve));

@@ -802,6 +802,7 @@ async function main() {
     assert.equal(await page.locator('#ContentCardContainer article').count(), 0);
     assert.equal(await page.locator('.loyalty-task').count(), 0, 'Stale response cannot refill a different identity');
     assert.equal(await page.locator('.loyalty-phone-task').count(), 0, 'Stale responses cannot refill the mobile preview either');
+    await page.waitForFunction(() => /No profile loaded|Not loaded/.test(document.getElementById('tuiPhName').textContent));
     assert.match(await page.locator('#tuiPhName').textContent(), /No profile loaded|Not loaded/);
     await page.locator('#queryProfileBtn').click();
     await waitForProfile();

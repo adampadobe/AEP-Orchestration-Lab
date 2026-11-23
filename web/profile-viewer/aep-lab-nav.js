@@ -691,6 +691,15 @@
           ],
         },
         {
+          id: 'demoQatar',
+          label: 'Qatar Airways',
+          demoCustomer: true,
+          items: [
+            { label: 'Loyalty', href: 'qatar-loyalty-demo.html', navHideKey: 'qatarLoyaltyDemo',
+              demoMeta: { owners: ['apalmer'], sandboxes: ['apalmer'] }, ico: '\u2606' },
+          ],
+        },
+        {
           id: 'demoJet2',
           label: 'Jet2',
           demoCustomer: true,

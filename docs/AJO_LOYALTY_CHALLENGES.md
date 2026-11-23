@@ -723,11 +723,17 @@ goal and an actual numeric `accumulators.spend`; it also accepts the existing
 normalized Spend goal/type. A purchase activity alone is not Spend, and an
 explicit non-Spend class takes precedence over a misleading monetary variable.
 Missing accumulators are not zero. Definition counters and completion history
-never substitute for the returned member accumulator. The site's purchase demo
-contract is GBP; an explicitly reported currency takes precedence, and non-GBP
-tasks do not offer this GBP purchase control.
+never substitute for the returned member accumulator. Lloyds and Jet2 use GBP;
+the Qatar demo uses QAR. An explicitly reported challenge currency takes
+precedence, and a mismatch with the page's purchase currency hides the control.
+When Adobe does not report a currency, the page currency is only a demo
+assumption: currency handling and qualification must be verified in the sandbox.
 
 ### Real GBP 10 Spend purchase demo
+
+The Qatar page uses the same flow with QAR 10 in the order and product. QAR
+display or Web SDK acceptance does not establish how Loyalty processes the
+currency or whether a purchase qualifies.
 
 An active, opted-in Spend task for the **resolved Loyalty member** can show
 **Simulate qualifying purchase** beneath its left-hand task row. It is not
