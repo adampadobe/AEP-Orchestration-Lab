@@ -61,6 +61,13 @@ async function main() {
           ecid: '12345678901234567890123456789012345678', channels: { email: 'out', sms: null, push: null } };
       }
       else if (url.pathname === '/api/profile/events') { eventRefreshes++; data = { events }; }
+      else if (url.pathname === '/api/events/config') data = { record: { datastreamId: 'purchase-fixture-stream', schemaId: 'fixture-schema' } };
+      else if (url.pathname === '/api/schema-viewer/registry') data = { schema: { properties: {
+        _experience: { properties: { ajo: { properties: { loyalty: { properties: { challenge: { properties: {
+          id: { type: 'string' }, name: { type: 'string' },
+          metadata: { type: 'object', additionalProperties: { type: 'string' } },
+        } } } } } } } },
+      } } };
       else if (url.pathname === '/api/profile/audiences') data = { realized: [], exited: [] };
       else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/events/generator-targets') data = { targets: [] };
@@ -1452,6 +1459,9 @@ async function main() {
     assert.equal(interaction.xdm._experience.decisioning.propositionEventType.interact, 1);
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].id, 'signup-proposition');
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].items[0].id, 'signup-ruleset-item');
+    assert.equal(interaction.xdm._experience.ajo.loyalty.challenge.id, 'challenge-one-fixture');
+    assert.equal(interaction.xdm._experience.ajo.loyalty.challenge.metadata.signupOutcome, 'joined');
+    assert.equal(interaction.xdm._experience.ajo.loyalty.challenge.metadata.consequenceId, 'signup-consequence');
     const signupEvidence = JSON.parse(await page.locator('#loyaltyEvidence').textContent());
     assert.equal(signupEvidence.signup.platform_status, 200);
     assert.equal(signupEvidence.enrollmentVerified, true);

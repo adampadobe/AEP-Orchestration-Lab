@@ -123,6 +123,15 @@ Never include credentials, private customer identities or production tokens.
   image/title/body/CTA state and each card's own proposition/item/consequence ID,
   challengeId, interactId, scopeDetails, activity/correlation/event tokens and
   attribution. Never collapse interaction contexts or hard-code current cards.
+- Card interaction events can carry `_experience.ajo.loyalty.challenge` with
+  the exact `id`, an independently resolved challenge `name` when available,
+  and string `metadata` (`contextType`, `cardTitle`, `consequenceId`, `interactId`).
+  Successful card signup adds its confirmed API `signupOutcome` to that same
+  interaction, never a second tracking/signup event. Card title is not assumed
+  to be the challenge's name. Preserve original proposition scopeDetails/tokens;
+  do not relabel a Journey activity as a campaign. Native `collectEvent` cannot
+  add custom XDM: supported enrichment uses one explicit interaction with the
+  original attribution, otherwise the existing native collection stays intact.
 - One card fills the viewport without controls. Multiple cards use the independent
   compact snap carousel: primary card plus next-card peek, touch/trackpad/mouse,
   keyboard arrows/Home/End, dots and small arrows. Display tracking applies to the
@@ -146,6 +155,22 @@ Never include credentials, private customer identities or production tokens.
   order.priceTotal/currencyCode, and productListItems SKU/name/quantity/
   priceTotal/currencyCode. The Spend demo sends GBP 10, quantity 1 and independent
   order/event IDs per click. Acceptance is not qualification or storage proof.
+- The inspector Spend purchase carries its exact challenge/task context using
+  `_experience.ajo.loyalty.challenge.id/name/metadata`: `contextType` is
+  `spendDemoPurchase`, task ID/name identify the clicked control, and
+  `qualification` is `notConfirmed`. Do not attach the currently visible card's
+  proposition or set Loyalty state, signup/completion dates or accumulators.
+  Enrichment first checks `/api/events/config` for the explicit matching
+  datastream/schema and resolves `/api/schema-viewer/registry` to verify `id`
+  and `name` are strings and `metadata` is a string map; checks cache for five
+  minutes per sandbox/datastream. Unsupported/unverified schemas keep the
+  original event unchanged with a `[Loyalty event context]` warning and
+  `LoyaltyDemoEventContextDebug.getLatest()` evidence, not unsupported XDM.
+  The Kirkham Operational Event schema supports these native Adobe fields;
+  another sandbox/datastream must be independently verified. No automatic
+  schema mutation, extra attribution event or event replay is allowed.
+  The shared drawer shows stored challenge/task context and original Adobe
+  activity/proposition/item references when they are present on an event.
 - Spend detection primarily uses `taskClass:"spend"` (often `taskType:"purchase"`),
   then explicit Spend variables when class is absent. Use spendMin/goal and
   actual returned accumulators.spend. A purchase class alone is not Spend.
