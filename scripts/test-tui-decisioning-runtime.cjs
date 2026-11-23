@@ -32,6 +32,21 @@ test('TUI campaign attribution preserves campaign identity and separates CBE fro
   ] })[0].delivery, '');
 });
 
+test('Loyalty attribution reads event challenge context without inventing eligibility or campaign data', () => {
+  const { loyalty } = require(path.join(root, 'tui-decisioning-attribution.js'));
+  for (const prefix of ['_experience.ajo.loyalty.challenge.', 'xdm._experience.ajo.loyalty.challenge.']) {
+    assert.deepEqual(loyalty({ rows: [
+      { path: prefix + 'id', value: 'challenge-fixture' },
+      { path: prefix + 'name', value: 'Same title' },
+      { path: prefix + 'metadata.taskId', value: 'task-fixture' },
+      { path: prefix + 'metadata.qualification', value: 'notConfirmed' },
+      { path: '_experience.decisioning.propositions.0.scopeDetails.activity.id', value: 'unrelated-activity' },
+    ] }), { id: 'challenge-fixture', name: 'Same title', metadata: { taskId: 'task-fixture', qualification: 'notConfirmed' } });
+  }
+  assert.equal(loyalty({ rows: [{ path: '_experience.ajo.loyalty.challenge.name', value: 'Not an identity' }] }), null);
+  assert.equal(loyalty({ rows: [] }), null);
+});
+
 test('departure-day edits and scenarios read, write and confirm daysToDeparture', () => {
   const model = require(path.join(root, 'tui-decisioning-model.js'));
   const profile = require(path.join(root, 'tui-decisioning-profile.js'));

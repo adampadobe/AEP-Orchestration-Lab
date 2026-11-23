@@ -59,6 +59,13 @@ async function main() {
       } else if (url.pathname === '/api/env-bar-config') data = { config: null };
       else if (url.pathname === '/api/events/generator-targets') data = { targets: [] };
       else if (url.pathname === '/api/profile/events') data = { events: [] };
+      else if (url.pathname === '/api/events/config') data = { record: { datastreamId: 'jet2-offline-stream', schemaId: 'fixture-schema' } };
+      else if (url.pathname === '/api/schema-viewer/registry') data = { schema: { properties: {
+        _experience: { properties: { ajo: { properties: { loyalty: { properties: { challenge: { properties: {
+          id: { type: 'string' }, name: { type: 'string' },
+          metadata: { type: 'object', additionalProperties: { type: 'string' } },
+        } } } } } } } },
+      } } };
       else if (url.pathname === '/api/profile/audiences') data = { realized: [], exited: [] };
       else if (url.pathname === '/api/image-hosting/library') data = { items: [] };
       else if (url.pathname === '/api/tags/reactor' || url.pathname === '/api/events/datastreams') data = { data: [] };
@@ -127,10 +134,13 @@ async function main() {
       ['jet2-proposition-1', 'jet2-proposition-2'], 'Raw Adobe response remains complete before ranking');
     await page.locator('.loyalty-phone-nav [data-phone-view="rewards"]').click();
     await page.locator('#ContentCardContainerLoyalty article[data-primary="true"] button').filter({ hasText: 'View tasks 2' }).click();
+    await page.waitForFunction(() => window.__cardInteractions.length === 1 && !document.getElementById('queryProfileBtn').disabled);
     const interaction = await page.evaluate(() => window.__cardInteractions.at(-1));
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].id, 'jet2-proposition-2');
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].items[0].id, 'jet2-item-2');
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].scopeDetails.correlationID, 'jet2-correlation-2');
+    assert.equal(interaction.xdm._experience.ajo.loyalty.challenge.id, 'jet2-spend-fixture');
+    assert.equal(interaction.xdm._experience.ajo.loyalty.challenge.metadata.consequenceId, 'jet2-item-2');
     const featuredOffers = Array.from({ length: 9 }, (_, index) => ({
       id: 'jet2-featured-fixture-' + index, merchant: 'Separate Adobe offer ' + index,
       title: 'Independent Decisioning fixture ' + index, propositionId: 'jet2-featured-proposition-' + index,
@@ -221,6 +231,10 @@ async function main() {
       assert.equal(purchase.xdm.commerce.order.currencyCode, 'GBP');
       assert.equal(purchase.xdm.productListItems[0].quantity, 1);
       assert.equal(purchase.xdm._demoemea.identification.core.loyaltyId, 'jet2-member-fixture');
+      assert.equal(purchase.xdm._experience.ajo.loyalty.challenge.id, 'jet2-spend-fixture');
+      assert.equal(purchase.xdm._experience.ajo.loyalty.challenge.metadata.taskId, task.taskId);
+      assert.equal(purchase.xdm._experience.ajo.loyalty.challenge.metadata.qualification, 'notConfirmed');
+      assert.equal(purchase.xdm._experience.decisioning, undefined);
     }
     assert.equal(await page.locator('#loyaltyFeaturedOffers').innerHTML(), featured, 'Cards and Spend never replace Featured Offers');
     assert.deepEqual(writes, [], 'No automatic signup, provider write or production request');

@@ -3601,6 +3601,7 @@ function appendDrawerEventTimelineItem(ev) {
     detailEl.textContent = `${label}: ${value}`;
     textWrap.appendChild(detailEl);
   });
+  appendLoyaltyEventContext(textWrap, ev);
   if (String((ev && ev.eventType) || (ev && ev.eventName) || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') {
     textWrap.appendChild(subEl);
   }
@@ -3758,6 +3759,32 @@ function appendTuiAttribution(text, ev) {
   if (preview) append('Preview: ' + preview);
 }
 
+function appendLoyaltyEventContext(text, ev) {
+  const challenge = global.TuiDecisioningAttribution?.loyalty?.(ev);
+  if (!challenge) return;
+  const append = value => {
+    const line = document.createElement('span');
+    line.className = 'aep-profile-drawer-event-decision-detail';
+    line.textContent = value;
+    text.appendChild(line);
+    return line;
+  };
+  append('Loyalty challenge: ' + (challenge.name || challenge.id)).title = challenge.id;
+  const metadata = challenge.metadata;
+  if (metadata.taskId) append('Task: ' + (metadata.taskName || metadata.taskId)).title = metadata.taskId;
+  if (metadata.cardTitle) append('Content Card: ' + metadata.cardTitle);
+  if (metadata.consequenceId) append('Consequence: ' + metadata.consequenceId);
+  if (metadata.interactId) append('Action: ' + metadata.interactId);
+  if (metadata.signupOutcome) append('Signup API: ' + metadata.signupOutcome);
+  if (metadata.contextType === 'spendDemoPurchase') append('Demo purchase context; qualification not confirmed by this event.');
+  const rows = Array.isArray(ev.rows) ? ev.rows : [];
+  for (const field of ['id', 'items.0.id', 'scopeDetails.activity.id', 'scopeDetails.activity.name']) {
+    const row = rows.find(row => new RegExp('^(?:xdm\\.)?_experience\\.decisioning\\.propositions?\\.0\\.' +
+      field.replace(/\./g, '\\.') + '$').test(row.path || ''));
+    if (row?.value) append(({ id: 'Proposition', 'items.0.id': 'Item',
+      'scopeDetails.activity.id': 'Adobe activity ID', 'scopeDetails.activity.name': 'Adobe activity' })[field] + ': ' + row.value);
+  }
+}
 function renderCompactEventTimeline(events) {
   const heading = getProfileDrawerEventsHeadingRow();
   heading.querySelector('h2').textContent = 'Last Events';
@@ -3783,6 +3810,7 @@ function renderCompactEventTimeline(events) {
       appendTuiDecisionItems(text, title, ev);
       appendTuiAttribution(text, ev);
     }
+    appendLoyaltyEventContext(text, ev);
     const sub = text.querySelector('.aep-profile-drawer-event-sub') || document.createElement('span');
     sub.className = 'aep-profile-drawer-event-sub';
     const eventType = isDisplay ? 'PropositionDisplay' : String(ev.eventType || ev.eventName || 'Experience event');

@@ -22,6 +22,8 @@
   let pendingTaskState = false, automaticTaskState = null;
   let contentCardEvidence = null, evaluatedContentCardEvidence = null;
   let spendPoll = null, spendEvidence = null;
+  let eventContextEvidence = null;
+  const eventContextSchemaChecks = new Map();
   const spendMessages = new Map();
   global.LloydsLoyaltySpendDebug = Object.freeze({
     getLatest: () => spendEvidence?.version === version ? structuredClone(spendEvidence.snapshot) : null,
@@ -33,6 +35,9 @@
   });
   global.LoyaltyDemoSpendDebug = global.LloydsLoyaltySpendDebug;
   global.LoyaltyDemoContentCardDebug = global.LloydsLoyaltyContentCardDebug;
+  global.LoyaltyDemoEventContextDebug = Object.freeze({
+    getLatest: () => eventContextEvidence?.version === version ? structuredClone(eventContextEvidence.snapshot) : null,
+  });
   const availableMessages = new Map();
   const contentCardDisplays = new Set(), contentCardDismissals = new Set();
   const purchaseReceipts = new Map();
@@ -200,7 +205,7 @@
     syncParticipation();
     $('loyaltyUpdated').textContent = 'Not loaded'; $('loyaltyNamespace').textContent = 'Loyalty namespace not yet read';
     $('loyaltyEvidence').textContent = 'No response for this context.';
-    contentCardEvidence = evaluatedContentCardEvidence = null;
+    contentCardEvidence = evaluatedContentCardEvidence = eventContextEvidence = null;
     const diagnosticPanel = $('loyaltyCardPreselectionEvidence');
     if (diagnosticPanel) diagnosticPanel.textContent = 'No Content Card response captured for this context.';
     $('loyaltyCardHint').textContent = 'Your challenges will appear here.';
@@ -608,7 +613,8 @@
           JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== JSON.stringify(captured.edgeOptions)) {
         throw new Error('Card tracking context changed.');
       }
-      const interaction = tracking(candidate, captured, ctx, 'interact', button);
+      const interaction = await tracking(candidate, captured, ctx, token, 'interact', button,
+        { signupOutcome: receipt.state === 'already' ? 'alreadyJoined' : 'joined' });
       await captured.alloy('sendEvent', interaction);
       same(ctx, token); evidence.interaction = interaction; evidence.interactionAccepted = true;
     } catch (error) {
@@ -1185,7 +1191,12 @@
           throw new Error('Resolve this Loyalty member and retrieve an active opted-in Spend task before sending a purchase.');
         }
         const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
-        const payload = purchasePayload(captured, sku, 'Loyalty Spend demo purchase', 10);
+        const payload = await withLoyaltyEventContext(
+          purchasePayload(captured, sku, 'Loyalty Spend demo purchase', 10),
+          challengeEventContext(challenge.challenge_id, {
+            contextType: 'spendDemoPurchase', taskId: currentTask.taskId, taskName: currentTask.taskName,
+            qualification: 'notConfirmed',
+          }), ctx, token);
         writeSpendEvidence({ sandbox: ctx.sandbox, member: loaded.profileLoyaltyId,
           challengeId: challenge.challenge_id, taskId: task.taskId, event: payload,
           sdkAccepted: false, qualification: 'Not confirmed', poll: { responses: [] } });
@@ -1494,9 +1505,60 @@
       throw error;
     }
   }
-  function tracking(candidate, captured, ctx, kind, button) {
+  function challengeEventContext(id, metadata) {
+    if (typeof id !== 'string' || !id.trim()) return null;
+    const challenge = memberChallenges.find(item => item.challenge_id === id);
+    const name = stateChallengeName(challenge) || memberChallengeMetadata.get(id)?.definition?.name;
+    return { id, ...(typeof name === 'string' && name.trim() ? { name: name.trim() } : {}),
+      metadata: Object.fromEntries(Object.entries(metadata).filter(([, value]) =>
+        typeof value === 'string' && value.trim()).map(([key, value]) => [key, value.trim()])) };
+  }
+  async function withLoyaltyEventContext(payload, challenge, ctx, token) {
+    if (!challenge) return payload;
+    const datastreamId = payload.edgeConfigOverrides?.datastreamId;
+    const key = JSON.stringify([ctx.sandbox, datastreamId]);
+    let check = eventContextSchemaChecks.get(key);
+    if (!check || check.expires <= Date.now()) {
+      check = { expires: Date.now() + 300000 };
+      check.promise = (async () => {
+        if (!datastreamId) throw new Error('The active event datastream is not explicit.');
+        const headers = await global.AepLabSandboxSync.getAuthHeaders();
+        const config = await json('/api/events/config?' + new URLSearchParams({ sandbox: ctx.sandbox }), { headers });
+        if (config.record?.datastreamId !== datastreamId || !config.record?.schemaId) {
+          throw new Error('The active datastream does not match the registered Event Tool schema.');
+        }
+        const schemaId = config.record.schemaId;
+        const registry = await json('/api/schema-viewer/registry?' + new URLSearchParams({ sandbox: ctx.sandbox, schemaId }), { headers });
+        const fields = registry.schema?.properties?._experience?.properties?.ajo?.properties?.loyalty?.properties?.challenge?.properties;
+        if (fields?.id?.type !== 'string' || fields?.name?.type !== 'string' ||
+            fields?.metadata?.type !== 'object' || fields.metadata.additionalProperties?.type !== 'string') {
+          throw new Error('The registered event schema does not support Loyalty challenge id, name and string metadata.');
+        }
+        return { schemaId };
+      })().then(value => ({ ...value, supported: true }), error => ({ supported: false, error: error.message }));
+      eventContextSchemaChecks.set(key, check);
+    }
+    const support = await check.promise;
+    same(ctx, token);
+    if (JSON.stringify(payload.edgeConfigOverrides) !==
+        JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides().edgeConfigOverrides)) {
+      throw new Error('Event datastream changed while preparing Loyalty context. No event sent.');
+    }
+    eventContextEvidence = { version: token, snapshot: {
+      sandbox: ctx.sandbox, datastreamId, eventType: payload.xdm.eventType, context: challenge, ...support,
+    } };
+    if (!support.supported) {
+      console.warn('[Loyalty event context] Context not sent; original event unchanged.', eventContextEvidence.snapshot);
+      return payload;
+    }
+    const experience = payload.xdm._experience || {};
+    return { ...payload, xdm: { ...payload.xdm, _experience: { ...experience,
+      ajo: { ...experience.ajo, loyalty: { ...experience.ajo?.loyalty, challenge } },
+    } } };
+  }
+  async function tracking(candidate, captured, ctx, token, kind, button, metadata = {}) {
     const proposition = candidate.proposition;
-    return { ...captured.edgeOptions, renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
+    const payload = { ...captured.edgeOptions, renderDecisions: false, personalization: { defaultPersonalizationEnabled: false },
       xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
         eventType: kind === 'display' ? 'decisioning.propositionDisplay' : 'decisioning.propositionInteract',
         web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
@@ -1507,6 +1569,11 @@
           propositionEventType: { [kind]: 1 },
           ...(button ? { propositionAction: { id: button.interactId || button.id || candidate.consequenceId, label: button.text?.content || 'Open reward' } } : {}),
         } } } };
+    return kind === 'interact' ? withLoyaltyEventContext(payload, challengeEventContext(candidate.meta.challengeId, {
+      contextType: 'cardInteraction', consequenceId: candidate.consequenceId,
+      cardTitle: candidate.content.title?.content, interactId: button?.interactId || button?.id || candidate.consequenceId,
+      ...metadata,
+    }), ctx, token) : payload;
   }
   function renderCard(candidate, captured, ctx, token) {
     const content = candidate.content, card = node('article', undefined, 'loyalty-content-card');
@@ -1539,10 +1606,12 @@
               return;
             }
             if (button.actionUrl && !url) throw new Error('This card target is not an HTTP(S) URL supported by this web preview. No navigation performed.');
-            if (button.interactId || button.id || candidate.consequenceId !== candidate.item.id) {
-              await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
-            } else if (captured.collectEvent) await captured.collectEvent('interact', [cardProposition(candidate)]);
-            else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'interact', button));
+            const interaction = await tracking(candidate, captured, ctx, token, 'interact', button);
+            // Native collectEvent cannot add XDM; enrich one explicit event, retaining native collection otherwise.
+            if (button.interactId || button.id || candidate.consequenceId !== candidate.item.id ||
+                interaction.xdm._experience.ajo?.loyalty?.challenge || !captured.collectEvent) {
+              await captured.alloy('sendEvent', interaction);
+            } else await captured.collectEvent('interact', [cardProposition(candidate)]);
             same(ctx, token);
             message('Proposition interaction accepted. Task completion is determined by Adobe state.');
             if (!url) return;
@@ -1588,7 +1657,7 @@
     message('Content card displayed; collecting the original proposition display...');
     try {
       if (captured.collectEvent) await captured.collectEvent('display', [cardProposition(candidate)]);
-      else await captured.alloy('sendEvent', tracking(candidate, captured, ctx, 'display'));
+      else await captured.alloy('sendEvent', await tracking(candidate, captured, ctx, token, 'display'));
     } catch (error) {
       console.error('[Loyalty] Content Card display collection failed', error);
       throw new Error('Content Card display was not confirmed. No automatic retry.', { cause: error });

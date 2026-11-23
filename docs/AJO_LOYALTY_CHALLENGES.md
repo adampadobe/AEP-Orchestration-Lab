@@ -17,6 +17,39 @@ protected enrollment endpoint, with Adobe authentication held server-side.
 
 ## Read-only Loyalty MCP workflow
 
+### Loyalty context on profile events
+
+Lloyds and Jet2 share optional event enrichment at
+`_experience.ajo.loyalty.challenge`: exact challenge `id`, independently resolved
+`name` when available, and string `metadata`. Card interactions retain their
+original Adobe proposition/item/scopeDetails and add the card's consequence,
+action and supplied title. Confirmed or already-joined card signup records that
+API outcome on the existing interaction; it does not emit an additional event.
+Native display collection remains unchanged. Journey activity references are
+shown as Adobe activities, not invented campaigns.
+
+The inspector's existing GBP 10 purchase includes the clicked Spend
+challenge/task, with `contextType:spendDemoPurchase` and
+`qualification:notConfirmed`. It does not borrow a visible card's proposition,
+change commerce/identity fields, write progress or claim qualification,
+completion, Journey entry or reward issuance.
+
+Before enrichment, the explicit event datastream must match
+`GET /api/events/config?sandbox=...`. The resolved registered schema from
+`GET /api/schema-viewer/registry` must support native challenge string `id/name`
+and a string-map `metadata`; results cache for five minutes per sandbox/datastream.
+Kirkham's Operational Event schema has these fields. Other schemas are not
+assumed compatible. Unverified or unsupported configuration keeps the original
+event unchanged and exposes the reason through a `[Loyalty event context]`
+console warning and `LoyaltyDemoEventContextDebug.getLatest()`. This does not
+provision or modify any Adobe schema.
+
+Check the outgoing event XDM and existing Spend evidence for intended context.
+After ingestion latency, the profile timeline renders stored Loyalty
+challenge/task/card context and supplied Adobe activity/proposition/item
+references. A purchase's context is not evidence that Loyalty accepted it:
+Challenge API details and their genuine accumulators/state remain authoritative.
+
 ### Lloyds Loyalty web demo
 
 Open **Demos > Lloyds > Loyalty** (`profile-viewer/lloyds-loyalty-demo.html`).
