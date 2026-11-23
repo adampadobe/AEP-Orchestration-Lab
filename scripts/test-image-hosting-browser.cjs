@@ -137,6 +137,21 @@ async function main() {
     await settled(page);
     await page.getByRole('button', { name: 'logo.png', exact: true }).click();
     assert.ok((await page.locator('#ihDetails').innerText()).includes('/cdn/demo/logo/logo.png'));
+    await page.locator('#ihWaterfallView').click();
+    assert.equal(await page.locator('.ih-items--waterfall').count(), 1, 'waterfall view applies masonry layout');
+    assert.equal(await page.locator('#ihWaterfallView').getAttribute('aria-pressed'), 'true');
+    await page.locator('#ihGridView').click();
+    assert.equal(await page.locator('.ih-items--waterfall, .ih-items--list').count(), 0, 'grid view restores square tiles');
+    await page.locator('#ihItems .ih-item', { hasText: 'logo.png' }).evaluate(row => {
+      const data = new DataTransfer();
+      data.items.add(new File([new Uint8Array([137, 80, 78, 71])], 'new-art.png', { type: 'image/png' }));
+      row.dispatchEvent(new DragEvent('dragover', { dataTransfer: data, bubbles: true, cancelable: true }));
+      row.dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => !document.querySelector('#ihItems .ih-item.is-busy'));
+    await settled(page);
+    const replaceCall = calls.find(call => call.path.endsWith('/library/replace'));
+    assert.ok(replaceCall && replaceCall.body.relPath === 'logo/logo.png', 'dropping an image on a published file replaces it at the same path');
     await page.locator('#ihUploadInput').setInputFiles({ name: 'upload.png', mimeType: 'image/png', buffer: image });
     await settled(page);
     assert.ok(calls.some(call => call.path.endsWith('/library/rename') && call.body.newRelPath === 'logo/upload.png'), 'published folder upload uses upload then rename');

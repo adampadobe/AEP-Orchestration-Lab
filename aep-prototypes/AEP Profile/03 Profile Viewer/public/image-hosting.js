@@ -292,16 +292,51 @@
       explorer.selected.add(fileKey(item)); renderExplorerItems();
     }));
   }
+  function explorerViewMode() {
+    return ['grid', 'waterfall', 'list'].includes(viewMode) ? viewMode : 'grid';
+  }
+  // Dropping an image on a published file replaces it in place: same relPath, same CDN URL.
+  function wireExplorerReplace(row, item) {
+    row.title = 'Drop an image here to replace ' + item.path + ' (keeps the same name and CDN URL)';
+    function hasFiles(event) {
+      return Array.prototype.includes.call((event.dataTransfer && event.dataTransfer.types) || [], 'Files');
+    }
+    ['dragenter', 'dragover'].forEach(function (type) {
+      row.addEventListener(type, function (event) {
+        if (!hasFiles(event)) return;
+        event.preventDefault(); event.stopPropagation();
+        event.dataTransfer.dropEffect = 'copy';
+        row.classList.add('is-drop-target');
+      });
+    });
+    row.addEventListener('dragleave', function (event) {
+      if (!row.contains(event.relatedTarget)) row.classList.remove('is-drop-target');
+    });
+    row.addEventListener('drop', function (event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault(); event.stopPropagation();
+      row.classList.remove('is-drop-target');
+      var file = event.dataTransfer.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name)) {
+        setStatus('Drop an image file to replace ' + item.path + '.', 'err');
+        return;
+      }
+      replaceLibraryItem(item.path, file, row);
+    });
+  }
   function visibleItems() {
     var q = byId('ihSearch').value.trim().toLowerCase();
     return explorer.items.filter(function (item) { return (item.name + ' ' + fileKey(item)).toLowerCase().includes(q); });
   }
   function renderExplorerItems() {
     renderBreadcrumb();
-    byId('ihGridView').setAttribute('aria-pressed', String(viewMode !== 'list'));
-    byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+    var mode = explorerViewMode();
+    ['Grid', 'Waterfall', 'List'].forEach(function (name) {
+      byId('ih' + name + 'View').setAttribute('aria-pressed', String(mode === name.toLowerCase()));
+    });
     var host = byId('ihItems');
-    host.className = 'ih-items' + (viewMode === 'list' ? ' ih-items--list' : '');
+    host.className = 'ih-items' + (mode === 'grid' ? '' : ' ih-items--' + mode);
     host.replaceChildren();
     if (explorer.source === 'backups') { renderBackupList(); return; }
     var items = visibleItems();
@@ -324,6 +359,7 @@
       var thumb = preview(item);
       row.append(label, thumb, open, node('span', item.kind === 'folder' ? 'Folder' : formatBytesShort(item.size) || 'Size unavailable', 'ih-file-size'),
         node('span', displayDate(item.updatedAt), 'ih-file-date'));
+      if (explorer.source === 'published' && item.kind !== 'folder') wireExplorerReplace(row, item);
       host.append(row);
     });
     if (!items.length) host.append(node('div', byId('ihSearch').value ? 'No files match your search. Clear the search to see this folder.' :
@@ -585,11 +621,10 @@
     });
   });
   byId('ihSearch').addEventListener('input', renderExplorerItems);
-  ['Grid', 'List'].forEach(function (mode) {
+  ['Grid', 'Waterfall', 'List'].forEach(function (mode) {
     byId('ih' + mode + 'View').addEventListener('click', function () {
       viewMode = mode.toLowerCase();
-      byId('ihGridView').setAttribute('aria-pressed', String(viewMode === 'grid'));
-      byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+      try { localStorage.setItem(LS_VIEW, viewMode); } catch (_e) {}
       renderExplorerItems();
     });
   });
@@ -1561,7 +1596,8 @@
   function libraryCardThumbImg(card) {
     if (!card) return null;
     return card.querySelector('.image-hosting-lib-card-img')
-      || card.querySelector('.image-hosting-lib-card-img-wrap img');
+      || card.querySelector('.image-hosting-lib-card-img-wrap img')
+      || card.querySelector('.ih-thumbnail');
   }
 
   async function replaceLibraryItem(relPath, file, card) {
