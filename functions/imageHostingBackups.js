@@ -57,13 +57,24 @@ async function sandboxesUsed(workspaceSlug, deps = {}) {
   return { sandboxes: [{ name, fileCount }] };
 }
 
-async function create(uid, sandboxes, deps = {}) {
+function backupName(value) {
+  if (value === undefined || value === null) return null;
+  const name = String(value).trim();
+  if (!name) return null;
+  if (name.length > 100 || !/^[A-Za-z0-9][A-Za-z0-9 ._-]*$/.test(name)) {
+    throw drive.error('Backup name must be 1-100 letters, numbers, spaces, dots, dashes or underscores.');
+  }
+  return name;
+}
+
+async function create(uid, sandboxes, deps = {}, options = {}) {
   if (!Array.isArray(sandboxes) || !sandboxes.length || sandboxes.length > 100) throw drive.error('sandboxes[] is required.');
   const selected = [...new Set(sandboxes.map(sandboxName))];
+  const name = backupName(options.name);
   const { db } = services(deps);
   const id = randomUUID();
   await backupCollection(db, uid).doc(id).create({
-    status: 'queued', sandboxes: selected, fileCount: 0, bytes: 0,
+    name, status: 'queued', sandboxes: selected, fileCount: 0, bytes: 0,
     progress: { done: 0, total: 0 }, createdAt: new Date().toISOString(),
     completedAt: null, error: null,
   });
@@ -167,6 +178,7 @@ async function manifest(uid, id, deps = {}) {
 
 async function files(uid, id, cursor, deps = {}) {
   const { private: bucket } = services(deps);
+  const record = await get(uid, id, deps);
   const all = await manifest(uid, id, deps);
   if (cursor && !/^\d+$/.test(cursor)) throw drive.error('Invalid cursor.');
   const offset = cursor ? Number(cursor) : 0;
@@ -283,6 +295,7 @@ async function restore(uid, id, filters, deps = {}) {
 
 async function download(uid, id, deps = {}) {
   const { private: bucket } = services(deps);
+  const record = await get(uid, id, deps);
   const all = await manifest(uid, id, deps);
   async function* entries() {
     for (const item of all) {
@@ -290,7 +303,7 @@ async function download(uid, id, deps = {}) {
         file: bucket.file(`${prefix(uid, id)}${item.sandbox}/${item.relPath}`, { generation: item.backupGeneration }) };
     }
   }
-  return exportsService.streamExport(uid, entries(), `backup-${id}.zip`, { bucket });
+  return exportsService.streamExport(uid, entries(), `${record.name || `backup-${id}`}.zip`, { bucket });
 }
 
 async function remove(uid, id, deps = {}) {

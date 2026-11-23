@@ -213,7 +213,7 @@
     });
     entry('Backups', 'backups', '');
     explorer.backups.forEach(function (backup) {
-      entry(displayDate(backup.createdAt), 'backup', '', '', backup.id, true);
+      entry(backupLabel(backup), 'backup', '', '', backup.id, true);
     });
   }
   function locationName() {
@@ -227,7 +227,7 @@
     if (explorer.source === 'published') host.append(node('span', ' / ' + (explorer.sandbox || 'No workspace')));
     if (explorer.source === 'backup') {
       var backup = explorer.backups.find(function (item) { return item.id === explorer.backupId; });
-      host.append(node('span', ' / ' + (backup ? displayDate(backup.createdAt) : explorer.backupId)));
+      host.append(node('span', ' / ' + (backup ? backupLabel(backup) : explorer.backupId)));
     }
     var parts = explorer.path.split('/').filter(Boolean);
     parts.forEach(function (part, index) {
@@ -292,16 +292,51 @@
       explorer.selected.add(fileKey(item)); renderExplorerItems();
     }));
   }
+  function explorerViewMode() {
+    return ['grid', 'waterfall', 'list'].includes(viewMode) ? viewMode : 'grid';
+  }
+  // Dropping an image on a published file replaces it in place: same relPath, same CDN URL.
+  function wireExplorerReplace(row, item) {
+    row.title = 'Drop an image here to replace ' + item.path + ' (keeps the same name and CDN URL)';
+    function hasFiles(event) {
+      return Array.prototype.includes.call((event.dataTransfer && event.dataTransfer.types) || [], 'Files');
+    }
+    ['dragenter', 'dragover'].forEach(function (type) {
+      row.addEventListener(type, function (event) {
+        if (!hasFiles(event)) return;
+        event.preventDefault(); event.stopPropagation();
+        event.dataTransfer.dropEffect = 'copy';
+        row.classList.add('is-drop-target');
+      });
+    });
+    row.addEventListener('dragleave', function (event) {
+      if (!row.contains(event.relatedTarget)) row.classList.remove('is-drop-target');
+    });
+    row.addEventListener('drop', function (event) {
+      if (!hasFiles(event)) return;
+      event.preventDefault(); event.stopPropagation();
+      row.classList.remove('is-drop-target');
+      var file = event.dataTransfer.files[0];
+      if (!file) return;
+      if (!/^image\//.test(file.type) && !/\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i.test(file.name)) {
+        setStatus('Drop an image file to replace ' + item.path + '.', 'err');
+        return;
+      }
+      replaceLibraryItem(item.path, file, row);
+    });
+  }
   function visibleItems() {
     var q = byId('ihSearch').value.trim().toLowerCase();
     return explorer.items.filter(function (item) { return (item.name + ' ' + fileKey(item)).toLowerCase().includes(q); });
   }
   function renderExplorerItems() {
     renderBreadcrumb();
-    byId('ihGridView').setAttribute('aria-pressed', String(viewMode !== 'list'));
-    byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+    var mode = explorerViewMode();
+    ['Grid', 'Waterfall', 'List'].forEach(function (name) {
+      byId('ih' + name + 'View').setAttribute('aria-pressed', String(mode === name.toLowerCase()));
+    });
     var host = byId('ihItems');
-    host.className = 'ih-items' + (viewMode === 'list' ? ' ih-items--list' : '');
+    host.className = 'ih-items' + (mode === 'grid' ? '' : ' ih-items--' + mode);
     host.replaceChildren();
     if (explorer.source === 'backups') { renderBackupList(); return; }
     var items = visibleItems();
@@ -324,6 +359,7 @@
       var thumb = preview(item);
       row.append(label, thumb, open, node('span', item.kind === 'folder' ? 'Folder' : formatBytesShort(item.size) || 'Size unavailable', 'ih-file-size'),
         node('span', displayDate(item.updatedAt), 'ih-file-date'));
+      if (explorer.source === 'published' && item.kind !== 'folder') wireExplorerReplace(row, item);
       host.append(row);
     });
     if (!items.length) host.append(node('div', byId('ihSearch').value ? 'No files match your search. Clear the search to see this folder.' :
@@ -391,22 +427,24 @@
       renderExplorerItems(); renderTree();
     }
   }
+  function backupLabel(backup) { return backup.name || displayDate(backup.createdAt); }
+  var BACKUP_NAME = /^[A-Za-z0-9][A-Za-z0-9 ._-]*$/;
   function completedBackup(backup) { return ['completed', 'complete', 'succeeded'].includes(backup.status); }
   function renderBackupList() {
     var host = byId('ihItems');
     host.className = 'ih-backup-list';
     var q = byId('ihSearch').value.toLowerCase();
-    explorer.backups.filter(function (backup) { return (displayDate(backup.createdAt) + ' ' + backup.sandboxes.join(' ')).toLowerCase().includes(q); }).forEach(function (backup) {
+    explorer.backups.filter(function (backup) { return ((backup.name || '') + ' ' + displayDate(backup.createdAt) + ' ' + backup.sandboxes.join(' ')).toLowerCase().includes(q); }).forEach(function (backup) {
       var row = node('article', null, 'ih-backup-row');
-      row.append(action(displayDate(backup.createdAt), function () { return navigateExplorer('backup', '', '', backup.id); }, 'ih-backup-title'),
-        node('p', backup.sandboxes.join(', ')), node('p', backup.fileCount + ' files · ' + (formatBytesShort(backup.bytes) || '0 B')),
+      row.append(action(backupLabel(backup), function () { return navigateExplorer('backup', '', '', backup.id); }, 'ih-backup-title'),
+        node('p', (backup.name ? displayDate(backup.createdAt) + ' · ' : '') + backup.sandboxes.join(', ')), node('p', backup.fileCount + ' files · ' + (formatBytesShort(backup.bytes) || '0 B')),
         node('p', backup.status + (backup.error ? ': ' + backup.error : '')));
       var buttons = node('div', null, 'ih-dialog-actions');
       var restore = action('Restore…', function () { explorer.backupId = backup.id; return previewRestore(); });
-      var download = action('Download ZIP', function () { return downloadBackup(backup.id); });
+      var download = action('Download ZIP', function () { return downloadBackup(backup.id, backup.name); });
       restore.disabled = download.disabled = !completedBackup(backup);
       buttons.append(restore, download, action('Delete', async function () {
-        if (!confirm('Permanently delete backup from ' + displayDate(backup.createdAt) + '? This cannot be undone.')) return;
+        if (!confirm('Permanently delete backup "' + backupLabel(backup) + '"? This cannot be undone.')) return;
         await imageApi('/api/image-hosting/backups/' + encodeURIComponent(backup.id), 'DELETE');
         setStatus('Backup deleted.', 'ok'); await navigateExplorer('backups');
       }));
@@ -423,10 +461,10 @@
     document.body.append(anchor); anchor.click(); anchor.remove();
     setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 60000);
   }
-  async function downloadBackup(id) {
+  async function downloadBackup(id, name) {
     var result = await imageApi('/api/image-hosting/backups/' + encodeURIComponent(id) + '/download');
     var url = signedDownloadUrl(result.url);
-    await downloadUrl(url, 'image-backup-' + id + '.zip', false);
+    await downloadUrl(url, (name ? name.replace(/[^A-Za-z0-9._-]/g, '-') : 'image-backup-' + id) + '.zip', false);
     setStatus('Backup ZIP downloaded.', 'ok');
   }
   function signedDownloadUrl(value) {
@@ -447,6 +485,7 @@
     });
     if (!used.length) host.append(node('p', result.reason || 'An owned lab workspace is required to create a backup.'));
     byId('ihBackupStart').disabled = !used.length;
+    byId('ihBackupName').value = (used[0] || 'images') + '-backup-' + new Date().toISOString().slice(0, 10);
     byId('ihBackupCheck').hidden = true;
     byId('ihBackupProgress').hidden = true; byId('ihBackupResult').textContent = '';
     byId('ihBackupDialog').showModal();
@@ -585,11 +624,10 @@
     });
   });
   byId('ihSearch').addEventListener('input', renderExplorerItems);
-  ['Grid', 'List'].forEach(function (mode) {
+  ['Grid', 'Waterfall', 'List'].forEach(function (mode) {
     byId('ih' + mode + 'View').addEventListener('click', function () {
       viewMode = mode.toLowerCase();
-      byId('ihGridView').setAttribute('aria-pressed', String(viewMode === 'grid'));
-      byId('ihListView').setAttribute('aria-pressed', String(viewMode === 'list'));
+      try { localStorage.setItem(LS_VIEW, viewMode); } catch (_e) {}
       renderExplorerItems();
     });
   });
@@ -602,7 +640,11 @@
     var sandboxes = Array.from(byId('ihBackupSandboxes').querySelectorAll('input:checked')).map(function (input) { return input.value; });
     if (!sandboxes.length) throw new Error('Select at least one sandbox to back up.');
     if (sandboxes.length > 100) throw new Error('A backup can include at most 100 sandboxes. Select fewer sandboxes and create another backup for the rest.');
-    var result = await imageApi('/api/image-hosting/backups', 'POST', { sandboxes: sandboxes });
+    var name = byId('ihBackupName').value.trim();
+    if (name && (name.length > 100 || !BACKUP_NAME.test(name))) {
+      throw new Error('Backup name must be up to 100 letters, numbers, spaces, dots, dashes or underscores.');
+    }
+    var result = await imageApi('/api/image-hosting/backups', 'POST', name ? { sandboxes: sandboxes, name: name } : { sandboxes: sandboxes });
     if (!result.backupId) throw new Error('Backup submitted but no ID returned. Inspect Backups before creating another.');
     byId('ihBackupStart').disabled = true;
     setStatus('Backup started. You may close the dialog and inspect Backups.', 'ok');
@@ -1561,7 +1603,8 @@
   function libraryCardThumbImg(card) {
     if (!card) return null;
     return card.querySelector('.image-hosting-lib-card-img')
-      || card.querySelector('.image-hosting-lib-card-img-wrap img');
+      || card.querySelector('.image-hosting-lib-card-img-wrap img')
+      || card.querySelector('.ih-thumbnail');
   }
 
   async function replaceLibraryItem(relPath, file, card) {

@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20261122-explorer">
+  <link rel="stylesheet" href="image-hosting.css?v=20261123-backup-name">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
@@ -57,8 +57,9 @@
             <nav id="ihBreadcrumb" aria-label="Folder breadcrumb"></nav>
             <input id="ihSearch" type="search" placeholder="Search this folder" aria-label="Search this folder">
             <div class="ih-view" aria-label="File view">
-              <button id="ihGridView" type="button" aria-pressed="true">Grid</button>
-              <button id="ihListView" type="button" aria-pressed="false">List</button>
+              <button id="ihGridView" type="button" aria-pressed="true" title="Square tiles">Grid</button>
+              <button id="ihWaterfallView" type="button" aria-pressed="false" title="Waterfall / masonry view">Waterfall</button>
+              <button id="ihListView" type="button" aria-pressed="false" title="List view">List</button>
             </div>
             <button id="ihUpload" type="button" class="dashboard-btn-outline">Upload</button>
             <input id="ihUploadInput" type="file" multiple hidden>
@@ -256,6 +257,9 @@
   <dialog id="ihBackupDialog" class="ih-dialog" aria-labelledby="ihBackupTitle">
     <h2 id="ihBackupTitle">Back up published libraries</h2>
     <p>Choose up to 100 sandboxes to duplicate into your private backups. Published files are not changed. Brand-scrape images are excluded.</p>
+    <label class="ih-backup-name" for="ihBackupName">Backup name
+      <input id="ihBackupName" type="text" maxlength="100" placeholder="e.g. customer-images-flydubai" autocomplete="off">
+    </label>
     <div id="ihBackupSandboxes"></div>
     <progress id="ihBackupProgress" hidden></progress>
     <p id="ihBackupResult"></p>
@@ -406,7 +410,7 @@
       </div>
     </div>
   </dialog>
-  <script src="image-hosting.js?v=20261123-library-ok"></script>
+  <script src="image-hosting.js?v=20261123-backup-name"></script>
   <script src="image-hosting-customers.js?v=20261122-explorer"></script>
 </body>
 </html>

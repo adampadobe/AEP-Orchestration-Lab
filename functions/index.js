@@ -4737,7 +4737,7 @@ exports.imageHostingPrivate = onRequest(
         if (Array.isArray(body.sandboxes)) {
           for (const sandbox of body.sandboxes) requireImageHostingWorkspace(workspaceSlug, sandbox);
         }
-        result = await imageHostingBackups.create(uid, body.sandboxes);
+        result = await imageHostingBackups.create(uid, body.sandboxes, {}, { name: body.name });
       } else {
         const match = /^\/api\/image-hosting\/backups\/([^/]+)(?:\/(files|download|restore|restore\/preview))?$/.exec(path);
         if (!match) { res.status(404).json({ ok: false, error: 'Not found.' }); return; }
