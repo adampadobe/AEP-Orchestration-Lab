@@ -1,6 +1,7 @@
 'use strict';
 
 const { resolveMcpAudiencePrincipal } = require('./audienceManagementRoutes');
+const { ownerMayReadSandbox } = require('./mcpOwnerReadAccess');
 const { buildLoyaltyReadRequest, buildLoyaltySignupRequest } = require('./ajoLoyaltyService');
 const labUserSandboxStore = require('./labUserSandboxStore');
 const profileTableHelpers = require('./profileTableHelpers');
@@ -57,7 +58,10 @@ function createAjoLoyaltyHandler(deps) {
     const query = req.query || {};
     const sandbox = query.sandbox === undefined ? principal.sandbox : query.sandbox;
     if (typeof sandbox !== 'string' || sandbox !== String(principal.sandbox).toLowerCase()) {
-      return res.status(403).json({ ok: false, error: 'Sandbox does not match the authenticated principal scope.' });
+      let permitted;
+      try { permitted = await ownerMayReadSandbox(principal, sandbox, req.method, deps); }
+      catch { return res.status(503).json({ ok: false, error: 'Owner read authorization is unavailable.' }); }
+      if (!permitted) return res.status(403).json({ ok: false, error: 'Sandbox does not match the authenticated principal scope.' });
     }
     if (req.headers['x-gw-ims-org-id'] && req.headers['x-gw-ims-org-id'] !== ADOBE_IMS_ORG.value()) {
       return res.status(403).json({ ok: false, error: 'Adobe organisation does not match the configured platform organisation.' });

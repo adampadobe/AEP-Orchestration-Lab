@@ -1,6 +1,7 @@
 'use strict';
 
 const { resolveMcpAudiencePrincipal } = require('./audienceManagementRoutes');
+const { ownerMayReadSandbox } = require('./mcpOwnerReadAccess');
 
 const JOURNEY_DELETE_STATES = new Set(['DRAFT', 'FINISHED']);
 const CAMPAIGN_DELETE_STATES = new Set(['DRAFT']);
@@ -63,7 +64,10 @@ function registerAjoCleanupRoutes(deps) {
 
     const sandbox = requestedSandbox(req) || String(principal.sandbox).toLowerCase();
     if (sandbox !== String(principal.sandbox).toLowerCase()) {
-      return res.status(403).json({ ok: false, error: `This MCP key is scoped to sandbox "${principal.sandbox}", not "${sandbox}".` });
+      let permitted;
+      try { permitted = await ownerMayReadSandbox(principal, sandbox, req.method, deps); }
+      catch { return res.status(503).json({ ok: false, error: 'Owner read authorization is unavailable.' }); }
+      if (!permitted) return res.status(403).json({ ok: false, error: `This MCP key is scoped to sandbox "${principal.sandbox}", not "${sandbox}".` });
     }
 
     const assetType = String(req.query.asset_type || req.body?.asset_type || '').trim().toLowerCase();

@@ -25,6 +25,7 @@ function testDeps(service) {
     mcpApiKeyStore: {
       validateUserApiKey: async () => ({ ok: true, keyId: 'key-1', principalUid: 'uid-1', sandbox: 'apalmer' }),
     },
+    ownerAuth: { getUserByEmail: async () => ({ uid: 'other-owner', disabled: false }) },
     audienceManagementService: service,
   };
 }

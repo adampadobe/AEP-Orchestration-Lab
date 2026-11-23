@@ -1,6 +1,7 @@
 'use strict';
 
 const { resolveLabImsPrincipal } = require('./labImsPrincipalAuth');
+const { ownerMayReadSandbox } = require('./mcpOwnerReadAccess');
 
 function errorStatus(error, fallback = 500) {
   const status = Number(error && error.status);
@@ -106,11 +107,12 @@ function registerAudienceManagementRoutes(deps) {
 
     const sandbox = requestedSandbox(req) || String(principal.sandbox).toLowerCase();
     if (sandbox !== String(principal.sandbox).toLowerCase()) {
-      res.status(403).json({
-        ok: false,
-        error: `This MCP key is scoped to sandbox "${principal.sandbox}", not "${sandbox}".`,
+      let permitted;
+      try { permitted = await ownerMayReadSandbox(principal, sandbox, req.method, deps); }
+      catch { return res.status(503).json({ ok: false, error: 'Owner read authorization is unavailable.' }); }
+      if (!permitted) return res.status(403).json({
+        ok: false, error: `This MCP key is scoped to sandbox "${principal.sandbox}", not "${sandbox}".`,
       });
-      return;
     }
 
     let token;

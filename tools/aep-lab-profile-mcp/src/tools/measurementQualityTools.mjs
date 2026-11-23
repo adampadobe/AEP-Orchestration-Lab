@@ -6,9 +6,17 @@ import {
   launchEnvironmentList,
   statusIncidentCorrelate,
 } from '../labApiClient.mjs';
-import { fromLabApi } from './helpers.mjs';
+import { assertOwnerReadSandbox } from '../ownerReadAccess.mjs';
+import { fromLabApi, toolError } from './helpers.mjs';
 
 const sandbox = z.string().optional().describe('Defaults to the sandbox scoped to the connected MCP principal');
+
+async function tagsRead(params, read) {
+  if (params.sandbox === undefined) return fromLabApi(await read(params));
+  const allowed = await assertOwnerReadSandbox(params.sandbox);
+  if (!allowed.ok) return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
+  return fromLabApi(await read({ ...params, sandbox: allowed.sandbox }));
+}
 
 export function registerMeasurementQualityTools(mcpServer) {
   mcpServer.registerTool('assurance_session_list', {
@@ -36,13 +44,13 @@ export function registerMeasurementQualityTools(mcpServer) {
       property_id: z.string().max(160).optional(),
       limit: z.number().int().min(1).max(50).optional(),
     },
-  }, async (params) => fromLabApi(await launchPropertyAudit(params)));
+  }, async (params) => tagsRead(params, launchPropertyAudit));
 
   mcpServer.registerTool('launch_environment_list', {
     title: 'List Adobe Tags environments',
     description: 'Lists the development, staging, and production environments for one exact Tags property without changing builds or libraries.',
     inputSchema: { sandbox, property_id: z.string().min(1).max(160) },
-  }, async (params) => fromLabApi(await launchEnvironmentList(params)));
+  }, async (params) => tagsRead(params, launchEnvironmentList));
 
   mcpServer.registerTool('status_incident_correlate', {
     title: 'Correlate Adobe Status incidents',
