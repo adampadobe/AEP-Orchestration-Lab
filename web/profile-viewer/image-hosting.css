@@ -17,6 +17,7 @@
   padding: .65rem; border-radius: var(--dash-radius-sm); font: inherit;
 }
 .ih-view { display: flex; gap: .2rem; }
+.ih-view button { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; }
 .ih-explorer { display: grid; grid-template-columns: 190px minmax(0, 1fr) 240px; min-height: 530px; border: 1px solid var(--dash-border); border-radius: var(--dash-radius); background: var(--dash-surface); overflow: hidden; }
 .ih-tree { border-right: 1px solid var(--dash-border); padding: .8rem; min-width: 0; }
 .ih-tree button { display: block; text-align: left; width: 100%; overflow-wrap: anywhere; border-color: transparent; font-size: .85rem; margin: .2rem 0; }
