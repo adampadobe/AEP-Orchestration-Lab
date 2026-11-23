@@ -1045,3 +1045,32 @@ Validate both brands with `npm run test:loyalty-spend-presentation` alongside
 
 - [tools/loyalty-reward-provider/README.md](../tools/loyalty-reward-provider/README.md)
 - [AJO_CONTENT_TEMPLATE_API.md](AJO_CONTENT_TEMPLATE_API.md)
+## Featured Offers delivery and visible impressions
+
+Lloyds and Jet2 share website-owned Featured Offer display tracking. The configured
+Tags carousel/generic display actions were audited read-only and have no notification
+calls. Delivery/send records are not impressions: only the settled primary offer
+that is at least 50% visible for one second in a visible document emits
+`decisioning.propositionDisplay`. Hidden Home, off-screen, peek and fallback cards
+do not. Subsequent navigation tracks newly viewed offers once per original
+profile/identity/datastream/proposition/item/offer within the page session.
+
+The notification preserves original wrapper IDs, scopeDetails and tracking/selection
+tokens, while native item `characteristics.displayedOfferId` and
+`displayedOfferName` identify the actual returned catalog offer and its supplied
+name or displayed label. The ID must exist in the original wrapper JSON content.
+Wrapper selection is not claimed as the DPS winning strategy. Optional tracking
+requires the original datastream to match the Event Tool's registered schema
+with supported string characteristics; no schema or Tags changes are made.
+
+`LoyaltyDemoFeaturedDisplayDebug.getLatest()` distinguishes outgoing payload,
+SDK acceptance and exact stored Profile attribution. Bounded readback checks
+run after 2s, 5s and 5s; unconfirmed storage or an uncertain SDK result never
+replays the display. The timeline labels actual delivery, display and interaction
+semantics without rewriting stored event types. Native Journey Content Card
+collection, signup, purchases, identity handling and Loyalty progression are unchanged.
+
+Offline browser fixtures prove tracking/readback behavior, not live AEP ingestion.
+For live evidence, reload the customer page in the existing intended browser/profile
+session, view Rewards and inspect both the outgoing notification and stored Profile
+display. Do not manufacture a new ECID or send a purchase to verify impressions.

@@ -55,6 +55,12 @@ async function main() {
         else if (url.pathname === '/api/events/generator-targets') data = { targets: [] };
         else if (url.pathname === '/api/image-hosting/library') data = { items: [] };
         else if (url.pathname === '/api/tags/reactor' || url.pathname === '/api/events/datastreams') data = { data: [] };
+        if (url.pathname === '/api/schema-viewer/registry' && schemaSupported) {
+          data.schema.properties._experience.properties.decisioning = { properties: { propositions: { items: {
+            properties: { items: { items: { properties: { id: { type: 'string' }, name: { type: 'string' },
+              characteristics: { type: 'object', additionalProperties: { type: 'string' } } } } } },
+          } } } };
+        }
         return route.fulfill({ json: data });
       });
       const page = await context.newPage();
@@ -69,6 +75,7 @@ async function main() {
       await page.evaluate(() => {
         window.AepGlobalSandbox.setSelected('kirkham');
         window.__tracking = []; window.__interactions = []; window.__purchases = [];
+        window.__featuredDisplays = [];
         window.__eventStream = 'fixture-stream';
         window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.__eventStream } });
         window.alloy = async (command, options) => {
@@ -81,7 +88,14 @@ async function main() {
             return { requestId: 'offline-purchase' };
           }
           if (options.xdm?.eventType === 'decisioning.propositionInteract') window.__interactions.push(options);
-          if (options.personalization?.surfaces?.[0]?.endsWith('#featured-offers')) return { propositions: [] };
+          if (options.xdm?.eventType === 'decisioning.propositionDisplay') {
+            window.__featuredDisplays.push(options);
+            if (window.__failFeaturedDisplay) throw new Error('Offline display acceptance unavailable');
+            return { requestId: 'offline-display' };
+          }
+          if (options.personalization?.surfaces?.[0]?.endsWith('#featured-offers')) {
+            return { propositions: window.__featuredFixture ? [window.__featuredFixture] : [] };
+          }
           if (options.personalization?.surfaces && window.__subscription) {
             window.__cards = ['spend-fixture', 'non-spend-fixture', 'available-fixture', null].map((challengeId, index) => ({
               id: 'proposition-' + index, scope: window.__subscription.surfaces[0],
@@ -270,6 +284,102 @@ async function main() {
       spendChallenge.optedIn = false;
       await refresh();
       assert.equal(await card.locator('.loyalty-customer-spend').count(), 0, 'State, not signup receipts, authorizes progress');
+      await page.setViewportSize({ width: 1500, height: 1100 });
+      await page.locator('.loyalty-phone-nav [data-phone-view="home"]').click();
+      schemaSupported = true; registeredDatastream = 'featured-stream';
+      const nativeBeforeFeatured = await page.evaluate(() => ({ tracking: __tracking.length, purchases: __purchases.length, interactions: __interactions.length }));
+      await page.evaluate(async () => {
+        window.__eventStream = 'featured-stream';
+        window.__featuredFixture = {
+          id: 'original-featured-proposition', scope: 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers',
+          scopeDetails: { decisionProvider: 'AJO', correlationID: 'original-featured-correlation',
+            activity: { id: 'original-featured-campaign' }, characteristics: { eventToken: 'original-featured-token' } },
+          items: [{ id: 'original-wrapper-item', name: 'Original wrapper', trackingToken: 'original-item-token',
+            characteristics: { originalValue: 'preserved' }, schema: 'https://ns.adobe.com/personalization/json-content-item',
+            data: { content: [0, 1, 2].map(index => ({ id: 'dps:offer:visible-' + index, merchant: 'Fixture merchant',
+              title: 'Visible offer ' + index, sku: 'visible-' + index })) } }],
+        };
+        window.addEventListener('ajo:featured-offers-response', event => {
+          const proposition = event.detail.propositions?.[0];
+          if (!proposition || proposition.id !== __featuredFixture.id) return;
+          const item = proposition.items[0];
+          window.__emitFeatured = () => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: {
+            offers: item.data.content.map(offer => ({ ...offer, propositionId: proposition.id, propositionItemId: item.id,
+              propositionScope: proposition.scope, propositionScopeDetails: proposition.scopeDetails })),
+          } }));
+          window.__emitFeatured();
+        });
+        await window.requestFeaturedOffers();
+      });
+      await page.waitForTimeout(1300);
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 0, 'Hidden Home offers are not impressions');
+      await page.locator('.loyalty-phone-nav [data-phone-view="rewards"]').click();
+      await page.locator('#loyaltyOfferCarousel').evaluate(element => element.scrollIntoView({ block: 'center' }));
+      await page.waitForFunction(() => __featuredDisplays.length === 1);
+      const firstDisplay = await page.evaluate(() => __featuredDisplays[0]);
+      assert.equal(firstDisplay.xdm._experience.decisioning.propositionEventType.display, 1);
+      assert.deepEqual(firstDisplay.personalization, { defaultPersonalizationEnabled: false });
+      const attributed = firstDisplay.xdm._experience.decisioning.propositions[0];
+      assert.equal(attributed.id, 'original-featured-proposition');
+      assert.equal(attributed.items[0].id, 'original-wrapper-item');
+      assert.equal(attributed.items[0].trackingToken, 'original-item-token');
+      assert.equal(attributed.scopeDetails.characteristics.eventToken, 'original-featured-token');
+      assert.deepEqual(attributed.items[0].characteristics, { originalValue: 'preserved',
+        displayedOfferId: 'dps:offer:visible-0', displayedOfferName: 'Fixture merchant: Visible offer 0' });
+      events = [{ eventType: firstDisplay.xdm.eventType, rows: [
+        { path: '_experience.decisioning.propositions.0.id', value: attributed.id },
+        { path: '_experience.decisioning.propositions.0.items.0.id', value: attributed.items[0].id },
+        { path: '_experience.decisioning.propositions.0.items.0.characteristics.displayedOfferId', value: 'dps:offer:visible-0' },
+      ] }];
+      await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.storedInProfile === true);
+      await page.evaluate(() => __emitFeatured());
+      await page.locator('[data-loyalty-preview="web"]').click();
+      await page.locator('#loyaltyOfferCarousel').evaluate(element => element.scrollIntoView({ block: 'center' }));
+      await page.waitForTimeout(1300);
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 1, 'Duplicate delivery and preview switches do not retrack');
+      await page.locator('#loyaltyNextOffer').click();
+      await page.waitForFunction(() => __featuredDisplays.length === 2);
+      assert.equal(await page.evaluate(() => __featuredDisplays[1].xdm._experience.decisioning.propositions[0].items[0].characteristics.displayedOfferId),
+        'dps:offer:visible-1', 'Only the settled primary card, not its peek, is displayed');
+      await page.locator('#loyaltyPreviousOffer').click();
+      await page.waitForTimeout(1300);
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 2, 'Returning to the same attributed offer is deduplicated');
+      await page.evaluate(() => { window.__failFeaturedDisplay = true; });
+      await page.locator('#loyaltyNextOffer').click();
+      await page.locator('#loyaltyNextOffer').click();
+      await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.error?.includes('Offline display'));
+      await page.evaluate(() => __emitFeatured());
+      await page.waitForTimeout(1300);
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 3, 'Uncertain SDK display sends are never replayed');
+      registeredDatastream = 'unrelated-stream';
+      await page.evaluate(async () => { window.__eventStream = 'unregistered-featured-stream'; await requestFeaturedOffers(); });
+      await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.error?.includes('does not match'));
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 3, 'Unverified event schemas block tracking, not rendering');
+      assert.equal(await page.locator('#loyaltyFeaturedOffers > article').count(), 3);
+      const unchangedCards = await page.locator('#loyaltyFeaturedOffers').innerHTML();
+      registeredDatastream = 'verified-new-featured-stream';
+      await page.evaluate(async () => {
+        window.__failFeaturedDisplay = false; window.__eventStream = 'verified-new-featured-stream';
+        window.__featuredFixture.id = 'new-original-proposition-same-offers';
+        await requestFeaturedOffers();
+      });
+      await page.waitForFunction(() => __featuredDisplays.length === 4);
+      assert.equal(await page.locator('#loyaltyFeaturedOffers').innerHTML(), unchangedCards, 'Same offers preserve the rendered carousel');
+      assert.equal(await page.evaluate(() => __featuredDisplays[3].xdm._experience.decisioning.propositions[0].id),
+        'new-original-proposition-same-offers', 'Unchanged cards use the latest original attribution');
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [{
+        id: 'invented-not-in-adobe-content', merchant: 'Fixture', title: 'Not delivered by Adobe',
+        propositionId: __featuredFixture.id, propositionItemId: 'original-wrapper-item',
+      }] } })));
+      await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.error?.includes('not present in original Adobe'));
+      await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: {
+        offers: __featuredFixture.items[0].data.content.map(offer => ({ ...offer,
+          propositionId: 'stale-proposition', propositionItemId: 'original-wrapper-item' })),
+      } })));
+      await page.waitForFunction(() => LoyaltyDemoFeaturedDisplayDebug.getLatest()?.error?.includes('attribution is missing'));
+      assert.equal(await page.evaluate(() => __featuredDisplays.length), 4, 'Invented IDs and stale wrapper attribution never send');
+      assert.deepEqual(await page.evaluate(() => ({ tracking: __tracking.length, purchases: __purchases.length, interactions: __interactions.length })),
+        nativeBeforeFeatured, 'Featured displays do not add Content Card events, purchases or interactions');
       assert.deepEqual(writes, []);
       assert.deepEqual(errors, []);
       await context.close();

@@ -6,6 +6,30 @@ const { test } = require('node:test');
 
 const root = path.join(__dirname, '..', 'web', 'profile-viewer');
 const source = fs.readFileSync(path.join(root, 'tui-decisioning-runtime.js'), 'utf8');
+test('Featured display attribution retains wrapper identity and distinguishes delivery from impressions', () => {
+  const attribution = require(path.join(root, 'tui-decisioning-attribution.js'));
+  const prefix = '_experience.decisioning.propositions.0.items.0.';
+  const event = { eventType: 'decisioning.propositionDisplay', rows: [
+    { path: prefix + 'characteristics.displayedOfferId', value: 'dps:offer:actual-displayed' },
+    { path: prefix + 'characteristics.displayedOfferName', value: 'Actual displayed offer' },
+    { path: prefix + 'id', value: 'original-wrapper-item' },
+    { path: prefix + 'name', value: 'Original wrapper name' },
+    { path: prefix + 'itemSelection.selectionDetail.strategyID', value: 'wrapper-strategy-not-dps-strategy' },
+  ] };
+  assert.equal(attribution.kind(event), 'display');
+  const selected = attribution.items(event)[0];
+  assert.equal(selected.wrapperItemId, 'original-wrapper-item');
+  assert.equal(selected.offerId, 'dps:offer:actual-displayed');
+  assert.equal(selected.offer, 'Actual displayed offer');
+  assert.equal(selected.strategyId, undefined, 'Wrapper selection is not invented as the displayed DPS winning strategy');
+  const delivery = { rows: [{ path: 'xdm._experience.decisioning.propositionEventType.send', value: 1 }] };
+  assert.equal(attribution.kind(delivery), 'send');
+  assert.equal(attribution.kind({ rows: [...delivery.rows,
+    { path: '_experience.decisioning.propositionEventType.display', value: 1 }] }), '');
+  assert.equal(attribution.kind({ eventType: 'commerce.purchases', rows: delivery.rows }), '');
+  assert.equal(attribution.kind({ eventType: 'decisioning.propositionInteract' }), 'interact');
+  assert.equal(attribution.kind({ rows: event.rows }), '', 'Attribution presence alone is never a display');
+});
 
 test('TUI campaign attribution preserves campaign identity and separates CBE from preview modes', () => {
   const attribution = require(path.join(root, 'tui-decisioning-attribution.js'));

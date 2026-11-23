@@ -139,6 +139,35 @@ Never include credentials, private customer identities or production tokens.
 
 ### Featured Offers and real purchases
 
+- The website owns Featured Offers impressions. Read the configured published
+  Tags carousel and generic offer-display actions first; neither should also
+  notify Featured displays. Do not change/publish Tags as part of page work.
+  Retain the original SDK decision response before dispatching it to Tags.
+  Only an actual Adobe-returned offer on the settled primary card, at least
+  50% visible for one second while the document is visible, sends
+  `decisioning.propositionDisplay` with `propositionEventType.display:1`.
+  Hidden Home, off-screen/peek cards and fallback placeholders are not impressions.
+- Preserve original wrapper proposition/item IDs, scope, complete scopeDetails
+  and item tracking/selection tokens. Verify the displayed ID against that
+  wrapper's original JSON content; never use a Tags-invented fallback ID.
+  Keep the catalog ID separate in native item `characteristics.displayedOfferId`
+  and the supplied name or visible presentation label in `displayedOfferName`.
+  Verify matching Event Tool datastream/schema and string-map support first;
+  unavailable support blocks only optional tracking with explicit diagnostics.
+  Never mutate schemas or pretend wrapper selection is the DPS winning strategy.
+- Use the original SDK, identity and datastream, with `renderDecisions:false`
+  and default personalization disabled, without requesting another decision.
+  Deduplicate profile/identity/datastream/proposition/item/offer in the page
+  session across rerenders, preview changes and revisits. Reserve before sending;
+  uncertain sends are never replayed. Context changes invalidate pending work.
+  Do not add Featured interaction, purchase or signup tracking as collateral.
+- `LoyaltyDemoFeaturedDisplayDebug.getLatest()` exposes payload, SDK acceptance,
+  errors and bounded Profile readback. SDK acceptance is not storage proof.
+  Three read-only checks (2s, then 5s and 5s) look for the exact stored display
+  attribution; missing storage never triggers another notification. Timeline
+  labels distinguish delivery/send, display and interaction using actual event
+  types/flags, without relabeling delivery as an impression or a Journey as a campaign.
+
 - Featured Offers are Experience Decisioning with independent retrieval, renderer,
   ranking and interaction metadata. Similar presentation is not shared business
   logic. Preserve the existing `ajo:featured-offers` contract and attribution.

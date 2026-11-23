@@ -1,13 +1,26 @@
 (function (root) {
   'use strict';
+  function kind(event) {
+    const type = String(event?.eventType || event?.eventName || '').trim().toLowerCase();
+    const explicit = { 'decisioning.propositiondisplay': 'display', 'decisioning.propositioninteract': 'interact',
+      'decisioning.propositionsend': 'send', 'decisioning.propositiondismiss': 'dismiss' }[type];
+    if (explicit) return explicit;
+    if (event?.eventType) return '';
+    const flags = (Array.isArray(event?.rows) ? event.rows : []).filter(row =>
+      /^(?:xdm\.)?_experience\.decisioning\.propositionEventType\.(send|display|interact|dismiss)$/.test(row.path || '') &&
+      Number(row.value) === 1);
+    return flags.length === 1 ? flags[0].path.split('.').pop() : '';
+  }
   function items(event) {
-    if (String(event?.eventType || event?.eventName || '').trim().toLowerCase() !== 'decisioning.propositiondisplay') return [];
+    if (!['display', 'send', 'interact'].includes(kind(event))) return [];
     const result = new Map();
     const fields = {
       id: 'offerId', name: 'offer',
       'itemSelection.selectionDetail.strategyID': 'strategyId',
       'itemSelection.selectionDetail.strategyId': 'strategyId',
       'itemSelection.selectionDetail.strategyName': 'strategy',
+      'characteristics.displayedOfferId': 'displayedOfferId',
+      'characteristics.displayedOfferName': 'displayedOfferName',
     };
     for (const row of Array.isArray(event?.rows) ? event.rows : []) {
       const match = String(row.path || '').match(/^(?:xdm\.)?_experience\.decisioning\.propositions?\.(\d+)\.items\.(\d+)\.(.+)$/);
@@ -18,6 +31,12 @@
     }
     const all = [...result.values()].sort((a, b) => a.proposition - b.proposition || a.item - b.item);
     for (const item of all) {
+      if (item.displayedOfferId) {
+        if (item.displayedOfferId !== item.offerId) { delete item.strategy; delete item.strategyId; }
+        item.wrapperItemId = item.offerId; item.offerId = item.displayedOfferId;
+        if (item.displayedOfferName) item.offer = item.displayedOfferName;
+        delete item.displayedOfferId; delete item.displayedOfferName;
+      }
       if (item.offer === item.offerId) delete item.offer;
       if (item.strategy === item.strategyId) delete item.strategy;
     }
@@ -65,7 +84,7 @@
       metadata: Object.fromEntries(Object.entries(fields).filter(([key]) => key.startsWith('metadata.'))
         .map(([key, value]) => [key.slice(9), value])) };
   }
-  const api = { details, preview, items, loyalty };
+  const api = { details, preview, items, loyalty, kind };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TuiDecisioningAttribution = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

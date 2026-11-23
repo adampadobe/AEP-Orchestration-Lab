@@ -53,6 +53,12 @@
   ].map(item => ({ ...item, id: item.key, title: item.reward }));
   let currentItems = [], pendingFeaturedOffers = null, lastAjoSignature = null, featuredFallbackTimer;
   let featuredReady = false, updateFeaturedCarousel = () => {}, moveFeaturedOffer = () => {};
+  let featuredPrimary = 0, featuredDisplayContext = null, featuredDisplayObserver = null;
+  let featuredDisplayTimer = null, featuredDisplayFlight = null, featuredDisplayEvidence = null;
+  const featuredVisibility = new Map(), featuredDisplayReceipts = new Map(), featuredDisplaySchemas = new Map();
+  global.LoyaltyDemoFeaturedDisplayDebug = Object.freeze({
+    getLatest: () => featuredDisplayEvidence?.token === version ? structuredClone(featuredDisplayEvidence) : null,
+  });
   const safeUrl = raw => model.safeUrl(raw, location.href);
   const cssUrl = raw => {
     const url = safeUrl(raw);
@@ -77,6 +83,7 @@
     clearTimeout(featuredFallbackTimer);
     pendingFeaturedOffers = offers;
     if (featuredReady) renderAjoFeaturedOffers();
+    queueFeaturedDisplay();
   });
   function renderAjoFeaturedOffers() {
     const signature = JSON.stringify(pendingFeaturedOffers.map(offer => offer.id));
@@ -144,7 +151,152 @@
     track.replaceChildren(cards); dots.replaceChildren(pagination);
     carousel.scrollTo({ left: 0, behavior: 'instant' }); carousel.setAttribute('aria-busy', 'false');
     renderSavedOffers(); updateFeaturedCarousel();
-    // Add proposition display tracking here later; identifiers remain intact in currentItems.
+    observeFeaturedDisplay();
+  }
+  function clearFeaturedDisplay() {
+    clearTimeout(featuredDisplayTimer); featuredDisplayObserver?.disconnect();
+    featuredVisibility.clear(); featuredDisplayContext = featuredDisplayObserver = featuredDisplayFlight = null;
+    featuredDisplayEvidence = null;
+  }
+  function observeFeaturedDisplay() {
+    featuredDisplayObserver?.disconnect(); featuredVisibility.clear(); clearTimeout(featuredDisplayTimer);
+    featuredDisplayObserver = new IntersectionObserver(entries => {
+      for (const entry of entries) featuredVisibility.set(entry.target, entry.isIntersecting && entry.intersectionRatio >= 0.5);
+      queueFeaturedDisplay();
+    }, { threshold: [0, 0.5] });
+    Array.from($('loyaltyFeaturedOffers').children).forEach(card => featuredDisplayObserver.observe(card));
+  }
+  function visibleFeaturedDisplay() {
+    const source = featuredDisplayContext, rendered = currentItems[featuredPrimary];
+    const card = $('loyaltyFeaturedOffers').children[featuredPrimary];
+    if (!source?.propositions || source.token !== version || document.visibilityState !== 'visible' ||
+        !rendered || !card?.isConnected || !card.getClientRects().length || !featuredVisibility.get(card) ||
+        JSON.stringify(source.ctx) !== JSON.stringify(context())) return null;
+    const offer = pendingFeaturedOffers?.find(item => item.id === rendered.id);
+    if (!offer) return null;
+    const key = JSON.stringify([source.ctx.sandbox, source.ctx.namespace, source.ctx.identifier,
+      source.captured.identityMap, source.captured.edgeOptions, offer.propositionId, offer.propositionItemId, offer.id]);
+    return { ...source, offer, key };
+  }
+  function queueFeaturedDisplay() {
+    clearTimeout(featuredDisplayTimer);
+    const entry = visibleFeaturedDisplay();
+    if (!entry || featuredDisplayFlight || featuredDisplayReceipts.has(entry.key)) return;
+    featuredDisplayTimer = setTimeout(() => {
+      if (visibleFeaturedDisplay()?.key === entry.key) void sendFeaturedDisplay(entry);
+    }, 1000);
+  }
+  async function featuredDisplaySchema(entry) {
+    const datastreamId = entry.captured.edgeOptions.edgeConfigOverrides?.datastreamId;
+    const key = JSON.stringify([entry.ctx.sandbox, datastreamId]);
+    let cached = featuredDisplaySchemas.get(key);
+    if (!cached || cached.expires <= Date.now()) {
+      cached = { expires: Date.now() + 300000 };
+      cached.promise = (async () => {
+        if (!datastreamId) throw new Error('The original Featured Offers datastream is not explicit.');
+        const headers = await global.AepLabSandboxSync.getAuthHeaders();
+        const config = await json('/api/events/config?' + new URLSearchParams({ sandbox: entry.ctx.sandbox }), { headers });
+        if (config.record?.datastreamId !== datastreamId || !config.record?.schemaId) {
+          throw new Error('The Featured Offers datastream does not match the registered Event Tool schema.');
+        }
+        const registry = await json('/api/schema-viewer/registry?' +
+          new URLSearchParams({ sandbox: entry.ctx.sandbox, schemaId: config.record.schemaId }), { headers });
+        const fields = registry.schema?.properties?._experience?.properties?.decisioning?.properties?.propositions?.items?.properties?.items?.items?.properties;
+        if (fields?.id?.type !== 'string' || fields?.name?.type !== 'string' ||
+            fields?.characteristics?.type !== 'object' || fields.characteristics.additionalProperties?.type !== 'string') {
+          throw new Error('The event schema does not support original item IDs and displayed-offer string characteristics.');
+        }
+        return config.record.schemaId;
+      })();
+      // Retain a rejected check without creating an unhandled rejection or replaying a notification.
+      cached.promise = cached.promise.then(schemaId => ({ schemaId }), error => ({ error: error.message }));
+      featuredDisplaySchemas.set(key, cached);
+    }
+    const result = await cached.promise;
+    if (result.error) throw new Error(result.error);
+    return result.schemaId;
+  }
+  async function readBackFeaturedDisplay(record, ctx) {
+    for (const delay of [2000, 5000, 5000]) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      if (record.token !== version || JSON.stringify(ctx) !== JSON.stringify(context())) return;
+      try {
+        record.readbackAttempts++;
+        const result = await json('/api/profile/events?' + new URLSearchParams({
+          sandbox: ctx.sandbox, namespace: ctx.namespace, identifier: ctx.identifier,
+        }));
+        if (!Array.isArray(result.events)) throw new Error('Profile event readback did not return an event list.');
+        record.storedInProfile = result.events.some(event => {
+          const field = path => event.rows?.find(row => row.path === path || row.path === 'xdm.' + path)?.value;
+          return String(event.eventType).toLowerCase() === 'decisioning.propositiondisplay' &&
+            field('_experience.decisioning.propositions.0.id') === record.propositionId &&
+            field('_experience.decisioning.propositions.0.items.0.id') === record.wrapperItemId &&
+            field('_experience.decisioning.propositions.0.items.0.characteristics.displayedOfferId') === record.offerId;
+        });
+        if (record.storedInProfile) {
+          console.info('[Featured Offers display] Stored Profile event confirmed', record);
+          await global.DemoProfileDrawer.refreshDrawerEventsForLoadedProfile();
+          return;
+        }
+      } catch (error) {
+        if (record.token !== version || JSON.stringify(ctx) !== JSON.stringify(context())) return;
+        record.readbackError = error.message;
+        console.warn('[Featured Offers display] Profile readback failed; notification will not be replayed.', error);
+      }
+    }
+    console.warn('[Featured Offers display] Profile storage not confirmed within three bounded reads; notification will not be replayed.', record);
+  }
+  async function sendFeaturedDisplay(entry) {
+    if (featuredDisplayFlight || featuredDisplayReceipts.has(entry.key)) return;
+    const flight = {}; featuredDisplayFlight = flight;
+    const record = { token: entry.token, offerId: entry.offer.id, propositionId: entry.offer.propositionId,
+      wrapperItemId: entry.offer.propositionItemId, sdkAccepted: false, storedInProfile: false, readbackAttempts: 0 };
+    featuredDisplayReceipts.set(entry.key, record); featuredDisplayEvidence = record;
+    try {
+      const proposition = entry.propositions.find(value => value.id === entry.offer.propositionId &&
+        value.scope === 'web://aep-orchestration-lab.web.app/profile-viewer/content-decision-live-edge.html#featured-offers');
+      const item = proposition?.items?.find(value => value.id === entry.offer.propositionItemId);
+      if (!item || !proposition.scopeDetails) throw new Error('Original Featured Offers proposition/item attribution is missing. No display notification sent.');
+      const delivered = typeof item.data?.content === 'string' ? JSON.parse(item.data.content) : item.data?.content;
+      const actualOffer = Array.isArray(delivered) && delivered.find(offer => offer?.id === entry.offer.id);
+      if (!actualOffer || typeof actualOffer.id !== 'string' || !actualOffer.id.trim()) {
+        throw new Error('The displayed offer ID is not present in original Adobe content. No display notification sent.');
+      }
+      record.schemaId = await featuredDisplaySchema(entry);
+      same(entry.ctx, entry.token);
+      if (visibleFeaturedDisplay()?.key !== entry.key) {
+        featuredDisplayReceipts.delete(entry.key); return;
+      }
+      if (global.alloy !== entry.captured.alloy ||
+          JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== entry.captured.edgeSnapshot) {
+        throw new Error('SDK or datastream changed. No Featured Offers display notification sent.');
+      }
+      const payload = { ...entry.captured.edgeOptions, renderDecisions: false,
+        personalization: { defaultPersonalizationEnabled: false },
+        xdm: { ...entry.captured.eventXdm, _id: global.crypto.randomUUID(), timestamp: new Date().toISOString(),
+          identityMap: entry.captured.identityMap, eventType: 'decisioning.propositionDisplay',
+          web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } },
+          _experience: { decisioning: { propositionEventType: { display: 1 },
+            propositions: [{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails,
+              items: [{ id: item.id, ...Object.fromEntries(['name', 'itemSelection', 'trackingToken', 'selectionID', 'selectionType']
+                .filter(key => item[key] != null).map(key => [key, item[key]])),
+                characteristics: { ...item.characteristics, displayedOfferId: entry.offer.id,
+                  displayedOfferName: typeof actualOffer.name === 'string' && actualOffer.name.trim()
+                    ? actualOffer.name : entry.offer.merchant + ': ' + entry.offer.title } }] }] } } } };
+      record.event = payload;
+      console.info('[Featured Offers display] Sending original attribution and visible offer', payload);
+      record.response = await entry.captured.alloy('sendEvent', payload); record.sdkAccepted = true;
+      console.info('[Featured Offers display] SDK accepted; Profile storage is not yet confirmed', record);
+      void readBackFeaturedDisplay(record, entry.ctx);
+    } catch (error) {
+      record.error = error.message;
+      console.error('[Featured Offers display] Notification not confirmed; no automatic retry.', error);
+    } finally {
+      if (featuredDisplayFlight === flight) {
+        featuredDisplayFlight = null;
+        if (visibleFeaturedDisplay()?.key !== entry.key) queueFeaturedDisplay();
+      }
+    }
   }
   let phoneView = 'home', toastTimer;
   let previewMode = 'mobile', previewMounts = [];
@@ -189,6 +341,7 @@
     global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   };
   function clearResults() {
+    clearFeaturedDisplay();
     stopSpendPolling(); spendMessages.clear(); spendEvidence = null;
     if ($('loyaltySpendEvidence')) $('loyaltySpendEvidence').textContent = 'No Spend purchase sent for this context.';
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; memberChallengeMetadata.clear(); purchaseReceipts.clear(); closeOffer(false);
@@ -373,6 +526,7 @@
       });
       $('loyaltyPreviousOffer').disabled = !cards.length || active === 0;
       $('loyaltyNextOffer').disabled = !cards.length || active === cards.length - 1;
+      featuredPrimary = active; queueFeaturedDisplay();
     };
     const move = moveFeaturedOffer = index => {
       if (!currentItems.length) return;
@@ -382,6 +536,7 @@
     $('loyaltyPreviousOffer').addEventListener('click', () => move(active - 1));
     $('loyaltyNextOffer').addEventListener('click', () => move(active + 1));
     carousel.addEventListener('scroll', updateCarousel, { passive: true });
+    document.addEventListener('visibilitychange', queueFeaturedDisplay);
     carousel.addEventListener('keydown', event => {
       if (event.target !== carousel || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
       event.preventDefault();
@@ -1358,11 +1513,17 @@
       if (!refresh && featuredRequest?.key === key && featuredRequest.alloy === captured.alloy) {
         console.log('[Rewards] featured-offers request already submitted for this profile context');
         message('Featured Offers already requested for this profile context. No duplicate request sent.');
+        if (featuredRequest.display) {
+          featuredDisplayContext = { ...featuredRequest.display, ctx, token };
+          observeFeaturedDisplay(); queueFeaturedDisplay();
+        }
         return featuredRequest.result;
       }
       // Reserve before submission: repeated profile-ready notifications cannot replay an uncertain request.
       const request = { key, alloy: captured.alloy };
       featuredRequest = request;
+      request.display = { ctx, token, captured, propositions: null };
+      featuredDisplayContext = request.display;
       message('Requesting Featured Offers from Adobe...');
       let result;
       try {
@@ -1372,6 +1533,9 @@
           xdm: { ...captured.eventXdm, identityMap: captured.identityMap,
             web: { webPageDetails: { URL: location.origin + location.pathname, name: viewName, viewName } } },
         });
+        if (featuredDisplayContext === request.display && token === version) {
+          request.display.propositions = structuredClone(Array.isArray(result.decisions) ? result.decisions : result.propositions || []);
+        }
         window.dispatchEvent(
           new CustomEvent("ajo:featured-offers-response", {
             detail: result
@@ -1389,6 +1553,7 @@
       console.log('[Rewards] featured-offers propositions', result?.propositions);
       same(ctx, token);
       request.result = result;
+      queueFeaturedDisplay();
       message('Featured Offers request completed. Data Collection processes the response and dispatches ajo:featured-offers.');
       return result;
   }
