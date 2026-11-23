@@ -52,6 +52,7 @@ const INCIDENTS = Object.freeze([
 const OBSERVATION_MAX_AGE_MS = 60_000;
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i;
 const reject = (status, code) => { throw Object.assign(new Error(code), { status, code }); };
+const isReviewedRecoverySlotId = (slotId) => INCIDENTS.some((incident) => incident.slotId === slotId);
 function canonical(value) {
   if (value instanceof Date) return value.toISOString();
   if (Array.isArray(value)) return value.map(canonical);
@@ -267,4 +268,4 @@ function createProfileSeedScheduleRecoveryService({ store, flowSnapshot, getOwne
   return { preview, apply };
 }
 
-module.exports = { createProfileSeedScheduleRecoveryService };
+module.exports = { createProfileSeedScheduleRecoveryService, isReviewedRecoverySlotId };
