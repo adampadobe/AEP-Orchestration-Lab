@@ -159,7 +159,7 @@ function fixture(options = {}) {
   return { runtime, calls, alloy, browserEcid, propositions };
 }
 
-test('TUI and CP opt into the compatible manual runtime; other demos retain the shared runtime', async () => {
+test('TUI, CP and Loyalty demos opt into the compatible manual runtime; other demos retain the shared runtime', async () => {
   const env = fs.readFileSync(path.join(root, 'shared', 'env-bar.js'), 'utf8');
   const start = env.indexOf('function loadDecisioningScripts(');
   const end = env.indexOf('\n  /**', start);
@@ -181,12 +181,13 @@ test('TUI and CP opt into the compatible manual runtime; other demos retain the 
   assert.ok(!chain.includes('decisioning-profile-module/decisioning-profile-runtime.js'));
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
   assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'jet2-loyalty-demo.html'), 'utf8'), /runtimeScript: 'tui-decisioning-runtime\.js'/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes("runtimeScript: 'tui-decisioning-runtime.js'"), file);
   }
 });
 
-test('TUI and CP load the decisioning drawer with offer/strategy event cards', () => {
+test('TUI, CP and Loyalty demos load the decisioning drawer with offer/strategy event cards', () => {
   const html = fs.readFileSync(path.join(root, 'tui-decisioning-demo.html'), 'utf8');
   assert.match(html, /<script src="tui-decisioning-drawer\.js\?v=[^"]+"><\/script>/);
   assert.match(html, /href="tui-decisioning-drawer\.css\?v=[^"]+"/);
@@ -198,7 +199,8 @@ test('TUI and CP load the decisioning drawer with offer/strategy event cards', (
   assert.ok(fs.readFileSync(path.join(root, 'tui-decisioning-drawer.css'), 'utf8').includes('.aep-profile-drawer-event-decision-detail'));
   assert.match(fs.readFileSync(path.join(root, 'cp-decisioning-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
   assert.match(fs.readFileSync(path.join(root, 'lloyds-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
-  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html'].includes(file))) {
+  assert.match(fs.readFileSync(path.join(root, 'jet2-loyalty-demo.html'), 'utf8'), /tui-decisioning-drawer\.js/);
+  for (const file of fs.readdirSync(root).filter(file => file.endsWith('.html') && !['tui-decisioning-demo.html', 'cp-decisioning-demo.html', 'lloyds-loyalty-demo.html', 'jet2-loyalty-demo.html'].includes(file))) {
     assert.ok(!fs.readFileSync(path.join(root, file), 'utf8').includes('tui-decisioning-drawer.'), file);
   }
 });

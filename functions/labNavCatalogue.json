@@ -345,6 +345,15 @@
       "tracked": true
     },
     {
+      "route": "/profile-viewer/jet2-loyalty-demo.html",
+      "label": "Jet2 – Loyalty",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Jet2",
+      "inNav": true,
+      "tracked": true
+    },
+    {
       "route": "/profile-viewer/lloyds-loyalty-demo.html",
       "label": "Lloyds – Loyalty",
       "navGroup": "Demos",

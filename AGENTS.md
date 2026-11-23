@@ -44,6 +44,7 @@ Project skills live under `.agents/skills/`:
 
 - `aep-demo-use-case` — researched, self-contained use-case and journey HTML.
 - `aep-lab-profile-mcp` — lab profile, event, brand scrape, and infrastructure workflows. Adobe Coworker `dx-api` steps remain explicit handoffs because this Codex setup has no equivalent connector.
+- `ajo-loyalty-customer-demo` — reproduce Lloyds/Jet2 branded Loyalty demos with real Adobe state, independent Content Cards/Decisioning and genuine Spend purchases.
 - `profile-viewer-lab-demo-strip` — canonical demo environment/profile strip.
 - `sync-with-origin-main` — the shared-repo sync workflow used at all three checkpoints.
 

@@ -966,5 +966,20 @@ Base: `https://platform.adobe.io/ajo`
 
 ## Related
 
+- [Reusable customer Loyalty demo skill](../.agents/skills/ajo-loyalty-customer-demo/SKILL.md)
+- [Jet2holidays Loyalty demo](../web/profile-viewer/jet2-loyalty-demo.html), under **Demos > Jet2 > Loyalty**.
+  It reuses the Lloyds model, real state/purchase helpers and separate Adobe
+  Content Card/Featured Offers engines, with independent `jet2Loyalty` settings.
+  The supplied Jet2 website archive provides only the reviewed logo/beach imagery
+  and visual reference; no saved-site scripts or trackers are imported.
+  Existing configured Adobe surfaces are reused, not reauthored for Jet2.
+  Adobe-returned challenge content and eligibility remain unchanged, including
+  any shared lab/FSI copy. No actual Jet2 booking, points balance or reward benefit
+  is implied. Generic diagnostics are available as
+  `window.LoyaltyDemoSpendDebug` and `window.LoyaltyDemoContentCardDebug`;
+  the historical Lloyds aliases remain supported.
+  Run `node scripts/test-jet2-loyalty-browser.cjs` alongside the existing Lloyds
+  suite before changing customer configuration or the shared engine.
+
 - [tools/loyalty-reward-provider/README.md](../tools/loyalty-reward-provider/README.md)
 - [AJO_CONTENT_TEMPLATE_API.md](AJO_CONTENT_TEMPLATE_API.md)

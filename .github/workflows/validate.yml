@@ -157,5 +157,7 @@ jobs:
         run: node scripts/test-cp-decisioning-browser.cjs
       - name: Exercise Lloyds Loyalty mobile journey and task state (local fixtures)
         run: npm run test:lloyds-loyalty
+      - name: Exercise Jet2 Loyalty branding and shared Adobe contracts (local fixtures)
+        run: npm run test:jet2-loyalty
       - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
         run: npm run test:vuse-italia
