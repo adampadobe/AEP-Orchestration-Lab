@@ -60,7 +60,7 @@
       console.log('[Rewards App] No valid AJO Featured Offers received'); return;
     }
     const offers = items.filter(item => item && typeof item === 'object' && !Array.isArray(item) &&
-      ['id', 'merchant', 'title'].every(key => typeof item[key] === 'string' && item[key].trim())).slice(0, 5).map(item => ({
+      ['id', 'merchant', 'title'].every(key => typeof item[key] === 'string' && item[key].trim())).map(item => ({
         ...item,
         ...Object.fromEntries(['propositionId', 'propositionScope', 'propositionScopeDetails']
           .filter(key => item[key] == null && detail[key] != null).map(key => [key, detail[key]])),
