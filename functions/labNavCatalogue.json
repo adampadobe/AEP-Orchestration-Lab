@@ -291,15 +291,6 @@
       "tracked": false
     },
     {
-      "route": "/profile-viewer/agentic-ai-v2.html",
-      "label": "Agentic layer",
-      "navGroup": "Architecture",
-      "navGroupId": "architecture",
-      "subgroup": null,
-      "inNav": true,
-      "tracked": true
-    },
-    {
       "route": "/profile-viewer/eds-quickstart.html",
       "label": "EDS Demo Creator",
       "navGroup": "AEM",

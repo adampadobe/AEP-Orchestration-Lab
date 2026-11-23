@@ -46,6 +46,11 @@ const FORBIDDEN_FILES = [
   'web/profile-viewer/architecture-end-to-end.html',
   'web/profile-viewer/architecture-end-to-end.css',
   'web/profile-viewer/architecture-end-to-end.js',
+  'web/profile-viewer/agentic-ai-v2.html',
+  'web/profile-viewer/agentic-ai-v2.css',
+  'web/profile-viewer/agentic-ai-v2-dock.css',
+  'web/profile-viewer/agentic-ai-v2.js',
+  'web/profile-viewer/agentic-ai-v2-customise.js',
 ];
 
 let failed = false;
@@ -90,6 +95,17 @@ if (!jaV2.includes('location.replace') && !jaV2.includes('http-equiv="refresh"')
 
 const navPath = path.join(root, 'web/profile-viewer/aep-lab-nav.js');
 const nav = fs.readFileSync(navPath, 'utf8');
+if (nav.includes('agentic-ai-v2.html')) {
+  console.error('aep-lab-nav.js must not link to the retired Agentic AI v2 page');
+  failed = true;
+}
+for (const name of ['agentic-ai.html', 'call-center-demo.html', 'call-centre-demo-v1.html', 'reporting.html']) {
+  const html = fs.readFileSync(path.join(root, 'web/profile-viewer', name), 'utf8');
+  if (html.includes('href="agentic-ai-v2.html"')) {
+    console.error(name + ' must not link to the retired Agentic AI v2 page');
+    failed = true;
+  }
+}
 if (nav.includes("href: 'journey-arbitration.html'")) {
   console.error('aep-lab-nav.js must not link to legacy journey-arbitration.html (use journey-arbitration-v3.html)');
   failed = true;
