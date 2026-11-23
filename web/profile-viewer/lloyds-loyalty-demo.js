@@ -21,6 +21,7 @@
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
   let contentCardEvidence = null, evaluatedContentCardEvidence = null;
+  let cardLifecycle = null, cardRefresh = null, cardRefreshEvidence = null;
   let spendPoll = null, spendEvidence = null;
   let eventContextEvidence = null;
   const eventContextSchemaChecks = new Map();
@@ -32,6 +33,8 @@
   global.LloydsLoyaltyContentCardDebug = Object.freeze({
     getLatest: () => readContentCardEvidence(contentCardEvidence),
     getEvaluated: () => readContentCardEvidence(evaluatedContentCardEvidence),
+    getLifecycle: () => cardLifecycle ? structuredClone(cardLifecycle.groups) : null,
+    getRefresh: () => cardRefreshEvidence?.version === version ? structuredClone(cardRefreshEvidence) : null,
   });
   global.LoyaltyDemoSpendDebug = global.LloydsLoyaltySpendDebug;
   global.LoyaltyDemoContentCardDebug = global.LloydsLoyaltyContentCardDebug;
@@ -342,7 +345,8 @@
   };
   function clearResults() {
     clearFeaturedDisplay();
-    stopSpendPolling(); spendMessages.clear(); spendEvidence = null;
+    stopSpendPolling(); stopCardRefresh('Context changed'); cardLifecycle = null;
+    spendMessages.clear(); spendEvidence = null;
     if ($('loyaltySpendEvidence')) $('loyaltySpendEvidence').textContent = 'No Spend purchase sent for this context.';
     joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; memberChallengeMetadata.clear(); purchaseReceipts.clear(); closeOffer(false);
     activatedOffers.clear(); renderSavedOffers(); closeOfferDetail(false);
@@ -783,6 +787,7 @@
     $('loyaltyEvidence').textContent = JSON.stringify(evidence, null, 2);
     message((receipt.state === 'already' ? 'Challenge Already Joined.' : 'Challenge Joined.') +
       ' Journey entry is not verified. ' + warnings.join(' '), warnings.length > 0);
+    scheduleCardRefresh(ctx, token, 'signup', challengeId, captured);
   }
   function memberId(ctx, config) {
     if (!config || typeof config.namespace !== 'string' || !config.namespace.trim()) throw new Error('Adobe Loyalty has not reported its member namespace.');
@@ -1037,6 +1042,9 @@
         await submitSignup(ctx, token, challengeId, member);
       }
       same(ctx, token);
+      if (['joined', 'already'].includes(signupReceipts.get(key)?.state)) {
+        scheduleCardRefresh(ctx, token, 'signup', challengeId);
+      }
       report('Checking participation with Adobe...');
       const state = await readTasks(ctx, token, true);
       same(ctx, token);
@@ -1264,7 +1272,8 @@
           if (poll.lastFailure) {
             finish('Purchase sent, but Loyalty state refresh failed after bounded retries: ' + poll.lastFailure +
               '. Previous progress may be stale. Use Get task status; do not resend this purchase.');
-            status.phase = 'error'; syncSpendControls();
+            status.phase = 'error';
+            spendEvidence.snapshot.poll.failed = true; writeSpendEvidence(spendEvidence.snapshot); syncSpendControls();
             message(status.message, true);
           } else finish('Purchase sent; no updated Spend reported within the retry window. Use Get task status. Qualification is not confirmed.');
           return;
@@ -1301,7 +1310,8 @@
           }
           const text = 'Purchase sent, but Loyalty state refresh failed: ' +
             (failure?.message || $('loyaltyStatus').textContent);
-          finish(text); status.phase = 'error'; syncSpendControls();
+          finish(text); status.phase = 'error';
+          spendEvidence.snapshot.poll.failed = true; writeSpendEvidence(spendEvidence.snapshot); syncSpendControls();
           console.error('[Loyalty Spend demo] Loyalty state refresh failed', failure);
           return;
         }
@@ -1315,7 +1325,12 @@
           finish('Purchase sent; the joined Spend task is no longer in this response. This does not prove completion.'); return;
         }
         if (complete(returnedTask) || completedState(returnedChallenge.state)) {
-          finish('Adobe reported the task or challenge completed. Reward issuance is not verified.'); return;
+          finish('Adobe reported the task or challenge completed. Reward issuance is not verified.');
+          if (!cardLifecycle?.groups.some(group => group.challengeId === returnedChallenge.challenge_id && group.stage === 'completion')) {
+            scheduleCardRefresh(ctx, token, 'completion', returnedChallenge.challenge_id,
+              cardRefresh?.captured, spendEvidence.snapshot.event.xdm._id);
+          }
+          return;
         }
         const value = returnedTask.accumulators?.spend;
         const baseline = task.accumulators?.spend;
@@ -1493,6 +1508,69 @@
     if (busy) { pendingCard = true; return; }
     void work(run);
   }
+  function stopCardRefresh(reason) {
+    if (!cardRefresh) return;
+    clearTimeout(cardRefresh.timer);
+    cardRefresh.evidence.status = 'stopped';
+    cardRefresh.evidence.stopReason = reason;
+    cardRefresh = null;
+  }
+  function scheduleCardRefresh(ctx, token, reason, challengeId, captured = contentCards?.captured, eventId) {
+    stopCardRefresh('Superseded by another accepted action');
+    const cardIds = () => contentCards?.cards.map(contentCardId) || [];
+    const evidence = { version: token, reason, challengeId, attempts: 0, status: 'waiting', baseline: cardIds(),
+      baselineLifecycle: structuredClone(cardLifecycle?.groups || []),
+      stageVerified: false, journeyEntryVerified: false };
+    const refresh = { ctx, token, captured, profile: loaded, deadline: Date.now() + 32000, evidence, timer: null,
+      edgeSnapshot: JSON.stringify(captured?.edgeOptions || global.DemoLabEdgeConfig.edgeConfigOverrides()) };
+    cardRefresh = refresh; cardRefreshEvidence = evidence;
+    const active = () => cardRefresh === refresh && token === version && loaded === refresh.profile &&
+      JSON.stringify(context()) === JSON.stringify(ctx) &&
+      JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) === refresh.edgeSnapshot;
+    const finish = stopReason => {
+      if (cardRefresh !== refresh) return;
+      stopCardRefresh(stopReason);
+      console.info('[Loyalty Content Card refresh]', structuredClone(evidence));
+    };
+    const schedule = delay => {
+      refresh.timer = setTimeout(async () => {
+        if (!active()) { finish('Context changed'); return; }
+        if (Date.now() >= refresh.deadline) { finish('Refresh deadline reached; Adobe delivery is unverified'); return; }
+        if (busy || spendPoll) { schedule(500); return; }
+        const ownsSpendState = eventId && spendEvidence?.version === token && spendEvidence.snapshot.event?.xdm?._id === eventId;
+        if (ownsSpendState && spendEvidence.snapshot.poll?.failed) {
+          finish('Spend state refresh failed; no additional state reads or card requests'); return;
+        }
+        evidence.status = 'reading'; evidence.attempts++;
+        let succeeded = false;
+        await work(async (current, currentToken) => {
+          if (!ownsSpendState) await readTasks(current, currentToken, true);
+          await run(current, currentToken, refresh.captured); succeeded = true;
+        });
+        if (!active()) { finish('Context changed'); return; }
+        if (!succeeded) { finish('Refresh failed; see the page error. No action replayed'); return; }
+        evidence.selectedIds = cardIds();
+        evidence.lifecycle = structuredClone(cardLifecycle?.groups || []);
+        const replacements = evidence.lifecycle.filter(group => (!challengeId || group.challengeId === challengeId) &&
+          (evidence.baselineLifecycle.some(old => old.key === group.key && (old.selectedId !== group.selectedId ||
+            old.stage !== group.stage || old.qualifiedDate !== group.qualifiedDate || old.publishedDate !== group.publishedDate)) ||
+            challengeId && !evidence.baselineLifecycle.some(old => old.key === group.key)));
+        const fresh = replacements.length > 0 || !evidence.baseline.length && evidence.selectedIds.length > 0;
+        if (fresh) {
+          evidence.stageVerified = replacements.some(group => group.stage !== null);
+          finish('New Adobe card received'); return;
+        }
+        if (evidence.attempts >= 3) {
+          evidence.warning = 'Adobe has not returned a replacement card. Check Journey delivery/disqualification rules and challenge metadata.';
+          console.warn('[Loyalty Content Card refresh]', evidence.warning);
+          finish('No replacement returned within three reads'); return;
+        }
+        evidence.status = 'waiting'; schedule(5000);
+      }, delay);
+    };
+    schedule(2000);
+  }
+  global.addEventListener('pagehide', () => stopCardRefresh('Navigation'));
   async function requestFeaturedOffers() {
     if (!loaded) {
       console.error('[Rewards] featured-offers request requires a loaded test profile');
@@ -1634,6 +1712,7 @@
     if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
       throw new Error('Event datastream changed while preparing ' + payload.xdm.eventType + '. No event sent.');
     }
+    if (payload.xdm.eventType === 'commerce.purchases') stopCardRefresh('Superseded by another purchase');
     message('Sending ' + payload.xdm.eventType + ' for the selected profile...');
     let result;
     try { result = await captured.alloy('sendEvent', payload); }
@@ -1644,6 +1723,8 @@
     same(ctx, token);
     $('loyaltyEvidence').textContent = JSON.stringify({ sandbox: ctx.sandbox, event: payload, sdkAccepted: true,
       journeyEntryVerified: false }, null, 2);
+    if (payload.xdm.eventType === 'commerce.purchases') scheduleCardRefresh(ctx, token, 'purchaseAccepted',
+      payload.xdm._experience?.ajo?.loyalty?.challenge?.id, captured, payload.xdm._id);
     return result;
   }
   async function sendRewardsInterest(ctx, token) {
@@ -2002,7 +2083,8 @@
           }
         }
       }
-      const selected = Array.isArray(propositions) ? model.selectCard(propositions, ctx.surface) : null;
+      const lifecycle = model.selectLifecycleCards(Array.isArray(propositions) ? model.selectCards(propositions, ctx.surface) : [], cardLifecycle || {});
+      const selected = lifecycle.cards[0] || null;
       const snapshot = structuredClone({
         capturedAt: new Date().toISOString(), sandbox: ctx.sandbox,
         profile: { namespace: ctx.namespace, identifier: ctx.identifier },
@@ -2013,6 +2095,9 @@
         surfacePropositions: Array.isArray(propositions) ? matching.length : null,
         totalContentCardCandidates: Array.isArray(propositions) ? inventory.filter(entry => entry.contentCardCandidate).length : null,
         inventory,
+        lifecycle: lifecycle.groups,
+        selectedCandidates: lifecycle.cards.map(candidate => describe(candidate.proposition, candidate.item, candidate.consequenceId,
+          { content: candidate.content, meta: candidate.meta }, candidate)),
         selectedCandidate: selected ? describe(selected.proposition, selected.item, selected.consequenceId,
           { content: selected.content, meta: selected.meta }, selected) : null,
       });
@@ -2026,7 +2111,7 @@
       if (diagnosticPanel) diagnosticPanel.textContent = 'Content Card diagnostic capture failed: ' + error.message;
     }
   }
-  async function run(ctx, token) {
+  async function run(ctx, token, expected) {
     closeConfiguration();
     if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
       throw new Error('Configure the reviewed event tenant namespace before requesting a content card.');
@@ -2035,10 +2120,13 @@
     message('Connecting to Web SDK for the content card...');
     const alloy = await global.DemoTagsInjection.ensureAlloyReady({ timeoutMs: 30000, storagePrefix: prefix });
     same(ctx, token);
+    if (expected && alloy !== expected.alloy) throw new Error('SDK changed since the accepted action. No card requested.');
     message('Reading the active Web SDK visitor identity...');
     const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
     same(ctx, token);
     const ecid = identity?.identity?.ECID;
+    const expectedEcid = expected?.identityMap?.ECID?.[0]?.id;
+    if (expectedEcid && expectedEcid !== ecid) throw new Error('Browser identity changed since the accepted action. No card requested.');
     if (typeof ecid !== 'string' || !/^\d{10,}$/.test(ecid)) throw new Error('Active Web SDK browser ECID was not returned. No card requested.');
     if (ctx.namespace === 'ecid' && ctx.identifier !== ecid) throw new Error('The selected ECID differs from the active Web SDK visitor. No card requested.');
     const identityMap = global.CdEdgeMounts.buildIdentityMap({ ecid }, ctx.identifier, ctx.namespace);
@@ -2098,7 +2186,12 @@
     for (const keys of [contentCardDisplays, contentCardDismissals]) {
       for (const key of keys) if (!availableKeys.has(key)) keys.delete(key);
     }
-    const cards = candidates.filter(candidate => !contentCardDismissals.has(contentCardKey(candidate, token)));
+    const lifecycle = model.selectLifecycleCards(candidates, cardLifecycle || {});
+    cardLifecycle = { ...lifecycle, candidates };
+    if (lifecycle.groups.some(group => group.ambiguous)) {
+      console.warn('[Loyalty Content Card lifecycle] Stage/SDK dates do not identify a unique current card; Adobe rank is the initial fallback.', lifecycle.groups);
+    }
+    const cards = lifecycle.cards.filter(candidate => !contentCardDismissals.has(contentCardKey(candidate, token)));
     if (!cards.length) {
       if (clearMissing) {
         contentCards?.cleanup?.(); cardMount().replaceChildren(); contentCards = null; cardMount().removeAttribute('aria-roledescription');

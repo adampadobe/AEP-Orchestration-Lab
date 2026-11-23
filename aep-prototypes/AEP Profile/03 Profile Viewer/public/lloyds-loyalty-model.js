@@ -168,6 +168,7 @@
           if (!['title', 'body'].some(key => typeof content[key]?.content === 'string' && content[key].content.trim()) &&
               !safeUrl(content.image?.url, 'https://example.invalid/')) continue;
           candidates.push({ proposition, item, consequenceId: consequence.id || item.id, content, meta: data.meta || {},
+            qualifiedDate: data.qualifiedDate, publishedDate: data.publishedDate,
             rank: rank(data.meta?.rank) === -Infinity ? rank(proposition.scopeDetails.rank) : rank(data.meta.rank) });
         }
       }
@@ -177,9 +178,61 @@
   function selectCard(propositions, surface) {
     return selectCards(propositions, surface)[0] || null;
   }
+  function selectLifecycleCards(candidates, previous = {}) {
+    const id = card => JSON.stringify([card.proposition.id, card.item.id, card.consequenceId]);
+    const stage = card => ['launch', 'inProgress', 'completion'].indexOf(card.meta.loyaltyStage ?? card.meta.stage);
+    const date = value => {
+      if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : -Infinity;
+      if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}T/.test(value)) return -Infinity;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : -Infinity;
+    };
+    const seen = new Set((previous.candidates || []).map(id));
+    const selected = new Set((previous.cards || []).map(id));
+    const groups = new Map(), winners = new Set(), evidence = [];
+    for (const card of candidates) {
+      const challengeId = typeof card.meta.challengeId === 'string' ? card.meta.challengeId.trim() : '';
+      if (!challengeId) { winners.add(card); continue; }
+      const group = typeof card.meta.lifecycleGroup === 'string' ? card.meta.lifecycleGroup.trim() : '';
+      const key = JSON.stringify([challengeId, group]);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(card);
+    }
+    for (const [key, cards] of groups) {
+      let pool = cards, reason = 'singleCard';
+      if (cards.length > 1) {
+        if (cards.some(card => stage(card) >= 0)) {
+          const latest = Math.max(...cards.map(stage));
+          pool = cards.filter(card => stage(card) === latest); reason = 'explicitStage';
+        }
+        for (const field of ['qualifiedDate', 'publishedDate']) {
+          const latest = Math.max(...pool.map(card => date(card[field])));
+          if (latest !== -Infinity) {
+            pool = pool.filter(card => date(card[field]) === latest);
+            if (reason !== 'explicitStage') reason = field;
+            if (pool.length === 1) break;
+          }
+        }
+        if (reason === 'singleCard' || pool.length > 1 && reason !== 'explicitStage') {
+          const fresh = seen.size ? pool.filter(card => !seen.has(id(card))) : [];
+          const retained = pool.filter(card => selected.has(id(card)));
+          pool = fresh.length ? fresh : retained.length ? retained : pool;
+          reason = fresh.length ? 'observedDelivery' : retained.length ? 'retainedDelivery' : 'adobeRank';
+        }
+      }
+      const winner = pool[0];
+      winners.add(winner);
+      evidence.push({ key, challengeId: winner.meta.challengeId, candidateCount: cards.length,
+        selectedId: id(winner), reason, stage: stage(winner) < 0 ? null : ['launch', 'inProgress', 'completion'][stage(winner)],
+        qualifiedDate: winner.qualifiedDate, publishedDate: winner.publishedDate,
+        suppressedIds: cards.filter(card => card !== winner).map(id),
+        ambiguous: cards.length > 1 && reason === 'adobeRank' });
+    }
+    return { cards: candidates.filter(card => winners.has(card)), groups: evidence };
+  }
   const api = { fields, brand: { profileLabel: 'Loaded Loyalty profile' },
     profileKpis: [['points', 'Profile points'], ['tier', 'Profile tier'], ['score', 'Propensity'], ['nps', 'NPS']],
-    progress, spendTask, spendPurchaseSku, spendPresentation, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, partnerOffers };
+    progress, spendTask, spendPurchaseSku, spendPresentation, normaliseChallengeResponse, classifyChallenges, getChallengeSummary, safeUrl, selectCard, selectCards, selectLifecycleCards, partnerOffers };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else { root.LloydsLoyalty = api; root.DecisioningDemoModel = api; }
 })(typeof globalThis !== 'undefined' ? globalThis : this);
