@@ -1005,7 +1005,8 @@ Both brands now show one current AJO Content Card per exact `meta.challengeId`
 and optional `meta.lifecycleGroup`. The complete qualified inventory remains
 in diagnostics. Selection prefers explicit `meta.loyaltyStage` (or `meta.stage`)
 values `launch`, `inProgress`, `completion`, then SDK `qualifiedDate` and
-`publishedDate`. Without stage/dates, newly observed messages replace prior
+`publishedDate` (also the qualification-date tie-breaker). Without a unique
+ordering from stage/dates, newly observed messages replace prior
 messages and remain selected; the initial ambiguous batch uses Adobe rank and
 reports that limitation. Copy, images and rank are not treated as stage evidence.
 Independent challenges and cards without challenge IDs remain separate.

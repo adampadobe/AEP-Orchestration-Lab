@@ -37,6 +37,10 @@ test('lifecycle uses SDK qualification/publication dates, not card copy or rank 
   assert.equal(result.cards[0].item.id, 'Sign up');
   assert.equal(result.groups[0].reason, 'qualifiedDate');
   assert.equal(result.groups[0].stage, null);
+  older.items[0].data.qualifiedDate = newer.items[0].data.qualifiedDate;
+  result = model.selectLifecycleCards(model.selectCards([older, newer], 'fixture-surface'));
+  assert.equal(result.cards[0].item.id, 'Congratulations', 'Publication date breaks equal SDK qualification dates');
+  assert.equal(result.groups[0].reason, 'publishedDate');
   delete older.items[0].data.qualifiedDate; delete newer.items[0].data.qualifiedDate;
   result = model.selectLifecycleCards(model.selectCards([older, newer], 'fixture-surface'));
   assert.equal(result.cards[0].item.id, 'Congratulations');

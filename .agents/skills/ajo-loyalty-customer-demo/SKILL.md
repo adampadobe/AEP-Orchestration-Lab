@@ -127,7 +127,8 @@ Never include credentials, private customer identities or production tokens.
 - Show one current card per exact `meta.challengeId` and optional
   `meta.lifecycleGroup` (separate journeys). Prefer explicit `meta.loyaltyStage`
   or `meta.stage`: `launch`, `inProgress`, `completion`; then SDK
-  `qualifiedDate`, falling back to `publishedDate`. Without either, a newly
+  `qualifiedDate`, with `publishedDate` as fallback/tie-breaker. Without a
+  unique ordering from either, a newly
   observed delivery replaces the previous card and stays selected. An initial
   ambiguous batch falls back to Adobe rank with an explicit console/diagnostic
   warning; never infer a stage from rank, title, body or image. Cards without a

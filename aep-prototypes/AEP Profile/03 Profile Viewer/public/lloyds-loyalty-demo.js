@@ -2189,7 +2189,7 @@
     const lifecycle = model.selectLifecycleCards(candidates, cardLifecycle || {});
     cardLifecycle = { ...lifecycle, candidates };
     if (lifecycle.groups.some(group => group.ambiguous)) {
-      console.warn('[Loyalty Content Card lifecycle] Stage and SDK dates are missing; Adobe rank is the initial fallback.', lifecycle.groups);
+      console.warn('[Loyalty Content Card lifecycle] Stage/SDK dates do not identify a unique current card; Adobe rank is the initial fallback.', lifecycle.groups);
     }
     const cards = lifecycle.cards.filter(candidate => !contentCardDismissals.has(contentCardKey(candidate, token)));
     if (!cards.length) {

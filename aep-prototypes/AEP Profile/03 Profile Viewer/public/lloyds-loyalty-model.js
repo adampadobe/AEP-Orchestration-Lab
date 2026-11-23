@@ -210,10 +210,10 @@
           if (latest !== -Infinity) {
             pool = pool.filter(card => date(card[field]) === latest);
             if (reason !== 'explicitStage') reason = field;
-            break;
+            if (pool.length === 1) break;
           }
         }
-        if (reason === 'singleCard') {
+        if (reason === 'singleCard' || pool.length > 1 && reason !== 'explicitStage') {
           const fresh = seen.size ? pool.filter(card => !seen.has(id(card))) : [];
           const retained = pool.filter(card => selected.has(id(card)));
           pool = fresh.length ? fresh : retained.length ? retained : pool;
