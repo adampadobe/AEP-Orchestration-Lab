@@ -1,12 +1,13 @@
 import * as z from 'zod';
 import { assertSandboxAllowed } from '../auth.mjs';
+import { assertOwnerReadSandbox } from '../ownerReadAccess.mjs';
 import { ajoAssetAudit, ajoAssetDelete, ajoAssetList } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
-function allowedSandbox(sandbox) {
-  const result = assertSandboxAllowed(sandbox);
+async function allowedSandbox(sandbox, readOnly = false) {
+  const result = readOnly ? await assertOwnerReadSandbox(sandbox) : assertSandboxAllowed(sandbox);
   return result.ok
     ? { sandbox: result.sandbox }
     : { error: toolError(result.message, { allowedSandboxes: result.allowedSandboxes }) };
@@ -21,14 +22,14 @@ function registerAssetTools(server, assetType) {
     description:
       `Read-only inventory of Adobe Journey Optimizer ${titleType}s. Use it to identify one candidate by exact ID, name, status, and modified date before calling ${prefix}_audit. This tool never changes or deletes anything.`,
     inputSchema: {
-      sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
+      sandbox: z.string().describe('AEP sandbox name; must match the key or IMS scope unless the Lab owner is reading'),
       name: z.string().max(200).optional().describe(`Optional case-insensitive ${titleType} name filter`),
       start: z.number().int().min(0).optional().describe('Page start offset (default 0)'),
       limit: z.number().int().min(1).max(100).optional().describe('Page size (default 50, max 100)'),
     },
   }, async (params) => {
     const started = Date.now();
-    const check = allowedSandbox(params.sandbox);
+    const check = await allowedSandbox(params.sandbox, true);
     if (check.error) return check.error;
     const result = await ajoAssetList({ ...params, sandbox: check.sandbox, asset_type: assetType });
     writeAuditLog({ keyId: getRequestKeyId(), tool: `${prefix}_list`, sandbox: check.sandbox,
@@ -41,12 +42,12 @@ function registerAssetTools(server, assetType) {
     description:
       `Required read-only pre-delete review for one exact AJO ${titleType} ID. Returns current identity, lifecycle, metadata, blockers, and exact confirmation values. Show the audit to the colleague and obtain explicit confirmation before delete.`,
     inputSchema: {
-      sandbox: z.string().describe('AEP sandbox name; must match the user key scope or validated IMS enrollment'),
+      sandbox: z.string().describe('AEP sandbox name; must match the key or IMS scope unless the Lab owner is reading'),
       [`${titleType}_id`]: z.string().min(1).describe(`Exact AJO ${titleType} ID returned by the list tool`),
     },
   }, async (params) => {
     const started = Date.now();
-    const check = allowedSandbox(params.sandbox);
+    const check = await allowedSandbox(params.sandbox, true);
     if (check.error) return check.error;
     const assetId = params[`${titleType}_id`];
     const result = await ajoAssetAudit({ sandbox: check.sandbox, asset_type: assetType, asset_id: assetId });
@@ -68,7 +69,7 @@ function registerAssetTools(server, assetType) {
     },
   }, async (params) => {
     const started = Date.now();
-    const check = allowedSandbox(params.sandbox);
+    const check = await allowedSandbox(params.sandbox);
     if (check.error) return check.error;
     const assetId = params[`${titleType}_id`];
     const result = await ajoAssetDelete({

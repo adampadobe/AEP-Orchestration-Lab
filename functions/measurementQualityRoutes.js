@@ -1,6 +1,7 @@
 'use strict';
 
 const { resolveMcpAudiencePrincipal } = require('./audienceManagementRoutes');
+const { ownerMayReadSandbox } = require('./mcpOwnerReadAccess');
 
 function statusOf(error) {
   const status = Number(error?.status);
@@ -20,12 +21,21 @@ function registerMeasurementQualityRoutes(deps) {
     catch (_error) { return res.status(500).json({ ok: false, error: 'MCP principal validation failed.' }); }
     if (!principal.ok) return res.status(principal.status).json(principal.body);
 
+    const action = String(req.query.action || '').trim().toLowerCase();
+    if (req.query.sandbox !== undefined && typeof req.query.sandbox !== 'string') {
+      return res.status(400).json({ ok: false, error: 'Invalid sandbox.' });
+    }
     const sandbox = String(req.query.sandbox || principal.sandbox || '').trim().toLowerCase();
     if (sandbox !== String(principal.sandbox).trim().toLowerCase()) {
-      return res.status(403).json({ ok: false, error: 'The requested sandbox is outside this MCP principal.' });
+      let permitted;
+      try {
+        permitted = ['launch_property_audit', 'launch_environments'].includes(action)
+          && await ownerMayReadSandbox(principal, sandbox, req.method, deps);
+      }
+      catch { return res.status(503).json({ ok: false, error: 'Owner read authorization is unavailable.' }); }
+      if (!permitted) return res.status(403).json({ ok: false, error: 'The requested sandbox is outside this MCP principal.' });
     }
 
-    const action = String(req.query.action || '').trim().toLowerCase();
     try {
       if (action === 'assurance_sessions') return res.status(200).json(await measurementService.listAssuranceSessions(req.query));
       if (action === 'assurance_events') return res.status(200).json(await measurementService.inspectAssuranceEvents(req.query));

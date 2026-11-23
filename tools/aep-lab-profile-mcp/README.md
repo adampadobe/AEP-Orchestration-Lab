@@ -631,6 +631,22 @@ fallback. Changes made with `lab_set_generation_prefs` therefore appear in Profi
 and UI edits are returned by `lab_get_generation_prefs` and used by subsequent MCP
 generations.
 
+### Owner cross-sandbox Adobe reads
+
+The Lab owner's enabled Firebase user may use their own user-generated MCP key to
+read another sandbox only through Tags property audits and environment lists,
+Loyalty reads, and audience, journey, and campaign list/audit tools. Both the MCP
+and the dedicated Firebase proxies verify the owner UID against Firebase Auth.
+Shared keys, IMS sessions, disabled users, other users, mutations and all other
+tools retain their existing sandbox restrictions. This does not grant access to
+other users' saved Lab settings or Snowflake connections. Adobe integration
+permissions still apply. The MCP and proxy runtime identities must be able to
+look up the owner in Firebase Auth; a lookup failure denies access. Verify those
+permissions before release; any IAM change and production deployment require
+separate approval and the repository's normal release gates.
+Tags properties are read at the Adobe organization level, not filtered by AEP
+sandbox; specifying a sandbox controls Lab authorization, not the Tags result.
+
 ### Governed audience cleanup (Phase 3.32)
 
 Audience deletion uses a dedicated allowlisted proxy, never the generic `/api/aep` route. It requires a user-generated MCP key or independently validated Adobe IMS Portal enrollment scoped to the requested sandbox.
@@ -644,7 +660,7 @@ Adobe documents successful `DELETE /data/core/ups/audiences/{id}` as HTTP 204. T
 
 ### Governed AJO journey and campaign cleanup (Phase 3.36)
 
-Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key or independently validated Adobe IMS Portal enrollment must cover the requested sandbox.
+Use `/mcp/ajo-cleanup` for a compact seven-tool context, or use the same six cleanup tools through the complete `/mcp` endpoint. The user-generated MCP key or independently validated Adobe IMS Portal enrollment must cover the requested sandbox for deletion; owner reads have the limited exception above.
 
 1. Run `lab_ajo_journey_list` or `lab_ajo_campaign_list` and select one exact ID.
 2. Run the matching audit tool. It returns current name, status, timestamps, blockers, and exact confirmation values.

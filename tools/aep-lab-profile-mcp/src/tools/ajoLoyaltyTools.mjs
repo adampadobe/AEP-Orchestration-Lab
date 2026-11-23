@@ -1,11 +1,11 @@
 import * as z from 'zod';
-import { assertSandboxAllowed } from '../auth.mjs';
+import { assertOwnerReadSandbox } from '../ownerReadAccess.mjs';
 import { ajoLoyaltyRead } from '../labApiClient.mjs';
 import { writeAuditLog } from '../auditLog.mjs';
 import { getRequestKeyId } from '../requestContext.mjs';
 import { fromLabApi, toolError } from './helpers.mjs';
 
-const sandbox = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,47}$/).describe('Exact sandbox authorized for the current MCP key or IMS enrollment.');
+const sandbox = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,47}$/).describe('Exact sandbox authorized for the current MCP key or IMS enrollment; the Lab owner has a read-only exception.');
 const challengeId = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$/).describe('Exact AJO Loyalty challenge ID, not its display name.');
 const profileId = z.string().trim().min(1).max(512).regex(/^[^\u0000-\u001f\u007f]+$/)
   .describe('Existing member identifier in the Loyalty configuration identity namespace. Do not assume email or ECID; inspect configuration first.');
@@ -13,7 +13,7 @@ const region = z.string().regex(/^[a-z][a-z0-9]{1,15}$/).optional()
   .describe('Confirmed Adobe region code for member-state reads. Defaults to va7 per the State API reference; global uses platform.adobe.io. Never probe multiple regions to guess.');
 
 async function invoke(name, action, params) {
-  const allowed = assertSandboxAllowed(params.sandbox);
+  const allowed = await assertOwnerReadSandbox(params.sandbox);
   if (!allowed.ok) return toolError(allowed.message, { allowedSandboxes: allowed.allowedSandboxes });
   const started = Date.now();
   const result = await ajoLoyaltyRead({ ...params, sandbox: allowed.sandbox, action });
