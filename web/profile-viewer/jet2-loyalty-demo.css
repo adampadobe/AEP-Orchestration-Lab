@@ -1,0 +1,67 @@
+body.home-dashboard-concierge.lloyds-loyalty-page.jet2-loyalty-page {
+  --dash-jet2-blue: rgb(35, 120, 205);
+  --dash-jet2-navy: rgb(32, 50, 64);
+  --dash-jet2-orange: rgb(242, 140, 0);
+  --dash-jet2-white: rgb(255, 255, 255);
+  --dash-jet2-overlay: rgb(32 50 64 / 78%);
+  --dash-loyalty-accent: var(--dash-jet2-orange);
+  --dash-loyalty-accent-end: color-mix(in srgb, var(--dash-jet2-orange) 65%, var(--dash-jet2-white));
+  --dash-loyalty-ink: var(--dash-jet2-navy);
+  --dash-loyalty-on-ink: var(--dash-jet2-white);
+  font-family: 'Open Sans', Arial, sans-serif;
+}
+html[data-aep-theme='dark'] body.home-dashboard-concierge.lloyds-loyalty-page.jet2-loyalty-page {
+  --dash-loyalty-accent: var(--dash-jet2-orange);
+  --dash-loyalty-accent-end: color-mix(in srgb, var(--dash-jet2-orange) 65%, var(--dash-jet2-white));
+  --dash-loyalty-ink: var(--dash-jet2-navy);
+  --dash-loyalty-on-ink: var(--dash-jet2-white);
+}
+.jet2-loyalty-page .jet2-logo { display: block; width: 180px; max-width: 100%; height: auto; }
+html[data-aep-theme='dark'] .jet2-loyalty-page .jet2-logo {
+  padding: 6px;
+  border-radius: 6px;
+  background: var(--dash-jet2-white);
+}
+.jet2-loyalty-page .tui-lab-brand { gap: 12px; }
+.jet2-loyalty-page .tui-lab-brand .jet2-logo { width: 145px; }
+.jet2-loyalty-page .loyalty-phone-status { background: var(--dash-jet2-blue); color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-home-head { padding-top: 20px; }
+.jet2-loyalty-page .jet2-holiday-hero {
+  min-height: 215px;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  padding: 22px 18px;
+  background: linear-gradient(0deg, var(--dash-jet2-overlay), transparent), url('jet2-loyalty/beach.jpg') center / cover;
+  color: var(--dash-jet2-white);
+}
+.jet2-loyalty-page .jet2-holiday-hero .loyalty-balance-amount { font-size: 30px; letter-spacing: -.6px; margin: 18px 0 12px; }
+.jet2-loyalty-page .loyalty-rewards-summary { padding: 20px; }
+.jet2-loyalty-page .loyalty-rewards-summary .jet2-logo { margin-bottom: 18px; }
+.jet2-loyalty-page .loyalty-summary-amount { font-size: 27px; line-height: 1.2; letter-spacing: -.6px; }
+.jet2-loyalty-page .loyalty-added { margin-top: 16px; font-size: 11px; line-height: 1.5; }
+.jet2-loyalty-page .loyalty-prize-draw { padding: 22px 20px; border-radius: 20px; }
+.jet2-loyalty-page .loyalty-prize-draw h3 { font-size: 25px; }
+.jet2-loyalty-page .loyalty-phone-nav [aria-current="page"] { color: var(--dash-blue); }
+.jet2-loyalty-page .loyalty-content-card button { background: var(--dash-loyalty-accent); color: var(--dash-jet2-navy); }
+.jet2-loyalty-page .loyalty-web-utility,
+.jet2-loyalty-page .loyalty-web-footer { background: var(--dash-jet2-blue); color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-web-utility strong { color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-web-header { gap: 16px; padding: 22px 28px; }
+.jet2-loyalty-page .loyalty-web-header .jet2-logo { width: 200px; }
+.jet2-loyalty-page .loyalty-web-products { background: var(--dash-jet2-blue); color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-web-products b { color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-web-member { border-color: var(--dash-input-border); color: var(--dash-text); }
+.jet2-loyalty-page .loyalty-web-hero { background: var(--dash-jet2-blue); }
+.jet2-loyalty-page .loyalty-web-hero .loyalty-web-eyebrow { color: var(--dash-jet2-white); }
+.jet2-loyalty-page .loyalty-web-hero-art {
+  background: url('jet2-loyalty/beach.jpg') center / cover;
+  border-radius: 18px;
+  min-height: 250px;
+  transform: none;
+}
+@media (max-width: 600px) {
+  .jet2-loyalty-page .tui-lab-brand .jet2-logo { width: 130px; }
+  .jet2-loyalty-page .loyalty-web-header { padding: 20px; }
+  .jet2-loyalty-page .loyalty-web-products { padding: 16px 20px; gap: 12px; }
+}

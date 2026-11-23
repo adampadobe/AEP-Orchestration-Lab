@@ -700,6 +700,15 @@
           ],
         },
         {
+          id: 'demoJet2',
+          label: 'Jet2',
+          demoCustomer: true,
+          items: [
+            { label: 'Loyalty', href: 'jet2-loyalty-demo.html', navHideKey: 'jet2LoyaltyDemo',
+              demoMeta: { owners: ['kirkham'] }, ico: '\u2606' },
+          ],
+        },
+        {
           id: 'demoLloyds',
           label: 'Lloyds',
           demoCustomer: true,

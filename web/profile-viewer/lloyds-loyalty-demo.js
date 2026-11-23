@@ -1,7 +1,8 @@
 (function (global) {
   'use strict';
   const $ = id => document.getElementById(id), model = global.LloydsLoyalty;
-  const prefix = 'lloydsLoyalty', viewName = 'Lloyds Loyalty';
+  const brand = global.LoyaltyDemoConfig || {};
+  const prefix = brand.prefix || 'lloydsLoyalty', viewName = brand.viewName || 'Lloyds Loyalty';
   // Match the reviewed Kirkham event schema used by TUI / Center Parcs.
   const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
   const cardMount = () => $('ContentCardContainerLoyalty');
@@ -29,6 +30,8 @@
     getLatest: () => readContentCardEvidence(contentCardEvidence),
     getEvaluated: () => readContentCardEvidence(evaluatedContentCardEvidence),
   });
+  global.LoyaltyDemoSpendDebug = global.LloydsLoyaltySpendDebug;
+  global.LoyaltyDemoContentCardDebug = global.LloydsLoyaltyContentCardDebug;
   const availableMessages = new Map();
   const contentCardDisplays = new Set(), contentCardDismissals = new Set();
   const purchaseReceipts = new Map();
@@ -175,8 +178,8 @@
   const publish = () => {
     const first = loaded?.rows.find(row => row.path === 'person.name.firstName');
     const name = first ? global.TuiDecisioningProfile.scalar(first) : '';
-    $('loyaltyHomeName').textContent = typeof name === 'string' && name.trim() ? name : 'Your banking';
-    $('loyaltyHomeAvatar').textContent = typeof name === 'string' && name.trim() ? name.trim()[0].toUpperCase() : 'L';
+    $('loyaltyHomeName').textContent = typeof name === 'string' && name.trim() ? name : brand.homeLabel || 'Your banking';
+    $('loyaltyHomeAvatar').textContent = typeof name === 'string' && name.trim() ? name.trim()[0].toUpperCase() : brand.homeAvatar || 'L';
     global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   };
   function clearResults() {
