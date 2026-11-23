@@ -119,10 +119,41 @@ Never include credentials, private customer identities or production tokens.
   and the existing mount classes. Do not add the Tags `.ContentCardContainer`
   or `.ContentCardContainerLoyalty` target classes: the generic Tags rule uses
   `container.innerHTML = html` and would overwrite the multiple-card UI.
-- Retain all candidates, stable descending Adobe rank order, supplied
+- Retain all candidates in diagnostics, stable descending Adobe rank order
+  between independent challenges, supplied
   image/title/body/CTA state and each card's own proposition/item/consequence ID,
   challengeId, interactId, scopeDetails, activity/correlation/event tokens and
   attribution. Never collapse interaction contexts or hard-code current cards.
+- Show one current card per exact `meta.challengeId` and optional
+  `meta.lifecycleGroup` (separate journeys). Prefer explicit `meta.loyaltyStage`
+  or `meta.stage`: `launch`, `inProgress`, `completion`; then SDK
+  `qualifiedDate`, falling back to `publishedDate`. Without either, a newly
+  observed delivery replaces the previous card and stays selected. An initial
+  ambiguous batch falls back to Adobe rank with an explicit console/diagnostic
+  warning; never infer a stage from rank, title, body or image. Cards without a
+  challenge ID remain independent. Keep original proposition/item/consequence
+  IDs and tokens. Replacement never collects an automatic dismiss.
+- Accepted signup and purchases schedule up to three fresh SDK Content Card
+  requests (2s, then 5s/5s; 32s scheduling deadline), using the existing guarded
+  SDK/identity/datastream/surface and Loyalty state reads. Spend
+  polling retains sole ownership of its state reads; card refresh waits for it
+  to settle, never adds state reads to that transaction, and stops on a failed
+  Spend read rather than retrying it through another path. Reject a changed
+  SDK, ECID or datastream before requesting another card. Confirmed Spend
+  completion also schedules retrieval unless a genuine completion card is
+  already present. No Featured request, purchase/signup/interaction replay or
+  local completion card. Cancel on context/navigation changes, stop on a
+  same-challenge replacement or failed request, and report missing replacement.
+  `LoyaltyDemoContentCardDebug.getLifecycle()/getRefresh()` expose selected and
+  suppressed originals, selection reason, stage metadata and refresh evidence.
+  A reported stage is Adobe card metadata, not proof of Journey entry or points
+  issuance. Preserve terminal `sent` completion handling.
+- A new Journey activity does not automatically disqualify the old Content Card.
+  AJO delivery/disqualification rules still determine the qualified inventory.
+  Website grouping does not publish rules or repair a wrong challenge ID, and
+  cannot display completion content Adobe has not delivered. Use separate
+  lifecycle groups carefully; retire prior-cycle cards through reviewed AJO
+  rules, not local fabricated state.
 - Card interaction events can carry `_experience.ajo.loyalty.challenge` with
   the exact `id`, an independently resolved challenge `name` when available,
   and string `metadata` (`contextType`, `cardTitle`, `consequenceId`, `interactId`).

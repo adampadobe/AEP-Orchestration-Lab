@@ -1001,6 +1001,36 @@ Base: `https://platform.adobe.io/ajo`
 
 ### Customer-facing Spend progress (Lloyds and Jet2)
 
+Both brands now show one current AJO Content Card per exact `meta.challengeId`
+and optional `meta.lifecycleGroup`. The complete qualified inventory remains
+in diagnostics. Selection prefers explicit `meta.loyaltyStage` (or `meta.stage`)
+values `launch`, `inProgress`, `completion`, then SDK `qualifiedDate` and
+`publishedDate`. Without stage/dates, newly observed messages replace prior
+messages and remain selected; the initial ambiguous batch uses Adobe rank and
+reports that limitation. Copy, images and rank are not treated as stage evidence.
+Independent challenges and cards without challenge IDs remain separate.
+
+Accepted signup/purchases trigger at most three guarded Content Card requests,
+after 2s, then 5s/5s, with a 32s scheduling deadline. Confirmed Spend completion
+also requests fresh cards unless an actual completion card is already present.
+These reuse the current SDK identity, datastream, surface and Loyalty GET reads;
+they never retrieve Featured Offers or replay signup/purchase/interaction writes.
+Context changes/navigation cancel pending retrieval. Requests retain the
+original SDK and browser ECID; a changed SDK/visitor or datastream blocks
+retrieval. Inspector Spend polling owns its state reads, so
+card retrieval waits for that polling to settle without adding state reads,
+and stops on a failed Spend read. Only genuine Adobe content
+replaces a card; replacement never automatically dismisses the old message.
+`LoyaltyDemoContentCardDebug.getLifecycle()` and `getRefresh()` expose selection,
+suppression, ambiguity and bounded-request evidence. Missing completion delivery
+is reported, not replaced with locally invented completion/reward copy.
+
+AJO cards persist until their delivery/disqualification rules remove them; moving
+to another Journey activity is not automatic replacement. SDK subscriptions
+reevaluate rules, not server-push Journey progression. Website grouping cannot
+fix mismatched challenge IDs or an unqualified completion activity. No Journey,
+schema or delivery rules are changed by this website update.
+
 The same `spendTask` and `spendPresentation` model helpers format the inspector
 and customer Content Cards from the selected member's returned Loyalty state.
 An exact Content Card `meta.challengeId` match to an `optedIn === true` challenge

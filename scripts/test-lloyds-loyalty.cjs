@@ -2,6 +2,64 @@ const assert = require('node:assert/strict');
 const { test } = require('node:test');
 const model = require('../web/profile-viewer/lloyds-loyalty-model.js');
 
+function lifecycleFixture(id, meta = {}, dates = {}) {
+  return { id: 'proposition-' + id, scope: 'fixture-surface',
+    scopeDetails: { rank: 1, activity: { id: 'journey-' + id }, characteristics: { eventToken: 'token-' + id } },
+    items: [{ id, schema: 'https://ns.adobe.com/personalization/message/content-card',
+      data: { content: { title: id, body: 'Real returned copy' }, meta, ...dates } }] };
+}
+
+test('lifecycle selects real stages per exact challenge/group without losing original attribution or inventory', () => {
+  const packets = ['launch', 'inProgress', 'completion'].map(stage =>
+    lifecycleFixture(stage, { challengeId: 'challenge-a', loyaltyStage: stage }));
+  packets.push(lifecycleFixture('other', { challengeId: 'challenge-b' }),
+    lifecycleFixture('different-journey', { challengeId: 'challenge-a', lifecycleGroup: 'separate-journey' }),
+    lifecycleFixture('unmapped'));
+  const candidates = model.selectCards(packets, 'fixture-surface');
+  const selected = model.selectLifecycleCards(candidates);
+  assert.equal(candidates.length, 6, 'Raw qualified candidates remain available to diagnostics');
+  assert.deepEqual(selected.cards.map(card => card.item.id), ['completion', 'other', 'different-journey', 'unmapped']);
+  assert.equal(selected.cards[0].proposition, packets[2]);
+  assert.equal(selected.cards[0].item, packets[2].items[0]);
+  assert.equal(selected.groups[0].reason, 'explicitStage');
+  assert.equal(selected.groups[0].stage, 'completion');
+  assert.equal(selected.groups[0].suppressedIds.length, 2);
+  assert.equal(model.selectLifecycleCards(candidates.slice(0, 2)).cards[0].item.id, 'inProgress',
+    'Missing Adobe completion content is never synthesized');
+});
+
+test('lifecycle uses SDK qualification/publication dates, not card copy or rank as a phase', () => {
+  const older = lifecycleFixture('Congratulations', { challengeId: 'a', rank: 9 },
+    { qualifiedDate: '2026-11-23T10:00:00Z', publishedDate: '2026-11-23T12:00:00Z' });
+  const newer = lifecycleFixture('Sign up', { challengeId: 'a', rank: 1 },
+    { qualifiedDate: '2026-11-23T11:00:00Z', publishedDate: '2026-11-23T09:00:00Z' });
+  let result = model.selectLifecycleCards(model.selectCards([older, newer], 'fixture-surface'));
+  assert.equal(result.cards[0].item.id, 'Sign up');
+  assert.equal(result.groups[0].reason, 'qualifiedDate');
+  assert.equal(result.groups[0].stage, null);
+  delete older.items[0].data.qualifiedDate; delete newer.items[0].data.qualifiedDate;
+  result = model.selectLifecycleCards(model.selectCards([older, newer], 'fixture-surface'));
+  assert.equal(result.cards[0].item.id, 'Congratulations');
+  assert.equal(result.groups[0].reason, 'publishedDate');
+});
+
+test('new observed delivery replaces an undated card and stays selected; initial ambiguity is explicit', () => {
+  const older = lifecycleFixture('older', { challengeId: 'a', rank: 9, loyaltyStage: 'constructor' },
+    { qualifiedDate: '', publishedDate: Infinity });
+  const newer = lifecycleFixture('newer', { challengeId: 'a', rank: 1 });
+  const initial = model.selectCards([older], 'fixture-surface');
+  const candidates = model.selectCards([older, newer], 'fixture-surface');
+  const ambiguous = model.selectLifecycleCards(candidates);
+  assert.equal(ambiguous.groups[0].ambiguous, true);
+  assert.equal(ambiguous.groups[0].stage, null);
+  const updated = model.selectLifecycleCards(candidates, { candidates: initial, cards: initial });
+  assert.equal(updated.cards[0].item.id, 'newer');
+  assert.equal(updated.groups[0].reason, 'observedDelivery');
+  const retained = model.selectLifecycleCards(candidates, { candidates, cards: updated.cards });
+  assert.equal(retained.cards[0].item.id, 'newer');
+  assert.equal(retained.groups[0].reason, 'retainedDelivery');
+});
+
 test('task progress uses reported goal type and actual zero counters, never historical completions', () => {
   const task = { variables: { goal: 3, type: 'quantity' }, accumulators: { qty: 0 }, taskCompletions: ['previous'] };
   assert.deepEqual(model.progress(task), { value: 0, goal: 3, key: 'qty' });

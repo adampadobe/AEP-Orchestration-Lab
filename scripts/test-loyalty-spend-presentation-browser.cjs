@@ -22,6 +22,7 @@ async function main() {
         tasks: [{ ...task, accumulators: { spend: 30 } }] };
       let state = [spendChallenge, nonSpend, available], definition = task;
       let events = [], schemaSupported = true, registeredDatastream = 'fixture-stream';
+      let lifecycleChallenge = null;
       await context.addInitScript(() => localStorage.setItem('aepDemoNavOwnerHandle', 'kirkham'));
       await context.route('**/*', async route => {
         const request = route.request(), url = new URL(request.url());
@@ -31,6 +32,12 @@ async function main() {
         if (url.pathname === '/api/aep') data = { status: 200, platform_response: { sandboxes: [
           { name: 'kirkham', title: 'Fixture', type: 'development', state: 'active' },
         ] } };
+        else if (request.method() === 'POST' && url.pathname === '/api/ajo-loyalty' && lifecycleChallenge) {
+          const body = request.postDataJSON();
+          assert.equal(body.action, 'signup'); assert.equal(body.challenge_id, lifecycleChallenge.challenge_id);
+          writes.push(url.pathname); lifecycleChallenge.optedIn = true;
+          data = { ok: true, accepted: true, platform_status: 200, challenge_id: body.challenge_id };
+        }
         else if (request.method() !== 'GET') writes.push(url.pathname);
         else if (url.pathname === '/api/profile/table') data = { found: true, profileEmail: url.searchParams.get('identifier'),
           ecid: '12345678901234567890123456789012345678', rows: [
@@ -64,6 +71,8 @@ async function main() {
         return route.fulfill({ json: data });
       });
       const page = await context.newPage();
+      const consoleMessages = [];
+      page.on('console', message => consoleMessages.push(message.text()));
       page.on('pageerror', error => errors.push(error.message));
       await page.goto(origin + '/profile-viewer/' + customer + '-loyalty-demo.html');
       await page.waitForFunction(() => document.getElementById('loyaltyStatus')?.textContent.includes('SDK injection is only needed'));
@@ -76,10 +85,11 @@ async function main() {
         window.AepGlobalSandbox.setSelected('kirkham');
         window.__tracking = []; window.__interactions = []; window.__purchases = [];
         window.__featuredDisplays = [];
+        window.__cardRequests = []; window.__featuredRequests = 0;
         window.__eventStream = 'fixture-stream';
         window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: window.__eventStream } });
         window.alloy = async (command, options) => {
-          if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
+          if (command === 'getIdentity') return { identity: { ECID: window.__visitorEcid || '12345678901234567890123456789012345678' } };
           if (command === 'subscribeRulesetItems') { window.__subscription = options; return; }
           if (command !== 'sendEvent') return {};
           if (options.xdm?.eventType === 'commerce.purchases') {
@@ -94,9 +104,19 @@ async function main() {
             return { requestId: 'offline-display' };
           }
           if (options.personalization?.surfaces?.[0]?.endsWith('#featured-offers')) {
+            window.__featuredRequests++;
             return { propositions: window.__featuredFixture ? [window.__featuredFixture] : [] };
           }
           if (options.personalization?.surfaces && window.__subscription) {
+            window.__cardRequests.push(options);
+            if (window.__nextLifecyclePackets) {
+              window.__lifecyclePackets = window.__nextLifecyclePackets; delete window.__nextLifecyclePackets;
+            }
+            if (window.__lifecyclePackets) {
+              window.__cards = structuredClone(window.__lifecyclePackets);
+              window.__subscription.callback({ propositions: window.__cards }, async (type, selected) => window.__tracking.push({ type, selected }));
+              return { propositions: [] };
+            }
             window.__cards = ['spend-fixture', 'non-spend-fixture', 'available-fixture', null].map((challengeId, index) => ({
               id: 'proposition-' + index, scope: window.__subscription.surfaces[0],
               scopeDetails: { decisionProvider: 'AJO', rank: 4 - index, correlationID: 'correlation-' + index + (window.__cardRevision || ''),
@@ -159,6 +179,8 @@ async function main() {
       await page.waitForFunction(() => window.LoyaltyDemoSpendDebug.getLatest()?.sdkAccepted === true);
       assert.equal(await card.locator('.loyalty-customer-spend').count(), 0, 'Context does not imply qualification or advance progress');
       await page.waitForFunction(() => window.LoyaltyDemoSpendDebug.getLatest()?.poll?.stopReason?.startsWith('Adobe returned updated Spend: 10.'));
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.status === 'stopped',
+        null, { timeout: 35000 });
       const toEvent = payload => {
         const rows = [];
         const flatten = (value, prefix) => {
@@ -391,6 +413,147 @@ async function main() {
       assert.deepEqual(await page.evaluate(() => ({ tracking: __tracking.length, purchases: __purchases.length, interactions: __interactions.length })),
         nativeBeforeFeatured, 'Featured displays do not add Content Card events, purchases or interactions');
       assert.deepEqual(writes, []);
+      schemaSupported = true; registeredDatastream = 'fixture-stream';
+      task.taskClass = 'spend'; task.taskState = 'incomplete';
+      task.variables = { spendMin: 50, include: { valuesSet: ['*'] } }; task.accumulators = { spend: 40 };
+      definition = task;
+      lifecycleChallenge = { challenge_id: 'lifecycle-fixture', challengeName: 'Lifecycle test',
+        state: 'active', optedIn: false, tasks: [task] };
+      state = [lifecycleChallenge];
+      await refresh();
+      await page.evaluate(() => {
+        window.__eventStream = 'fixture-stream';
+        window.__makeLifecycleCard = (stage, challengeId = 'lifecycle-fixture') => {
+          const packet = structuredClone(window.__cards[0]);
+          packet.id = 'lifecycle-' + challengeId + '-' + stage;
+          packet.scopeDetails.activity.id = 'activity-' + stage;
+          packet.scopeDetails.characteristics.eventToken = 'original-token-' + stage;
+          packet.items[0].id = 'item-' + challengeId + '-' + stage;
+          packet.items[0].data.meta = { challengeId, loyaltyStage: stage };
+          packet.items[0].data.content.title = 'Adobe ' + stage;
+          return packet;
+        };
+        window.__otherLifecycleCard = __makeLifecycleCard('launch', 'independent-fixture');
+        window.__lifecyclePackets = [__makeLifecycleCard('launch'), __otherLifecycleCard];
+        document.querySelector('.loyalty-phone-nav [data-phone-view="rewards"]').click();
+        document.getElementById('cdMicroProfileRunBtn').click();
+      });
+      const lifecycleCard = page.locator('#ContentCardContainerLoyalty article').first();
+      await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 2 &&
+        !document.getElementById('queryProfileBtn').disabled).catch(async error => {
+          console.error('Lifecycle fixture failed', consoleMessages.slice(-12), await page.evaluate(() => ({
+            status: document.getElementById('loyaltyStatus').textContent,
+            cards: document.querySelectorAll('#ContentCardContainerLoyalty article').length,
+            lifecycle: LoyaltyDemoContentCardDebug.getLifecycle(),
+            source: LoyaltyDemoContentCardDebug.getEvaluated()?.responseSource,
+          })));
+          throw error;
+        });
+      const writesBeforeLifecycle = await page.evaluate(() => ({ purchases: __purchases.length, interactions: __interactions.length,
+        featured: __featuredRequests, dismiss: __tracking.filter(event => event.type === 'dismiss').length }));
+      await page.evaluate(() => {
+        __nextLifecyclePackets = [__makeLifecycleCard('launch'), __makeLifecycleCard('inProgress'), __otherLifecycleCard];
+      });
+      await lifecycleCard.getByRole('button', { name: 'Join Challenge', exact: true }).click();
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.stopReason === 'New Adobe card received' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 2, 'Signup replaces launch, not the independent challenge');
+      assert.match(await lifecycleCard.textContent(), /Adobe inProgress/);
+      assert.equal(await page.evaluate(() => LoyaltyDemoContentCardDebug.getEvaluated().propositions.length), 3,
+        'All SDK-qualified launch/progress candidates remain in raw diagnostics');
+      assert.match(await page.evaluate(() => JSON.stringify(__interactions.at(-1))), /original-token-launch/,
+        'Signup interaction retains the actual launch activity/token');
+      await page.evaluate(() => {
+        __nextLifecyclePackets = [__makeLifecycleCard('launch'), __makeLifecycleCard('inProgress'),
+          __makeLifecycleCard('completion'), __otherLifecycleCard];
+      });
+      await page.locator('#loyaltyTasks [data-spend-purchase]').first().click();
+      await page.waitForFunction(() => typeof __releasePurchase === 'function');
+      lifecycleChallenge.state = 'sent'; task.taskState = 'sent'; task.accumulators = { spend: 50 };
+      await page.evaluate(() => { __releasePurchase(); delete window.__releasePurchase; });
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getLifecycle()?.some(group => group.stage === 'completion') &&
+        !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.locator('#ContentCardContainerLoyalty article').count(), 2, 'Only real completion content replaces progress');
+      assert.match(await lifecycleCard.textContent(), /Adobe completion/);
+      assert.match(await lifecycleCard.textContent(), /Challenge complete/);
+      assert.equal(await page.locator('#loyaltyTasks [data-spend-purchase]').count(), 0, 'Terminal sent disables further Spend purchases');
+      assert.equal(await page.evaluate(() => __featuredRequests), writesBeforeLifecycle.featured, 'Lifecycle reads do not retrieve Featured Offers');
+      assert.equal(await page.evaluate(() => __purchases.length), writesBeforeLifecycle.purchases + 1);
+      assert.equal(await page.evaluate(() => __interactions.length), writesBeforeLifecycle.interactions + 1);
+      assert.equal(await page.evaluate(() => __tracking.filter(event => event.type === 'dismiss').length), writesBeforeLifecycle.dismiss,
+        'Replacement does not automatically dismiss or replay interactions');
+      assert.deepEqual(writes, ['/api/ajo-loyalty'], 'Exactly one explicit signup; automatic refreshes are read-only');
+
+      lifecycleChallenge = { ...lifecycleChallenge, challenge_id: 'bounded-fixture', state: 'active', optedIn: false };
+      task.taskState = 'incomplete'; task.accumulators = { spend: 40 }; state = [lifecycleChallenge];
+      await refresh();
+      await page.evaluate(() => {
+        __lifecyclePackets = [__makeLifecycleCard('launch', 'bounded-fixture')];
+        __subscription.callback({ propositions: __lifecyclePackets }, async (type, selected) => __tracking.push({ type, selected }));
+      });
+      await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 1 &&
+        !document.getElementById('queryProfileBtn').disabled);
+      const readsBeforeBound = await page.evaluate(() => __cardRequests.length);
+      await lifecycleCard.getByRole('button', { name: 'Join Challenge', exact: true }).click();
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.stopReason === 'No replacement returned within three reads',
+        null, { timeout: 25000 });
+      assert.equal(await page.evaluate(() => __cardRequests.length), readsBeforeBound + 3);
+      assert.match(await lifecycleCard.textContent(), /Adobe launch/);
+      assert.equal(await page.evaluate(() => LoyaltyDemoContentCardDebug.getRefresh().stageVerified), false,
+        'Successful SDK reads do not prove a Journey transition');
+      assert.deepEqual(writes, ['/api/ajo-loyalty', '/api/ajo-loyalty'], 'Bounded reads never replay signup');
+
+      lifecycleChallenge = { ...lifecycleChallenge, challenge_id: 'generic-fixture', optedIn: false }; state = [lifecycleChallenge];
+      await refresh();
+      const interactionsBeforeGeneric = await page.evaluate(() => __interactions.length);
+      await page.evaluate(() => {
+        __nextLifecyclePackets = [__makeLifecycleCard('inProgress', 'generic-fixture'), ...__lifecyclePackets];
+      });
+      await page.locator('#loyaltyAvailable [data-available-join="generic-fixture"]').click();
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.stopReason === 'New Adobe card received' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      assert.equal(await page.evaluate(() => LoyaltyDemoContentCardDebug.getRefresh().attempts), 1,
+        'Generic signup recognizes a newly delivered challenge, not only replacement of an existing card');
+      assert.equal(await page.evaluate(() => __interactions.length), interactionsBeforeGeneric,
+        'Generic signup does not invent a Content Card interaction');
+
+      lifecycleChallenge = { ...lifecycleChallenge, challenge_id: 'identity-fixture', optedIn: false }; state = [lifecycleChallenge];
+      await refresh();
+      await page.evaluate(() => {
+        __lifecyclePackets = [__makeLifecycleCard('launch', 'identity-fixture')];
+        __subscription.callback({ propositions: __lifecyclePackets }, async (type, selected) => __tracking.push({ type, selected }));
+      });
+      await page.waitForFunction(() => document.querySelector('#ContentCardContainerLoyalty article h3')?.textContent === 'Adobe launch' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      await lifecycleCard.getByRole('button', { name: 'Join Challenge', exact: true }).click();
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.status === 'waiting' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      const readsBeforeIdentityChange = await page.evaluate(() => __cardRequests.length);
+      await page.evaluate(() => { __visitorEcid = '22345678901234567890123456789012345678'; });
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.stopReason?.startsWith('Refresh failed'));
+      assert.match(await page.locator('#loyaltyStatus').textContent(), /Browser identity changed/);
+      assert.equal(await page.evaluate(() => __cardRequests.length), readsBeforeIdentityChange,
+        'Changing ECID after signup cannot request decisions against a different visitor');
+      await page.evaluate(() => { delete window.__visitorEcid; });
+
+      lifecycleChallenge = { ...lifecycleChallenge, challenge_id: 'stale-fixture', optedIn: false }; state = [lifecycleChallenge];
+      await refresh();
+      await page.evaluate(() => {
+        __lifecyclePackets = [__makeLifecycleCard('launch', 'stale-fixture')];
+        __subscription.callback({ propositions: __lifecyclePackets }, async (type, selected) => __tracking.push({ type, selected }));
+      });
+      await page.waitForFunction(() => document.querySelector('#ContentCardContainerLoyalty article h3')?.textContent === 'Adobe launch' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      await lifecycleCard.getByRole('button', { name: 'Join Challenge', exact: true }).click();
+      await page.waitForFunction(() => LoyaltyDemoContentCardDebug.getRefresh()?.status === 'waiting' &&
+        !document.getElementById('queryProfileBtn').disabled);
+      const readsBeforeCancel = await page.evaluate(() => __cardRequests.length);
+      await page.evaluate(() => {
+        const input = document.getElementById('loyaltySurface');
+        input.value = 'web://example.invalid/#changed-surface'; input.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+      await page.waitForTimeout(2500);
+      assert.equal(await page.evaluate(() => __cardRequests.length), readsBeforeCancel, 'Context changes cancel delayed card retrieval');
       assert.deepEqual(errors, []);
       await context.close();
       console.log(customer + ': shared real Spend, exact card mapping, completion, no carousel retracking, width controls and collapsed offers passed.');
