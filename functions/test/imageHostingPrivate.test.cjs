@@ -168,9 +168,11 @@ test('backup captures selected public library files and restores safely with sna
   await deps.active.file('other/library/banner.jpg').save('banner', { contentType: 'image/jpeg' });
   await deps.active.file('retail/library/.aep-library-folder').save('{}');
   await deps.active.file('scrape-cache-images/retail/scrape/image.png').save('excluded');
-  const { backupId } = await backups.create('alice', ['retail'], deps);
+  await assert.rejects(backups.create('alice', ['retail'], deps, { name: '../escape' }), { status: 400 });
+  const { backupId } = await backups.create('alice', ['retail'], deps, { name: ' customer-images-flydubai ' });
   await backups.process('alice', backupId, deps);
   const record = await backups.get('alice', backupId, deps);
+  assert.equal(record.name, 'customer-images-flydubai');
   assert.equal(record.status, 'complete');
   assert.deepEqual(record.progress, { done: 1, total: 1 });
   assert.equal(record.fileCount, 1);

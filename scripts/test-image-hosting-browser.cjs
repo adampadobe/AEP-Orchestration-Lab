@@ -224,8 +224,11 @@ async function main() {
     await page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
     assert.equal(await page.locator('#ihBackupSandboxes input:checked').count(), 1, 'only the owned sandbox is available');
     assert.equal(await page.locator('#ihBackupSandboxes input:checked').inputValue(), 'demo');
+    assert.match(await page.locator('#ihBackupName').inputValue(), /^demo-backup-\d{4}-\d{2}-\d{2}$/, 'backup name defaults to sandbox and date');
+    await page.locator('#ihBackupName').fill('customer-images-flydubai');
     await page.locator('#ihBackupStart').click();
     await page.waitForFunction(() => document.getElementById('imageHostingStatus').textContent.startsWith('Backup complete'));
+    assert.equal(calls.find(call => call.path.endsWith('/backups') && call.method === 'POST').body.name, 'customer-images-flydubai', 'custom backup name is sent');
     assert.ok(calls.filter(call => call.path.endsWith('/new-snapshot')).length >= 2, 'backup document is polled');
     await page.locator('#ihBackupClose').click();
     await page.getByRole('button', { name: 'Restore…', exact: true }).click();
