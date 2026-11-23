@@ -262,7 +262,7 @@ async function main() {
     assert.equal(await page.locator('[data-save-preview-offer="waitrose"]').getAttribute('aria-pressed'), 'false', 'No profile means no purchase receipt');
     await page.locator('[data-save-preview-offer="waitrose"]').click();
     assert.equal(await page.locator('#loyaltySavedOffers .loyalty-merchant-logo').count(), 0);
-    const ajoOffers = Array.from({ length: 6 }, (_, index) => ({
+    const ajoOffers = Array.from({ length: 8 }, (_, index) => ({
       id: 'ajo-offer-' + index, merchant: index ? 'Merchant ' + index : 'Waitrose', title: index ? 'Cashback ' + index : '15% cashback',
       priority: index * 100, channel: 'Online', expiry: '01 Dec 26', cta: 'Activate offer', sku: 'DYNAMIC-SKU-' + index,
       image: index ? 'javascript:alert(1)' : 'https://example.invalid/offer.png',
@@ -278,7 +278,7 @@ async function main() {
       detail: { offers: [null, {}, { id: 'empty' }, ...offers] },
     })), ajoOffers);
     assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(),
-      ajoOffers.slice(0, 5).map(offer => offer.title), 'Filter invalid offers, cap at five and preserve AJO ranking rather than priority sorting');
+      ajoOffers.map(offer => offer.title), 'Filter invalid offers without a count cap and preserve AJO ranking rather than priority sorting');
     assert.deepEqual(await page.locator('.loyalty-featured-body').first().locator('span,h4,p').allTextContents(),
       ['Waitrose', '15% cashback', 'Channel: Online', 'Expires: 01 Dec 26']);
     assert.equal(await page.locator('[data-save-preview-offer="ajo-offer-0"]').getAttribute('title'), 'Send demo purchase for Waitrose');
@@ -288,7 +288,7 @@ async function main() {
     assert.equal(await page.locator('.loyalty-featured-offer > .loyalty-merchant-logo').nth(1).getAttribute('style'), null,
       'Unsafe incoming logos never reach CSS URLs');
     assert.deepEqual(await page.locator('#loyaltyReturnedOffers .loyalty-returned-offer').evaluateAll(cards =>
-      cards.map(card => card.dataset.offerId)), ajoOffers.slice(0, 5).map(offer => offer.id),
+      cards.map(card => card.dataset.offerId)), ajoOffers.map(offer => offer.id),
     'The inspector below challenge progress shows only the ranked AJO items');
     assert.equal(await page.locator('#loyaltyReturnedOffers img').count(), 1, 'Offer inspector uses the same safe media policy');
     assert.deepEqual(JSON.parse(await page.locator('#loyaltyReturnedOffers pre').first().textContent()), ajoOffers[0],
@@ -682,7 +682,7 @@ async function main() {
     assert.ok(await page.locator('#loyaltyWebPreview').isVisible());
     assert.equal(await page.locator('#loyaltyMobilePreview').isVisible(), false);
     assert.equal(await page.locator('#loyaltyWebChallenge #ContentCardContainerLoyalty').count(), 1);
-    assert.equal(await page.locator('#loyaltyWebOffers .loyalty-featured-offer').count(), 5);
+    assert.equal(await page.locator('#loyaltyWebOffers .loyalty-featured-offer').count(), ajoOffers.length);
     assert.equal(await originalLiveMount.evaluate(mount => mount === document.querySelector('#loyaltyWebChallenge #ContentCardContainerLoyalty')), true,
       'Web preview moves the original subscription mount instead of cloning or rebuilding its content');
     assert.equal(await originalCarousel.evaluate(mount => mount === document.querySelector('#loyaltyWebOffers #loyaltyOfferCarousel')), true);
