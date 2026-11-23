@@ -177,9 +177,26 @@
     } catch (_) { return ''; }
   }
   function preview(item) {
+    if (item.kind === 'folder') {
+      var placeholder = node('div', null, 'ih-file-placeholder ih-folder-icon');
+      placeholder.setAttribute('role', 'img');
+      placeholder.setAttribute('aria-label', 'Folder');
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('fill', 'none');
+      svg.setAttribute('stroke', 'currentColor');
+      svg.setAttribute('stroke-width', '1.6');
+      svg.setAttribute('stroke-linejoin', 'round');
+      var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z');
+      svg.append(path);
+      placeholder.append(svg);
+      return placeholder;
+    }
     var url = previewUrl(item);
-    if (!url || item.kind === 'folder' || (item.contentType && !item.contentType.startsWith('image/'))) {
-      return node('div', item.kind === 'folder' ? 'Folder' : 'File', 'ih-file-placeholder');
+    if (!url || (item.contentType && !item.contentType.startsWith('image/'))) {
+      return node('div', 'File', 'ih-file-placeholder');
     }
     var image = node('img', null, 'ih-thumbnail');
     image.alt = item.name;

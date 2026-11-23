@@ -133,6 +133,9 @@ async function main() {
     await ready(page);
     assert.ok(calls.some(call => call.query.get('cursor') === 'page-two'), 'published library fetches every page');
     assert.equal(await page.locator('#ihItems .ih-item').count(), 2, 'root contains one folder and one file');
+    const folder = page.locator('#ihItems .ih-item', { has: page.getByRole('button', { name: 'logo', exact: true }) });
+    assert.equal(await folder.getByRole('img', { name: 'Folder' }).locator('svg').count(), 1, 'folder displays an accessible icon');
+    assert.equal((await folder.locator('.ih-file-placeholder').innerText()).trim(), '', 'folder preview uses an icon rather than text');
     await page.locator('#ihItems').getByRole('button', { name: 'logo', exact: true }).click();
     await settled(page);
     await page.getByRole('button', { name: 'logo.png', exact: true }).click();
