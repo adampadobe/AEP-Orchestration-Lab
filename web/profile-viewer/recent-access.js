@@ -17,7 +17,6 @@
     'consent.html': { name: 'Consent' },
     'reporting.html': { name: 'Reporting overview' },
     'agentic-ai.html': { name: 'Agentic AI architecture' },
-    'agentic-ai-v2.html': { name: 'Agentic AI v2' },
     'event-generator.html': { name: 'Event generator' },
     'donate-demo.html': { name: 'Donate (demo)' },
     'race-for-life-demo.html': { name: 'Race for Life (demo)' },
@@ -93,11 +92,6 @@
       label: 'Agentic AI',
       svg:
         '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>',
-    },
-    'agentic-ai-v2.html': {
-      label: 'Agentic AI v2',
-      svg:
-        '<svg class="home-ajo-type-ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
     },
     'donate-demo.html': {
       label: 'Donate (demo)',
@@ -326,7 +320,7 @@
   }
 
   function getRecentForDisplay() {
-    var items = load();
+    var items = load().filter(function (item) { return item && item.id !== 'agentic-ai-v2.html'; });
     return items.slice(0, DISPLAY_LIMIT);
   }
 
