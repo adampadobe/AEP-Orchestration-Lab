@@ -17,6 +17,7 @@
   const cardSchema = 'https://ns.adobe.com/personalization/message/content-card';
   let loaded = null, version = 0, busy = false, autoBlocked = true, targets = [], aborter, cardSubscription, pendingCard = false, contentCards = null;
   let joinedChallenge = null, deliveredChallenge = null, memberChallenges = [], offerFocus = null, selectedProfileKey = '', pendingProfile = null;
+  let memberChallengeMetadata = new Map();
   let featuredRequest = null, pendingFeaturedRequest = false;
   let pendingTaskState = false, automaticTaskState = null;
   let contentCardEvidence = null, evaluatedContentCardEvidence = null;
@@ -185,7 +186,7 @@
   function clearResults() {
     stopSpendPolling(); spendMessages.clear(); spendEvidence = null;
     if ($('loyaltySpendEvidence')) $('loyaltySpendEvidence').textContent = 'No Spend purchase sent for this context.';
-    joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; purchaseReceipts.clear(); closeOffer(false);
+    joinedChallenge = null; deliveredChallenge = null; memberChallenges = []; memberChallengeMetadata.clear(); purchaseReceipts.clear(); closeOffer(false);
     activatedOffers.clear(); renderSavedOffers(); closeOfferDetail(false);
     clearTimeout(toastTimer); $('loyaltyAppToast').hidden = true;
     $('loyaltyWebNotice').textContent = '';
@@ -251,6 +252,14 @@
     $('loyaltyReturnedOffers').replaceChildren(fragment);
   }
   function initPreviewMode() {
+    for (const [id, property] of [['loyaltyWebWidth', '--loyalty-web-width'], ['loyaltyInspectorWidth', '--loyalty-inspector-width']]) {
+      const input = $(id);
+      const update = () => {
+        document.querySelector('.loyalty-workspace').style.setProperty(property, input.value + 'px');
+        $(id + 'Value').value = input.value + 'px';
+      };
+      input.addEventListener('input', update);
+    }
     // Reparent the live mounts, never clone them: subscriptions and card actions keep their original DOM.
     previewMounts = [
       { element: document.querySelector('.loyalty-promotion'), target: $('loyaltyWebChallenge') },
@@ -273,6 +282,7 @@
         $('loyaltyMobilePreview').hidden = mode === 'web';
         $('loyaltyWebPreview').hidden = mode !== 'web';
         document.body.dataset.loyaltyPreview = mode;
+        $('loyaltyPreviewSizing').hidden = mode !== 'web';
         document.querySelectorAll('[data-loyalty-preview]').forEach(control => {
           control.setAttribute('aria-pressed', String(control.dataset.loyaltyPreview === mode));
         });
@@ -467,6 +477,49 @@
       button.textContent = receipt?.state === 'pending' ? 'Joining challenge...' :
         receipt ? 'Check challenge status' : 'Join challenge';
       button.setAttribute('aria-busy', String(receipt?.state === 'pending'));
+    });
+    syncCustomerSpend();
+  }
+  function syncCustomerSpend() {
+    cardMount().querySelectorAll('.loyalty-content-card').forEach(card => {
+      const challenge = !context().test && memberChallenges.find(item => item.challenge_id === card.dataset.challengeId && item.optedIn === true);
+      const definition = challenge && memberChallengeMetadata.get(challenge.challenge_id)?.definition;
+      const panels = [];
+      for (const task of challenge?.tasks || []) {
+        const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
+        const spend = model.spendTask(task, definitionTask), presentation = model.spendPresentation(spend);
+        if (!presentation) continue;
+        const completed = completedState(challenge.state) || complete(task);
+        const panel = node('div', undefined, 'loyalty-added loyalty-customer-spend');
+        panel.dataset.taskId = task.taskId;
+        panel.dataset.complete = String(completed);
+        const copy = node('div');
+        if (completed) {
+          copy.append(node('b', completedState(challenge.state) ? 'Challenge complete' : 'Spending task complete'),
+            node('small', spend.value >= spend.goal ? 'You\u2019ve reached your ' + presentation.goalLabel + ' spending goal.' :
+              'Your spending task is complete.'));
+        } else {
+          copy.append(node('b', presentation.summary), node('small', presentation.target));
+          const meter = node('progress', undefined, 'loyalty-added-bar');
+          meter.max = 100; meter.value = presentation.percent;
+          meter.setAttribute('aria-label', presentation.summary + ' \u00b7 ' + presentation.target);
+          copy.append(meter);
+        }
+        panel.append(node('span', completed ? '\u2713' : '\u2191'), copy);
+        panel.firstElementChild.setAttribute('aria-hidden', 'true');
+        panels.push(panel);
+      }
+      const body = card.querySelector('.loyalty-content-card-body');
+      const signature = JSON.stringify(panels.map(panel => panel.outerHTML));
+      if (body.dataset.spendPresentation !== signature) {
+        body.querySelectorAll('.loyalty-customer-spend').forEach(panel => panel.remove());
+        const anchor = body.querySelector('[data-interact-id="joinChallenge"]');
+        panels.forEach(panel => body.insertBefore(panel, anchor));
+        body.dataset.spendPresentation = signature;
+      }
+      body.querySelectorAll('[data-interact-id="joinChallenge"]').forEach(button => {
+        button.hidden = panels.length > 0;
+      });
     });
   }
   function reconcileSignupState(state, ctx, member) {
@@ -676,16 +729,11 @@
         const initialsText = taskName.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
         const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
         const spend = model.spendTask(task, definitionTask);
+        const spendCopy = model.spendPresentation(spend);
         const progress = spend ? spend.goal && spend.value !== null ? { goal: spend.goal, value: spend.value } : null : model.progress(task);
-        const money = amount => new Intl.NumberFormat('en-GB', {
-          style: 'currency', currency: spend.currency, maximumFractionDigits: 2, minimumFractionDigits: 0,
-        }).format(amount);
         const taskCopy = node('div', undefined, 'loyalty-task-copy');
         taskCopy.append(node('strong', taskName),
-          node('small', progress ? spend ? money(progress.value) + ' spent \u00b7 ' +
-            money(Math.max(progress.goal - progress.value, 0)) + ' to go \u00b7 ' +
-            Math.min(progress.value / progress.goal * 100, 100).toLocaleString('en-GB', { maximumFractionDigits: 1 }) +
-            '% of spend target' : progress.value + ' of ' + progress.goal :
+          node('small', progress ? spend ? spendCopy.summary + ' \u00b7 ' + spendCopy.target : progress.value + ' of ' + progress.goal :
             complete(task) ? 'Completion reported by Adobe' : 'Progress not yet reported'));
         heading.append(step, logo, taskCopy,
           node('span', complete(task) ? 'Completed' : task === remaining ? 'Up next' : 'To do', 'loyalty-task-state'));
@@ -720,6 +768,7 @@
       fragment.append(section);
     }
     memberChallenges = selectedMember ? challenges : [];
+    memberChallengeMetadata = selectedMember && !ctx.test ? metadata : new Map();
     restoreParticipation();
     if (state._links?.next) fragment.append(node('p', 'Adobe returned a next-page link. Showing only the challenges in this response; this is not the full history.'));
     $('loyaltyTasks').replaceChildren(fragment);

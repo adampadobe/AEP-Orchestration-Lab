@@ -966,6 +966,35 @@ Base: `https://platform.adobe.io/ajo`
 
 ## Related
 
+### Customer-facing Spend progress (Lloyds and Jet2)
+
+The same `spendTask` and `spendPresentation` model helpers format the inspector
+and customer Content Cards from the selected member's returned Loyalty state.
+An exact Content Card `meta.challengeId` match to an `optedIn === true` challenge
+is required. Task definitions are matched by task ID; only the returned task's
+numeric `accumulators.spend` supplies accumulated money. An explicit zero is
+displayed; a missing/invalid accumulator, non-Spend task, unjoined challenge or
+unmapped card produces no customer progress panel.
+
+The compact Rewards `.loyalty-added` treatment replaces the joined signup button
+visually while meaningful progress is available. Lloyds uses its existing green
+palette; Jet2 uses the same component with its existing orange brand tokens.
+Other actions, supplied Content Card content and per-card attribution remain
+unchanged. Refreshing state updates the existing card DOM only, without rebuilding
+the carousel, reordering cards or collecting another proposition display.
+Neither SDK purchase acceptance nor reaching the monetary goal marks completion:
+only returned task/challenge completion replaces the active meter with completion
+copy. No points/reward issuance is claimed.
+
+Both customer pages offer **Web preview width** and **Challenge column width**
+sliders in web-preview mode. Widths are constrained to the available screen and
+the narrow layout still stacks. These are presentation-only, page-session
+controls, not persisted profile or Spend data. **Profile offers** starts collapsed
+and uses a native keyboard-accessible disclosure; offer retrieval is unchanged.
+
+Validate both brands with `npm run test:loyalty-spend-presentation` alongside
+`test:lloyds-loyalty` and `test:jet2-loyalty`.
+
 - [Reusable customer Loyalty demo skill](../.agents/skills/ajo-loyalty-customer-demo/SKILL.md)
 - [Jet2holidays Loyalty demo](../web/profile-viewer/jet2-loyalty-demo.html), under **Demos > Jet2 > Loyalty**.
   It reuses the Lloyds model, real state/purchase helpers and separate Adobe

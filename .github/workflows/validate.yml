@@ -159,5 +159,7 @@ jobs:
         run: npm run test:lloyds-loyalty
       - name: Exercise Jet2 Loyalty branding and shared Adobe contracts (local fixtures)
         run: npm run test:jet2-loyalty
+      - name: Exercise shared customer Spend progress and preview layout (local fixtures)
+        run: npm run test:loyalty-spend-presentation
       - name: Exercise Vuse Italia shell, identity and event contracts (local fixtures)
         run: npm run test:vuse-italia
