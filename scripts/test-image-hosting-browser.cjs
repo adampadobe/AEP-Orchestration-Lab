@@ -99,6 +99,8 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       else if (url.pathname.endsWith('/download')) result.url = 'https://images.test/backup.zip';
       else if (url.pathname.endsWith('/scrapes')) result.items = [{ scrapeId: 'scrape', brandName: 'Demo' }];
       else if (url.pathname.endsWith('/scrapes/scrape')) result = { scrapeId: 'scrape', brandName: 'Demo', crawlSummary: { assets: { images: [{}], imagesV2: [] } } };
+      // The production library routes return no `ok` field.
+      if (url.pathname.includes('/image-hosting/library')) delete result.ok;
       return route.fulfill({ json: result });
     }
     if (url.pathname.startsWith('/cdn/')) return route.fulfill({ contentType: 'image/png', body: image });
