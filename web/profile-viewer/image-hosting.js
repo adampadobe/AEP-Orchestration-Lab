@@ -96,7 +96,8 @@
     var result;
     try { result = await response.json(); }
     catch (_) { throw new Error('Unreadable server response (HTTP ' + response.status + ').'); }
-    if (!response.ok || result.ok !== true) {
+    // Library routes predate the `ok` envelope, so only an explicit `ok: false` fails a 2xx response.
+    if (!response.ok || !result || result.ok === false) {
       throw new Error(result.errors?.length ? uploadErrorSummary(result.errors) :
         typeof result.error === 'string' ? result.error : 'Request failed (HTTP ' + response.status + ').');
     }
