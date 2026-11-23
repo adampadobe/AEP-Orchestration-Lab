@@ -133,6 +133,11 @@ Never include credentials, private customer identities or production tokens.
 - Featured Offers are Experience Decisioning with independent retrieval, renderer,
   ranking and interaction metadata. Similar presentation is not shared business
   logic. Preserve the existing `ajo:featured-offers` contract and attribution.
+  Render every valid returned item in Adobe order in both the carousel and Profile
+  offers, without a website-side count cap. Keep the existing required-field
+  validation; campaign/Tags delivery determines how many items reach the page.
+  Cover more than seven items in branded browser regressions so no fixed limit
+  is accidentally reintroduced.
 - Existing offer purchases and the inspector-only Spend control share
   `prepareProfileEvent`, `purchasePayload` and `dispatchProfileEvent`.
   Do not create another purchase schema or reuse activation/modal side effects.

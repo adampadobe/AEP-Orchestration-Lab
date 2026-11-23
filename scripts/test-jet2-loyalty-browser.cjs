@@ -131,9 +131,16 @@ async function main() {
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].id, 'jet2-proposition-2');
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].items[0].id, 'jet2-item-2');
     assert.equal(interaction.xdm._experience.decisioning.propositions[0].scopeDetails.correlationID, 'jet2-correlation-2');
-    await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers: [
-      { id: 'jet2-featured-fixture', merchant: 'Separate Adobe offer', title: 'Independent Decisioning fixture' },
-    ] } })));
+    const featuredOffers = Array.from({ length: 9 }, (_, index) => ({
+      id: 'jet2-featured-fixture-' + index, merchant: 'Separate Adobe offer ' + index,
+      title: 'Independent Decisioning fixture ' + index, propositionId: 'jet2-featured-proposition-' + index,
+      propositionItemId: 'jet2-featured-item-' + index,
+    }));
+    await page.evaluate(offers => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers } })), featuredOffers);
+    assert.deepEqual(await page.locator('.loyalty-featured-body h4').allTextContents(),
+      featuredOffers.map(offer => offer.title), 'All returned offers retain Adobe order without a count cap');
+    assert.deepEqual(await page.locator('#loyaltyReturnedOffers pre').evaluateAll(elements =>
+      elements.map(element => JSON.parse(element.textContent))), featuredOffers, 'All items retain individual attribution in Profile offers');
     const featured = await page.locator('#loyaltyFeaturedOffers').innerHTML();
     for (const width of [1500, 390]) {
       await page.setViewportSize({ width, height: 1100 });
@@ -166,6 +173,7 @@ async function main() {
       Math.abs(element.scrollWidth - element.clientWidth) <= 1), true, 'Single card leaves no empty scroll space');
     await page.locator('[data-loyalty-preview="web"]').click();
     assert.equal(await page.locator('#loyaltyWebChallenge #ContentCardContainerLoyalty article').count(), 1);
+    assert.equal(await page.locator('#loyaltyWebOffers .loyalty-featured-offer').count(), featuredOffers.length);
     for (const width of [1500, 390]) {
       await page.setViewportSize({ width, height: 1100 });
       for (const theme of ['light', 'dark']) {
