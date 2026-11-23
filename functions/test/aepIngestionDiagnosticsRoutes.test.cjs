@@ -151,6 +151,10 @@ test('POST accepts reviewed slot identifiers while leaving exact incident author
   const sportsBody = { ...previewBody, day: '2026-11-17', slot_id: '14' };
   assert.equal((await sports.request({}, undefined, 'POST', sportsBody)).statusCode, 200);
   assert.equal(sports.calls[0].input.slot_id, '14');
+  const telecom = fixture();
+  const telecomBody = { action: previewBody.action, sandbox: 'sandbox-a', day: '2026-11-22', slot_id: '07' };
+  assert.equal((await telecom.request({}, undefined, 'POST', telecomBody)).statusCode, 200);
+  assert.deepEqual(telecom.calls[0].input, { day: '2026-11-22', slot_id: '07' });
   const invalid = fixture();
   assert.equal((await invalid.request({}, undefined, 'POST', { ...body, slot_id: '02' })).statusCode, 400);
   assert.equal(invalid.tokens, 0);
