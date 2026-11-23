@@ -78,7 +78,11 @@ Never include credentials, private customer identities or production tokens.
    Add a customer `demoCustomer` group and `Loyalty` item to `aep-lab-nav.js`,
    preserving the user's requested owner visibility. Bump touched cache stamps.
    Register the page in `scripts/verify-demo-env-strip.mjs`; a reused core is
-   already registered and needs no duplicate runtime.
+   already registered and needs no duplicate runtime. Add explicit positive
+   assertions for the customer's shared manual runtime/drawer in
+   `scripts/test-tui-decisioning-runtime.cjs`, alongside Lloyds/Jet2; preserve
+   the assertions that unrelated demos keep their existing runtime.
+   Run `npm run build:lab-nav-catalogue` to update the generated navigation source.
 6. Mirror only relevant canonical HTML/CSS/JS/navigation/assets to
    `aep-prototypes/AEP Profile/03 Profile Viewer/public` using the existing sync
    workflow. Never reverse-sync. On Windows use explicit scoped copies and
