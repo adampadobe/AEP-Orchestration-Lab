@@ -16,6 +16,35 @@ html[data-aep-theme='dark'] body.home-dashboard-concierge.lloyds-loyalty-page.qa
 .qatar-loyalty-page .qatar-wordmark { font-weight: 800; letter-spacing: .12em; color: var(--dash-loyalty-ink); }
 html[data-aep-theme='dark'] .qatar-loyalty-page .tui-lab-brand .qatar-wordmark { color: var(--dash-text); }
 .qatar-loyalty-page .tui-lab-brand { gap: 12px; }
+.qatar-loyalty-page .qatar-presenter {
+  margin: 0 0 20px;
+  padding: 18px 20px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius);
+  background: var(--dash-surface);
+  color: var(--dash-text);
+}
+.qatar-loyalty-page .qatar-presenter summary { cursor: pointer; font-weight: 700; }
+.qatar-loyalty-page .qatar-presenter summary span { color: var(--dash-text-secondary); font-size: .85em; font-weight: 400; }
+.qatar-loyalty-page .qatar-presenter p { color: var(--dash-text-secondary); font-size: .9rem; line-height: 1.5; }
+.qatar-loyalty-page .qatar-presenter-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+.qatar-loyalty-page .qatar-presenter-steps li {
+  padding: 12px;
+  border: 1px solid var(--dash-border);
+  border-radius: var(--dash-radius-sm);
+  background: var(--dash-surface-alt);
+}
+.qatar-loyalty-page .qatar-presenter-steps strong,
+.qatar-loyalty-page .qatar-presenter-steps span { display: block; }
+.qatar-loyalty-page .qatar-presenter-steps span { margin-top: 5px; color: var(--dash-text-secondary); font-size: .85rem; }
+.qatar-loyalty-page .qatar-presenter-evidence p { margin: 6px 0; }
+.qatar-loyalty-page .qatar-presenter .qatar-presenter-note { margin-bottom: 0; }
 .qatar-loyalty-page .loyalty-phone-status,
 .qatar-loyalty-page .loyalty-web-utility,
 .qatar-loyalty-page .loyalty-web-footer,

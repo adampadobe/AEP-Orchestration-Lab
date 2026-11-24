@@ -35,6 +35,7 @@ function fixture(options = {}) {
   const cookieWrites = [];
   const patches = [];
   const errors = [];
+  const diagnostics = [];
   let reloads = 0;
   let drawerClears = 0;
   const elements = {
@@ -63,7 +64,10 @@ function fixture(options = {}) {
     CustomEvent: class CustomEvent {
       constructor(type, init) { this.type = type; this.detail = init.detail; }
     },
-    console: { error(...args) { errors.push(args); } },
+    console: {
+      error(...args) { errors.push(args); },
+      info(...args) { diagnostics.push(args); },
+    },
     addEventListener(type, fn) { (listeners[type] ||= []).push(fn); },
     dispatchEvent(event) {
       events.push(event);
@@ -88,7 +92,7 @@ function fixture(options = {}) {
   const api = win.AepDemoVisitorReset;
   if (options.init !== false) api.init({ prefix: 'test', timeoutMs: 35, ...options.config });
   return {
-    win, api, elements, events, sdkCalls, cookieWrites, patches, errors,
+    win, api, elements, events, sdkCalls, cookieWrites, patches, errors, diagnostics,
     get reloads() { return reloads; }, get drawerClears() { return drawerClears; },
     storageEvent(value) { win.dispatchEvent({ type: 'storage', key: INVALIDATION, newValue: JSON.stringify(value) }); }
   };
@@ -290,6 +294,101 @@ test('same ECID cannot succeed; acceptEcid rejects and failure remains blocked a
   assert.equal(next.api.isBlocked(), true);
   assert.equal(next.sdkCalls.length, 0);
   assert.equal(next.reloads, 0);
+});
+
+test('explicit verification retry checks the original reset with no cookie deletion, reload or events', async () => {
+  const ss = pendingStorage('error');
+  const f = fixture({ sessionStorage: ss, sdk: () => Promise.resolve(result(FRESH)) });
+  assert.equal(f.api.canRetryVerification(), true);
+  const original = JSON.parse(ss.getItem(MARKER));
+  assert.equal(f.sdkCalls.length, 0, 'Reload does not silently retry a failed reset');
+  let completions = 0;
+  f.api.registerAdapter({ afterReset() { completions++; } });
+  await f.api.retryVerification();
+  await tick();
+  assert.equal(f.api.isBlocked(), false);
+  assert.equal(f.api.getState().status, 'complete');
+  assert.equal(original.oldEcid, OLD);
+  assert.equal(completions, 1);
+  assert.equal(f.api.canRetryVerification(), false);
+  assert.equal(ss.getItem(MARKER), null);
+  assert.deepEqual(f.sdkCalls.map(call => call.command), ['getIdentity']);
+  assert.equal(f.cookieWrites.length, 0);
+  assert.equal(f.reloads, 0);
+  const logged = JSON.stringify([f.diagnostics, f.api.getDiagnostics()]);
+  for (const privateValue of [OLD, FRESH, 'old@example.com', 'assets.adobedtm.com']) {
+    assert.equal(logged.includes(privateValue), false, 'Diagnostics omit private identity/configuration values');
+  }
+});
+
+test('verification retry keeps same or missing identity blocked and retains its original marker', async () => {
+  for (const identity of [OLD, null]) {
+    const ss = pendingStorage('error');
+    const f = fixture({ sessionStorage: ss, sdk: () => Promise.resolve(identity ? result(identity) : {}) });
+    await f.api.retryVerification();
+    await tick();
+    assert.equal(f.api.getState().status, 'error');
+    assert.equal(f.api.isBlocked(), true);
+    assert.equal(f.api.canRetryVerification(), true);
+    assert.equal(JSON.parse(ss.getItem(MARKER)).oldEcid, OLD);
+    assert.equal(f.api.getDiagnostics().failureStage, 'get-identity');
+    assert.equal(f.patches.length, 0);
+    assert.equal(f.cookieWrites.length, 0);
+    assert.equal(f.reloads, 0);
+  }
+});
+
+test('verification diagnostics omit raw SDK errors and untrusted saved failure details', async () => {
+  const ss = pendingStorage('error');
+  ss.setItem(MARKER, JSON.stringify({ ...JSON.parse(ss.getItem(MARKER)), failureStage: 'private@example.invalid' }));
+  const f = fixture({ sessionStorage: ss, sdk: () => Promise.reject(new Error('private@example.invalid ' + OLD)) });
+  assert.equal(f.api.getDiagnostics().failureStage, null);
+  await f.api.retryVerification();
+  await tick();
+  const logged = JSON.stringify([f.diagnostics, f.errors, f.api.getDiagnostics()]);
+  assert.equal(logged.includes('private@example.invalid'), false);
+  assert.equal(logged.includes(OLD), false);
+  assert.equal(f.api.isBlocked(), true);
+});
+
+test('retry cannot accept an expired verification result or bypass adapter invalidation', async () => {
+  let staleResolve, freshResolve;
+  const f = fixture({
+    sessionStorage: pendingStorage(),
+    sdk: () => new Promise(resolve => {
+      if (!staleResolve) staleResolve = resolve;
+      else freshResolve = resolve;
+    }),
+  });
+  await new Promise(resolve => setTimeout(resolve, 55));
+  await f.api.retryVerification();
+  staleResolve(result(FRESH));
+  await tick();
+  assert.equal(f.api.isBlocked(), true);
+  assert.equal(f.patches.length, 0);
+  freshResolve(result(FRESH));
+  await tick();
+  assert.equal(f.api.isBlocked(), false);
+
+  const failed = fixture({ sessionStorage: pendingStorage('error'), sdk: () => Promise.resolve(result(FRESH)) });
+  failed.api.registerAdapter({ invalidate() { throw new Error('Fixture: cannot clear visitor state'); } });
+  await assert.rejects(failed.api.retryVerification(), /cannot clear visitor state/);
+  assert.equal(failed.api.isBlocked(), true);
+  assert.equal(failed.sdkCalls.length, 0);
+  assert.equal(failed.patches.length, 0);
+});
+
+test('verification retry requires a valid failed reset, not an idle or cross-tab visitor', async () => {
+  const f = fixture();
+  await assert.rejects(f.api.retryVerification(), /No failed reset/);
+  f.storageEvent({ id: 'later-reset', oldEcid: OLD, orgId: 'TEST' });
+  assert.equal(f.api.canRetryVerification(), false);
+  await assert.rejects(f.api.retryVerification(), /No failed reset/);
+  assert.equal(f.sdkCalls.length, 0);
+  f.api.registerAdapter({ invalidate() { throw new Error('Fixture: cross-tab cleanup failed'); } });
+  assert.equal(f.api.getState().status, 'error');
+  assert.equal(f.api.canRetryVerification(), false, 'A failed cross-tab cleanup still requires a reload');
+  await assert.rejects(f.api.retryVerification(), /No failed reset/);
 });
 
 test('restored SDK absent, unavailable identity, and hung identity time out/fail without false success', async () => {

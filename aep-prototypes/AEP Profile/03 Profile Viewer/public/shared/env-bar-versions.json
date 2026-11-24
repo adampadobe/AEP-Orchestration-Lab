@@ -5,7 +5,7 @@
     "vuse-italia-demo": "20261030-recovery"
   },
   "assets": {
-    "bundleCss": "20261029-new-visitor",
+    "bundleCss": "20261124-reset-recovery",
     "spectrumCss": "20260714-env-bar-config-fileconvert",
     "demoEnvStripSpectrum": "20260721-linkedin-env-bar-fix",
     "demoEnvStrip": "20260714-tags-property-typeahead",

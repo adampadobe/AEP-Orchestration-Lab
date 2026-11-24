@@ -156,7 +156,8 @@ async function main() {
             return !event.defaultPrevented;
           });
           assert.equal(submitted, false, 'Invalidated visitor cannot submit via keyboard');
-          assert.equal(await page.locator('#aepLabVisitorResetStatus button').isVisible(), true, 'Reload recovery remains available');
+          assert.equal(await page.locator('#aepLabVisitorResetStatus button').filter({ hasText: 'Reload demo' }).isVisible(),
+            true, 'Reload recovery remains available');
         }
         console.log('OK ' + relative + ' (' + mode + ')');
       } catch (error) {

@@ -39,6 +39,7 @@
   inset: auto 16px 16px;
   z-index: 2147483647;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
@@ -47,6 +48,11 @@
   background: var(--dash-surface);
   color: var(--dash-text);
   box-shadow: var(--dash-shadow);
+}
+
+.aep-lab-visitor-reset-status > span {
+  flex: 1 1 280px;
+  overflow-wrap: anywhere;
 }
 
 .aep-lab-visitor-reset-status[hidden],

@@ -17,6 +17,35 @@ protected enrollment endpoint, with Adobe authentication held server-side.
 
 ## Read-only Loyalty MCP workflow
 
+### Recovering a blocked demo or unresolved profile
+
+The shared **New visitor** reset blocks event submission until the live SDK
+returns a valid ECID different from the one saved before reset. A failed reset
+stays blocked across reloads. Its recovery banner now provides **Retry
+verification** (identity reads only, retaining the original reset comparison)
+and **Retry reset** (confirmed cookie reset and reload). Verification never
+clears the block on a missing, unchanged or stale identity, or a failed cleanup
+adapter. Cross-tab invalidation still requires a reload or a fresh reset.
+
+An **Entity not found** Profile Access response is separate from the reset gate:
+ingestion or identity indexing may not yet be complete. After visitor verification,
+use **Retry profile lookup** to read the selected identity again, not generate a
+duplicate profile. This retry does not schedule Content Card/Featured Offers SDK
+events or replay signup/purchases. Once resolved, use **Get task status** and
+**Refresh card & offers** explicitly.
+
+Filter the developer console for `[Visitor reset]` or `[Loyalty diagnostics]`.
+Reset diagnostics show state and failure stage. Loyalty diagnostics show request
+number, endpoint path/action, method, HTTP status, elapsed time and error category
+(including `profile-not-indexed`, authorization, missing route and response-format
+errors). `AepDemoVisitorReset.getDiagnostics()` and
+`LoyaltyDemoDiagnostics.getRecent()` expose the same sanitized diagnostics; the
+latter retains only the latest 60 entries in memory. These new records omit
+identifiers, query strings, response bodies, headers and credentials. Existing
+event inspection and bounded task-state polling retain their own behavior.
+Failed profile lookups and visitor verification require explicit recovery;
+recovery never proves audience qualification or Loyalty completion.
+
 ### Loyalty context on profile events
 
 Lloyds and Jet2 share optional event enrichment at
@@ -734,6 +763,13 @@ assumption: currency handling and qualification must be verified in the sandbox.
 The Qatar page uses the same flow with QAR 10 in the order and product. QAR
 display or Web SDK acceptance does not establish how Loyalty processes the
 currency or whether a purchase qualifies.
+
+The Qatar page defaults to the shared `content-decision-live-edge.html` Loyalty
+Content Card surface. Its presenter guide reports the currently resolved profile,
+returned card and member state, and SDK purchase acceptance separately; it does
+not verify journey entry, reward issuance, currency qualification or a balance.
+Changing profile or configuration clears context-specific evidence. The surface
+can still be overridden in Loyalty API options for the current context.
 
 An active, opted-in Spend task for the **resolved Loyalty member** can show
 **Simulate qualifying purchase** beneath its left-hand task row. It is not
