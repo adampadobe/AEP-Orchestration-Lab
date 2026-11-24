@@ -1219,10 +1219,14 @@
       status.hidden = !blocked;
       text.textContent = detail && detail.message || 'Visitor identity is being reset. Demo interactions are paused.';
       reload.hidden = !blocked || global.AepDemoVisitorReset.isPending();
-      verify.hidden = !global.AepDemoVisitorReset.canRetryVerification();
+      verify.hidden = typeof global.AepDemoVisitorReset.canRetryVerification !== 'function' ||
+        typeof global.AepDemoVisitorReset.retryVerification !== 'function' ||
+        !global.AepDemoVisitorReset.canRetryVerification();
       retryReset.hidden = !blocked || global.AepDemoVisitorReset.isPending();
-      retryReset.disabled = !global.AepDemoVisitorReset.canReset();
-      retryReset.title = global.AepDemoVisitorReset.availability().reason || button.title;
+      retryReset.disabled = typeof global.AepDemoVisitorReset.canReset === 'function' &&
+        !global.AepDemoVisitorReset.canReset();
+      retryReset.title = (typeof global.AepDemoVisitorReset.availability === 'function' &&
+        global.AepDemoVisitorReset.availability().reason) || button.title;
       button.textContent = global.AepDemoVisitorReset.isPending() ? 'Resetting...' : 'New visitor';
       button.disabled = global.AepDemoVisitorReset.isPending();
       var drawerButton = document.getElementById('profileDrawerResetEcid');
