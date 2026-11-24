@@ -33,8 +33,10 @@ Module._load = function (request, ...args) {
 };
 let restoreLibraryFromZip;
 let listLibrary;
+let batchUpload;
+let replaceLibraryObject;
 try {
-  ({ restoreLibraryFromZip, listLibrary } = require('../imageHostingLibrary'));
+  ({ restoreLibraryFromZip, listLibrary, batchUpload, replaceLibraryObject } = require('../imageHostingLibrary'));
 } finally {
   Module._load = originalLoad;
 }
@@ -45,13 +47,19 @@ function fakeBucket(failPath) {
     ['test/library/keep.jpg', Buffer.from('before')],
   ]);
   const actions = [];
+  const metadata = new Map();
   function file(name) {
     return {
       name,
-      async save(bytes) {
+      get metadata() { return metadata.get(name) || {}; },
+      async exists() { return [objects.has(name)]; },
+      async getMetadata() { return [metadata.get(name) || {}]; },
+      async save(bytes, options = {}) {
         actions.push(`save:${name}`);
         if (name === failPath) throw new Error('injected failure');
         objects.set(name, bytes);
+        metadata.set(name, { contentType: options.contentType, size: String(bytes.length),
+          updated: new Date().toISOString(), metadata: options.metadata?.metadata || {} });
       },
       async makePublic() {},
       async delete() { actions.push(`delete:${name}`); objects.delete(name); },
@@ -60,6 +68,7 @@ function fakeBucket(failPath) {
   return {
     objects,
     actions,
+    metadata,
     file,
     async getFiles({ prefix }) { return [[...objects.keys()].filter((name) => name.startsWith(prefix)).map(file)]; },
   };
@@ -154,6 +163,52 @@ test('ZIP replace writes accepted images before deleting stale files', async () 
     'save:test/library/keep.jpg', 'save:test/library/new.png', 'delete:test/library/old.png',
   ]);
   assert.strictEqual(activeBucket.objects.has('test/library/ignored.html'), false);
+  assert.equal(activeBucket.metadata.get('test/library/keep.jpg').metadata.changeType, 'updated');
+  assert.equal(activeBucket.metadata.get('test/library/new.png').metadata.changeType, 'new');
+});
+
+test('uploads classify new and replaced files and list their shared change metadata', async () => {
+  activeBucket = fakeBucket();
+  const input = (name, body, contentType) => ({ name, base64: Buffer.from(body).toString('base64'), contentType });
+  const first = await batchUpload('test', [input('logo.gif', 'GIF89a', 'image/gif')], { keepFilename: true, convertToPng: true });
+  assert.equal(first.uploaded[0].changeType, 'new');
+  assert.equal(activeBucket.objects.get('test/library/logo.gif').toString(), 'GIF89a');
+  const second = await batchUpload('test', [input('logo.gif', 'GIF89b', 'image/gif')], { keepFilename: true, onConflict: 'replace' });
+  assert.equal(second.uploaded[0].changeType, 'updated');
+  const item = (await listLibrary('test')).find((entry) => entry.relPath === 'logo.gif');
+  assert.equal(item.changeType, 'updated');
+  assert.ok(Number.isFinite(Date.parse(item.changedAt)));
+  const replaced = await replaceLibraryObject('test', 'logo.gif', Buffer.from('GIF89c'), 'image/gif');
+  assert.equal(replaced.changeType, 'updated');
+  await assert.rejects(replaceLibraryObject('test', 'missing.gif', Buffer.from('GIF89c'), 'image/gif'), /target not found/);
+});
+
+test('upload converts supported images, preserves non-image files and reports conversion errors', async () => {
+  activeBucket = fakeBucket();
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="red"/></svg>';
+  const entries = [
+    { name: 'hero.svg', contentType: 'application/octet-stream', base64: Buffer.from(svg).toString('base64') },
+    { name: 'document.pdf', contentType: 'application/pdf', base64: Buffer.from('pdf').toString('base64') },
+    { name: 'bad.jpg', contentType: 'image/jpeg', base64: Buffer.from('not an image').toString('base64') },
+  ];
+  const result = await batchUpload('test', entries, { keepFilename: true, convertToPng: true });
+  assert.deepEqual(result.uploaded.map((item) => item.relPath), ['hero.png', 'document.pdf']);
+  assert.deepEqual(activeBucket.objects.get('test/library/hero.png').subarray(0, 8), Buffer.from('89504e470d0a1a0a', 'hex'));
+  assert.equal(activeBucket.objects.get('test/library/document.pdf').toString(), 'pdf');
+  assert.match(result.errors[0].error, /PNG conversion failed/);
+  assert.equal(activeBucket.objects.has('test/library/bad.jpg'), false);
+});
+
+test('auto-named ZIP upload extracts image entries and converts them into the library', async () => {
+  activeBucket = fakeBucket();
+  const zip = await buildZipBufferFromEntries([
+    { name: 'nested/hero.svg', buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"/>') },
+    { name: 'readme.txt', buffer: Buffer.from('not an image') },
+  ]);
+  const result = await batchUpload('test', [{ name: 'assets.zip', contentType: 'application/zip', base64: zip.toString('base64') }], { convertToPng: true });
+  assert.deepEqual(result.errors, []);
+  assert.deepEqual(result.uploaded.map((item) => item.relPath), ['hero-banner.png']);
+  assert.deepEqual(activeBucket.objects.get('test/library/hero-banner.png').subarray(0, 8), Buffer.from('89504e470d0a1a0a', 'hex'));
 });
 
 test('ZIP replace does not delete stale files when any upload fails', async () => {

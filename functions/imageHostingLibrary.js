@@ -178,19 +178,14 @@ async function resolveTargetName(sandbox, opts) {
     // GIFs are the exception — re-encoding to PNG would flatten the
     // animation — so we keep them as-is. Anything else (JPG/JPEG, SVG,
     // WEBP, AVIF, BMP, ICO) is transcoded via sharp.
-    if (ext !== 'gif' && ext !== 'png' && ext !== 'bin') {
+    if (ext !== 'gif' && ext !== 'bin') {
       try {
         body = await toPng(bytes);
         ct = 'image/png';
         ext = 'png';
       } catch (e) {
-        console.warn('[imageHostingLibrary] toPng failed, keeping original', ext, String((e && e.message) || e));
+        throw new Error('PNG conversion failed: ' + String((e && e.message) || e));
       }
-    } else if (ext === 'png') {
-      // Existing PNGs still get run through sharp so the 1024px cap
-      // applies uniformly — cheap and keeps the library small.
-      try { body = await toPng(bytes); }
-      catch (_e) { /* keep original bytes on failure */ }
     }
   }
   // convertToPng=false: keep the bytes exactly as uploaded (preserves
@@ -315,15 +310,18 @@ async function deleteSiblings(keepKey, prefixWithoutExt) {
  * Upload bytes to the library at the resolved path, make public, and
  * return the record the UI needs.
  */
-async function putLibraryObject(sandbox, target) {
+async function putLibraryObject(sandbox, target, extraMetadata = {}) {
   const bucket = getBucket();
   const file = bucket.file(target.key);
+  const [exists] = await file.exists();
+  const changeType = exists ? 'updated' : 'new';
+  const changedAt = new Date().toISOString();
   await file.save(target.bytes, {
     contentType: target.contentType,
     resumable: false,
     metadata: {
       cacheControl: LIBRARY_CACHE_CONTROL,
-      metadata: { sandbox: sandboxPrefix(sandbox) },
+      metadata: { ...extraMetadata, sandbox: sandboxPrefix(sandbox), changeType, changedAt },
     },
   });
   try { await file.makePublic(); } catch (_e) { /* uniform access — still accessible via cdn proxy */ }
@@ -339,6 +337,8 @@ async function putLibraryObject(sandbox, target) {
     cdnUrl: publicCdnUrl(sandbox, target.key.slice(libraryRoot(sandbox).length + 1)),
     publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${target.key.split('/').map(encodeURIComponent).join('/')}`,
     updatedAt: (metadata && metadata.updated) || new Date().toISOString(),
+    changeType,
+    changedAt,
   };
 }
 
@@ -368,6 +368,8 @@ async function listLibrary(sandbox, page) {
       cdnUrl: publicCdnUrl(sandbox, rel),
       publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${f.name.split('/').map(encodeURIComponent).join('/')}`,
       updatedAt: md.updated || null,
+      changeType: custom.changeType || null,
+      changedAt: custom.changedAt || null,
       aiGenerated: custom.aiGenerated === 'true',
       aiModel: custom.aiModel || '',
       aiPrompt: custom.aiPrompt || '',
@@ -455,12 +457,15 @@ async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) 
   }
 
   const file = bucket.file(key);
+  const [exists] = await file.exists();
+  if (!exists) throw new Error('replacement target not found: ' + relPath);
+  const changedAt = new Date().toISOString();
   await file.save(body, {
     contentType: targetCt,
     resumable: false,
     metadata: {
       cacheControl: LIBRARY_CACHE_CONTROL,
-      metadata: { sandbox: sandboxPrefix(sandbox) },
+      metadata: { sandbox: sandboxPrefix(sandbox), changeType: 'updated', changedAt },
     },
   });
   try { await file.makePublic(); } catch (_e) {}
@@ -474,6 +479,8 @@ async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) 
     cdnUrl: publicCdnUrl(sandbox, relPath),
     publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${key.split('/').map(encodeURIComponent).join('/')}`,
     updatedAt: (md && md.updated) || new Date().toISOString(),
+    changeType: 'updated',
+    changedAt,
     converted: sourceExt && sourceExt !== targetExt,
   };
 }
@@ -682,34 +689,13 @@ async function publishAiImage(sandbox, opts) {
     overrideFolder: opts.overrideFolder,
     overrideFile: opts.overrideFile,
   });
-  const bucket = getBucket();
-  const file = bucket.file(target.key);
-  await file.save(target.bytes, {
-    contentType: target.contentType,
-    resumable: false,
-    metadata: {
-      cacheControl: LIBRARY_CACHE_CONTROL,
-      metadata: {
-        sandbox: sandboxPrefix(sandbox),
-        aiGenerated: 'true',
-        aiModel: process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image',
-        aiPrompt: String(generated.prompt || '').slice(0, 2000),
-      },
-    },
+  const published = await putLibraryObject(sandbox, target, {
+    aiGenerated: 'true',
+    aiModel: process.env.VERTEX_GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image',
+    aiPrompt: String(generated.prompt || '').slice(0, 2000),
   });
-  try { await file.makePublic(); } catch (_e) {}
-  const [md] = await file.getMetadata().catch(() => [null]);
   return {
-    sandbox: sandboxPrefix(sandbox),
-    folder: target.folder,
-    file: target.file,
-    path: target.key,
-    relPath: target.key.slice(libraryRoot(sandbox).length + 1),
-    contentType: target.contentType,
-    size: (md && Number(md.size)) || target.bytes.length,
-    cdnUrl: publicCdnUrl(sandbox, target.key.slice(libraryRoot(sandbox).length + 1)),
-    publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${target.key.split('/').map(encodeURIComponent).join('/')}`,
-    updatedAt: (md && md.updated) || new Date().toISOString(),
+    ...published,
     aiGenerated: true,
     aiPrompt: generated.prompt,
   };
@@ -807,7 +793,7 @@ function decodeBase64File(name, base64, contentType) {
     const m = /^data:([^;]+)[;,]/.exec(b);
     if (m) ct = m[1];
   }
-  if (!ct) {
+  if (!ct || ct === 'application/octet-stream') {
     const ext = (name.split('.').pop() || '').toLowerCase();
     ct = contentTypeFromExt(ext);
   }
@@ -1119,7 +1105,8 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
     throw err;
   }
 
-  const [existing] = opts && opts.replace ? await bucket.getFiles({ prefix }) : [[]];
+  const [existing] = await bucket.getFiles({ prefix });
+  const existingKeys = new Set(existing.map((file) => file.name));
 
   const out = [];
   const failures = [];
@@ -1135,10 +1122,15 @@ async function restoreLibraryFromZip(sandbox, zipBytes, opts) {
         resumable: false,
         metadata: {
           cacheControl: LIBRARY_CACHE_CONTROL,
-          metadata: { sandbox: sandboxPrefix(sandbox) },
+          metadata: {
+            sandbox: sandboxPrefix(sandbox),
+            changeType: existingKeys.has(key) ? 'updated' : 'new',
+            changedAt: new Date().toISOString(),
+          },
         },
       });
       try { await file.makePublic(); } catch (_e) { /* best-effort */ }
+      existingKeys.add(key);
       out.push({ relPath: name, size: buf.length });
     } catch (e) {
       failures.push({ relPath: name, error: String((e && e.message) || e) });

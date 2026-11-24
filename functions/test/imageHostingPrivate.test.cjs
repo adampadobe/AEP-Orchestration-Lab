@@ -191,6 +191,7 @@ test('backup captures selected public library files and restores safely with sna
   assert.equal(locks, 0);
   assert.equal((await deps.active.file('retail/library/logo.png').download())[0].toString(), 'original');
   assert.equal((await deps.active.file('retail/library/logo.png').getMetadata())[0].metadata.aiGenerated, 'true');
+  assert.equal((await deps.active.file('retail/library/logo.png').getMetadata())[0].metadata.changeType, 'updated');
   assert.equal((await deps.active.file('retail/library/unrelated.png').download())[0].toString(), 'untouched');
   assert.ok([...deps.active.objects.keys()].some((key) => key.startsWith('retail/library_backups/restore-')));
   assert.deepEqual(await backups.restore('alice', backupId, {}, options), { restored: 0, skipped: 1 });

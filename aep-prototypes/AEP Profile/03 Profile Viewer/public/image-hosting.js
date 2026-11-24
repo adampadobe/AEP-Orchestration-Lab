@@ -41,6 +41,8 @@
     sandboxes: [], backups: [], driveFolders: new Set(['']), totalBytes: 0,
     generation: 0, busy: false, restore: null, pollTimer: null, signedIn: false, uid: ''
   };
+  var changeTimer;
+  var CHANGE_HIGHLIGHT_MS = 24 * 60 * 60 * 1000;
   var byId = function (id) { return document.getElementById(id); };
   function node(tag, text, cls) {
     var el = document.createElement(tag);
@@ -58,6 +60,7 @@
     explorer.signedIn = false;
     explorer.generation++;
     clearTimeout(explorer.pollTimer);
+    clearTimeout(changeTimer);
     explorer.items = []; explorer.backups = []; lastLibraryItems = [];
     explorer.driveFolders = new Set(['']); explorer.sandboxes = []; lastRecords = [];
     explorer.path = ''; explorer.sandbox = ''; explorer.backupId = ''; explorer.restore = null;
@@ -346,6 +349,28 @@
     var q = byId('ihSearch').value.trim().toLowerCase();
     return explorer.items.filter(function (item) { return (item.name + ' ' + fileKey(item)).toLowerCase().includes(q); });
   }
+  function applyChangeIndicator(row, item) {
+    row.classList.remove('is-new', 'is-updated');
+    var badge = row.querySelector('.ih-change-badge');
+    if (badge) badge.remove();
+    var changed = Date.parse(item.changedAt);
+    var age = Date.now() - changed;
+    if (explorer.source !== 'published' || item.kind === 'folder' ||
+      !['new', 'updated'].includes(item.changeType) || !Number.isFinite(changed) ||
+      age < 0 || age >= CHANGE_HIGHLIGHT_MS) return;
+    row.classList.add('is-' + item.changeType);
+    row.append(node('span', item.changeType === 'new' ? 'New' : 'Updated', 'ih-change-badge ih-change-badge--' + item.changeType));
+  }
+  function scheduleChangeExpiry() {
+    clearTimeout(changeTimer);
+    if (explorer.source !== 'published') return;
+    var now = Date.now();
+    var expiries = explorer.items.filter(function (item) {
+      return item.kind !== 'folder' && ['new', 'updated'].includes(item.changeType);
+    }).map(function (item) { return Date.parse(item.changedAt) + CHANGE_HIGHLIGHT_MS; })
+      .filter(function (expiry) { return Number.isFinite(expiry) && expiry > now; });
+    if (expiries.length) changeTimer = setTimeout(renderExplorerItems, Math.min.apply(null, expiries) - now + 1);
+  }
   function renderExplorerItems() {
     renderBreadcrumb();
     var mode = explorerViewMode();
@@ -353,6 +378,8 @@
       byId('ih' + name + 'View').setAttribute('aria-pressed', String(mode === name.toLowerCase()));
     });
     var host = byId('ihItems');
+    byId('ihListHeader').hidden = mode !== 'list' || explorer.source === 'backups';
+    byId('ihChangeLegend').hidden = explorer.source !== 'published';
     host.className = 'ih-items' + (mode === 'grid' ? '' : ' ih-items--' + mode);
     host.replaceChildren();
     if (explorer.source === 'backups') { renderBackupList(); return; }
@@ -376,12 +403,14 @@
       var thumb = preview(item);
       row.append(label, thumb, open, node('span', item.kind === 'folder' ? 'Folder' : formatBytesShort(item.size) || 'Size unavailable', 'ih-file-size'),
         node('span', displayDate(item.updatedAt), 'ih-file-date'));
+      applyChangeIndicator(row, item);
       if (explorer.source === 'published' && item.kind !== 'folder') wireExplorerReplace(row, item);
       host.append(row);
     });
     if (!items.length) host.append(node('div', byId('ihSearch').value ? 'No files match your search. Clear the search to see this folder.' :
       explorer.source === 'backup' ? 'No files in this snapshot.' : 'This folder is empty. Upload files or create a folder to get started.', 'ih-empty'));
     renderSelection();
+    scheduleChangeExpiry();
   }
   function renderPublishedExplorer() {
     if (explorer.source !== 'published' || !explorer.signedIn || byId('ihFiles').hidden) return;
@@ -1664,6 +1693,20 @@
         ? ' (converted → ' + relPath.split('.').pop().toUpperCase() + ')'
         : '';
       setManualMsg('Replaced ' + relPath + note + '.', 'ok');
+      if (data.published) {
+        var libraryItem = lastLibraryItems.find(function (entry) { return entry.relPath === relPath; });
+        if (libraryItem) Object.assign(libraryItem, data.published);
+        var currentItem = explorer.items.find(function (entry) { return entry.path === relPath; });
+        if (currentItem) {
+          Object.assign(currentItem, data.published, { path: relPath, name: currentItem.name, kind: currentItem.kind });
+        }
+        if (card && currentItem) {
+          var date = card.querySelector('.ih-file-date');
+          if (date) date.textContent = displayDate(currentItem.updatedAt);
+          applyChangeIndicator(card, currentItem);
+          scheduleChangeExpiry();
+        }
+      }
 
       // Swap to CDN URL with cache-bust. While that loads, the card may
       // still show the local blob from above — revoke only after the
@@ -2037,7 +2080,8 @@
     var sb = getSandbox();
     if (!sb) { setManualMsg('Select a sandbox first.', 'err'); return; }
     var opts = readUploadOptions();
-    var list = Array.from(files || []).filter(function (f) {
+    var incoming = Array.from(files || []);
+    var list = incoming.filter(function (f) {
       return isAcceptedDropFile(f, opts.keepFilename);
     });
     if (!list.length) {
@@ -2049,7 +2093,8 @@
     if (drop) drop.classList.add('is-busy');
     var totalOk = 0;
     var totalCancelled = 0;
-    var errors = [];
+    var errors = incoming.filter(function (f) { return !isAcceptedDropFile(f, opts.keepFilename); })
+      .map(function (f) { return { name: f.name, error: 'Auto-rename accepts images and ZIPs only' }; });
     // Shared state across the batch so "apply to all" survives between
     // files. Updated by uploadOneFile when the user ticks the checkbox.
     var batchCtx = { appliedChoice: null, remaining: list.length };
