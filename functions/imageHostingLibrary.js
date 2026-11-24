@@ -423,8 +423,8 @@ async function createLibraryFolder(sandbox, folderPathRaw) {
 }
 
 /**
- * Replace the bytes behind an existing library file while keeping the
- * exact path (and therefore the /cdn URL). If the incoming source
+ * Write bytes to an exact library path, replacing an existing file if present
+ * (and keeping its /cdn URL). If the incoming source
  * format doesn't match the target extension, sharp converts it so the
  * object on disk always matches its extension + Content-Type.
  */
@@ -458,14 +458,14 @@ async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) 
 
   const file = bucket.file(key);
   const [exists] = await file.exists();
-  if (!exists) throw new Error('replacement target not found: ' + relPath);
+  const changeType = exists ? 'updated' : 'new';
   const changedAt = new Date().toISOString();
   await file.save(body, {
     contentType: targetCt,
     resumable: false,
     metadata: {
       cacheControl: LIBRARY_CACHE_CONTROL,
-      metadata: { sandbox: sandboxPrefix(sandbox), changeType: 'updated', changedAt },
+      metadata: { sandbox: sandboxPrefix(sandbox), changeType, changedAt },
     },
   });
   try { await file.makePublic(); } catch (_e) {}
@@ -479,7 +479,7 @@ async function replaceLibraryObject(sandbox, relPath, bytes, sourceContentType) 
     cdnUrl: publicCdnUrl(sandbox, relPath),
     publicUrl: `https://storage.googleapis.com/${BUCKET_NAME}/${key.split('/').map(encodeURIComponent).join('/')}`,
     updatedAt: (md && md.updated) || new Date().toISOString(),
-    changeType: 'updated',
+    changeType,
     changedAt,
     converted: sourceExt && sourceExt !== targetExt,
   };

@@ -180,7 +180,10 @@ test('uploads classify new and replaced files and list their shared change metad
   assert.ok(Number.isFinite(Date.parse(item.changedAt)));
   const replaced = await replaceLibraryObject('test', 'logo.gif', Buffer.from('GIF89c'), 'image/gif');
   assert.equal(replaced.changeType, 'updated');
-  await assert.rejects(replaceLibraryObject('test', 'missing.gif', Buffer.from('GIF89c'), 'image/gif'), /target not found/);
+  const created = await replaceLibraryObject('test', 'missing.gif', Buffer.from('GIF89c'), 'image/gif');
+  assert.equal(created.changeType, 'new');
+  assert.equal(activeBucket.objects.get('test/library/missing.gif').toString(), 'GIF89c');
+  assert.equal(activeBucket.metadata.get('test/library/missing.gif').metadata.changeType, 'new');
 });
 
 test('upload converts supported images, preserves non-image files and reports conversion errors', async () => {
