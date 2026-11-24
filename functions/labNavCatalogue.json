@@ -336,6 +336,15 @@
       "tracked": true
     },
     {
+      "route": "/profile-viewer/qatar-loyalty-demo.html",
+      "label": "Qatar Airways – Loyalty",
+      "navGroup": "Demos",
+      "navGroupId": "demos",
+      "subgroup": "Qatar Airways",
+      "inNav": true,
+      "tracked": true
+    },
+    {
       "route": "/profile-viewer/jet2-loyalty-demo.html",
       "label": "Jet2 – Loyalty",
       "navGroup": "Demos",

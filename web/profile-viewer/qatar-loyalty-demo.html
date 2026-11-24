@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>(function(){try{var d=document.documentElement;if(localStorage.getItem('aepTheme')==='dark')d.setAttribute('data-aep-theme','dark');if(localStorage.getItem('aepSidebarCollapsed')==='1')d.setAttribute('data-sidebar-collapsed','');}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Qatar Airways | Loyalty</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="home.css?v=20261119-loyalty-palette">
+  <link rel="stylesheet" href="mod-demo.css">
+  <link rel="stylesheet" href="tui-decisioning-drawer.css?v=20261104-tui-events">
+  <link rel="stylesheet" href="shared/profile-viewer-modal.css">
+  <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
+  <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
+  <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261123-customer-spend">
+  <link rel="stylesheet" href="qatar-loyalty-demo.css?v=20261123-qatar">
+  <link rel="stylesheet" href="aep-theme.css?v=20261119-loyalty-palette">
+</head>
+<body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page qatar-loyalty-page">
+  <div class="mod-demo-top-anchor">
+    <section class="mod-demo-id-banner" aria-label="Shared site configuration">
+      <div class="aep-demo-id-inner" data-demo-env-strip-mount="site-clone-shell"
+        data-demo-env-strip-variant="spectrum" data-demo-env-strip-prefix="qatarLoyalty"
+        data-demo-env-strip-title="Qatar Airways Loyalty" data-demo-env-strip-subtitle="Active Configuration"
+        data-demo-env-strip-bc-bottom="1"
+        data-demo-env-strip-message-id="qatarLoyaltyMessage"
+        data-demo-env-strip-disclaimer="Demo only. Use the apalmer sandbox. QAR is the demo display and purchase currency; challenge currency and qualification must be verified. Task progress is read from Adobe, never simulated by a card click."></div>
+    </section>
+  </div>
+  <header class="tui-live-actions" aria-label="Loyalty demo controls">
+    <div class="tui-lab-brand"><span class="qatar-wordmark">QATAR AIRWAYS</span><span>Loyalty lab</span></div>
+    <div class="tui-action-controls">
+      <div class="loyalty-preview-switch" role="group" aria-label="Preview channel">
+        <button type="button" data-loyalty-preview="mobile" aria-pressed="true" aria-controls="loyaltyMobilePreview">Mobile app</button>
+        <button type="button" data-loyalty-preview="web" aria-pressed="false" aria-controls="loyaltyWebPreview">Web page</button>
+      </div>
+      <span id="loyaltyStatus" role="status" aria-live="polite">Look up a profile to begin.</span>
+      <button id="loyaltyRun" type="button" disabled title="Refresh the challenge Content Card and Featured Offers for the loaded profile.">Refresh card &amp; offers</button>
+      <button id="loyaltyRefresh" type="button" disabled>Get task status</button>
+      <button id="loyaltyAbandon" type="button" disabled title="Send rewards.interest for the loaded test profile. AEP must evaluate the event before audience membership is confirmed.">Show interest in Rewards</button>
+    </div>
+  </header>
+  <main class="loyalty-workspace">
+    <section id="TopRibbon" aria-label="Personalized ribbon"></section>
+    <section id="hero-banner" class="loyalty-hero" data-hero-mount data-ajo-insert-section="Loyalty welcome">
+      <div><h1>Qatar Airways Loyalty</h1>
+      <p>Discover more rewarding journeys with live Loyalty challenges.</p></div>
+    </section>
+    <div id="loyaltyPreviewSizing" class="loyalty-preview-sizing" role="group" aria-label="Web preview dimensions" hidden>
+      <label for="loyaltyWebWidth">Web preview width <output id="loyaltyWebWidthValue" for="loyaltyWebWidth">1050px</output>
+        <input id="loyaltyWebWidth" type="range" min="360" max="1200" step="10" value="1050"></label>
+      <label for="loyaltyInspectorWidth">Challenge column width <output id="loyaltyInspectorWidthValue" for="loyaltyInspectorWidth">420px</output>
+        <input id="loyaltyInspectorWidth" type="range" min="280" max="640" step="10" value="420"></label>
+      <span>Widths fit the available screen space.</span>
+    </div>
+    <div class="loyalty-columns">
+      <div class="loyalty-inspector">
+      <section id="loyalty-challenges" class="loyalty-challenges" aria-labelledby="loyaltyTasksTitle" data-ajo-insert-section="Member task progress">
+        <div class="loyalty-section-heading"><h2 id="loyaltyTasksTitle">Challenge progress</h2><span id="loyaltyUpdated">Not loaded</span></div>
+        <div id="loyaltyTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to load existing challenge progress.</p></div>
+      </section>
+      <section class="loyalty-available-section" aria-labelledby="loyaltyAvailableTitle">
+        <div class="loyalty-section-heading"><h2 id="loyaltyAvailableTitle">Available challenges</h2></div>
+        <div id="loyaltyAvailable" aria-live="polite"><p class="loyalty-empty">Look up a profile to see available challenges.</p></div>
+      </section>
+      <details class="loyalty-offer-inspector">
+        <summary class="loyalty-section-heading"><h2 id="loyaltyReturnedTitle">Profile offers</h2><span id="loyaltyReturnedCount">Waiting for AJO</span></summary>
+        <p class="loyalty-inspector-note">Experience Decisioning results, in the order returned by Adobe.</p>
+        <div id="loyaltyReturnedOffers" aria-live="polite"><p class="loyalty-empty">No personalised offers received for this context.</p></div>
+      </details>
+      </div>
+      <section id="loyaltyMobilePreview" class="loyalty-mobile-preview" aria-label="Qatar Airways mobile Loyalty preview">
+        <div class="loyalty-phone">
+          <svg class="loyalty-app-symbols" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <symbol id="loyaltyIconHome" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v9h-6v-6H9v6H3z"/></symbol>
+            <symbol id="loyaltyIconCard" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></symbol>
+            <symbol id="loyaltyIconMoney" viewBox="0 0 24 24"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol>
+            <symbol id="loyaltyIconStar" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+            <symbol id="loyaltyIconPerson" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+            <symbol id="loyaltyIconSearch" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+            <symbol id="loyaltyIconBell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"/></symbol>
+            <symbol id="loyaltyIconArrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+            <symbol id="loyaltyIconTransfer" viewBox="0 0 24 24"><path d="M7 4L3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/></symbol>
+            <symbol id="loyaltyIconPlus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+            <symbol id="loyaltyIconTrophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3"/></symbol>
+            <symbol id="loyaltyIconGift" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M12 8v13M3 13h18M12 8c-2-4-6-4-6-1.5S10 8 12 8zm0 0c2-4 6-4 6-1.5S14 8 12 8z"/></symbol>
+            <symbol id="loyaltyIconTool" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.2-.5-.5-2.2z"/></symbol>
+            <symbol id="loyaltyIconTicket" viewBox="0 0 24 24"><path d="M3 9a2 2 0 0 0 0 6v3h18v-3a2 2 0 0 1 0-6V6H3zM14 6v12"/></symbol>
+          </svg>
+          <div class="loyalty-phone-status" aria-hidden="true"><span>9:41</span><span>Qatar Airways</span></div>
+          <div class="loyalty-phone-scroll" tabindex="0" aria-label="Scroll mobile app content">
+            <section id="loyaltyViewHome" class="loyalty-app-view" aria-label="Home">
+              <header class="loyalty-home-head">
+                <span id="loyaltyHomeAvatar" class="loyalty-avatar" aria-hidden="true">Q</span>
+                <div class="loyalty-home-hello"><span>Welcome aboard</span><b id="loyaltyHomeName" tabindex="-1">Your journey</b></div>
+                <button class="loyalty-icon-button" type="button" aria-label="Search" data-phone-preview="Search"><svg aria-hidden="true"><use href="#loyaltyIconSearch"/></svg></button>
+                <button class="loyalty-icon-button" type="button" aria-label="Notifications" data-phone-preview="Notifications"><svg aria-hidden="true"><use href="#loyaltyIconBell"/></svg><i></i></button>
+              </header>
+              <section class="loyalty-balance-card qatar-travel-hero" aria-label="Travel inspiration">
+                <div class="loyalty-balance-row"><span>Your next journey</span><span class="loyalty-account-chip">Travel inspiration</span></div>
+                <b class="loyalty-balance-amount">Going places together</b>
+                <div class="loyalty-balance-row"><span>Explore the world</span><span>Explore your rewards</span></div>
+              </section>
+              <nav class="loyalty-quicknav" aria-label="Quick actions">
+                <button type="button" data-phone-preview="Flight search"><span><svg aria-hidden="true"><use href="#loyaltyIconSearch"/></svg></span>Search</button>
+                <button type="button" data-phone-preview="Bookings"><span><svg aria-hidden="true"><use href="#loyaltyIconTicket"/></svg></span>Bookings</button>
+                <button type="button" data-phone-preview="Destinations"><span><svg aria-hidden="true"><use href="#loyaltyIconArrow"/></svg></span>Explore</button>
+                <button type="button" data-phone-view="rewards"><span><svg aria-hidden="true"><use href="#loyaltyIconStar"/></svg></span>Rewards</button>
+              </nav>
+              <button class="loyalty-rewards-teaser" type="button" data-phone-view="rewards" aria-controls="loyaltyViewRewards">
+                <span class="loyalty-teaser-icon"><svg aria-hidden="true"><use href="#loyaltyIconStar"/></svg></span>
+                <span><small>Your rewards</small><b>Make more of every journey</b><em>Discover your challenges and personalised offers</em></span><span aria-hidden="true">&#8250;</span>
+              </button>
+              <h3 class="loyalty-app-section-title">Travel inspiration</h3>
+              <section class="loyalty-app-list" aria-label="Illustrative travel inspiration">
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo">BE</span><div><b>New destinations</b><small>Discover new places</small></div><strong>Explore</strong></div>
+                <div class="loyalty-bank-row"><span class="loyalty-merchant-logo">AI</span><div><b>Travel experiences</b><small>Make every journey memorable</small></div><strong>Discover</strong></div>
+              </section>
+              <p class="loyalty-app-note">Travel inspiration is illustrative. No booking or reward balance is implied.</p>
+            </section>
+            <section id="loyaltyViewRewards" class="loyalty-app-view" aria-labelledby="loyaltyMobileTitle" hidden>
+              <h2 id="loyaltyMobileTitle" class="loyalty-app-title" tabindex="-1">Rewards</h2>
+              <section class="loyalty-rewards-summary" aria-label="Qatar Airways rewards welcome">
+                <span class="qatar-wordmark">QATAR AIRWAYS</span>
+                <b class="loyalty-summary-amount">Your travel rewards</b><p>Discover the rewards chosen for you</p>
+                <div class="loyalty-added"><span aria-hidden="true">&#9734;</span><div>Follow your challenges below. Progress is reported by Adobe Loyalty.</div></div>
+                <button id="loyaltyBreakdownButton" type="button" aria-expanded="false" aria-controls="loyaltyBreakdown">Show breakdown <span aria-hidden="true">&#8594;</span></button>
+                <dl id="loyaltyBreakdown" hidden><div><dt>Challenge progress</dt><dd>Adobe Loyalty</dd></div><div><dt>Challenge content</dt><dd>AJO Content Cards</dd></div><div><dt>Featured offers</dt><dd>Experience Decisioning</dd></div></dl>
+              </section>
+              <nav class="loyalty-quicknav" aria-label="Rewards navigation">
+                <button type="button" data-phone-section="loyaltyFeaturedTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconTicket"/></svg></span>Offers</button>
+                <button type="button" data-phone-section="loyaltyPromotionTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconTrophy"/></svg></span>Challenges</button>
+                <button type="button" data-phone-section="loyaltyReadyTitle"><span><svg aria-hidden="true"><use href="#loyaltyIconGift"/></svg></span>My benefits</button>
+                <button type="button" data-phone-preview="Rewards tools"><span><svg aria-hidden="true"><use href="#loyaltyIconTool"/></svg></span>Tools</button>
+              </nav>
+              <section id="loyaltyPrizeDraw" class="loyalty-prize-draw" aria-labelledby="loyaltyPrizeDrawTitle">
+                <h3 id="loyaltyPrizeDrawTitle">More journeys.<br>More rewarding moments.</h3>
+                <button type="button" class="loyalty-app-dark-button" data-phone-section="loyaltyPromotionTitle">Explore your challenges</button>
+              </section>
+              <section class="loyalty-promotion" aria-labelledby="loyaltyPromotionTitle" data-ajo-insert-section="Loyalty content card">
+                <h3 id="loyaltyPromotionTitle" tabindex="-1">Your challenges</h3>
+                <p id="loyaltyCardHint">Your challenges will appear here.</p>
+                <div id="ContentCardContainer" class="loyalty-card-wrapper">
+                  <div id="ContentCardContainerLoyalty" class="ContentCardLoyalty" data-content-card-renderer="website" role="group" aria-live="polite" aria-labelledby="loyaltyPromotionTitle"></div>
+                </div>
+              </section>
+              <h3 id="loyaltyFeaturedTitle" class="loyalty-app-section-title" tabindex="-1">Featured offers</h3>
+              <div id="loyaltyOfferCarousel" class="loyalty-offer-carousel" role="region" aria-roledescription="carousel" aria-label="Featured offers" aria-busy="true" tabindex="0">
+                <p id="loyaltyFeaturedStatus" class="loyalty-app-note" role="status">Loading personalised offers&#8230;</p>
+                <div id="loyaltyFeaturedOffers" class="loyalty-featured-track" role="list"></div>
+              </div>
+              <div class="loyalty-carousel-controls" aria-label="Featured offer controls">
+                <button id="loyaltyPreviousOffer" type="button" aria-label="Previous featured offer" aria-controls="loyaltyOfferCarousel">&#8592;</button>
+                <div id="loyaltyOfferDots" class="loyalty-offer-dots" role="group" aria-label="Choose a featured offer"></div>
+                <button id="loyaltyNextOffer" type="button" aria-label="Next featured offer" aria-controls="loyaltyOfferCarousel">&#8594;</button>
+              </div>
+              <h3 id="loyaltyReadyTitle" class="loyalty-app-section-title" tabindex="-1">Ready to use</h3>
+              <section class="loyalty-plus-banner"><span>PLUS</span><b>Offers that stay active for longer</b></section>
+              <section class="loyalty-recent-offers" aria-label="Demo purchases sent"><p>Your purchase events</p><div id="loyaltySavedOffers" aria-live="polite"></div></section>
+              <div class="loyalty-ticket"><span><svg aria-hidden="true"><use href="#loyaltyIconTicket"/></svg></span><div><b>Your travel rewards</b><small>Explore your travel inspiration</small></div><button type="button" aria-label="Preview travel rewards" data-phone-preview="Travel extras">&#8250;</button></div>
+              <section class="loyalty-app-challenges" aria-labelledby="loyaltyPhoneTitle">
+                <div class="loyalty-phone-segments" role="group" aria-label="Challenge participation">
+                  <button type="button" data-loyalty-participation="active" aria-pressed="true">Active</button>
+                  <button type="button" data-loyalty-participation="complete" aria-pressed="false">Completed</button>
+                </div>
+                <h3 id="loyaltyPhoneTitle" tabindex="-1">In progress</h3>
+                <p class="loyalty-phone-subtitle">Your live Adobe challenge progress.</p>
+                <section id="loyaltyPartnerOffers" class="loyalty-phone-challenge" aria-label="Joined challenge partner offers" aria-live="polite" hidden></section>
+                <div id="loyaltyPhoneTasks" aria-live="polite"><p class="loyalty-empty">Look up a profile to see its challenges.</p></div>
+                <h3>Available challenges</h3>
+                <div id="loyaltyPhoneAvailable" aria-live="polite"></div>
+              </section>
+              <p class="loyalty-app-note">Offers come from Adobe when available. Sending a purchase does not confirm reward issuance or complete a challenge.</p>
+            </section>
+          </div>
+          <nav class="loyalty-phone-nav" aria-label="Mobile preview sections">
+            <button type="button" data-phone-view="home" aria-controls="loyaltyViewHome" aria-current="page"><svg aria-hidden="true"><use href="#loyaltyIconHome"/></svg>Home</button>
+            <button type="button" data-phone-preview="Bookings"><svg aria-hidden="true"><use href="#loyaltyIconTicket"/></svg>Bookings</button>
+            <button type="button" data-phone-preview="Flight search"><svg aria-hidden="true"><use href="#loyaltyIconSearch"/></svg>Search</button>
+            <button type="button" data-phone-view="rewards" aria-controls="loyaltyViewRewards"><svg aria-hidden="true"><use href="#loyaltyIconStar"/></svg>Rewards</button>
+            <button type="button" data-phone-preview="Profile tools"><svg aria-hidden="true"><use href="#loyaltyIconPerson"/></svg>Profile</button>
+          </nav>
+          <div id="loyaltyAppToast" class="loyalty-app-toast" role="status" aria-live="polite" hidden></div>
+          <div id="loyaltyOfferSheet" class="loyalty-offer-overlay" hidden></div>
+        </div>
+      </section>
+      <section id="loyaltyWebPreview" class="loyalty-web-preview" aria-label="Qatar Airways rewards website preview" hidden>
+        <div class="loyalty-web-utility"><span>Qatar Airways</span><span>Travel</span><span>Rewards</span><strong>Demo preview</strong></div>
+        <header class="loyalty-web-header">
+          <div class="loyalty-web-wordmark"><span class="qatar-wordmark">QATAR AIRWAYS</span><span>Discover more rewarding journeys</span></div>
+          <nav aria-label="Website preview navigation">
+            <a href="#loyaltyWebChallenge">Your challenge</a><a href="#loyaltyWebOffers">Your offers</a>
+          </nav>
+          <span class="loyalty-web-member">Travel rewards</span>
+        </header>
+        <div class="loyalty-web-products" aria-label="Illustrative travel navigation"><span>Flights</span><span>Destinations</span><span>Travel experiences</span><span>Travel extras</span><b>Rewards</b></div>
+        <div class="loyalty-web-hero">
+          <div><p class="loyalty-web-eyebrow">YOUR JOURNEY. YOUR REWARDS.</p><h2>More journeys.<br>More to look forward to.</h2><p>Your challenges and personalised offers, all in one place.</p><a href="#loyaltyWebOffers">Explore your offers <span aria-hidden="true">&#8594;</span></a></div>
+          <div class="loyalty-web-hero-art" aria-hidden="true"></div>
+        </div>
+        <div class="loyalty-web-content">
+          <section id="loyaltyWebChallenge" class="loyalty-web-challenge-slot" aria-label="Your Loyalty challenge"></section>
+          <section id="loyaltyWebOffers" class="loyalty-web-offer-slot" aria-label="Your Featured Offers"></section>
+          <p id="loyaltyWebNotice" class="loyalty-web-notice" role="status" aria-live="polite"></p>
+          <p class="loyalty-inspector-note">Lab demonstration, not a booking service. + sends a demo purchase for the selected test profile; only Adobe task state confirms challenge progress.</p>
+        </div>
+        <footer class="loyalty-web-footer"><strong>Qatar Airways</strong><span>Your journey. Your rewards.</span><span>Demonstration only</span></footer>
+      </section>
+    </div>
+    <details class="loyalty-evidence">
+      <summary>Last successful response / proposition evidence</summary>
+      <pre id="loyaltyEvidence">No live response yet.</pre>
+      <details>
+        <summary>Spend purchase and Loyalty state evidence</summary>
+        <pre id="loyaltySpendEvidence">No Spend purchase sent for this context.</pre>
+      </details>
+      <details>
+        <summary>Content Card pre-selection diagnostics</summary>
+        <pre id="loyaltyCardPreselectionEvidence">No Content Card response captured yet.</pre>
+      </details>
+    </details>
+  </main>
+  <div id="loyaltyDecisionOfferSheet" class="loyalty-offer-overlay loyalty-decision-overlay" hidden></div>
+  <template id="loyaltyApiOptions">
+    <details class="loyalty-settings">
+      <summary>Loyalty API options</summary>
+      <p>Task status and challenge signup use Adobe's default State API region (va7). Only override it if your sandbox uses another confirmed region. Adobe credentials stay on the server. Join Challenge uses the Loyalty Signup API with test: false; it does not send a signup event through Web SDK or prove journey entry.</p>
+      <div class="loyalty-settings-grid">
+        <label>State region override<select id="loyaltyRegion"><option value="">Adobe default (va7)</option><option value="va7">va7</option><option value="nld2">nld2</option><option value="aus5">aus5</option><option value="can2">can2</option><option value="ind2">ind2</option><option value="global">Global (platform.adobe.io)</option></select></label>
+        <label>Member identifier<input id="loyaltyMember" autocomplete="off" placeholder="Resolved when namespaces match"></label>
+        <label>Challenge ID (optional)<input id="loyaltyChallenge" autocomplete="off" placeholder="All active challenges"></label>
+        <label>Event tenant namespace<input id="loyaltyTenant" autocomplete="off" placeholder="_yourTenant"></label>
+        <label class="loyalty-surface-field">Content-card surface URI<input id="loyaltySurface" autocomplete="off" spellcheck="false"></label>
+        <label>Participation<select id="loyaltyParticipation"><option value="active">Active</option><option value="complete">Completed</option></select></label>
+      </div>
+      <p><strong>Show interest in Rewards</strong> sends <code>rewards.interest</code> using the injected Web SDK and selected datastream, just like TUI / Center Parcs. Set the reviewed event tenant for the selected sandbox above. AEP must evaluate the event for the separately configured Interested in Rewards audience. Sending does not confirm audience membership or complete tasks.</p>
+      <div class="loyalty-options">
+        <label><input id="loyaltyTest" type="checkbox"> State API test mode (not AEP testProfile)</label>
+        <label><input id="loyaltyAuto" type="checkbox"> Refresh task state every 30 seconds after a successful read</label>
+        <span id="loyaltyNamespace">Loyalty namespace not yet read</span>
+      </div>
+    </details>
+  </template>
+  <div class="dashboard-shell"><aside class="dashboard-sidebar" aria-label="Lab navigation"></aside><div class="dashboard-main-wrap"><main class="dashboard-main" hidden></main></div></div>
+  <div id="profileViewerModalMount" data-aep-profile-viewer-modal-mount="1"></div>
+  <script src="firebase-database-config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="aep-global-sandbox.js"></script>
+  <script src="aep-lab-sandbox-sync.js"></script>
+  <script src="email-cache.js"></script>
+  <script src="identity-picker.js"></script>
+  <script src="email-engagement-metrics.js"></script>
+  <script src="shared/profile-viewer-modal.js"></script>
+  <script src="tui-decisioning-attribution.js?v=20261123-featured-display"></script>
+  <script src="tui-decisioning-drawer.js?v=20261123-qatar-currency"></script>
+  <script src="aep-demo-generator-targets.js"></script>
+  <script src="lloyds-loyalty-model.js?v=20261123-qatar-currency"></script>
+  <script src="tui-decisioning-profile.js?v=20261109-hospitality"></script>
+  <script src="tui-profile-hero.js?v=20261117-loyalty-labels"></script>
+  <script>
+    window.LoyaltyDemoConfig = {
+      prefix: 'qatarLoyalty', viewName: 'Qatar Airways Loyalty', homeLabel: 'Your journey', homeAvatar: 'Q',
+      currency: 'QAR', contentCardSurfacePage: 'current', usePartnerOffers: false, useFallbackOffers: false
+    };
+    window.envBarConfig = {
+      prefix: 'qatarLoyalty', variant: 'spectrum', localOverride: true, firestoreListen: false,
+      features: { webPush: false, bc: false, target: false, decisioning: true },
+      decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
+        runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Qatar Airways Loyalty' },
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261123-qatar-currency'
+    };
+  </script>
+  <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>
+  <script src="aep-lab-nav.js?v=20261123-qatar-loyalty"></script>
+  <script src="aep-theme.js" defer></script>
+</body>
+</html>

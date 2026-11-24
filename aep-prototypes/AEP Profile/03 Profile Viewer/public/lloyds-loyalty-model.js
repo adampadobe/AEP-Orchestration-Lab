@@ -30,7 +30,7 @@
     return typeof goal === 'number' && Number.isFinite(goal) && goal > 0 &&
       typeof value === 'number' && Number.isFinite(value) ? { goal, value, key } : null;
   }
-  function spendTask(task, definition) {
+  function spendTask(task, definition, defaultCurrency = 'GBP') {
     const variables = { ...definition?.variables, ...task.variables };
     const taskClass = String(task.taskClass || definition?.taskClass || '').trim().toLowerCase();
     const type = String(variables.type || task.taskType || definition?.taskType || '').trim().toLowerCase();
@@ -42,13 +42,13 @@
     return {
       goal: positive(goal) ? goal : null,
       value: typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null,
-      currency: variables.currencyCode ?? task.currencyCode ?? definition?.currencyCode ?? 'GBP',
+      currency: variables.currencyCode ?? task.currencyCode ?? definition?.currencyCode ?? defaultCurrency,
       variables,
     };
   }
-  function spendPurchaseSku(spend) {
-    if (!spend || spend.currency !== 'GBP' || !spend.goal ||
-        spend.variables.singleTrans === true && spend.goal > 10) return null;
+  function spendPurchaseSku(spend, currency = 'GBP', amount = 10) {
+    if (!spend || spend.currency !== currency || !spend.goal ||
+        spend.variables.singleTrans === true && spend.goal > amount) return null;
     const values = filter => (Array.isArray(filter?.valuesSet) ? filter.valuesSet :
       typeof filter?.values_csv === 'string' ? filter.values_csv.split(',') : [])
       .filter(value => typeof value === 'string').map(value => value.trim()).filter(Boolean);

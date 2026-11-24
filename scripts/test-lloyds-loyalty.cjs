@@ -143,6 +143,20 @@ test('Spend presentation shares real zero, money and capped percentages without 
   assert.equal(model.spendPresentation(model.spendTask({ ...task, taskClass: 'purchase' })), null);
 });
 
+test('configured QAR Spend preserves explicit currencies and purchase constraints', () => {
+  const task = { taskClass: 'spend', variables: { spendMin: 50 }, accumulators: { spend: 10 } };
+  const spend = model.spendTask(task, undefined, 'QAR');
+  assert.equal(spend.currency, 'QAR');
+  assert.match(model.spendPresentation(spend).summary, /QAR/);
+  assert.equal(model.spendPurchaseSku(spend, 'QAR', 10), 'LOYALTY-SPEND-DEMO-10');
+  const gbp = model.spendTask({ ...task, variables: { ...task.variables, currencyCode: 'GBP' } }, undefined, 'QAR');
+  assert.equal(gbp.currency, 'GBP');
+  assert.equal(model.spendPurchaseSku(gbp, 'QAR', 10), null);
+  assert.equal(model.spendPurchaseSku(model.spendTask({
+    ...task, variables: { ...task.variables, singleTrans: true },
+  }, undefined, 'QAR'), 'QAR', 10), null);
+});
+
 test('available summaries describe arbitrary task goals without inferring currency or accumulated progress', () => {
   assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 75 } }] }), 'Qualifying spend target: 75');
   assert.equal(model.getChallengeSummary({ tasks: [{ variables: { spendMin: 80, currencyCode: 'EUR' }, accumulators: { spend: 20 } }] }),

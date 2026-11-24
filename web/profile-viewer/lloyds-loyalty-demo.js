@@ -3,11 +3,19 @@
   const $ = id => document.getElementById(id), model = global.LloydsLoyalty;
   const brand = global.LoyaltyDemoConfig || {};
   const prefix = brand.prefix || 'lloydsLoyalty', viewName = brand.viewName || 'Lloyds Loyalty';
+  const currency = brand.currency || 'GBP', spendAmount = 10;
+  const spendAmountLabel = new Intl.NumberFormat('en-GB', {
+    style: 'currency', currency, maximumFractionDigits: 2, minimumFractionDigits: 0,
+  }).format(spendAmount);
+  const spendTask = (task, definition) => model.spendTask(task, definition, currency);
+  const spendPurchaseSku = spend => model.spendPurchaseSku(spend, currency, spendAmount);
+  const partnerOffers = brand.usePartnerOffers === false ? [] : model.partnerOffers;
   // Match the reviewed Kirkham event schema used by TUI / Center Parcs.
   const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
   const cardMount = () => $('ContentCardContainerLoyalty');
   const defaultCardSurface = () => {
-    const page = new URL('content-decision-live-edge.html', location.href);
+    const page = brand.contentCardSurfacePage === 'current' ? new URL(location.href) :
+      new URL('content-decision-live-edge.html', location.href);
     return 'web://' + page.host + page.pathname + '#ContentCardContainerLoyalty';
   };
   const completedState = state => /^(complete|completed|sent)$/i.test(String(state));
@@ -107,8 +115,10 @@
     $('loyaltyOfferCarousel').setAttribute('aria-busy', 'true');
     // Five-second development fallback; a later valid AJO delivery always replaces these previews.
     featuredFallbackTimer = setTimeout(() => {
-      renderFeaturedOffers(decisionItems);
-      $('loyaltyFeaturedStatus').textContent = 'Preview offers: no personalised offers received after 5 seconds.';
+      renderFeaturedOffers(brand.useFallbackOffers === false ? [] : decisionItems);
+      $('loyaltyFeaturedStatus').textContent = brand.useFallbackOffers === false ?
+        'No personalised offers received for this context.' :
+        'Preview offers: no personalised offers received after 5 seconds.';
     }, 5000);
   }
   function renderFeaturedOffers(items) {
@@ -651,7 +661,7 @@
       const panels = [];
       for (const task of challenge?.tasks || []) {
         const definitionTask = definition?.tasks?.find(item => (item.taskId || item._id) === task.taskId);
-        const spend = model.spendTask(task, definitionTask), presentation = model.spendPresentation(spend);
+        const spend = spendTask(task, definitionTask), presentation = model.spendPresentation(spend);
         if (!presentation) continue;
         const completed = completedState(challenge.state) || complete(task);
         const panel = node('div', undefined, 'loyalty-added loyalty-customer-spend');
@@ -894,7 +904,7 @@
         step.setAttribute('aria-hidden', 'true');
         const initialsText = taskName.split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
         const logo = node('span', initialsText, 'loyalty-task-logo'); logo.setAttribute('aria-hidden', 'true');
-        const spend = model.spendTask(task, definitionTask);
+        const spend = spendTask(task, definitionTask);
         const spendCopy = model.spendPresentation(spend);
         const progress = spend ? spend.goal && spend.value !== null ? { goal: spend.goal, value: spend.value } : null : model.progress(task);
         const taskCopy = node('div', undefined, 'loyalty-task-copy');
@@ -909,7 +919,7 @@
           meter.setAttribute('aria-label', (task.taskName || task.taskId) + ' progress');
           card.append(meter);
         }
-        const sku = model.spendPurchaseSku(spend);
+        const sku = spendPurchaseSku(spend);
         if (selectedMember && ctx.participation === 'active' && !ctx.test && sku &&
             !complete(task) && !completedState(challenge.state)) {
           card.append(spendControl(challenge, task, definitionTask, ctx));
@@ -1092,7 +1102,7 @@
       node('span', 'Live status', 'loyalty-progress-caption'), node('h3', joinedChallenge.title),
       node('p', 'Enrollment confirmed. Awaiting Adobe task progress.', 'loyalty-next-task'));
     summary.append(ring, title); section.append(summary);
-    for (const [index, offer] of model.partnerOffers.entries()) {
+    for (const [index, offer] of partnerOffers.entries()) {
       const row = node('div', undefined, 'loyalty-offer-step');
       row.dataset.partner = offer.key;
       const text = node('div');
@@ -1102,17 +1112,20 @@
       section.append(row);
     }
     const outcome = node('div', undefined, 'loyalty-outcome');
-    outcome.append(node('b', 'Ready when you are'), node('span', 'View the offers on your phone. Get task status for live progress.'));
+    outcome.append(node('b', 'Ready when you are'), node('span', partnerOffers.length ?
+      'View the offers on your phone. Get task status for live progress.' :
+      'Get task status for live progress.'));
     section.append(outcome); $('loyaltyTasks').replaceChildren(section);
   }
   function renderPartnerOffers() {
     const section = $('loyaltyPartnerOffers');
+    if (!partnerOffers.length) { section.replaceChildren(); section.hidden = true; return; }
     section.hidden = false; section.replaceChildren();
     section.dataset.challengeId = joinedChallenge.id;
     section.append(node('h4', joinedChallenge.title),
       node('p', joinedChallenge.confirmed ? 'Participation confirmed by Adobe.' :
         'Get task status to confirm enrollment.', 'loyalty-phone-count'));
-    for (const offer of model.partnerOffers) {
+    for (const offer of partnerOffers) {
       const row = node('div', undefined, 'loyalty-phone-task loyalty-partner-task');
       row.dataset.partner = offer.key;
       const text = node('div');
@@ -1216,7 +1229,7 @@
       const status = spendMessages.get(button.dataset.spendPurchase);
       const sending = status?.phase === 'sending';
       button.disabled = busy || !loaded || sending;
-      button.textContent = sending ? 'Sending \u00a310 purchase...' : 'Simulate \u00a310 purchase';
+      button.textContent = sending ? 'Sending ' + spendAmountLabel + ' purchase...' : 'Simulate ' + spendAmountLabel + ' purchase';
       button.setAttribute('aria-busy', String(sending));
       const feedback = button.parentElement.querySelector('[data-spend-feedback]');
       feedback.textContent = status?.message || '';
@@ -1226,7 +1239,7 @@
   function spendControl(challenge, task, definitionTask, ctx) {
     const control = node('div', undefined, 'loyalty-spend-demo');
     control.append(node('b', 'Simulate qualifying purchase'),
-      node('small', 'Send a \u00a310 purchase event for this Loyalty member.'),
+      node('small', 'Send a ' + spendAmountLabel + ' purchase event for this Loyalty member.'),
       node('small', 'Demo control. Only Adobe Loyalty can confirm qualification.'));
     const button = node('button'); button.type = 'button';
     button.dataset.spendPurchase = spendKey(challenge, task);
@@ -1355,14 +1368,14 @@
         same(renderContext, renderToken);
         const current = memberChallenges.find(item => item.challenge_id === challenge.challenge_id);
         const currentTask = current?.tasks.find(item => item.taskId === task.taskId);
-        const sku = currentTask && model.spendPurchaseSku(model.spendTask(currentTask, definitionTask));
+        const sku = currentTask && spendPurchaseSku(spendTask(currentTask, definitionTask));
         if (profile !== loaded || current?.optedIn !== true || !sku || complete(currentTask) ||
             completedState(current.state) || ctx.participation !== 'active' || ctx.test) {
           throw new Error('Resolve this Loyalty member and retrieve an active opted-in Spend task before sending a purchase.');
         }
         const captured = await prepareProfileEvent(ctx, token, 'commerce.purchases', true);
         const payload = await withLoyaltyEventContext(
-          purchasePayload(captured, sku, 'Loyalty Spend demo purchase', 10),
+          purchasePayload(captured, sku, 'Loyalty Spend demo purchase', spendAmount),
           challengeEventContext(challenge.challenge_id, {
             contextType: 'spendDemoPurchase', taskId: currentTask.taskId, taskName: currentTask.taskName,
             qualification: 'notConfirmed',
@@ -1370,16 +1383,16 @@
         writeSpendEvidence({ sandbox: ctx.sandbox, member: loaded.profileLoyaltyId,
           challengeId: challenge.challenge_id, taskId: task.taskId, event: payload,
           sdkAccepted: false, qualification: 'Not confirmed', poll: { responses: [] } });
-        console.log('[Loyalty Spend demo] Sending GBP 10 purchase', payload);
+        console.log('[Loyalty Spend demo] Sending ' + currency + ' ' + spendAmount + ' purchase', payload);
         const result = await dispatchProfileEvent(captured, payload, ctx, token);
         same(ctx, token);
         writeSpendEvidence({ ...spendEvidence.snapshot, sdkAccepted: true, sdkResponse: result });
         console.log('[Loyalty Spend demo] SDK accepted; qualification is not confirmed', {
           purchaseID: payload.xdm.commerce.order.purchaseID, sdkResponse: result,
         });
-        status.phase = 'idle'; status.message = '\u00a310 purchase sent. Checking Adobe Loyalty state; qualification is not confirmed.';
+        status.phase = 'idle'; status.message = spendAmountLabel + ' purchase sent. Checking Adobe Loyalty state; qualification is not confirmed.';
         accepted = true; sentContext = ctx; sentToken = token; sentTask = currentTask;
-        message('GBP 10 purchase accepted by Web SDK. Checking Adobe Loyalty; no progress was changed locally.');
+        message(currency + ' ' + spendAmount + ' purchase accepted by Web SDK. Checking Adobe Loyalty; no progress was changed locally.');
       } catch (error) {
         status.phase = 'error';
         status.message = error.message + (error.cause?.message ? ' ' + error.cause.message : '');
@@ -1404,8 +1417,8 @@
       personalization: { defaultPersonalizationEnabled: false },
       xdm: { _id: global.crypto.randomUUID(), timestamp: new Date().toISOString(),
         eventType: 'commerce.purchases', identityMap: captured.identityMap,
-        commerce: { purchases: { value: 1 }, order: { purchaseID, priceTotal: amount, currencyCode: 'GBP' } },
-        productListItems: [{ SKU: sku, name, quantity: 1, priceTotal: amount, currencyCode: 'GBP' }],
+        commerce: { purchases: { value: 1 }, order: { purchaseID, priceTotal: amount, currencyCode: currency } },
+        productListItems: [{ SKU: sku, name, quantity: 1, priceTotal: amount, currencyCode: currency }],
         ...captured.eventXdm } };
   }
   async function sendOfferPurchase(offer, button) {

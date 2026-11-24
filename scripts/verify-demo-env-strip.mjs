@@ -60,6 +60,7 @@ const SANDBOX_ONLY_ENV_BAR_HTML = [
 const SITE_CLONE_DEMO_HTML = [
   'jet2-loyalty-demo.html',
   'lloyds-loyalty-demo.html',
+  'qatar-loyalty-demo.html',
   'sky-demo.html',
   'jlr-demo.html',
   'mod-demo.html',
