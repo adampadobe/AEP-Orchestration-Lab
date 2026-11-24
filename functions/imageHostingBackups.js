@@ -218,10 +218,11 @@ function scopedRestoreFiles(all, filters, workspaceSlug) {
 function unchanged(item, current) {
   const wanted = item.metadata || {};
   const actual = current.metadata || {};
-  const keys = Object.keys(wanted);
+  const isContentMetadata = (key) => key !== 'changeType' && key !== 'changedAt';
+  const keys = Object.keys(wanted).filter(isContentMetadata);
   return current.contentType === item.contentType
     && ((item.md5 && item.md5 === current.md5Hash) || (item.crc32c && item.crc32c === current.crc32c))
-    && keys.length === Object.keys(actual).length && keys.every((key) => wanted[key] === actual[key]);
+    && keys.length === Object.keys(actual).filter(isContentMetadata).length && keys.every((key) => wanted[key] === actual[key]);
 }
 
 async function preview(uid, id, filters, deps = {}) {
@@ -280,7 +281,8 @@ async function restore(uid, id, filters, deps = {}) {
         }
         const source = bucket.file(`${prefix(uid, id)}${sandbox}/${item.relPath}`, { generation: item.backupGeneration });
         await source.copy(target, {
-          contentType: item.contentType, metadata: item.metadata || {},
+          contentType: item.contentType,
+          metadata: { ...(item.metadata || {}), changeType: exists ? 'updated' : 'new', changedAt: new Date().toISOString() },
           cacheControl: 'public, max-age=0, must-revalidate',
           preconditionOpts: { ifGenerationMatch: generation },
         });

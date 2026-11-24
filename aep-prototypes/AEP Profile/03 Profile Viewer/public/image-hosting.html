@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="home.css?v=20260514-customer-demos-nav">
   <link rel="stylesheet" href="brand-scraper.css?v=20260420a">
-  <link rel="stylesheet" href="image-hosting.css?v=20261123-folder-icons">
+  <link rel="stylesheet" href="image-hosting.css?v=20261124-change-highlights">
   <link rel="stylesheet" href="aep-theme-palettes.css?v=20260416c">
   <link rel="stylesheet" href="aep-theme.css?v=20260423b-fs-helper">
 </head>
@@ -76,6 +76,7 @@
             <aside id="ihTree" class="ih-tree" aria-label="Image folders"></aside>
             <div class="ih-content">
               <p id="ihLocationHint" class="hint"></p>
+              <p id="ihChangeLegend" class="ih-change-legend">Published files: <span>New</span> and <span>Updated</span> highlights remain for 24 hours.</p>
               <div id="ihSelection" class="ih-selection" hidden>
                 <span id="ihSelectionCount"></span>
                 <button id="ihSelectAll" type="button">Select all</button>
@@ -87,6 +88,7 @@
                 <button id="ihCopy" type="button">Copy CDN URL</button>
                 <button id="ihRestore" type="button">Restore…</button>
               </div>
+              <div id="ihListHeader" class="ih-list-header" hidden><span>Name</span><span>Size</span><span>Updated date/time</span></div>
               <div id="ihItems" class="ih-items"></div>
             </div>
             <aside id="ihDetails" class="ih-details" aria-label="File details"><h3>Details</h3><p>Select a file to preview it and see its details.</p></aside>
@@ -194,7 +196,7 @@
             <input id="imageHostingDropInput" type="file" accept="image/*,.zip,application/zip" multiple hidden />
             <p class="image-hosting-drop-title">Drop files here</p>
             <p class="image-hosting-drop-hint">
-              Auto-rename mode accepts images and ZIPs only. Keep original filename accepts any file type. Choose PNG conversion above as needed. Click to browse.
+              Auto-rename accepts images and ZIPs (image entries only). Keep original filename accepts other files too. PNG conversion applies to images except GIF. Click to browse.
             </p>
           </div>
           <div class="image-hosting-library-toolbar" hidden aria-label="Legacy view controls">
@@ -416,7 +418,7 @@
       </div>
     </div>
   </dialog>
-  <script src="image-hosting.js?v=20261123-folder-icons"></script>
+  <script src="image-hosting.js?v=20261124-change-highlights"></script>
   <script src="image-hosting-customers.js?v=20261122-explorer"></script>
 </body>
 </html>

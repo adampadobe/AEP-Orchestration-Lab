@@ -7,13 +7,15 @@ const root = path.resolve(__dirname, '../web');
 const screenshotDir = process.env.IMAGE_HOSTING_SCREENSHOTS;
 const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/a9sAAAAASUVORK5CYII=', 'base64');
 
-async function fixture(browser, { theme = 'light', width = 1280, anonymous = false, signedOut = false, noWorkspace = false } = {}) {
+async function fixture(browser, { theme = 'light', width = 1280, anonymous = false, signedOut = false, noWorkspace = false, nearExpiry = false } = {}) {
   const page = await browser.newPage({ viewport: { width, height: 1000 } });
   const calls = [];
   let polls = 0;
   let failure = false;
   let folderEntries = 0;
   let uploadConflict = false;
+  let logoChange = { changeType: 'updated', changedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  const heroChange = { changeType: 'new', changedAt: new Date(Date.now() - (nearExpiry ? 86400000 - 20000 : 0)).toISOString(), updatedAt: new Date().toISOString() };
   const drive = [
     { name: 'Campaigns', path: 'Campaigns', kind: 'folder' },
     { name: 'logo.png', path: 'logo.png', kind: 'file', size: 12000, contentType: 'image/png', previewUrl: 'https://images.test/logo.png', updatedAt: '2026-11-22T11:00:00Z' }
@@ -65,9 +67,15 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       else if (url.pathname.endsWith('/library') && request.method() === 'GET') {
         assert.equal(url.searchParams.get('limit'), '100');
         result.items = url.searchParams.has('cursor') ?
-          [{ relPath: 'hero.png', file: 'hero.png', size: 22000, contentType: 'image/png', cdnUrl: '/cdn/demo/hero.png' }] :
-          [{ relPath: 'logo/logo.png', file: 'logo.png', folder: 'logo', size: 12000, contentType: 'image/png', cdnUrl: '/cdn/demo/logo/logo.png' }];
+          [{ relPath: 'hero.png', file: 'hero.png', size: 22000, contentType: 'image/png', cdnUrl: '/cdn/demo/hero.png', ...heroChange }] :
+          [
+            { relPath: 'logo/logo.png', file: 'logo.png', folder: 'logo', size: 12000, contentType: 'image/png', cdnUrl: '/cdn/demo/logo/logo.png', ...logoChange },
+            { relPath: 'logo/old.png', file: 'old.png', folder: 'logo', changeType: 'new', changedAt: new Date(Date.now() - 86401000).toISOString() }
+          ];
         if (!url.searchParams.has('cursor')) result.nextCursor = 'page-two';
+      } else if (url.pathname.endsWith('/library/replace')) {
+        logoChange = { changeType: 'updated', changedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+        result.published = { path: 'demo/library/logo/logo.png', relPath: 'logo/logo.png', cdnUrl: '/cdn/demo/logo/logo.png', ...logoChange };
       } else if (url.pathname.endsWith('/library/upload')) result.uploaded = [{ relPath: 'upload.png', file: 'upload.png' }];
       else if (url.pathname.endsWith('/drive') && request.method() === 'GET') {
         result.items = url.searchParams.get('path') ? Array.from({ length: folderEntries }, (_, index) => ({
@@ -113,6 +121,7 @@ async function fixture(browser, { theme = 'light', width = 1280, anonymous = fal
       throw error;
     }
   });
+  if (nearExpiry) await page.clock.install();
   await page.goto('http://aep.test/profile-viewer/image-hosting.html');
   return {
     page, calls, errors, setFailure: value => { failure = value; }, setFolderEntries: value => { folderEntries = value; },
@@ -133,12 +142,18 @@ async function main() {
     await ready(page);
     assert.ok(calls.some(call => call.query.get('cursor') === 'page-two'), 'published library fetches every page');
     assert.equal(await page.locator('#ihItems .ih-item').count(), 2, 'root contains one folder and one file');
+    assert.equal(await page.locator('#ihItems .ih-item.is-new', { hasText: 'hero.png' }).count(), 1);
     const folder = page.locator('#ihItems .ih-item', { has: page.getByRole('button', { name: 'logo', exact: true }) });
     assert.equal(await folder.getByRole('img', { name: 'Folder' }).locator('svg').count(), 1, 'folder displays an accessible icon');
     assert.equal((await folder.locator('.ih-file-placeholder').innerText()).trim(), '', 'folder preview uses an icon rather than text');
     await page.locator('#ihItems').getByRole('button', { name: 'logo', exact: true }).click();
     await settled(page);
     await page.getByRole('button', { name: 'logo.png', exact: true }).click();
+    assert.equal(await page.locator('#ihItems .ih-item.is-updated', { hasText: 'logo.png' }).count(), 1);
+    assert.equal(await page.locator('#ihItems .ih-item.is-new', { hasText: 'old.png' }).count(), 0, 'old highlights expire');
+    await page.locator('#ihListView').click();
+    assert.equal(await page.locator('#ihListHeader').innerText().then(text => text.includes('Updated date/time')), true);
+    assert.equal(await page.locator('#ihItems .ih-item', { hasText: 'logo.png' }).locator('.ih-file-date').isVisible(), true);
     assert.ok((await page.locator('#ihDetails').innerText()).includes('/cdn/demo/logo/logo.png'));
     for (const name of ['Grid view', 'Waterfall view', 'List view']) {
       const button = page.getByRole('group', { name: 'File view' }).getByRole('button', { name, exact: true });
@@ -161,6 +176,23 @@ async function main() {
     await settled(page);
     const replaceCall = calls.find(call => call.path.endsWith('/library/replace'));
     assert.ok(replaceCall && replaceCall.body.relPath === 'logo/logo.png', 'dropping an image on a published file replaces it at the same path');
+    assert.equal(await page.locator('#ihItems .ih-item.is-updated', { hasText: 'logo.png' }).count(), 1);
+    await page.getByRole('checkbox', { name: 'Select logo/logo.png', exact: true }).check();
+    assert.equal(await page.locator('#ihRename').isEnabled(), true, 'replacement keeps the explorer relative path');
+    await page.reload();
+    await ready(page);
+    await page.locator('#ihItems').getByRole('button', { name: 'logo', exact: true }).click();
+    await settled(page);
+    assert.equal(await page.locator('#ihItems .ih-item.is-updated', { hasText: 'logo.png' }).count(), 1, 'shared markers survive reload');
+    await page.locator('#ihPublishedTools summary').click();
+    await page.locator('#imageHostingDropZone').evaluate(zone => {
+      const data = new DataTransfer();
+      data.items.add(new File([new Uint8Array([255, 216, 255])], 'hero.jpg', { type: 'image/jpeg' }));
+      zone.dispatchEvent(new DragEvent('drop', { dataTransfer: data, bubbles: true, cancelable: true }));
+    });
+    await page.waitForFunction(() => document.getElementById('imageHostingStatus').textContent.includes('Added 1 file'));
+    const dropCall = calls.find(call => call.path.endsWith('/library/upload') && call.body.files[0].name === 'hero.jpg');
+    assert.ok(dropCall && !dropCall.body.keepFilename && dropCall.body.convertToPng, 'drop-zone upload requests auto-naming and PNG conversion');
     await page.locator('#ihUploadInput').setInputFiles({ name: 'upload.png', mimeType: 'image/png', buffer: image });
     await settled(page);
     assert.ok(calls.some(call => call.path.endsWith('/library/rename') && call.body.newRelPath === 'logo/upload.png'), 'published folder upload uses upload then rename');
@@ -284,6 +316,13 @@ async function main() {
     assert.deepEqual(errors, []);
     await page.close();
 
+    const expiring = await fixture(browser, { nearExpiry: true });
+    await ready(expiring.page);
+    assert.equal(await expiring.page.locator('#ihItems .ih-item.is-new', { hasText: 'hero.png' }).count(), 1);
+    await expiring.page.clock.fastForward(21000);
+    assert.equal(await expiring.page.locator('#ihItems .ih-item.is-new', { hasText: 'hero.png' }).count(), 0, 'highlight expires while the page remains open');
+    await expiring.page.close();
+
     const noWorkspace = await fixture(browser, { noWorkspace: true });
     await ready(noWorkspace.page);
     assert.match(await noWorkspace.page.locator('#ihItems').innerText(), /owned lab workspace/i);
@@ -308,6 +347,9 @@ async function main() {
       for (const width of [1600, 1280, 900, 390]) {
         const f = await fixture(browser, { theme, width });
         await ready(f.page);
+        await f.page.locator('#ihListView').click();
+        assert.equal(await f.page.locator('#ihItems .ih-item', { hasText: 'hero.png' }).locator('.ih-file-date').isVisible(), true);
+        assert.equal(await f.page.locator('#ihItems .ih-item.is-new', { hasText: 'hero.png' }).count(), 1);
         if (width === 1280) {
           await f.page.locator('#ihBackupNow').click();
           await f.page.locator('#ihBackupDialog').waitFor({ state: 'visible' });
