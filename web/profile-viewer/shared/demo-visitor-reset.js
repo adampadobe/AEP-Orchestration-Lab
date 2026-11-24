@@ -24,6 +24,18 @@
   var sdkRecords = [];
   var guardWarnings = [];
   var guardedFrames = new WeakSet();
+  var stage = 'idle';
+  var requiresReload = false;
+
+  function diagnostics() {
+    return {
+      status: state.status, blocked: state.blocked, stage: stage,
+      hasResetMarker: !!marker,
+      failureStage: marker && /^(waiting-for-sdk|get-identity|after-reset-adapters|retry-invalidation|read-previous-identity|before-reset-adapters|invalidate-visitor|reload)$/.test(marker.failureStage) ?
+        marker.failureStage : null,
+      canRetryVerification: canRetryVerification()
+    };
+  }
 
   function submissionError() {
     var error = new Error('Adobe sendEvent blocked: the visitor reset is pending, failed, or invalidated. ' +
@@ -163,7 +175,11 @@
   }
 
   function setState(status, message) {
+    var previous = state.status;
     state = { status: status, blocked: !/^(idle|complete)$/.test(status), message: message || '' };
+    if (global.console && typeof global.console.info === 'function') {
+      global.console.info('[Visitor reset] State changed', Object.assign({ previous: previous }, diagnostics()));
+    }
     sdkRecords.forEach(function (record) {
       try {
         var descriptor = Object.getOwnPropertyDescriptor(record.win, record.name);
@@ -189,13 +205,14 @@
     global.clearTimeout(timer);
     if (marker) {
       marker.status = 'error';
+      marker.failureStage = stage;
       try { global.sessionStorage.setItem(MARKER_KEY, JSON.stringify(marker)); }
       catch (storageError) { global.console.error('[Visitor reset] Could not retain failure state.', storageError); }
     }
     setState('error', message);
-    global.console.error('[Visitor reset]', message);
+    global.console.error('[Visitor reset] Verification failed', diagnostics());
     if (global.AepLabConsole && typeof global.AepLabConsole.error === 'function') {
-      global.AepLabConsole.error('visitor-reset', message);
+      global.AepLabConsole.error('visitor-reset', 'Verification failed', diagnostics());
     }
     return error instanceof Error ? error : new Error(message);
   }
@@ -397,6 +414,7 @@
       throw new Error('Adobe returned the previous ECID. Identity cookies may be inaccessible or restored; the visitor was not reset.');
     }
     var detail = { ecid: ecid };
+    stage = 'after-reset-adapters';
     await invokeAdapters('afterReset', detail);
     if (token !== generation || !pending()) return true;
     var drawer = global.DemoProfileDrawer;
@@ -410,6 +428,7 @@
     marker = null;
     completedDetail = detail;
     global.clearTimeout(timer);
+    stage = 'verified';
     setState('complete', 'New anonymous visitor ready. No identity stitch or experience event was sent by reset.');
     emit('aep-demo-visitor-reset-complete', detail);
     return true;
@@ -446,6 +465,7 @@
     var token = generation;
     if (resumeGeneration === token) return;
     resumeGeneration = token;
+    stage = 'waiting-for-sdk';
     var deadline = Date.now() + timeoutMs();
     timer = global.setTimeout(function () {
       if (token === generation && pending()) {
@@ -457,6 +477,7 @@
       while (token === generation && pending() && Date.now() < deadline) {
         var alloy = sdk();
         if (typeof alloy === 'function') {
+          stage = 'get-identity';
           var result = await bounded(alloy('getIdentity', { namespaces: ['ECID'] }),
             Math.max(1, deadline - Date.now()), 'Timed out waiting for Adobe getIdentity.');
           if (token === generation && pending()) await acceptEcid(result);
@@ -469,6 +490,32 @@
     });
   }
 
+  function canRetryVerification() {
+    return state.status === 'error' && !requiresReload && !!marker && marker.version === 1 && !!ecidFrom(marker.oldEcid);
+  }
+
+  async function retryVerification() {
+    if (!canRetryVerification()) throw new Error('No failed reset can be verified. Use New visitor to start a reset.');
+    generation++;
+    var token = generation;
+    global.clearTimeout(timer);
+    verification = null;
+    verifyingEcid = '';
+    stage = 'retry-invalidation';
+    marker.status = 'pending';
+    setState('pending', 'Retrying visitor verification. No cookies will be cleared and no event will be sent.');
+    try {
+      global.sessionStorage.setItem(MARKER_KEY, JSON.stringify(marker));
+      invalidationReady = bounded(invalidate({ reason: 'retry-verification' }), timeoutMs(),
+        'A demo could not prepare for visitor verification.');
+      await invalidationReady;
+      if (token === generation && pending()) resume();
+    } catch (error) {
+      if (token === generation && pending()) throw fail(error);
+      throw error;
+    }
+  }
+
   function init(cfg) {
     config = Object.assign({}, config, cfg || {});
     guardSdkWindow(global);
@@ -478,7 +525,7 @@
         invalidationReady = Promise.resolve(invalidate({ reason: 'resume', oldEcid: marker.oldEcid }));
         invalidationReady.catch(function (error) { fail(error); });
         setState(marker.status === 'error' ? 'error' : 'pending',
-          marker.status === 'error' ? 'Visitor reset is unverified. Retry reset; sending and stitching remain blocked.' :
+          marker.status === 'error' ? 'Visitor reset is unverified. Retry verification to recheck the SDK, or Retry reset to start again. Reload alone does not clear a failed reset. Sending and stitching remain blocked.' :
             'Restoring Web SDK and verifying a new anonymous visitor…');
         if (pending()) resume();
       } catch (error) { fail(error); }
@@ -498,6 +545,7 @@
     global.clearTimeout(timer);
     verification = null;
     verifyingEcid = '';
+    stage = 'read-previous-identity';
     setState('resetting', 'Reading the live Adobe ECID before resetting…');
     try {
       var oldEcid = ecidFrom(await bounded(sdk()('getIdentity', { namespaces: ['ECID'] }),
@@ -505,6 +553,7 @@
       if (token !== generation) throw new Error('Another tab changed the visitor while reset was starting. Reload or retry.');
       if (!oldEcid) throw new Error('No live Adobe ECID is available. Inject/configure the SDK before resetting.');
       var org = activeOrg();
+      stage = 'before-reset-adapters';
       await bounded(invokeAdapters('beforeReset', { oldEcid: oldEcid }), timeoutMs(), 'A demo could not prepare for visitor reset.');
       if (token !== generation) throw new Error('Another tab changed the visitor while reset was preparing. Reload or retry.');
       marker = {
@@ -515,9 +564,11 @@
       global.sessionStorage.setItem(MARKER_KEY, JSON.stringify(marker));
       saveScript(marker.scriptUrl);
       emit('aep-demo-visitor-reset-start', { oldEcid: oldEcid });
+      stage = 'invalidate-visitor';
       await bounded(invalidate({ reason: 'reset', oldEcid: oldEcid }), timeoutMs(), 'A demo could not clear its visitor state.');
       if (token !== generation) throw new Error('Another tab changed the visitor while reset was preparing. Reload or retry.');
       clearCookies(org);
+      stage = 'reload';
       global.localStorage.setItem(INVALIDATION_KEY, JSON.stringify({
         id: marker.id, orgId: org, oldEcid: oldEcid
       }));
@@ -565,6 +616,7 @@
       marker = Object.assign({}, detail, {
         version: 1, status: 'pending', prefix: prefix(), sandbox: sandbox(), scriptUrl: scriptUrl()
       });
+      requiresReload = true;
       setState('invalidated', 'Another tab reset the Adobe visitor. Reload this demo or reset again before sending or looking up a profile.');
       global.sessionStorage.setItem(MARKER_KEY, JSON.stringify(marker));
       saveScript(marker.scriptUrl);
@@ -585,6 +637,8 @@
 
   var api = {
     init: init, reset: reset, resume: resume, acceptEcid: acceptEcid,
+    retryVerification: retryVerification, canRetryVerification: canRetryVerification,
+    getDiagnostics: diagnostics,
     isBlocked: function () { return state.blocked; }, isPending: pending,
     isResetPage: function () { return resetPage; },
     availability: availability, canReset: function () { return availability().canReset; },

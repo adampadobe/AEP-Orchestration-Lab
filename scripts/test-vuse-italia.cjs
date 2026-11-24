@@ -152,6 +152,8 @@ async function browserTests() {
     assert.equal(await page.locator('#aepDemoEnvSection').count(), 1);
     assert.equal(await page.locator('[data-demo-env-strip-disclaimer]').count(), 0);
     assert.equal(await page.locator('#profileDrawer').count(), 1);
+    assert.equal(await page.locator('#aepLabRetryVisitorVerification').isHidden(), true,
+      'Older reset adapters do not advertise unsupported verification recovery');
     await page.evaluate((id) => { window.DemoTagsInjection.isAlloyReady = () => true; window.vuseTagsOptions.onEcidResolved(id); }, ecid);
     assert.equal(await page.evaluate(() => window.vuseTagsOptions.sendInitialPageView), false);
     assert.equal(await page.evaluate(() => window.vuseTagsOptions.simulatedAuthentication), true);

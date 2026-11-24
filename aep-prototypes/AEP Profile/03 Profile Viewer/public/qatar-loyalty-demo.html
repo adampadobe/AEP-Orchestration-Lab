@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="decisioning-profile-hero.css?v=20261016-compact">
   <link rel="stylesheet" href="tui-decisioning-demo.css?v=20261028-single-row-tabs">
   <link rel="stylesheet" href="lloyds-loyalty-demo.css?v=20261123-customer-spend">
-  <link rel="stylesheet" href="qatar-loyalty-demo.css?v=20261123-qatar">
+  <link rel="stylesheet" href="qatar-loyalty-demo.css?v=20261124-presenter">
   <link rel="stylesheet" href="aep-theme.css?v=20261119-loyalty-palette">
 </head>
 <body class="mod-demo-page home-dashboard-concierge tui-demo-shell lloyds-loyalty-page qatar-loyalty-page">
@@ -46,6 +46,21 @@
       <div><h1>Qatar Airways Loyalty</h1>
       <p>Discover more rewarding journeys with live Loyalty challenges.</p></div>
     </section>
+    <details class="qatar-presenter" open>
+      <summary>Presenter guide <span>Profile &rarr; join &rarr; purchase &rarr; progress</span></summary>
+      <p>Use a resolved test profile. Join an available challenge, send a purchase only when appropriate, then check Adobe's task state. Nothing here publishes a challenge or awards points.</p>
+      <ol class="qatar-presenter-steps">
+        <li><strong>1. Select profile</strong><span id="qatarProfileReadiness">Not loaded</span></li>
+        <li><strong>2. Join challenge</strong><span id="qatarJoinReadiness">Participation not yet read</span></li>
+        <li><strong>3. Send purchase</strong><span id="qatarPurchaseReadiness">No purchase sent</span></li>
+        <li><strong>4. Check progress</strong><span id="qatarStateReadiness">Not yet read</span></li>
+      </ol>
+      <div class="qatar-presenter-evidence" aria-live="polite">
+        <p><strong>Journey card:</strong> <span id="qatarCardReadiness">Not requested or no response captured</span></p>
+        <p id="qatarReadinessError" role="status" hidden></p>
+      </div>
+      <p class="qatar-presenter-note">The shared Content Card surface is selected by default. A returned card is not proof of journey entry. QAR qualification, reward issuance, member tier and balance remain unverified.</p>
+    </details>
     <div id="loyaltyPreviewSizing" class="loyalty-preview-sizing" role="group" aria-label="Web preview dimensions" hidden>
       <label for="loyaltyWebWidth">Web preview width <output id="loyaltyWebWidthValue" for="loyaltyWebWidth">1050px</output>
         <input id="loyaltyWebWidth" type="range" min="360" max="1200" step="10" value="1050"></label>
@@ -259,16 +274,37 @@
   <script src="tui-decisioning-profile.js?v=20261109-hospitality"></script>
   <script src="tui-profile-hero.js?v=20261117-loyalty-labels"></script>
   <script>
+    function updateQatarReadiness(state) {
+      const set = (id, value) => { document.getElementById(id).textContent = value; };
+      const stateRead = state.stateLabel.startsWith('Read ');
+      set('qatarProfileReadiness', state.profileLoaded ? 'Profile resolved' : 'Not loaded');
+      set('qatarJoinReadiness', !stateRead ? 'Participation not yet read' :
+        state.joinedCount ? 'Joined challenge reported by Adobe' : 'No joined challenge in this response');
+      set('qatarStateReadiness', stateRead ? state.stateLabel : state.stateLabel === 'Not loaded' ?
+        'Not yet read' : 'Last read unavailable or may be stale');
+      const card = state.cardEvidence;
+      set('qatarCardReadiness', card?.captureFailed ? 'Response capture failed; see diagnostics' :
+        state.renderedCards ? 'Adobe returned ' + state.renderedCards + (state.renderedCards === 1 ? ' card' : ' cards') :
+        card?.propositionsReported ? 'No renderable card currently displayed; see diagnostics' :
+        card ? 'Request response captured; delivery not confirmed' : 'Not requested or no response captured');
+      const spend = state.spend;
+      set('qatarPurchaseReadiness', spend?.error ? 'Send failed or outcome unknown; do not resend without checking' :
+        spend?.sdkAccepted ? 'Accepted by Web SDK; qualification not confirmed' :
+        spend ? 'Send started; acceptance not confirmed' : 'No purchase sent');
+      const error = document.getElementById('qatarReadinessError');
+      error.hidden = !state.error;
+      error.textContent = state.error ? 'Last action: ' + state.error : '';
+    }
     window.LoyaltyDemoConfig = {
       prefix: 'qatarLoyalty', viewName: 'Qatar Airways Loyalty', homeLabel: 'Your journey', homeAvatar: 'Q',
-      currency: 'QAR', contentCardSurfacePage: 'current', usePartnerOffers: false, useFallbackOffers: false
+      currency: 'QAR', usePartnerOffers: false, useFallbackOffers: false, onReadinessChange: updateQatarReadiness
     };
     window.envBarConfig = {
       prefix: 'qatarLoyalty', variant: 'spectrum', localOverride: true, firestoreListen: false,
       features: { webPush: false, bc: false, target: false, decisioning: true },
       decisioning: { useParentDocument: true, manageMounts: false, mountLayoutPreset: 'generic',
         runtimeScript: 'tui-decisioning-runtime.js', autoRunDecisioning: false, viewName: 'Qatar Airways Loyalty' },
-      labCoreScript: 'lloyds-loyalty-demo.js?v=20261123-qatar-currency'
+      labCoreScript: 'lloyds-loyalty-demo.js?v=20261124-recovery'
     };
   </script>
   <script src="shared/env-bar.js?v=20261029-customer-evolution"></script>

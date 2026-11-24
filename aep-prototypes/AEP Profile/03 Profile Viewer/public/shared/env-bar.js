@@ -18,7 +18,7 @@
     manifestVersion: '20261029-customer-evolution',
     moduleVersion: '1.1.0',
     assets: {
-      bundleCss: '20261029-new-visitor',
+      bundleCss: '20261124-reset-recovery',
       spectrumCss: '20260714-env-bar-config-fileconvert',
       demoEnvStripSpectrum: '20260721-linkedin-env-bar-fix',
       demoEnvStrip: '20260714-tags-property-typeahead',
@@ -1163,18 +1163,16 @@
     button.className = 'aep-lab-new-visitor-btn';
     button.textContent = 'New visitor';
     button.title = 'Reset browser identity and reload with a verified new ECID. Existing AEP profiles are kept.';
-    button.addEventListener('click', function () {
+    function reportFailure(error) {
+      labError('visitor reset failed', { code: error.code || 'VISITOR_RESET_FAILED' });
+      status.hidden = false;
+      text.textContent = error.message;
+    }
+    function startReset() {
       button.disabled = true;
-      resetVisitor().catch(function (error) {
-        labError('visitor reset failed', { message: error.message });
-        var status = document.getElementById('aepLabVisitorResetStatus');
-        if (status) {
-          status.hidden = false;
-          var text = status.querySelector('span');
-          if (text) text.textContent = error.message;
-        }
-      }).finally(function () { button.disabled = false; });
-    });
+      resetVisitor().catch(reportFailure).finally(update);
+    }
+    button.addEventListener('click', startReset);
     host.insertBefore(button, host.firstChild);
     var status = document.createElement('div');
     status.id = 'aepLabVisitorResetStatus';
@@ -1183,12 +1181,27 @@
     status.setAttribute('aria-live', 'polite');
     status.hidden = true;
     var text = document.createElement('span');
+    var verify = document.createElement('button');
+    verify.id = 'aepLabRetryVisitorVerification';
+    verify.type = 'button';
+    verify.className = 'aep-lab-new-visitor-btn';
+    verify.textContent = 'Retry verification';
+    verify.title = 'Read the live SDK identity again against the original reset. Does not create a profile or send events.';
+    verify.addEventListener('click', function () {
+      global.AepDemoVisitorReset.retryVerification().catch(reportFailure).finally(update);
+    });
+    var retryReset = document.createElement('button');
+    retryReset.id = 'aepLabRetryVisitorReset';
+    retryReset.type = 'button';
+    retryReset.className = 'aep-lab-new-visitor-btn';
+    retryReset.textContent = 'Retry reset';
+    retryReset.addEventListener('click', startReset);
     var reload = document.createElement('button');
     reload.type = 'button';
     reload.className = 'aep-lab-new-visitor-btn';
     reload.textContent = 'Reload demo';
     reload.addEventListener('click', function () { global.location.reload(); });
-    status.append(text, reload);
+    status.append(text, verify, retryReset, reload);
     document.body.appendChild(status);
     function update(detail) {
       detail = detail || (typeof global.AepDemoVisitorReset.getState === 'function' ? global.AepDemoVisitorReset.getState() : null);
@@ -1206,6 +1219,14 @@
       status.hidden = !blocked;
       text.textContent = detail && detail.message || 'Visitor identity is being reset. Demo interactions are paused.';
       reload.hidden = !blocked || global.AepDemoVisitorReset.isPending();
+      verify.hidden = typeof global.AepDemoVisitorReset.canRetryVerification !== 'function' ||
+        typeof global.AepDemoVisitorReset.retryVerification !== 'function' ||
+        !global.AepDemoVisitorReset.canRetryVerification();
+      retryReset.hidden = !blocked || global.AepDemoVisitorReset.isPending();
+      retryReset.disabled = typeof global.AepDemoVisitorReset.canReset === 'function' &&
+        !global.AepDemoVisitorReset.canReset();
+      retryReset.title = (typeof global.AepDemoVisitorReset.availability === 'function' &&
+        global.AepDemoVisitorReset.availability().reason) || button.title;
       button.textContent = global.AepDemoVisitorReset.isPending() ? 'Resetting...' : 'New visitor';
       button.disabled = global.AepDemoVisitorReset.isPending();
       var drawerButton = document.getElementById('profileDrawerResetEcid');

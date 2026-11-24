@@ -11,8 +11,8 @@ async function main() {
   try {
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1500, height: 1100 }, reducedMotion: 'reduce' });
-    const errors = [], stateReads = [], writes = [];
-    let spend;
+    const errors = [], stateReads = [], writes = [], profileReads = [];
+    let spend, qatarStateFail = false, qatarProfileFail = false;
     const task = { taskId: 'jet2-spend-task-fixture', taskName: 'Generic Spend fixture',
       taskType: 'purchase', taskClass: 'spend', taskState: 'incomplete',
       variables: { spendMin: 50, singleTrans: false, include: { valuesSet: ['*'] } } };
@@ -34,6 +34,11 @@ async function main() {
       } else if (request.method() !== 'GET') {
         writes.push(url.pathname);
       } else if (url.pathname === '/api/profile/table') {
+        profileReads.push(Object.fromEntries(url.searchParams));
+        if (qatarProfileFail) return route.fulfill({ status: 404, json: {
+          code: 'UPS_ENTITY_NOT_FOUND',
+          error: 'Entity not found. Ingestion or identity indexing may still be pending; retry reads only, not profile generation.',
+        } });
         data = { found: true, ecid: '12345678901234567890123456789012345678',
           profileEmail: url.searchParams.get('identifier'), rows: [
             { path: 'person.name.firstName', value: 'Alex', valueType: 'string' },
@@ -45,6 +50,9 @@ async function main() {
           ecid: '12345678901234567890123456789012345678', channels: { email: 'out', sms: null, push: null } };
       } else if (url.pathname === '/api/ajo-loyalty') {
         const action = url.searchParams.get('action');
+        if (qatarStateFail && action === 'profile_state') {
+          return route.fulfill({ status: 503, json: { ok: false, error: 'Offline Loyalty state unavailable' } });
+        }
         if (action === 'config') data = { ok: true, data: { namespace: 'loyaltyId' } };
         else if (action === 'challenge_get') data = { ok: true, data: {
           _id: url.searchParams.get('challenge_id'), name: 'Adobe metadata fixture',
@@ -247,15 +255,22 @@ async function main() {
     assert.equal(await page.title(), 'Qatar Airways | Loyalty');
     assert.equal(await page.locator('#qatarLoyaltyNs').count(), 1);
     assert.equal(await page.locator('#jet2LoyaltyNs').count(), 0);
+    assert.equal(await page.locator('#qatarProfileReadiness').textContent(), 'Not loaded');
+    assert.equal(await page.locator('#qatarStateReadiness').textContent(), 'Not yet read');
+    assert.equal(await page.locator('#qatarPurchaseReadiness').textContent(), 'No purchase sent');
+    assert.equal(await page.locator('#loyaltySurface').inputValue(),
+      'web://127.0.0.1:' + server.address().port + '/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty');
     await page.evaluate(() => {
       localStorage.setItem('aepDemoNavOwnerHandle', 'apalmer');
       window.AepGlobalSandbox.setSelected('apalmer');
       document.getElementById('loyaltyTenant').value = '_demoemea';
       window.__qatarPurchases = [];
+      window.__qatarSdkEvents = [];
       window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'jet2-offline-stream' } });
       window.alloy = async (command, options) => {
         if (command === 'getIdentity') return { identity: { ECID: '12345678901234567890123456789012345678' } };
         if (command === 'subscribeRulesetItems') { window.__qatarSubscription = options; return; }
+        if (command === 'sendEvent') window.__qatarSdkEvents.push(options);
         if (command === 'sendEvent' && options.xdm?.eventType === 'commerce.purchases') {
           window.__qatarPurchases.push(options);
           return { requestId: 'qatar-offline-accepted' };
@@ -273,15 +288,47 @@ async function main() {
         return { propositions: [] };
       };
     });
+    qatarProfileFail = true;
     await page.locator('#customerEmail').fill('qatar-fixture@example.invalid');
     await page.locator('#queryProfileBtn').click();
+    await page.locator('#loyaltyRetryProfile').waitFor({ state: 'visible' });
+    assert.match(await page.locator('#loyaltyStatus').textContent(), /Entity not found/);
+    assert.equal(await page.locator('#loyaltyRun').isDisabled(), true);
+    assert.deepEqual(await page.evaluate(() => window.__qatarSdkEvents), []);
+    const failureDiagnostics = await page.evaluate(() => window.LoyaltyDemoDiagnostics.getRecent());
+    assert.ok(failureDiagnostics.some(entry => entry.event === 'request-failed' &&
+      entry.endpoint === '/api/profile/table' && entry.status === 404 && entry.category === 'profile-not-indexed'));
+    assert.ok(failureDiagnostics.some(entry => entry.event === 'operation-failed'));
+    assert.equal(JSON.stringify(failureDiagnostics).includes('qatar-fixture@example.invalid'), false);
+    assert.equal(JSON.stringify(failureDiagnostics).includes('identifier='), false);
+    await page.locator('#loyaltyRetryProfile').click();
+    await page.waitForFunction(() => !document.getElementById('loyaltyRetryProfile').disabled);
+    assert.equal(await page.locator('#loyaltyRetryProfile').isVisible(), true, 'Failed explicit retry remains recoverable');
+    qatarProfileFail = false;
+    const beforeRetryStateReads = stateReads.length;
+    await page.locator('#loyaltyRetryProfile').click();
+    await page.waitForFunction(() => document.getElementById('qatarProfileReadiness').textContent === 'Profile resolved' &&
+      !document.getElementById('queryProfileBtn').disabled);
+    assert.equal(await page.locator('#loyaltyRetryProfile').isHidden(), true);
+    assert.equal(stateReads.length, beforeRetryStateReads, 'Lookup retry does not schedule other operations');
+    assert.deepEqual(await page.evaluate(() => window.__qatarSdkEvents), [], 'Lookup retry never sends SDK events');
+    assert.ok(profileReads.slice(-3).every(read => read.identifier === 'qatar-fixture@example.invalid'),
+      'Read retries preserve the selected identity');
+    await page.locator('#loyaltyRun').click();
+    await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 2 &&
+      !document.getElementById('queryProfileBtn').disabled);
+    await page.locator('#loyaltyRefresh').click();
     await page.waitForFunction(() => document.querySelector('#loyaltyTasks [data-spend-purchase]') &&
       !document.getElementById('queryProfileBtn').disabled);
     assert.equal(stateReads.at(-1).profile_id, 'jet2-member-fixture');
     assert.equal(stateReads.at(-1).sandbox, 'apalmer');
     assert.match(await page.locator('#loyaltyTasks').textContent(), /QAR/);
-    assert.ok((await page.evaluate(() => window.__qatarSubscription.surfaces[0])).includes('/qatar-loyalty-demo.html#ContentCardContainerLoyalty'));
+    assert.ok((await page.evaluate(() => window.__qatarSubscription.surfaces[0])).includes('/content-decision-live-edge.html#ContentCardContainerLoyalty'));
     await page.waitForFunction(() => document.querySelectorAll('#ContentCardContainerLoyalty article').length === 2);
+    await page.waitForFunction(() => document.getElementById('qatarCardReadiness').textContent === 'Adobe returned 2 cards');
+    assert.equal(await page.locator('#qatarProfileReadiness').textContent(), 'Profile resolved');
+    assert.equal(await page.locator('#qatarJoinReadiness').textContent(), 'Joined challenge reported by Adobe');
+    assert.match(await page.locator('#qatarStateReadiness').textContent(), /^Read /);
     assert.equal(await page.locator('#ContentCardContainerLoyalty article').first().locator('h3').textContent(), 'Adobe travel card 2');
     await page.evaluate(() => window.dispatchEvent(new CustomEvent('ajo:featured-offers', { detail: { offers:
       Array.from({ length: 9 }, (_, index) => ({ id: 'travel-' + index, merchant: 'Travel', title: 'Offer ' + index })),
@@ -293,6 +340,10 @@ async function main() {
       await page.setViewportSize({ width: 390, height: 1100 });
       await page.evaluate(value => document.documentElement.setAttribute('data-aep-theme', value), theme);
       assert.equal(await page.locator('#loyaltyWebPreview').evaluate(element => element.getBoundingClientRect().width <= innerWidth), true);
+      assert.equal(await page.locator('.qatar-presenter').evaluate(element => {
+        const bounds = element.getBoundingClientRect();
+        return bounds.left >= 0 && bounds.right <= innerWidth && element.scrollWidth <= element.clientWidth;
+      }), true, 'Presenter guide fits small viewport in ' + theme + ' mode');
     }
     await page.setViewportSize({ width: 1500, height: 1100 });
     await page.locator('#loyaltyTasks [data-spend-purchase]').click();
@@ -301,7 +352,75 @@ async function main() {
     assert.equal(qatarPurchase.xdm.commerce.order.currencyCode, 'QAR');
     assert.equal(qatarPurchase.xdm.productListItems[0].currencyCode, 'QAR');
     assert.equal(qatarPurchase.xdm.commerce.order.priceTotal, 10);
+    await page.waitForFunction(() => document.getElementById('qatarPurchaseReadiness').textContent.includes('Accepted by Web SDK'));
+    assert.match(await page.locator('#qatarPurchaseReadiness').textContent(), /qualification not confirmed/);
     assert.equal(await page.locator('#loyaltyPartnerOffers').isVisible(), false);
+    qatarStateFail = true;
+    await page.locator('#loyaltyRefresh').click();
+    await page.waitForFunction(() => document.getElementById('qatarReadinessError').textContent.includes('Offline Loyalty state unavailable'));
+    assert.equal(await page.locator('#qatarStateReadiness').textContent(), 'Last read unavailable or may be stale');
+    assert.equal(await page.locator('#qatarJoinReadiness').textContent(), 'Participation not yet read');
+    await page.evaluate(() => {
+      const input = document.getElementById('customerEmail');
+      input.value = 'another-fixture@example.invalid';
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    assert.equal(await page.locator('#qatarProfileReadiness').textContent(), 'Not loaded');
+    assert.equal(await page.locator('#qatarPurchaseReadiness').textContent(), 'No purchase sent');
+    assert.equal(await page.locator('#qatarCardReadiness').textContent(), 'Not requested or no response captured');
+    assert.equal(await page.locator('#qatarReadinessError').isHidden(), true);
+    assert.equal(await page.evaluate(() => window.__qatarPurchases.length), 1, 'No purchase replay on error or identity change');
+    await page.evaluate(() => {
+      const surface = document.getElementById('loyaltySurface');
+      surface.value = 'web://example.invalid/other#ContentCardContainerLoyalty';
+      surface.dispatchEvent(new Event('input', { bubbles: true }));
+      window.AepGlobalSandbox.setSelected('kirkham');
+    });
+    assert.equal(await page.locator('#loyaltySurface').inputValue(),
+      'web://127.0.0.1:' + server.address().port + '/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty',
+      'Sandbox change restores the shared surface');
+    const resetPage = await context.newPage();
+    resetPage.on('pageerror', error => errors.push(error.message));
+    await resetPage.addInitScript(() => {
+      sessionStorage.setItem('aep-demo-visitor-reset-v1', JSON.stringify({
+        version: 1, id: 'qatar-reset-fixture', oldEcid: '1'.repeat(38),
+        status: 'error', orgId: 'fixture', prefix: 'qatarLoyalty', sandbox: 'apalmer',
+      }));
+      window.__resetEcid = '1'.repeat(38);
+      window.__resetCommands = [];
+      window.alloy = async command => {
+        window.__resetCommands.push(command);
+        return command === 'getIdentity' ? { identity: { ECID: window.__resetEcid } } : {};
+      };
+    });
+    await resetPage.goto(origin + '/profile-viewer/qatar-loyalty-demo.html');
+    await resetPage.locator('#aepLabRetryVisitorVerification').waitFor({ state: 'visible' });
+    await resetPage.waitForFunction(() => window.LoyaltyDemoDiagnostics);
+    assert.equal(await resetPage.locator('#queryProfileBtn').isDisabled(), true, 'Reset recovery comes before Profile lookup');
+    assert.equal(await resetPage.locator('#aepLabRetryVisitorReset').isVisible(), true);
+    resetPage.once('dialog', dialog => dialog.dismiss());
+    await resetPage.locator('#aepLabRetryVisitorReset').click();
+    assert.equal(await resetPage.evaluate(() => window.AepDemoVisitorReset.isBlocked()), true,
+      'Cancelling a fresh reset cannot unblock a failed verification');
+    await resetPage.locator('#aepLabRetryVisitorVerification').click();
+    await resetPage.waitForFunction(() => window.AepDemoVisitorReset.getState().status === 'error');
+    assert.equal(await resetPage.locator('#aepLabRetryVisitorVerification').isVisible(), true);
+    assert.equal(await resetPage.locator('#queryProfileBtn').isDisabled(), true);
+    for (const theme of ['light', 'dark']) {
+      await resetPage.setViewportSize({ width: 390, height: 900 });
+      await resetPage.evaluate(value => document.documentElement.setAttribute('data-aep-theme', value), theme);
+      assert.equal(await resetPage.locator('#aepLabVisitorResetStatus').evaluate(element =>
+        element.scrollWidth <= element.clientWidth), true, 'Recovery controls fit the mobile banner in ' + theme);
+    }
+    await resetPage.evaluate(() => { window.__resetEcid = '2'.repeat(38); });
+    await resetPage.locator('#aepLabRetryVisitorVerification').click();
+    await resetPage.locator('#aepLabVisitorResetStatus').waitFor({ state: 'hidden' });
+    assert.equal(await resetPage.evaluate(() => window.AepDemoVisitorReset.isBlocked()), false);
+    assert.equal(await resetPage.locator('#queryProfileBtn').isEnabled(), true);
+    assert.equal(await resetPage.evaluate(() => sessionStorage.getItem('aep-demo-visitor-reset-v1')), null);
+    assert.ok((await resetPage.evaluate(() => window.__resetCommands)).every(command => command === 'getIdentity'),
+      'Verification recovery issues identity reads only');
+    await resetPage.close();
     assert.deepEqual(writes, []);
     assert.deepEqual(errors, []);
   } finally {

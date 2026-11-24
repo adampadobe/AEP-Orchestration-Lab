@@ -32,6 +32,17 @@
   let cardLifecycle = null, cardRefresh = null, cardRefreshEvidence = null;
   let spendPoll = null, spendEvidence = null;
   let eventContextEvidence = null;
+  let profileLookupFailed = false, diagnosticSequence = 0;
+  const diagnostics = [];
+  function diagnose(level, event, details = {}) {
+    const record = { at: new Date().toISOString(), event, ...details };
+    diagnostics.push(record);
+    if (diagnostics.length > 60) diagnostics.shift();
+    console[level]('[Loyalty diagnostics]', record);
+  }
+  global.LoyaltyDemoDiagnostics = Object.freeze({
+    getRecent: () => structuredClone(diagnostics),
+  });
   const eventContextSchemaChecks = new Map();
   const spendMessages = new Map();
   global.LloydsLoyaltySpendDebug = Object.freeze({
@@ -332,26 +343,42 @@
   };
   function message(text, error) {
     $('loyaltyStatus').textContent = text; $('loyaltyStatus').dataset.error = String(!!error);
-    $('loyaltyRun').disabled = busy || !loaded;
-    $('loyaltyRefresh').disabled = busy || !loaded;
-    $('loyaltyAbandon').disabled = busy || !loaded;
-    if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy;
+    const visitorBlocked = !!global.AepDemoVisitorReset?.isBlocked();
+    $('loyaltyRun').disabled = busy || visitorBlocked || !loaded;
+    $('loyaltyRefresh').disabled = busy || visitorBlocked || !loaded;
+    $('loyaltyAbandon').disabled = busy || visitorBlocked || !loaded;
+    if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy || visitorBlocked;
+    if ($('loyaltyRetryProfile')) {
+      $('loyaltyRetryProfile').hidden = !profileLookupFailed;
+      $('loyaltyRetryProfile').disabled = busy || visitorBlocked;
+    }
     document.querySelectorAll('[data-loyalty-purchase]').forEach(button => { button.disabled = busy || !loaded; });
     cardMount().querySelectorAll('.loyalty-card-controls button').forEach(button => {
       button.disabled = busy || !loaded || button.dataset.boundaryDisabled === 'true';
     });
     syncSignupButtons();
     syncSpendControls();
+    if (typeof brand.onReadinessChange === 'function') {
+      brand.onReadinessChange({
+        profileLoaded: !!loaded,
+        stateLabel: $('loyaltyUpdated').textContent,
+        joinedCount: $('loyaltyTasks').querySelectorAll('.loyalty-challenge:not(.loyalty-pending-progress)').length,
+        cardEvidence: readContentCardEvidence(contentCardEvidence),
+        renderedCards: cardMount().querySelectorAll('.loyalty-content-card').length,
+        spend: global.LoyaltyDemoSpendDebug.getLatest(),
+        error: error ? text : '',
+      });
+    }
   }
   function closeConfiguration() {
     if (!global.EnvBarCompact.isPinned()) global.EnvBarCompact.closeOverlay({ force: true });
   }
-  const publish = () => {
+  const publish = (notify = true) => {
     const first = loaded?.rows.find(row => row.path === 'person.name.firstName');
     const name = first ? global.TuiDecisioningProfile.scalar(first) : '';
     $('loyaltyHomeName').textContent = typeof name === 'string' && name.trim() ? name : brand.homeLabel || 'Your banking';
     $('loyaltyHomeAvatar').textContent = typeof name === 'string' && name.trim() ? name.trim()[0].toUpperCase() : brand.homeAvatar || 'L';
-    global.dispatchEvent(new CustomEvent('tui-profile-changed'));
+    if (notify) global.dispatchEvent(new CustomEvent('tui-profile-changed'));
   };
   function clearResults() {
     clearFeaturedDisplay();
@@ -381,6 +408,7 @@
     version++; aborter?.abort(); pendingProfile = null; pendingTaskState = false; automaticTaskState = null; autoBlocked = true; clearResults();
     global.DecisioningProfileRuntime?.invalidateProfileLookupCache();
     if (clearProfile) {
+      profileLookupFailed = false;
       loaded = null; $('loyaltyMember').value = '';
       featuredRequest = null; pendingFeaturedRequest = false;
       pendingFeaturedOffers = null; lastAjoSignature = null;
@@ -595,33 +623,49 @@
   const repr = value => value === undefined || value === null ? 'Not reported' : typeof value === 'object' ? JSON.stringify(value) : String(value);
   async function json(url, options) {
     const loyaltyRead = url.startsWith('/api/ajo-loyalty?');
+    const parsedUrl = new URL(url, location.origin), started = Date.now();
+    const request = ++diagnosticSequence;
+    const details = { request, endpoint: parsedUrl.pathname,
+      action: parsedUrl.searchParams.get('action') || '', method: options?.method || 'GET' };
+    diagnose('info', 'request-start', details);
     const transientStatus = status => [408, 429, 500, 502, 503, 504].includes(status);
-    const failure = (text, status, retryable, details = {}) => Object.assign(new Error(text), {
-      status, retryableLoyaltyRead: loyaltyRead && retryable, ...details,
-    });
+    const failure = (text, status, retryable, extra = {}) => {
+      const category = extra.category || (status === 401 || status === 403 ? 'authorization' :
+        transientStatus(status) ? 'transient-http' : 'api-error');
+      diagnose('error', 'request-failed', { ...details, status, durationMs: Date.now() - started,
+        category, retryableRead: retryable });
+      return Object.assign(new Error(text), {
+        status, category, request, retryableLoyaltyRead: loyaltyRead && retryable, ...extra,
+      });
+    };
     let response;
     try { response = await fetch(url, { ...options, signal: aborter.signal }); }
     catch (error) {
-      throw failure(error.message, null, !aborter.signal.aborted && error instanceof TypeError, { cause: error });
+      throw failure(error.message, null, !aborter.signal.aborted && error instanceof TypeError,
+        { cause: error, category: aborter.signal.aborted ? 'cancelled' : 'network' });
     }
     const type = response.headers.get('content-type') || '';
     if (loyaltyRead && response.status === 404 && !type.includes('application/json')) {
-      throw new Error('Loyalty API is not deployed. An authorized release owner must update aepProxy and the Hosting route; SDK injection does not enable task-status reads.');
+      throw failure('Loyalty API is not deployed. An authorized release owner must update aepProxy and the Hosting route; SDK injection does not enable task-status reads.',
+        response.status, false, { category: 'route-not-deployed' });
     }
     if (!type.includes('application/json')) {
       throw failure('Expected the deployed lab JSON API; HTTP ' + response.status + '. Check the Functions release.',
-        response.status, transientStatus(response.status), { contentType: type });
+        response.status, transientStatus(response.status), { contentType: type, category: 'unexpected-content-type' });
     }
     let data;
     try { data = await response.json(); }
     catch (error) {
       throw failure('Lab API returned an unreadable JSON response; HTTP ' + response.status + ': ' + error.message,
-        response.status, response.ok || transientStatus(response.status), { contentType: type, cause: error });
+        response.status, response.ok || transientStatus(response.status),
+        { contentType: type, cause: error, category: 'invalid-json' });
     }
     if (!response.ok || data?.ok === false || data?.error) {
       throw failure(typeof data?.error === 'string' ? data.error : data?.message || 'HTTP ' + response.status,
-        response.status, transientStatus(response.status));
+        response.status, transientStatus(response.status),
+        data?.code === 'UPS_ENTITY_NOT_FOUND' ? { category: 'profile-not-indexed' } : {});
     }
+    diagnose('info', 'request-complete', { ...details, status: response.status, durationMs: Date.now() - started });
     return data;
   }
   function loyaltyAuthHeaders(ctx) {
@@ -1467,6 +1511,12 @@
   }
   async function work(operation) {
     if (busy) return;
+    if (global.AepDemoVisitorReset?.isBlocked()) {
+      diagnose('warn', 'operation-blocked', { category: 'visitor-reset',
+        resetStatus: global.AepDemoVisitorReset.getState().status });
+      message('Visitor reset is unverified. Use Retry verification or Retry reset in the recovery banner first.', true);
+      return;
+    }
     busy = true; aborter = new AbortController();
     const controller = aborter, ctx = context(), token = version;
     const timeout = setTimeout(() => controller.abort(new Error(
@@ -1481,7 +1531,11 @@
     // Aborting fetch alone cannot release queued SDK commands or shared drawer promises.
     try { return await Promise.race([operation(ctx, token), cancelled]); }
     catch (error) {
+      diagnose('error', 'operation-failed', { operation: operation.name || 'loyalty-action',
+        status: error.status ?? null, category: error.category || 'action-failed',
+        request: error.request ?? null, contextChanged: token !== version, automaticRetry: false });
       if (token === version) {
+        if (operation === lookup || operation === retryProfileLookup) profileLookupFailed = true;
         autoBlocked = true; $('loyaltyUpdated').textContent = 'Refresh failed / previous state may be stale';
         message(error.message + ' No automatic retry.', true);
         if (controller.signal.aborted) { version++; cardSubscription = null; pendingCard = false; pendingFeaturedRequest = false; pendingTaskState = false; }
@@ -1657,27 +1711,42 @@
     message(cardStatus + ' Featured Offers response refreshed; Data Collection processes the offers.');
   }
   global.requestFeaturedOffers = requestFeaturedOffers;
-  async function lookup(ctx, token, drawerReady = false) {
-    loaded = null; clearResults();
-    if (!drawerReady) global.DemoProfileDrawer.clearDrawerVisitorState();
-    publish();
-    if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier.');
-    const data = await json('/api/profile/table?' + new URLSearchParams({ sandbox: ctx.sandbox, namespace: ctx.namespace, identifier: ctx.identifier }));
-    same(ctx, token);
-    if (data.found !== true || !Array.isArray(data.rows)) throw new Error('No profile found.');
-    data.profileLoyaltyId = global.TuiDecisioningProfile.signals(data.rows).loyaltyId;
-    if (!drawerReady) {
-      let drawerError = '';
-      const drawerLoaded = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
-        updateMessage: false, sendApplicationLogin: false,
-        onUserMessage: (text, type) => { if (type === 'error') drawerError = text; },
-      });
+  async function lookup(ctx, token, drawerReady = false, readOnly = false) {
+    profileLookupFailed = false;
+    try {
+      loaded = null; clearResults();
+      if (!drawerReady) global.DemoProfileDrawer.clearDrawerVisitorState();
+      publish();
+      if (!ctx.sandbox || !ctx.identifier) throw new Error('Select a sandbox and enter a profile identifier.');
+      const data = await json('/api/profile/table?' + new URLSearchParams({ sandbox: ctx.sandbox, namespace: ctx.namespace, identifier: ctx.identifier }));
       same(ctx, token);
-      if (!drawerLoaded) throw new Error(drawerError || 'Profile drawer lookup was superseded or cancelled. Look up the current profile.');
+      if (data.found !== true || !Array.isArray(data.rows)) {
+        throw new Error('No profile found. Ingestion or identity indexing may still be pending. Retry profile lookup; do not generate the profile again.');
+      }
+      data.profileLoyaltyId = global.TuiDecisioningProfile.signals(data.rows).loyaltyId;
+      if (!drawerReady) {
+        let drawerError = '';
+        const drawerLoaded = await global.DemoProfileDrawer.loadProfileDataForDrawer(ctx.identifier, {
+          updateMessage: false, sendApplicationLogin: false,
+          onUserMessage: (text, type) => { if (type === 'error') drawerError = text; },
+        });
+        same(ctx, token);
+        if (!drawerLoaded) throw new Error(drawerError || 'Profile drawer lookup was superseded or cancelled. Look up the current profile.');
+      }
+      loaded = data; publish(!readOnly); autoBlocked = true;
+      message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
+      if (!readOnly) requestAutomaticCard();
+    } catch (error) {
+      if (token === version) {
+        profileLookupFailed = true;
+        diagnose('warn', 'profile-lookup-unresolved', { status: error.status ?? null,
+          recovery: 'retry-profile-lookup', generatesProfile: false });
+      }
+      throw error;
     }
-    loaded = data; publish(); autoBlocked = true;
-    message('Profile loaded. Select Get task status to read Adobe Loyalty. SDK injection is only needed for content cards and journey events.');
-    requestAutomaticCard();
+  }
+  function retryProfileLookup(ctx, token) {
+    return lookup(ctx, token, false, true);
   }
   async function prepareProfileEvent(ctx, token, eventType, requireLoyaltyId = false) {
     if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
@@ -2285,6 +2354,18 @@
       targets = await global.AepDemoGeneratorTargets.loadGeneratorTargetsIntoSelect($('generatorTarget'), {});
     });
     $('queryProfileBtn').addEventListener('click', () => void work(lookup));
+    const retryProfile = node('button', 'Retry profile lookup');
+    retryProfile.id = 'loyaltyRetryProfile'; retryProfile.type = 'button'; retryProfile.hidden = true;
+    retryProfile.title = 'Read the selected profile again. Does not generate a profile or resend an event.';
+    retryProfile.addEventListener('click', () => void work(retryProfileLookup));
+    $('loyaltyStatus').after(retryProfile);
+    global.addEventListener('aep-demo-visitor-reset-state', event => {
+      diagnose(event.detail.blocked ? 'warn' : 'info', 'visitor-state',
+        { status: event.detail.status, blocked: event.detail.blocked });
+      message(event.detail.blocked ? 'Visitor reset is unverified. Use the recovery banner before looking up a profile.' :
+        event.detail.status === 'complete' ? 'Visitor verified. Look up the selected test profile to continue.' :
+          $('loyaltyStatus').textContent, event.detail.blocked);
+    });
     const identityChanged = () => {
       const key = profileKey();
       if (key === selectedProfileKey) return;
