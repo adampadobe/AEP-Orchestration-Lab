@@ -922,7 +922,8 @@ async function main() {
     assert.equal(defaultTenantEvent.xdm.identityMap.Email[0].primary, true);
     assert.equal(defaultTenantEvent.xdm._ownTenant, undefined, 'The previous sandbox tenant is never reused');
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('demo-two'));
-    assert.equal(await page.locator('#loyaltyTenant').inputValue(), '', 'The reviewed default is scoped to Kirkham only');
+    assert.equal(await page.locator('#loyaltyTenant').inputValue(), '_ownTenant',
+      'Returning to a sandbox restores its own previous tenant, not the Kirkham default');
     await page.waitForFunction(() => document.getElementById('tuiPhSignal-loyaltyId').textContent === 'Not loaded',
       null, { timeout: 5000 });
     await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));

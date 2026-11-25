@@ -260,6 +260,67 @@ async function main() {
     assert.equal(await page.locator('#qatarPurchaseReadiness').textContent(), 'No purchase sent');
     assert.equal(await page.locator('#loyaltySurface').inputValue(),
       'web://127.0.0.1:' + server.address().port + '/profile-viewer/content-decision-live-edge.html#ContentCardContainerLoyalty');
+    const tenantInput = page.locator('#loyaltyTenant');
+    const tenantOptions = () => page.locator('#loyaltyTenantHistory option').evaluateAll(options => options.map(option => option.value));
+    const enterTenant = async value => {
+      await page.evaluate(() => window.EnvBarCompact.openOverlay({ pinned: true }));
+      if (!await page.locator('.loyalty-settings').evaluate(element => element.open)) {
+        await page.locator('.loyalty-settings summary').click();
+      }
+      await tenantInput.fill(value);
+      await tenantInput.press('Tab');
+    };
+    await page.evaluate(() => {
+      window.AepGlobalSandbox.setSelected('kirkham');
+      window.EnvBarCompact.openOverlay({ pinned: true });
+    });
+    assert.equal(await tenantInput.getAttribute('list'), 'loyaltyTenantHistory');
+    for (const value of ['_travelFixture', '_demoemea', '_travelFixture', '_experience', 'not a tenant', '']) {
+      await enterTenant(value);
+    }
+    assert.deepEqual(await tenantOptions(), ['_travelFixture', '_demoemea'],
+      'Valid entries are deduplicated and ordered by most recently used; invalid/reserved entries are not cached');
+    await page.reload();
+    await page.waitForFunction(() => document.getElementById('loyaltyTenantHistory'));
+    assert.equal(await tenantInput.inputValue(), '_travelFixture', 'The last namespace survives reload');
+    assert.deepEqual(await tenantOptions(), ['_travelFixture', '_demoemea']);
+    await page.evaluate(() => {
+      window.EnvBarCompact.openOverlay({ pinned: true });
+      window.AepGlobalSandbox.setSelected('apalmer');
+    });
+    assert.equal(await tenantInput.inputValue(), '', 'A different sandbox does not inherit the previous tenant');
+    assert.deepEqual(await tenantOptions(), []);
+    await enterTenant('_apalmerFixture');
+    await enterTenant('_demoemea');
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    assert.equal(await tenantInput.inputValue(), '_travelFixture');
+    assert.deepEqual(await tenantOptions(), ['_travelFixture', '_demoemea']);
+    await page.evaluate(() => window.AepGlobalSandbox.setSelected('apalmer'));
+    assert.equal(await tenantInput.inputValue(), '_demoemea');
+    assert.deepEqual(await tenantOptions(), ['_demoemea', '_apalmerFixture']);
+    await page.evaluate(() => {
+      const setItem = Storage.prototype.setItem;
+      Storage.prototype.setItem = function (key, value) {
+        if (key.startsWith('aep-loyalty-event-tenants-v1:')) throw new DOMException('Fixture: storage is disabled', 'SecurityError');
+        return setItem.call(this, key, value);
+      };
+    });
+    await enterTenant('_manualFixture');
+    assert.equal(await tenantInput.inputValue(), '_manualFixture', 'Manual entry remains available if caching fails');
+    assert.ok(await page.evaluate(() => window.LoyaltyDemoDiagnostics.getRecent().some(entry =>
+      entry.event === 'tenant-history-unavailable' && entry.operation === 'write')),
+      'Unavailable persistence is explicitly diagnosed');
+    await page.reload();
+    await page.waitForFunction(() => document.getElementById('loyaltyTenantHistory'));
+    await page.evaluate(() => {
+      window.EnvBarCompact.openOverlay({ pinned: true });
+      window.AepGlobalSandbox.setSelected('apalmer');
+    });
+    assert.equal(await tenantInput.inputValue(), '_demoemea', 'A failed cache write never replaces the saved namespace');
+    await page.evaluate(() => {
+      window.EnvBarCompact.closeOverlay({ force: true });
+      window.EnvBarCompact.openOverlay({ pinned: false });
+    });
     await page.evaluate(() => {
       localStorage.setItem('aepDemoNavOwnerHandle', 'apalmer');
       window.AepGlobalSandbox.setSelected('apalmer');

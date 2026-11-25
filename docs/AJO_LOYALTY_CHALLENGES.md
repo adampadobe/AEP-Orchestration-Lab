@@ -48,6 +48,14 @@ recovery never proves audience qualification or Loyalty completion.
 
 ### Loyalty context on profile events
 
+The **Event tenant namespace** field is an editable dropdown. Valid entries are
+remembered in browser-local history (up to 20, newest first) for each sandbox,
+shared by the Loyalty demo pages. Reloading or returning to a sandbox restores
+its most recent entry; new values can still be typed. Invalid/reserved namespaces
+are not cached, and unavailable browser storage is reported in Loyalty diagnostics.
+This only remembers configuration: it does not provision fields or verify that
+the selected namespace belongs to the event schema.
+
 Lloyds and Jet2 share optional event enrichment at
 `_experience.ajo.loyalty.challenge`: exact challenge `id`, independently resolved
 `name` when available, and string `metadata`. Card interactions retain their
