@@ -12,6 +12,8 @@
   const partnerOffers = brand.usePartnerOffers === false ? [] : model.partnerOffers;
   // Match the reviewed Kirkham event schema used by TUI / Center Parcs.
   const defaultEventTenant = () => global.AepGlobalSandbox.getSandboxName() === 'kirkham' ? '_demoemea' : '';
+  const validEventTenant = value => /^_[A-Za-z][A-Za-z0-9]*$/.test(value) &&
+    !['_id', '_repo', '_experience', '_links'].includes(value);
   const cardMount = () => $('ContentCardContainerLoyalty');
   const defaultCardSurface = () => {
     const page = brand.contentCardSurfacePage === 'current' ? new URL(location.href) :
@@ -1752,7 +1754,7 @@
     if (!loaded.rows.some(row => /^(xdm:)?testProfile$/.test(row.path) && global.TuiDecisioningProfile.scalar(row) === true)) {
       throw new Error('Only AEP test profiles can send ' + eventType + ', matching the TUI / Center Parcs demo.');
     }
-    if (!/^_[A-Za-z][A-Za-z0-9]*$/.test(ctx.tenant) || ['_id', '_repo', '_experience', '_links'].includes(ctx.tenant)) {
+    if (!validEventTenant(ctx.tenant)) {
       throw new Error('Configure the reviewed event tenant namespace in the top configuration bar before sending ' + eventType + '.');
     }
     if (typeof loaded.profileEmail !== 'string' || !loaded.profileEmail.includes('@')) {
@@ -2317,13 +2319,65 @@
     });
     $('loyaltyPhoneTitle').textContent = participation === 'complete' ? 'Completed challenges' : 'In progress';
   }
+  function initEventTenantHistory() {
+    const input = $('loyaltyTenant'), list = node('datalist');
+    list.id = 'loyaltyTenantHistory';
+    input.setAttribute('list', list.id);
+    input.title = 'Enter a namespace or choose a previous entry. Saved in this browser for the selected sandbox.';
+    input.after(list);
+    let sandbox = '';
+    const key = () => 'aep-loyalty-event-tenants-v1:' + encodeURIComponent(sandbox);
+    function read() {
+      if (!sandbox) return [];
+      try {
+        const values = JSON.parse(localStorage.getItem(key()) || '[]');
+        if (!Array.isArray(values)) throw new TypeError('Expected a namespace history list.');
+        return [...new Set(values.filter(value => typeof value === 'string').map(value => value.trim())
+          .filter(validEventTenant))].slice(0, 20);
+      } catch (error) {
+        diagnose('warn', 'tenant-history-unavailable', { operation: 'read',
+          category: error instanceof SyntaxError || error instanceof TypeError ? 'invalid-cache' : 'browser-storage' });
+        return [];
+      }
+    }
+    function render(values) {
+      list.replaceChildren(...values.map(value => {
+        const option = node('option');
+        option.value = value;
+        return option;
+      }));
+    }
+    function remember() {
+      const value = input.value.trim();
+      if (!sandbox || !validEventTenant(value)) return;
+      const values = [value, ...read().filter(previous => previous !== value)].slice(0, 20);
+      try {
+        localStorage.setItem(key(), JSON.stringify(values));
+        render(values);
+      } catch (error) {
+        diagnose('warn', 'tenant-history-unavailable', { operation: 'write', category: 'browser-storage' });
+      }
+    }
+    function restore() {
+      if (sandbox) remember();
+      sandbox = global.AepGlobalSandbox.getSandboxName();
+      const values = read();
+      input.value = values[0] || defaultEventTenant();
+      render(values);
+    }
+    input.addEventListener('change', remember);
+    input.addEventListener('focus', () => render(read()));
+    global.addEventListener('pagehide', remember);
+    restore();
+    return restore;
+  }
   async function init() {
     initPhoneApp();
     initPreviewMode();
     $('aepDemoEnvSection').append($('loyaltyApiOptions').content.cloneNode(true));
     const panel = $('aepLabEnvOverlayPanel');
     panel.prepend($('aepDemoProfileSection'));
-    $('loyaltyTenant').value = defaultEventTenant();
+    const restoreEventTenant = initEventTenantHistory();
     selectedProfileKey = profileKey();
     const email = $('customerEmail'), getTarget = () => targets.find(target => target.id === $('generatorTarget').value) || null;
     $('loyaltySurface').value = defaultCardSurface();
@@ -2381,7 +2435,7 @@
     global.addEventListener('aep-global-sandbox-change', () => {
       if (selectedProfileKey === profileKey()) return;
       selectedProfileKey = profileKey();
-      $('loyaltyRegion').value = ''; $('loyaltyTenant').value = defaultEventTenant(); $('loyaltyChallenge').value = '';
+      $('loyaltyRegion').value = ''; restoreEventTenant(); $('loyaltyChallenge').value = '';
       $('loyaltySurface').value = defaultCardSurface();
       $('loyaltyParticipation').value = 'active'; $('loyaltyTest').checked = false;
       invalidate(true);
