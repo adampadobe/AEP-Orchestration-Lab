@@ -15,7 +15,7 @@ const config = {
 };
 const day = '2026-11-11';
 
-function fixture(currentTime = '2026-11-11T13:00:00.000Z', { flowError, configPatch } = {}) {
+function fixture(currentTime = '2026-11-11T13:00:00.000Z', { flowError, configPatch, dispatcherPatch } = {}) {
   let flowReads = 0;
   const dayReads = [];
   const savedPlan = {
@@ -33,7 +33,7 @@ function fixture(currentTime = '2026-11-11T13:00:00.000Z', { flowError, configPa
     now: () => new Date(currentTime),
     store: {
       getConfig: async () => ({ ...config, ...configPatch }),
-      getDispatcher: async () => ({ blocked: true, active: null, attention: { day, id: '15' } }),
+      getDispatcher: async () => ({ blocked: true, active: null, attention: { day, id: '15' }, ...dispatcherPatch }),
       getDay: async (requestedDay) => {
         dayReads.push(requestedDay);
         return requestedDay === day ? savedPlan : null;
@@ -158,4 +158,35 @@ test('diagnostics honor reviewed idle policy and preserve unknown failure counte
   const result = await service.diagnose({ principalUid: privateUid, sandbox: 'apalmer' });
   assert.equal(result.focus.liveFlowHealth.healthy, true);
   assert.equal(result.focus.liveFlowHealth.flows[0].lastRun.failedCount, null);
+});
+
+test('diagnostics expose the prewrite breaker and sanitized recent events newest first', async () => {
+  const events = Array.from({ length: 55 }, (_, index) => ({
+    type: 'prewrite_skipped', at: new Date(Date.UTC(2026, 10, 11, 8, index)).toISOString(), day, id: '15',
+    industry: 'retail', errorCode: 'SEED_EXECUTION_INTERRUPTED', failureStage: 'snowflake_preflight',
+    consecutivePrewriteFailures: index + 1, message: 'private provider detail', email: privateEmail,
+  }));
+  events.push({ type: 'invented', errorCode: 'not a code', failureStage: 'nowhere', id: 'x' });
+  const { service } = fixture(undefined, {
+    dispatcherPatch: {
+      blocked: false, attention: null,
+      breaker: {
+        consecutivePrewriteFailures: 3, openedAt: '2026-11-11T12:40:00.000Z',
+        openUntil: '2026-11-11T13:10:00.000Z', lastFailureAt: '2026-11-11T12:40:00.000Z', secret: 'x',
+      },
+      recentEvents: events,
+    },
+  });
+  const result = await service.diagnose({ principalUid: privateUid, sandbox: 'apalmer' });
+  assert.deepEqual(result.dispatcher.breaker, {
+    consecutivePrewriteFailures: 3, threshold: 3, open: true, openedAt: '2026-11-11T12:40:00.000Z',
+    openUntil: '2026-11-11T13:10:00.000Z', lastFailureAt: '2026-11-11T12:40:00.000Z',
+  });
+  assert.equal(result.dispatcher.recentEvents.length, 50);
+  assert.equal(result.dispatcher.recentEvents[0].type, 'unknown');
+  assert.equal(result.dispatcher.recentEvents[0].errorCode, null);
+  assert.equal(result.dispatcher.recentEvents[0].failureStage, null);
+  assert.equal(result.dispatcher.recentEvents[1].consecutivePrewriteFailures, 55);
+  assert.equal(result.dispatcher.recentEvents[1].failureStage, 'snowflake_preflight');
+  assert.doesNotMatch(JSON.stringify(result), /private provider detail|private-profile|secret/);
 });

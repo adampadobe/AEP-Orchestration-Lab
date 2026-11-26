@@ -27,6 +27,17 @@ const DISPATCHER_ERROR_CODES = [
   'SEED_CONFIGURATION_CHANGED', 'SEED_DAY_CONFIG_CHANGED', 'SEED_SCHEDULE_DAY_INVALID', 'SEED_CLAIM_LOST',
 ];
 const safeErrorCode = (error, codes, fallback) => codes.includes(error?.code) ? error.code : fallback;
+// Failures before identities are durably prepared cannot have written source rows, so they warn and continue.
+const PREWRITE_FAILURE_STAGES = new Set([
+  SLOT_FAILURE_STAGES.flowSnapshot, SLOT_FAILURE_STAGES.flowHealth, SLOT_FAILURE_STAGES.preflight,
+  SLOT_FAILURE_STAGES.preparation, SLOT_FAILURE_STAGES.validateIdentities, SLOT_FAILURE_STAGES.windowCheck,
+]);
+const UNCERTAIN_WRITE_CODES = new Set(['SEED_OUTCOME_UNKNOWN', 'SEED_COMMITTED_NEEDS_INSPECTION']);
+const BREAKER_THRESHOLD = 3;
+const BREAKER_COOLDOWN_MS = 30 * MINUTE;
+const RECENT_EVENT_LIMIT = 50;
+const isPrewriteFailure = ({ stage, errorCode, prepared }) => !prepared
+  && PREWRITE_FAILURE_STAGES.has(stage) && !UNCERTAIN_WRITE_CODES.has(errorCode);
 
 function slotLogFields(day, slot) {
   return {
@@ -231,6 +242,14 @@ function canWaitForActiveFlows(snapshot, diagnostic, now) {
 function createProfileSeedScheduleService({
   store, snowflake, getOwner, flowSnapshot, now = () => new Date(), logger = console,
 }) {
+  const warn = (...args) => (typeof logger.warn === 'function' ? logger.warn(...args) : logger.info(...args));
+  function logBreakerOpened(day, breaker) {
+    if (!breaker?.breakerOpened) return;
+    logger.error('[profile-seed-schedule] Circuit breaker opened; dispatch pauses until cooldown, then probes one slot.', {
+      event: 'profile_seed_breaker_opened', day,
+      consecutivePrewriteFailures: breaker.consecutivePrewriteFailures, openUntil: breaker.openUntil,
+    });
+  }
   async function tick() {
     let stage = 'read_config';
     let config, local, owner, slot;
@@ -258,6 +277,22 @@ function createProfileSeedScheduleService({
       throw error;
     }
     if (!slot) return { state: 'idle' };
+    if (slot.state === 'breaker_open') {
+      logger.info('[profile-seed-schedule] Circuit breaker open after repeated prewrite failures; waiting for cooldown.', {
+        event: 'profile_seed_breaker_open', day: local.day, openUntil: slot.openUntil,
+        consecutivePrewriteFailures: slot.consecutivePrewriteFailures,
+      });
+      return { state: 'breaker_open', openUntil: slot.openUntil };
+    }
+    if (slot.state === 'skipped_prewrite') {
+      warn('[profile-seed-schedule] Abandoned writer had no prepared identities; slot skipped, dispatch continues.', {
+        event: 'profile_seed_prewrite_skipped', ...slotLogFields(slot.day, slot),
+        stage: SLOT_FAILURE_STAGES.abandoned, errorCode: 'SEED_EXECUTION_INTERRUPTED',
+        writerAgeMs: slot.writerAgeMs, maxWriterAgeMs: slot.maxWriterAgeMs, ...slot.breaker,
+      });
+      logBreakerOpened(slot.day, slot.breaker);
+      return { state: 'skipped_prewrite', errorCode: 'SEED_EXECUTION_INTERRUPTED' };
+    }
     if (slot.state === 'needs_attention') {
       logger.error('[profile-seed-schedule] Abandoned writer; generation blocked until inspection.', {
         event: 'profile_seed_writer_abandoned', ...slotLogFields(slot.day, slot),
@@ -333,10 +368,16 @@ function createProfileSeedScheduleService({
         state: 'committed', ingestion: 'pending', tableRowcounts: result.tableRowcounts || {},
       }, now());
     } catch (error) {
-      // Even a pre-write failure is not automatically replayed with fresh identities.
+      // Failed slots are never replayed; pre-write failures skip the slot so later slots still run.
       const errorCode = safeErrorCode(error, SLOT_ERROR_CODES, 'SEED_EXECUTION_INTERRUPTED');
+      const prewrite = isPrewriteFailure({ stage, errorCode, prepared });
+      let breaker;
       try {
-        await store.finish(local.day, slot.id, {
+        breaker = await store.finish(local.day, slot.id, prewrite ? {
+          state: 'skipped', reason: 'prewrite_failure', ingestion: 'not_started',
+          errorCode, failureStage: stage,
+          ...(flowHealthAtFailure ? { flowHealth: flowHealthAtFailure } : {}),
+        } : {
           state: 'needs_attention', ingestion: 'unverified',
           errorCode, failureStage: stage,
           ...(flowHealthAtFailure ? { flowHealth: flowHealthAtFailure } : {}),
@@ -349,6 +390,15 @@ function createProfileSeedScheduleService({
           flowHealthAtFailure: flowHealthAtFailure ? flowHealthLogFields(flowHealthAtFailure) : null,
         });
         throw finishError;
+      }
+      if (prewrite) {
+        warn('[profile-seed-schedule] Prewrite failure; slot skipped, dispatch continues.', {
+          event: 'profile_seed_prewrite_skipped', ...logFields, stage, errorCode, prepared,
+          consecutivePrewriteFailures: breaker?.consecutivePrewriteFailures ?? null,
+          flowHealthAtFailure: flowHealthAtFailure ? flowHealthLogFields(flowHealthAtFailure) : null,
+        });
+        logBreakerOpened(local.day, breaker);
+        return { state: 'skipped_prewrite', errorCode, breakerOpened: !!breaker?.breakerOpened };
       }
       logger.error('[profile-seed-schedule] Paused for inspection', {
         event: 'profile_seed_needs_attention', ...logFields, stage, errorCode, prepared,
@@ -368,4 +418,5 @@ module.exports = {
   INDUSTRIES, TIME_ZONE, DAILY_CAP, businessTime, validateConfig, buildDayPlan,
   diagnoseFlowHealth, assertFlowHealth, createProfileSeedScheduleService,
   healthPolicy, IDLE_POLICY, SLOT_FAILURE_STAGES,
+  BREAKER_THRESHOLD, BREAKER_COOLDOWN_MS, RECENT_EVENT_LIMIT, isPrewriteFailure,
 };
