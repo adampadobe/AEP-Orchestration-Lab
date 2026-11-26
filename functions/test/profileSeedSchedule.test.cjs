@@ -89,7 +89,7 @@ function fixture(overrides = {}) {
     },
     async generate(input) {
       calls.generate++;
-      assert.equal(input.count, 2);
+      assert.equal(input.count, input.industry === 'fsi' ? 1 : 2);
       assert.equal(input.samplingMode, 'ongoing');
       assert.equal(input.expectedBaseEmail, settings.expectedBaseEmail);
       assert.equal(input.expectedMobilePhone, settings.expectedMobilePhone);
@@ -98,7 +98,7 @@ function fixture(overrides = {}) {
         ecid: String(index + 1).repeat(38), crmId: `CRM${1000 + index}`, recipientId: `R-${index}`,
       }));
       await input.onPrepared({ profiles, runStamp: time.toISOString() });
-      assert.deepEqual(db.data.get(dayKey()).slots[0].identities, profiles);
+      assert.deepEqual(db.data.get(dayKey()).slots.find((slot) => slot.state === 'running').identities, profiles);
       return { ok: true, tableRowcounts: { SOURCE: 2 } };
     },
     ...overrides.snowflake,
@@ -117,7 +117,7 @@ function fixture(overrides = {}) {
       if (overrides.flowError) throw overrides.flowError;
       return overrides.health || health();
     },
-    logger: { info: (...args) => logs.push(args), error: (...args) => logs.push(args) },
+    logger: { info: (...args) => logs.push(args), warn: (...args) => logs.push(args), error: (...args) => logs.push(args) },
   });
   return { db, store, service, calls, snowflake, logs, health,
     advance: (ms) => { time = new Date(+time + ms); },
@@ -257,13 +257,14 @@ test('reservation budget includes failed attempts and cannot exceed fifty', asyn
   assert.equal(f.calls.generate, 0);
 });
 
-test('preflight, identity callback, and ambiguous commit errors pause all future creation', async () => {
+test('prewrite errors skip only their slot; possible-write and ambiguous commit errors pause all future creation', async () => {
   const stages = {
     preflight: 'snowflake_preflight', preferences: 'snowflake_preflight', missing_callback: 'preparation',
     throw: 'source_write', partial: 'source_post_commit', unknown: 'source_write',
   };
   for (const outcome of ['preflight', 'preferences', 'missing_callback', 'throw', 'partial', 'unknown']) {
     const f = fixture();
+    const healthy = { ...f.snowflake };
     if (outcome === 'preflight') f.snowflake.preflight = async () => { throw new Error('credential provider failure'); };
     if (outcome === 'preferences') f.snowflake.preflight = async () => ({
       ready: true, baseEmail: 'changed@example.test', mobilePhone: settings.expectedMobilePhone,
@@ -277,14 +278,25 @@ test('preflight, identity callback, and ambiguous commit errors pause all future
         return { ok: false, committed: outcome === 'partial', outcomeUnknown: outcome === 'unknown' };
       };
     }
-    assert.equal((await f.service.tick()).state, 'needs_attention', outcome);
-    assert.equal(f.db.data.get(controlKey).blocked, true);
-    assert.equal(f.db.data.get(dayKey()).slots[0].state, 'needs_attention');
-    assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, stages[outcome]);
+    const prewrite = ['preflight', 'preferences', 'missing_callback'].includes(outcome);
+    assert.equal((await f.service.tick()).state, prewrite ? 'skipped_prewrite' : 'needs_attention', outcome);
+    assert.equal(f.db.data.get(controlKey).blocked, !prewrite);
+    const failed = f.db.data.get(dayKey()).slots[0];
+    assert.equal(failed.state, prewrite ? 'skipped' : 'needs_attention');
+    assert.equal(failed.failureStage, stages[outcome]);
+    if (prewrite) {
+      assert.equal(failed.reason, 'prewrite_failure');
+      assert.equal(failed.ingestion, 'not_started');
+      assert.deepEqual(failed.identities, []);
+    }
     const generated = f.calls.generate;
+    Object.assign(f.snowflake, healthy);
     f.advance(15 * 60_000);
     await f.service.tick();
-    assert.equal(f.calls.generate, generated);
+    // A skipped slot is never replayed, but the next due slot still runs.
+    assert.equal(f.db.data.get(dayKey()).slots[0].state, prewrite ? 'skipped' : 'needs_attention');
+    assert.equal(f.db.data.get(dayKey()).slots[1].state, prewrite ? 'committed' : 'pending');
+    if (!prewrite) assert.equal(f.calls.generate, generated);
     assert.equal(JSON.stringify(f.logs).includes('secret upstream text'), false);
   }
 });
@@ -320,7 +332,7 @@ test('flow readiness rejects incomplete, stale, failed and changed ingestion wit
   ]) assert.throws(() => assertFlowHealth({ ...good, flows: [{ ...good.flows[0], ...patch }] }, f.now()));
   for (const health of [{ complete: false, flows: good.flows }, { complete: true, flows: [] }]) {
     const blocked = fixture({ health });
-    assert.equal((await blocked.service.tick()).state, 'needs_attention');
+    assert.equal((await blocked.service.tick()).state, 'skipped_prewrite');
     assert.equal(blocked.calls.generate, 0);
   }
 });
@@ -349,7 +361,7 @@ test('active flow defers the same prewrite slot, then rechecks health without an
   assert.deepEqual(f.db.data.get(controlKey), { blocked: false, active: null });
 });
 
-test('active-flow deferral is bounded and fails closed for ambiguous or unhealthy evidence', async () => {
+test('active-flow deferral is bounded and skips ambiguous or unhealthy evidence without seeding', async () => {
   const active = {
     id: '065f3b53-df40-43d1-9d91-c42f031996d6', state: 'enabled',
     schedule: { frequency: 'minute', interval: 15 },
@@ -368,25 +380,27 @@ test('active-flow deferral is bounded and fails closed for ambiguous or unhealth
   ];
   for (const flow of badFlows) {
     const f = fixture({ health: { complete: true, flows: [flow] } });
-    assert.equal((await f.service.tick()).state, 'needs_attention');
+    assert.equal((await f.service.tick()).state, 'skipped_prewrite');
     assert.equal(f.calls.generate, 0);
-    assert.equal(f.db.data.get(controlKey).blocked, true);
+    assert.equal(f.db.data.get(controlKey).blocked, false);
+    assert.equal(f.db.data.get(controlKey).breaker.consecutivePrewriteFailures, 1);
   }
   const mixed = fixture({ health: { complete: false, flows: [active] } });
-  assert.equal((await mixed.service.tick()).state, 'needs_attention');
+  assert.equal((await mixed.service.tick()).state, 'skipped_prewrite');
   const otherFailure = fixture({ health: { complete: true, flows: [active, {
     ...active, id: 'af445651-b6ab-4a37-a58d-744a6d6800ac',
     lastRun: { state: 'failed', completedAt: null, failedCount: 1 },
   }] } });
-  assert.equal((await otherFailure.service.tick()).state, 'needs_attention');
+  assert.equal((await otherFailure.service.tick()).state, 'skipped_prewrite');
   const health = { complete: true, flows: [structuredClone(active)] };
   const f = fixture({ health });
   assert.equal((await f.service.tick()).state, 'waiting_flow_health');
   f.advance(10 * 60_000);
   health.flows[0].lastRun = { id: 'run-a', state: 'success',
     completedAt: f.now().toISOString(), failedCount: 0 };
-  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal((await f.service.tick()).state, 'skipped_prewrite');
   assert.equal(f.db.data.get(dayKey()).slots[0].errorCode, 'SEED_FLOW_WAIT_EXPIRED');
+  assert.equal(f.db.data.get(dayKey()).slots[0].state, 'skipped');
   assert.equal(f.calls.preflight, 0);
   assert.equal(f.calls.generate, 0);
   assert.equal(f.db.data.get(dayKey()).attemptedCount, 2);
@@ -403,9 +417,10 @@ test('a deferred slot rejects changed write evidence and terminal flow failure',
   assert.equal((await f.service.tick()).state, 'waiting_flow_health');
   f.advance(5 * 60_000);
   health.flows[0].lastRun = { id: 'run-a', state: 'failed', completedAt: f.now().toISOString(), failedCount: 3 };
-  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal((await f.service.tick()).state, 'skipped_prewrite');
   assert.equal(f.calls.generate, 0);
-  assert.equal(f.db.data.get(controlKey).blocked, true);
+  assert.equal(f.db.data.get(controlKey).blocked, false);
+  assert.equal(f.db.data.get(dayKey()).slots[0].state, 'skipped');
 
   health.flows[0].lastRun = { id: 'run-a', state: 'inProgress', startedAt: `${day}T05:03:00.000Z`,
     completedAt: null, failedCount: null };
@@ -426,7 +441,9 @@ test('abandoned deferred health checks never restart generation after the writer
   }] } });
   assert.equal((await f.service.tick()).state, 'waiting_flow_health');
   f.advance(16 * 60_000);
-  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal((await f.service.tick()).state, 'skipped_prewrite');
+  assert.equal(f.db.data.get(dayKey()).slots[0].state, 'skipped');
+  assert.equal(f.db.data.get(dayKey()).slots[0].reason, 'abandoned_prewrite');
   assert.equal(f.db.data.get(dayKey()).slots[0].failureStage, 'abandoned_writer');
   assert.equal(f.calls.generate, 0);
 });
@@ -444,7 +461,7 @@ test('flow-health failure persists safe per-flow evidence and never reaches Snow
     }],
   };
   const f = fixture({ health });
-  assert.equal((await f.service.tick()).state, 'needs_attention');
+  assert.equal((await f.service.tick()).state, 'skipped_prewrite');
   assert.equal(f.calls.preflight, 0);
   assert.equal(f.calls.generate, 0);
   const slot = f.db.data.get(dayKey()).slots[0];
@@ -452,8 +469,9 @@ test('flow-health failure persists safe per-flow evidence and never reaches Snow
   assert.equal(slot.failureStage, 'flow_health');
   assert.equal(slot.flowHealth.issues[0].code, 'last_run_stale');
   assert.equal(slot.flowHealth.issues[1].code, 'failed_count_unknown');
-  const [, log] = f.logs.find(([, fields]) => fields.event === 'profile_seed_needs_attention');
+  const [, log] = f.logs.find(([, fields]) => fields.event === 'profile_seed_prewrite_skipped');
   assert.equal(log.stage, 'flow_health');
+  assert.equal(log.consecutivePrewriteFailures, 1);
   assert.equal(log.flowHealthAtFailure.healthy, false);
   assert.equal(log.flowHealthAtFailure.maxRunAgeMs, 120 * 60_000);
   assert.deepEqual(log.flowHealthAtFailure.unhealthyFlows[0], {
@@ -493,14 +511,92 @@ test('pause or close of business between preparation and write prevents the writ
       if (change === 'window') f.setTime(`${day}T18:00:00+03:00`);
       return original(input);
     };
-    assert.equal((await f.service.tick()).state, 'needs_attention');
+    // The window recheck happens before durable preparation; pause/config fail while persisting it.
+    assert.equal((await f.service.tick()).state, change === 'window' ? 'skipped_prewrite' : 'needs_attention');
     assert.deepEqual(f.db.data.get(dayKey()).slots[0].identities, []);
   }
 });
 
-test('a crashed writer remains blocked even across midnight and is never reclaimed', async () => {
+test('repeated prewrite failures open a cooldown breaker, half-open probes reopen it, and a commit resets it', async () => {
+  const f = fixture();
+  const start = +f.now();
+  const plan = f.db.data.get(dayKey());
+  plan.slots = Array.from({ length: 7 }, (_, index) => ({
+    id: String(index).padStart(2, '0'), industry: 'retail', count: 2,
+    dueAt: new Date(start + index * 15 * 60_000).toISOString(), state: 'pending', identities: [],
+  }));
+  plan.plannedCount = 14;
+  const healthy = f.snowflake.preflight;
+  let failedPreflights = 0;
+  f.snowflake.preflight = async () => { failedPreflights++; throw new Error('private credential failure'); };
+  const control = () => f.db.data.get(controlKey);
+  const slots = () => f.db.data.get(dayKey()).slots;
+
+  for (const expected of [1, 2]) {
+    assert.equal((await f.service.tick()).state, 'skipped_prewrite');
+    assert.equal(control().breaker.consecutivePrewriteFailures, expected);
+    assert.equal(control().breaker.openUntil, undefined);
+    f.advance(15 * 60_000);
+  }
+  const third = await f.service.tick();
+  assert.deepEqual(third, { state: 'skipped_prewrite', errorCode: 'SEED_EXECUTION_INTERRUPTED', breakerOpened: true });
+  assert.equal(control().blocked, false);
+  assert.equal(control().breaker.openUntil, new Date(+f.now() + 30 * 60_000).toISOString());
+  assert.ok(f.logs.some(([, fields]) => fields.event === 'profile_seed_breaker_opened'));
+
+  f.advance(15 * 60_000);
+  assert.equal((await f.service.tick()).state, 'breaker_open');
+  assert.equal(slots()[3].state, 'pending');
+  assert.equal(failedPreflights, 3);
+
+  // Cooldown elapsed: one half-open probe; another failure reopens immediately.
+  f.advance(15 * 60_000);
+  assert.equal((await f.service.tick()).breakerOpened, true);
+  assert.equal(slots()[3].reason, 'missed_window');
+  assert.equal(slots()[4].state, 'skipped');
+  assert.equal(control().breaker.consecutivePrewriteFailures, 4);
+  f.advance(15 * 60_000);
+  assert.equal((await f.service.tick()).state, 'breaker_open');
+
+  f.snowflake.preflight = healthy;
+  f.advance(15 * 60_000);
+  assert.equal((await f.service.tick()).state, 'committed');
+  assert.equal(slots()[6].state, 'committed');
+  assert.equal(control().blocked, false);
+  assert.equal(control().breaker, undefined);
+  const types = control().recentEvents.map(({ type }) => type);
+  assert.deepEqual(types, ['prewrite_skipped', 'prewrite_skipped', 'prewrite_skipped', 'breaker_opened',
+    'prewrite_skipped', 'breaker_opened', 'breaker_reset']);
+  assert.equal(control().recentEvents[0].errorCode, 'SEED_EXECUTION_INTERRUPTED');
+  assert.equal(control().recentEvents[0].failureStage, 'snowflake_preflight');
+  assert.doesNotMatch(JSON.stringify([control(), f.logs]), /private credential failure/);
+});
+
+test('a crashed writer that never prepared identities is skipped and dispatch continues', async () => {
   const f = fixture();
   await f.store.claim(day, config, f.now());
+  f.advance(16 * 60_000);
+  assert.equal((await f.service.tick()).state, 'skipped_prewrite');
+  const abandoned = f.db.data.get(dayKey()).slots[0];
+  assert.equal(abandoned.state, 'skipped');
+  assert.equal(abandoned.reason, 'abandoned_prewrite');
+  assert.equal(abandoned.errorCode, 'SEED_EXECUTION_INTERRUPTED');
+  assert.equal(f.db.data.get(controlKey).blocked, false);
+  assert.equal(f.db.data.get(controlKey).active, null);
+  assert.equal(f.calls.generate, 0);
+  assert.equal((await f.service.tick()).state, 'committed');
+  assert.equal(f.db.data.get(dayKey()).slots[1].state, 'committed');
+});
+
+const prepareCrashedWriter = (f) => Object.assign(f.db.data.get(dayKey()).slots[0], {
+  identities: [{ email: 'a@example.test', ecid: '1'.repeat(38), crmId: 'CRM1', recipientId: 'R-1' }],
+  runStamp: 'prepared-run',
+});
+
+test('a crashed writer with prepared identities remains blocked even across midnight and is never reclaimed', async () => {
+  const f = fixture();
+  await f.store.claim(day, config, f.now());
+  prepareCrashedWriter(f);
   f.advance(16 * 60_000);
   await f.service.tick();
   assert.equal(f.db.data.get(controlKey).blocked, true);
@@ -509,6 +605,7 @@ test('a crashed writer remains blocked even across midnight and is never reclaim
 
   const overnight = fixture();
   await overnight.store.claim(day, config, overnight.now());
+  prepareCrashedWriter(overnight);
   overnight.setTime('2026-11-12T08:05:00+03:00');
   await overnight.service.tick();
   assert.equal(overnight.db.data.get(controlKey).blocked, true);

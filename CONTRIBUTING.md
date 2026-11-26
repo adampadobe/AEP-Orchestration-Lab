@@ -145,6 +145,21 @@ industry-field audit. AEP dataset/REL storage still needs separate dataset-level
 verification. These checks run only on demand; timestamps describe observations,
 and failures or missing rows must not be presented as confirmed delivery.
 
+**Scheduled profile seeder failure policy.** A slot that fails before any source
+write (flow snapshot/health, Snowflake preflight, preparation, identity validation,
+pre-write window check, or an abandoned writer that never prepared identities) is
+recorded as `skipped` with `ingestion: 'not_started'`, a sanitized error code and
+failure stage, and logs `profile_seed_prewrite_skipped`; dispatch continues with the
+next slot. Three consecutive pre-write skips open a 30-minute circuit breaker
+(`profile_seed_breaker_opened`), during which slots are not claimed. After the
+cooldown one half-open attempt runs: another pre-write failure reopens the breaker
+immediately, and a committed slot resets it. Failures that may have written data
+(`persist_preparation`, source write/post-commit, commit persistence, or an abandoned
+writer with prepared identities or a run stamp) still block the dispatcher and need
+the reviewed recovery or skip workflow. The dispatcher keeps the last 50 sanitized
+breaker/attention events; diagnostics and **Monitor → Scheduled profiles** show the
+breaker state and recent events.
+
 ### Preserved Decisioning Profile Viewer routes
 
 These hosted paths are part of the lab surface and must stay in **`web/profile-viewer/`** on **`main`** (with nav + Global values wiring intact). Do **not** remove or orphan them without an explicit product decision and a redirect or replacement plan:

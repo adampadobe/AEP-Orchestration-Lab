@@ -1,9 +1,44 @@
 'use strict';
 
-const { validateConfig, DAILY_CAP, businessTime, SLOT_FAILURE_STAGES } = require('./profileSeedScheduleService');
+const {
+  validateConfig, DAILY_CAP, businessTime, SLOT_FAILURE_STAGES,
+  BREAKER_THRESHOLD, BREAKER_COOLDOWN_MS, RECENT_EVENT_LIMIT,
+} = require('./profileSeedScheduleService');
 const COLLECTION = 'labProfileSeedSchedules';
 const MAX_WRITER_AGE_MS = 15 * 60_000;
 const fail = (code) => Object.assign(new Error(code), { code });
+
+// Breaker and diagnostic history survive every dispatcher rewrite; absent fields stay absent.
+function carried(current) {
+  return {
+    ...(current?.breaker ? { breaker: current.breaker } : {}),
+    ...(current?.recentEvents?.length ? { recentEvents: current.recentEvents } : {}),
+  };
+}
+function withEvent(current, event) {
+  return [...(Array.isArray(current?.recentEvents) ? current.recentEvents : []), event].slice(-RECENT_EVENT_LIMIT);
+}
+function failedBreaker(current, now) {
+  const consecutivePrewriteFailures = (current?.breaker?.consecutivePrewriteFailures || 0) + 1;
+  const breaker = { consecutivePrewriteFailures, lastFailureAt: now.toISOString() };
+  const breakerOpened = consecutivePrewriteFailures >= BREAKER_THRESHOLD;
+  if (breakerOpened) {
+    breaker.openedAt = now.toISOString();
+    breaker.openUntil = new Date(now.getTime() + BREAKER_COOLDOWN_MS).toISOString();
+  }
+  return { breaker, breakerOpened };
+}
+function skipEvents(current, now, { day, id, industry, errorCode, failureStage }, { breaker, breakerOpened }) {
+  const at = now.toISOString();
+  const base = { at, day, id, industry, errorCode, failureStage };
+  let recentEvents = withEvent(current, { type: 'prewrite_skipped', ...base,
+    consecutivePrewriteFailures: breaker.consecutivePrewriteFailures });
+  if (breakerOpened) {
+    recentEvents = withEvent({ recentEvents }, { type: 'breaker_opened', at, day, id,
+      consecutivePrewriteFailures: breaker.consecutivePrewriteFailures, openUntil: breaker.openUntil });
+  }
+  return recentEvents;
+}
 
 function createProfileSeedScheduleStore(db) {
   const root = db.collection(COLLECTION).doc('apalmer');
@@ -45,12 +80,31 @@ function createProfileSeedScheduleStore(db) {
           const activeDay = current.active.day === day ? saved : await tx.get(activeRef);
           const plan = activeDay.data();
           const slot = plan.slots.find(({ id }) => id === current.active.id);
+          if (Array.isArray(slot.identities) && !slot.identities.length && !slot.runStamp) {
+            // Identities persist transactionally before any source write, so none means nothing was written.
+            Object.assign(slot, {
+              state: 'skipped', reason: 'abandoned_prewrite', errorCode: 'SEED_EXECUTION_INTERRUPTED',
+              failureStage: SLOT_FAILURE_STAGES.abandoned, ingestion: 'not_started', updatedAt: now.toISOString(),
+            });
+            tx.set(activeRef, plan);
+            const result = failedBreaker(current, now);
+            tx.set(control, { blocked: false, active: null, breaker: result.breaker,
+              recentEvents: skipEvents(current, now, { day: current.active.day, id: slot.id, industry: slot.industry,
+                errorCode: slot.errorCode, failureStage: slot.failureStage }, result) });
+            return {
+              state: 'skipped_prewrite', day: current.active.day, id: slot.id, industry: slot.industry,
+              count: slot.count, writerAgeMs, maxWriterAgeMs: MAX_WRITER_AGE_MS,
+              breaker: { ...result.breaker, breakerOpened: result.breakerOpened },
+            };
+          }
           slot.state = 'needs_attention';
           slot.errorCode = 'SEED_EXECUTION_INTERRUPTED';
           slot.failureStage = SLOT_FAILURE_STAGES.abandoned;
           slot.updatedAt = now.toISOString();
           tx.set(activeRef, plan);
-          tx.set(control, { ...current, blocked: true });
+          tx.set(control, { ...current, blocked: true, recentEvents: withEvent(current, {
+            type: 'needs_attention', at: now.toISOString(), day: current.active.day, id: slot.id,
+            industry: slot.industry, errorCode: slot.errorCode, failureStage: slot.failureStage }) });
           return {
             state: 'needs_attention', day: current.active.day, id: slot.id,
             industry: slot.industry, count: slot.count, writerAgeMs, maxWriterAgeMs: MAX_WRITER_AGE_MS,
@@ -76,6 +130,11 @@ function createProfileSeedScheduleStore(db) {
         }
         return null;
       }
+      const openUntil = Date.parse(current.breaker?.openUntil);
+      if (Number.isFinite(openUntil) && openUntil > now.getTime()) {
+        return { state: 'breaker_open', openUntil: current.breaker.openUntil,
+          consecutivePrewriteFailures: current.breaker.consecutivePrewriteFailures };
+      }
       const plan = saved.data();
       if (plan.fingerprint !== config.fingerprint) throw fail('SEED_DAY_CONFIG_CHANGED');
       for (const slot of plan.slots) {
@@ -93,7 +152,7 @@ function createProfileSeedScheduleStore(db) {
       slot.startedAt = now.toISOString();
       plan.attemptedCount += slot.count;
       tx.set(dayRef(day), plan);
-      tx.set(control, { blocked: false, active: { day, id: slot.id, startedAt: slot.startedAt } });
+      tx.set(control, { blocked: false, active: { day, id: slot.id, startedAt: slot.startedAt }, ...carried(current) });
       return slot;
     });
   }
@@ -133,7 +192,7 @@ function createProfileSeedScheduleStore(db) {
     });
   }
   async function finish(day, id, patch, now) {
-    await db.runTransaction(async (tx) => {
+    return db.runTransaction(async (tx) => {
       const [saved, state] = await Promise.all([tx.get(dayRef(day)), tx.get(control)]);
       const plan = saved.data();
       const current = state.data();
@@ -142,8 +201,25 @@ function createProfileSeedScheduleStore(db) {
         || slot?.state !== 'running') throw fail('SEED_CLAIM_LOST');
       Object.assign(slot, patch, { updatedAt: now.toISOString() });
       tx.set(dayRef(day), plan);
-      tx.set(control, { blocked: patch.state === 'needs_attention', active: null,
-        ...(patch.state === 'needs_attention' ? { attention: { day, id } } : {}) });
+      const at = now.toISOString();
+      const event = { day, id, industry: slot.industry, errorCode: patch.errorCode, failureStage: patch.failureStage };
+      if (patch.state === 'skipped') {
+        const result = failedBreaker(current, now);
+        tx.set(control, { blocked: false, active: null, breaker: result.breaker,
+          recentEvents: skipEvents(current, now, event, result) });
+        return { ...result.breaker, breakerOpened: result.breakerOpened };
+      }
+      if (patch.state === 'needs_attention') {
+        tx.set(control, { blocked: true, active: null, attention: { day, id }, ...carried(current),
+          recentEvents: withEvent(current, { type: 'needs_attention', at, ...event }) });
+        return null;
+      }
+      const recovered = current?.breaker?.consecutivePrewriteFailures > 0;
+      const { breaker, ...rest } = carried(current);
+      tx.set(control, { blocked: false, active: null, ...rest,
+        ...(recovered ? { recentEvents: withEvent(current, { type: 'breaker_reset', at, day, id,
+          previousConsecutivePrewriteFailures: breaker.consecutivePrewriteFailures }) } : {}) });
+      return null;
     });
   }
   async function createRecoveryReceipt(receipt, verify) {

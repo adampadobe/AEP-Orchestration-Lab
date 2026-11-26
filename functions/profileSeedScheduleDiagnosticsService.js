@@ -1,6 +1,8 @@
 'use strict';
 
-const { businessTime, diagnoseFlowHealth, INDUSTRIES, SLOT_FAILURE_STAGES } = require('./profileSeedScheduleService');
+const {
+  businessTime, diagnoseFlowHealth, INDUSTRIES, SLOT_FAILURE_STAGES, BREAKER_THRESHOLD, RECENT_EVENT_LIMIT,
+} = require('./profileSeedScheduleService');
 
 const fail = (status, message) => Object.assign(new Error(message), { status });
 const failureStages = new Set(Object.values(SLOT_FAILURE_STAGES));
@@ -20,6 +22,38 @@ function slotSummary(slot) {
     ingestion: slot.ingestion || null,
     preparedIdentityCount: Array.isArray(slot.identities) ? slot.identities.length : 0,
     flowHealthAtFailure: slot.flowHealth || null,
+  };
+}
+
+const EVENT_TYPES = new Set(['prewrite_skipped', 'breaker_opened', 'breaker_reset', 'needs_attention']);
+const isoOrNull = (value) => (typeof value === 'string' && Number.isFinite(Date.parse(value)) ? value : null);
+const countOrNull = (value) => (Number.isInteger(value) && value >= 0 ? value : null);
+
+function breakerSummary(breaker, clock) {
+  const consecutivePrewriteFailures = countOrNull(breaker?.consecutivePrewriteFailures) ?? 0;
+  const openUntil = isoOrNull(breaker?.openUntil);
+  return {
+    consecutivePrewriteFailures,
+    threshold: BREAKER_THRESHOLD,
+    open: !!openUntil && Date.parse(openUntil) > clock.getTime(),
+    openedAt: isoOrNull(breaker?.openedAt),
+    openUntil,
+    lastFailureAt: isoOrNull(breaker?.lastFailureAt),
+  };
+}
+
+function eventSummary(event) {
+  const code = typeof event?.errorCode === 'string' && /^SEED_[A-Z_]+$/.test(event.errorCode) ? event.errorCode : null;
+  return {
+    type: EVENT_TYPES.has(event?.type) ? event.type : 'unknown',
+    at: isoOrNull(event?.at),
+    day: typeof event?.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(event.day) ? event.day : null,
+    id: typeof event?.id === 'string' && /^\d{2}$/.test(event.id) ? event.id : null,
+    industry: INDUSTRIES.includes(event?.industry) ? event.industry : null,
+    errorCode: code,
+    failureStage: failureStages.has(event?.failureStage) ? event.failureStage : null,
+    consecutivePrewriteFailures: countOrNull(event?.consecutivePrewriteFailures ?? event?.previousConsecutivePrewriteFailures),
+    openUntil: isoOrNull(event?.openUntil),
   };
 }
 
@@ -117,6 +151,9 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
           day: dispatcher.attention.day,
           id: dispatcher.attention.id,
         } : null,
+        breaker: breakerSummary(dispatcher.breaker, clock),
+        recentEvents: (Array.isArray(dispatcher.recentEvents) ? dispatcher.recentEvents : [])
+          .slice(-RECENT_EVENT_LIMIT).reverse().map(eventSummary),
       },
       days: daySummaries,
       focus: targetSlot ? {
@@ -126,7 +163,7 @@ function createProfileSeedScheduleDiagnosticsService({ store, flowSnapshot, now 
         liveFlowHealth: flowHealth,
         liveFlowHealthError,
       } : null,
-      note: 'Saved failure evidence is historical. Live flow health is a separate read; it does not clear a dispatcher block or establish AEP arrival. Do not replay generation.',
+      note: 'Saved failure evidence is historical. Prewrite failures skip their slot and continue; repeated prewrite failures open a cooldown breaker. Only possible-write failures block. Live flow health is a separate read; it does not clear a dispatcher block or establish AEP arrival. Do not replay generation.',
     };
   }
 

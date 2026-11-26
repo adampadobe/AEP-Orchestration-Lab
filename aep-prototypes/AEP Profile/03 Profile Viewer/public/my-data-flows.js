@@ -831,6 +831,7 @@
     }
 
     var dispatcher = diagnostic.dispatcher || {};
+    var breaker = dispatcher.breaker;
     var focus = diagnostic.focus;
     var health = focus?.liveFlowHealth;
     var healthSummary = health
@@ -843,6 +844,10 @@
       ['Dispatcher', dispatcher.blocked
         ? 'Blocked' + (dispatcher.attention ? ' at ' + text(dispatcher.attention.day) + ' / slot ' + text(dispatcher.attention.id) : '')
         : 'Not blocked'],
+      ['Prewrite circuit breaker', breaker
+        ? (breaker.open ? 'Open until ' + text(breaker.openUntil) : 'Closed')
+          + ' · ' + text(breaker.consecutivePrewriteFailures) + ' of ' + text(breaker.threshold) + ' consecutive prewrite failures'
+        : 'Not reported'],
       ['Schedule', (diagnostic.schedule?.enabled ? 'Enabled' : 'Disabled')
         + ' · ' + text(diagnostic.schedule?.timeZone) + ' · ' + text(diagnostic.schedule?.startHour)
         + ':00–' + text(diagnostic.schedule?.endHour) + ':00'],
@@ -902,7 +907,8 @@
         details.appendChild(node('summary', entry.day + ' · ' + slot.industry + ' · slot ' + slot.id
           + ' · ' + text(slot.errorCode || slot.state)));
         fields(details, [
-          ['State', slot.state], ['Scheduled count', slot.count],
+          ['State', slot.state + (slot.reason ? ' (' + slot.reason + ')' : '')], ['Failure stage', slot.failureStage],
+          ['Scheduled count', slot.count],
           ['Prepared identities', slot.preparedIdentityCount],
           ['Source / ingestion status', slot.ingestion],
           ['Failure-snapshot reasons', (slot.flowHealthAtFailure?.issues || []).map(function (issue) { return issue.code; }).join(', ') || 'None recorded'],
@@ -912,6 +918,23 @@
       target.appendChild(failures);
     } else {
       target.appendChild(node('p', 'No slots are marked as needing attention in the displayed plans.', 'flows-empty'));
+    }
+    var events = Array.isArray(dispatcher.recentEvents) ? dispatcher.recentEvents : [];
+    if (events.length) {
+      var history = node('details', undefined, 'flows-scheduler-failure');
+      history.appendChild(node('summary', 'Recent dispatcher events (' + events.length + ', newest first)'));
+      var list = node('ul');
+      events.forEach(function (event) {
+        list.appendChild(node('li', text(event.at) + ' · ' + text(event.type)
+          + (event.day ? ' · ' + event.day + ' / slot ' + text(event.id) : '')
+          + (event.industry ? ' · ' + event.industry : '')
+          + (event.errorCode ? ' · ' + event.errorCode : '')
+          + (event.failureStage ? ' at ' + event.failureStage : '')
+          + (event.consecutivePrewriteFailures != null ? ' · streak ' + event.consecutivePrewriteFailures : '')
+          + (event.openUntil ? ' · cooldown until ' + event.openUntil : '')));
+      });
+      history.appendChild(list);
+      target.appendChild(history);
     }
     target.appendChild(node('p', 'This read does not expose saved profile identities and does not verify AEP Profile or REL storage. A healthy flow check is not a record-level delivery receipt.', 'flows-muted'));
   }
