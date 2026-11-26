@@ -147,8 +147,18 @@ async function main() {
             const visibleWidth = Math.max(0, Math.min(rect.right, innerWidth) - Math.max(rect.left, 0));
             return { fraction: visibleHeight * visibleWidth / (rect.height * rect.width),
               ratio: rect.width / rect.height, naturalRatio: img.naturalWidth / img.naturalHeight,
-              width: rect.width, display: getComputedStyle(img).display };
+              width: rect.width, height: rect.height, display: getComputedStyle(img).display,
+              centered: Math.abs((rect.left + rect.right) / 2 - innerWidth / 2) < 1,
+              objectFit: getComputedStyle(img).objectFit };
           });
+          if (creative.role === 'banner') {
+            assert.ok(geometry.height <= 600, 'Banner displayed height is capped at 600px');
+            assert.equal(geometry.centered, true, 'Banner remains centered');
+            assert.equal(geometry.objectFit, 'contain');
+            if (theme === 'light') {
+              console.log(`Banner at ${viewport.width}x${viewport.height}: ${geometry.width.toFixed(2)} x ${geometry.height.toFixed(2)}px; ${(geometry.fraction * 100).toFixed(0)}% visible`);
+            }
+          }
           assert.ok(geometry.fraction >= 0.75, `${theme} ${viewport.width}x${viewport.height}: ${creative.role} >=75% visible`);
           assert.ok(Math.abs(geometry.ratio - geometry.naturalRatio) < 0.01, 'No cropping or distortion');
           assert.ok(geometry.width >= 270, 'Creative remains visually meaningful');
