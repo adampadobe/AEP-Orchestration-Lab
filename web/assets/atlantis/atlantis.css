@@ -80,6 +80,15 @@ body.atlantis-page {
   border-radius: inherit;
 }
 
+#atlantis-banner {
+  max-height: 600px;
+  max-width: calc(600px * var(--creative-ratio));
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  margin-inline: auto;
+}
+
 .atlantis-sr-only {
   position: absolute;
   width: 1px;
