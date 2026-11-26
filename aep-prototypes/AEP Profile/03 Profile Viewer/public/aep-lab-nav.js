@@ -700,6 +700,15 @@
           ],
         },
         {
+          id: 'demoBp',
+          label: 'BP',
+          demoCustomer: true,
+          items: [
+            { label: 'Content Analysis', href: '/atlantis', navHideKey: 'bpContentAnalysisDemo',
+              demoMeta: { owners: ['kirkham'] }, ico: '\u25A7' },
+          ],
+        },
+        {
           id: 'demoJet2',
           label: 'Jet2',
           demoCustomer: true,

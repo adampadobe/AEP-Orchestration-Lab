@@ -68,6 +68,14 @@
     ],
     "rewrites": [
       {
+        "source": "/atlantis",
+        "destination": "/atlantis.html"
+      },
+      {
+        "source": "/atlantis/",
+        "destination": "/atlantis.html"
+      },
+      {
         "source": "/api/pdf-personalisation/**",
         "function": {
           "functionId": "pdfPersonalisation",
