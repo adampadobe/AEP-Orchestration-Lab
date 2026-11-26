@@ -1,0 +1,91 @@
+body.atlantis-page {
+  background: var(--dash-surface);
+  color: var(--dash-text);
+  line-height: 1.6;
+}
+
+.atlantis-content {
+  box-sizing: border-box;
+  width: min(100%, 1064px);
+  margin-inline: auto;
+  padding-inline: clamp(20px, 4vw, 32px);
+}
+
+.atlantis-intro {
+  max-width: 760px;
+  padding-block: clamp(64px, 12svh, 120px) 32px;
+}
+
+.atlantis-label {
+  margin: 0 0 12px;
+  color: var(--dash-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.atlantis-intro h1 {
+  margin: 0;
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+}
+
+.atlantis-description {
+  margin: 24px 0 0;
+  color: var(--dash-text-secondary);
+  font-size: 1.125rem;
+}
+
+.atlantis-creative {
+  padding-block: clamp(80px, 16svh, 160px);
+}
+
+.atlantis-creative + .atlantis-creative {
+  border-top: 1px solid var(--dash-border);
+}
+
+.atlantis-creative h2 {
+  margin: 0 0 28px;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+
+.atlantis-master { --creative-ratio: 1.908397; }
+.atlantis-deck { --creative-ratio: 1.777778; }
+.atlantis-banner { --creative-ratio: 1.329241; }
+
+.atlantis-image-link {
+  display: block;
+  width: 100%;
+  /* Fit the full creative even in short viewports, without cropping its image. */
+  width: min(100%, calc((100svh - 4rem) * var(--creative-ratio)));
+  margin-inline: auto;
+  border-radius: var(--dash-radius-sm);
+}
+
+.atlantis-image-link:focus-visible {
+  outline: 3px solid var(--dash-focus-ring);
+  outline-offset: 6px;
+}
+
+.atlantis-image-link img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: inherit;
+}
+
+.atlantis-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

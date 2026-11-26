@@ -518,6 +518,25 @@ tokens). If you work on anything in `web/profile-viewer/`, follow the
 
 ### Adding a New Demo
 
+**Atlantis measurement page:** `/atlantis` is a standalone, navigation-free
+Content Analytics surface served by `web/atlantis.html`. It loads only the existing
+`kirkham - Retail Demo (web)` Content Analytics Additions development Tags library:
+`https://assets.adobedtm.com/60e5fd51ad90/1e9ecb8bbc4a/launch-906acd0beab0-development.min.js`.
+Tags owns Web SDK configuration; no other demo's library is changed.
+The lab menu links to it under **Demos > BP > Content Analysis**, with the
+same `kirkham` owner visibility as Jet2 and Lloyds; the landing page stays
+navigation-free.
+The pre-Tags `window.dataLayer` initialization follows the existing Edge
+Decisioning page so the property's partner-data rule has its expected host.
+Replace approved creatives at `web/assets/atlantis/atlantis-master.png`,
+`web/assets/atlantis/atlantis-deck.png`, and
+`web/assets/atlantis/atlantis-banner.png`. All three are local, single `<img>`
+elements; no external fallback is needed. If dimensions change, update the HTML
+width/height and matching CSS ratio so short viewports still fit each creative.
+Run `node scripts/test-atlantis-browser.cjs` for offline route, image, link,
+single-Tags-loader, keyboard, theme and scroll-visibility checks. These fixtures
+do not prove Content Analytics ingestion or send live Adobe events.
+
 Profile Viewer **Demos** in `web/profile-viewer/aep-lab-nav.js` follow a **customer-first** tree: each named or generic programme is one collapsible block, and **channels** (Web, Mobile, Call Centre) sit under that customer. **Mobile** always lists **Phone** and **iPad** when that customer has a mobile lab story (use a non-link placeholder row with `navPlaceholder: true` until the iPad experience ships).
 
 **Canonical structure (mandatory)**
