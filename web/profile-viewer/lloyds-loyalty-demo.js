@@ -349,6 +349,7 @@
     $('loyaltyRun').disabled = busy || visitorBlocked || !loaded;
     $('loyaltyRefresh').disabled = busy || visitorBlocked || !loaded;
     $('loyaltyAbandon').disabled = busy || visitorBlocked || !loaded;
+    if ($(prefix + 'WebPushRetryBtn')) $(prefix + 'WebPushRetryBtn').disabled = busy || visitorBlocked || !loaded;
     if ($('queryProfileBtn')) $('queryProfileBtn').disabled = busy || visitorBlocked;
     if ($('loyaltyRetryProfile')) {
       $('loyaltyRetryProfile').hidden = !profileLookupFailed;
@@ -1791,6 +1792,38 @@
       eventXdm: { [ctx.tenant]: { identification: { core: { ecid, email: profileEmail,
         ...(profileLoyaltyId && { loyaltyId: profileLoyaltyId }) } } } } };
   }
+  async function registerWebPush(ctx, token) {
+    if (!loaded) throw new Error('Look up the current test profile before registering web push.');
+    const captured = await prepareProfileEvent(ctx, token, 'web push');
+    const checkContext = alloy => {
+      same(ctx, token);
+      if (alloy !== captured.alloy || global.alloy !== captured.alloy ||
+          JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
+        throw new Error('Web SDK or datastream changed. No push subscription sent.');
+      }
+    };
+    const accepted = await global.AepDemoWebPush.promptAndSubscribe({
+      storagePrefix: prefix,
+      beforeSend: async alloy => {
+        checkContext(alloy);
+        const identity = await alloy('getIdentity', { namespaces: ['ECID'] });
+        checkContext(alloy);
+        if (identity?.identity?.ECID !== captured.eventXdm[ctx.tenant].identification.core.ecid) {
+          throw new Error('Web SDK visitor changed. No push subscription sent.');
+        }
+        // sendPushSubscription uses the SDK visitor, not a separate identityMap option.
+        await alloy('sendEvent', { ...captured.edgeOptions, renderDecisions: false,
+          personalization: { defaultPersonalizationEnabled: false },
+          xdm: { ...captured.eventXdm, eventType: 'lloyds.loyalty.identity.stitch', identityMap: captured.identityMap } });
+        checkContext(alloy);
+      },
+    });
+    same(ctx, token);
+    diagnose(accepted ? 'info' : 'warn', 'web-push-subscription', { sdkAccepted: accepted, deliveryVerified: false });
+    message(accepted ?
+      'Web push subscription sent for the current Web SDK visitor and linked profile. AJO delivery is not yet verified.' :
+      'Web push did not complete. Allow notifications and check Tags pushNotifications, the service worker and the [AepDemoWebPush] console errors.', !accepted);
+  }
   async function dispatchProfileEvent(captured, payload, ctx, token) {
     same(ctx, token);
     if (JSON.stringify(global.DemoLabEdgeConfig.edgeConfigOverrides()) !== captured.edgeSnapshot) {
@@ -2392,6 +2425,7 @@
       });
     });
     global.AepIdentityPicker.init('customerEmail', prefix + 'Ns'); global.attachEmailDatalist?.('customerEmail', 'recentEmails', prefix + 'Ns');
+    const webPushEnabled = global.envBarConfig?.features?.webPush === true;
     const tags = global.DemoTagsInjection.init({ storagePrefix: prefix, identityEventType: 'lloyds.loyalty.identity.stitch',
       messageSetter: (text, type) => message(text, type === 'error'), infoEcidId: 'infoEcid',
       tagsCompanyId: prefix + 'TagsCompany', tagsPropertyInputId: prefix + 'TagsProperty', tagsPropertyListId: prefix + 'TagsPropertyList',
@@ -2399,8 +2433,15 @@
       configFieldsId: prefix + 'SdkConfigFields', configSummaryId: prefix + 'SdkConfigSummary',
       configSummaryTextId: prefix + 'SdkConfigSummaryText', changeConfigButtonId: prefix + 'ChangeSdkConfigBtn',
       getSelectedGeneratorTarget: getTarget, getEmail: () => email.value, iframeIds: [], hideTagsCompanyUi: true,
-      webPush: { enabled: false }, brandConcierge: { enabled: false } });
+      webPush: { enabled: webPushEnabled, subscribeAfterInject: false, requestPermissionOnInject: false },
+      brandConcierge: { enabled: false } });
     global.envBar.registerTagsInjection(tags);
+    if (webPushEnabled) {
+      const pushButton = $(prefix + 'WebPushRetryBtn');
+      $('aepDemoEnvSection').querySelector('.loyalty-settings').append(pushButton.parentElement);
+      pushButton.title = 'Allow notifications and register web push for the loaded test profile using the current Web SDK.';
+      pushButton.addEventListener('click', () => void work(registerWebPush));
+    }
     global.DemoProfileDrawer.init({ emailInputId: 'customerEmail', profileOpenClass: 'mod-demo-page--profile-open',
       viewName, eventTimeline: 'compact', emailGetter: () => email.value, messageSetter: (text, type) => message(text, type === 'error'),
       getSelectedGeneratorTarget: getTarget, fetchBrowserEcidOnInit: true });

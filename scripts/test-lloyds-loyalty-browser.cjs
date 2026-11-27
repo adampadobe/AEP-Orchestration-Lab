@@ -177,6 +177,10 @@ async function main() {
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
     await page.waitForFunction(() => document.getElementById('loyaltyStatus').textContent.includes('SDK injection is only needed'));
+    await page.waitForFunction(async () => {
+      const registration = await navigator.serviceWorker.getRegistration('/profile-viewer/');
+      return registration?.active?.scriptURL.endsWith('/profile-viewer/alloyServiceWorker.min.js');
+    });
     await page.evaluate(() => {
       window.AepGlobalSandbox.setSelected('demo-one');
       window.AepLabSandboxSync.getAuthHeaders = async () => ({ Authorization: 'Bearer offline-fixture' });
@@ -199,6 +203,9 @@ async function main() {
       /Demonstration experience|Web SDK preview · live state, no simulated task completion/,
       'The requested demonstration badge and phone caption stay removed');
     assert.equal(await page.locator('#loyaltyAuto').isChecked(), false, 'Task polling requires explicit opt-in');
+    assert.equal(await page.locator('#aepDemoEnvSection .loyalty-settings #lloydsLoyaltyWebPushRetryBtn').count(), 1,
+      'Reuse the shared push button inside the existing configuration, not the customer preview');
+    assert.equal(await page.locator('#lloydsLoyaltyWebPushRetryBtn').isDisabled(), true, 'Push requires a resolved profile');
     const homeTab = page.locator('.loyalty-phone-nav [data-phone-view="home"]');
     const rewardsTab = page.locator('.loyalty-phone-nav [data-phone-view="rewards"]');
     assert.equal(await page.locator('#loyaltyViewHome').isVisible(), true, 'The mockup opens on Home');
@@ -2413,6 +2420,104 @@ async function main() {
     assert.deepEqual(await spendPage.evaluate(() => window.LloydsLoyaltySpendDebug.getLatest()), newSpendEvidence,
       'A late old-profile SDK result/error cannot overwrite the newer purchase evidence');
     await spendPage.close();
+    const pushPage = await context.newPage();
+    pushPage.on('pageerror', error => errors.push(error.message));
+    profileLoyaltyId = 'push-member'; namespace = 'Email'; challengeListOverride = []; testProfile = true;
+    await pushPage.addInitScript(() => {
+      window.__pushCalls = []; window.__pushRegistrations = [];
+      window.__pushPermission = 'default'; window.__pushRegistrationFails = true;
+      Object.defineProperty(Notification, 'permission', { configurable: true, get: () => window.__pushPermission });
+      Notification.requestPermission = async () => {
+        window.__pushPermissionRequests = (window.__pushPermissionRequests || 0) + 1;
+        if (window.__holdPushPermission) await new Promise(resolve => { window.__releasePushPermission = resolve; });
+        return window.__pushPermission = 'granted';
+      };
+      navigator.serviceWorker.register = async (url, options) => {
+        window.__pushRegistrations.push({ url, options });
+        if (window.__pushRegistrationFails) throw new Error('Fixture: service worker registration rejected');
+        return { scope: new URL(options.scope, location.href).href };
+      };
+    });
+    await pushPage.goto(origin + '/profile-viewer/lloyds-loyalty-demo.html');
+    await pushPage.waitForFunction(() => document.getElementById('loyaltyStatus')?.textContent.includes('SDK injection is only needed'));
+    await pushPage.evaluate(() => window.AepGlobalSandbox.setSelected('kirkham'));
+    await pushPage.locator('#customerEmail').fill('push-fixture@example.invalid');
+    await pushPage.locator('#queryProfileBtn').click();
+    await pushPage.waitForFunction(() => !document.getElementById('queryProfileBtn').disabled &&
+      !document.getElementById('lloydsLoyaltyWebPushRetryBtn').disabled);
+    await pushPage.evaluate(() => {
+      window.DemoLabEdgeConfig.edgeConfigOverrides = () => ({ edgeConfigOverrides: { datastreamId: 'push-fixture-stream' } });
+      window.alloy = async (command, payload) => {
+        if (command === 'getIdentity') {
+          window.__pushIdentityReads = (window.__pushIdentityReads || 0) + 1;
+          return { identity: { ECID: window.__rotatePushIdentity && window.__pushIdentityReads % 2 === 0
+            ? '99999999999999999999999999999999999999' : '12345678901234567890123456789012345678' } };
+        }
+        window.__pushCalls.push({ command, payload });
+        if (command === 'sendPushSubscription' && window.__rejectPush) throw new Error('Fixture: pushNotifications missing trackingDatasetId');
+        if (command === 'sendEvent' && window.__rejectPushIdentity) throw new Error('Fixture: identity stitch rejected');
+        return {};
+      };
+    });
+    await pushPage.locator('.loyalty-settings summary').click();
+    const pushButton = pushPage.locator('#lloydsLoyaltyWebPushRetryBtn');
+    const subscribe = async () => {
+      await pushButton.click();
+      await pushPage.waitForFunction(() => !document.getElementById('lloydsLoyaltyWebPushRetryBtn').disabled);
+    };
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls), [], 'No automatic push subscription before explicit consent');
+    await subscribe();
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls), [], 'Failed worker registration blocks identity and subscription sends');
+    assert.equal(await pushPage.evaluate(() => window.__pushPermissionRequests || 0), 0);
+    await pushPage.evaluate(() => { window.__pushRegistrationFails = false; window.__pushPermission = 'denied'; });
+    await subscribe();
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls), [], 'Denied permission never sends a subscription or identity event');
+    await pushPage.evaluate(() => { window.__pushPermission = 'default'; });
+    const readsBeforePush = reads.length, signupsBeforePush = signupRequests.length;
+    await subscribe();
+    assert.equal(await pushPage.evaluate(() => Notification.permission), 'granted');
+    assert.equal(await pushPage.evaluate(() => window.__pushPermissionRequests), 1);
+    const pushCalls = await pushPage.evaluate(() => window.__pushCalls);
+    assert.deepEqual(pushCalls.map(call => call.command), ['sendEvent', 'sendPushSubscription'],
+      'Link the resolved profile on the same SDK before the single subscription command');
+    assert.equal(pushCalls[0].payload.xdm.eventType, 'lloyds.loyalty.identity.stitch');
+    assert.equal(pushCalls[0].payload.xdm.identityMap.Email[0].id, 'push-fixture@example.invalid');
+    assert.equal(pushCalls[0].payload.xdm.identityMap.ECID[0].id, '12345678901234567890123456789012345678');
+    assert.equal(pushCalls[0].payload.xdm.identityMap.loyaltyId[0].id, 'push-member');
+    assert.equal(pushCalls[0].payload.edgeConfigOverrides.datastreamId, 'push-fixture-stream');
+    assert.equal(pushCalls[0].payload.renderDecisions, false);
+    assert.equal(pushCalls[0].payload.personalization.defaultPersonalizationEnabled, false);
+    assert.equal(pushCalls[1].payload, undefined, 'Push configuration comes from Tags, not a page-supplied key/app/dataset');
+    assert.equal(reads.length, readsBeforePush, 'Push does not read Loyalty state');
+    assert.equal(signupRequests.length, signupsBeforePush, 'Push does not sign up for a challenge');
+    assert.match(await pushPage.locator('#loyaltyStatus').textContent(), /delivery is not yet verified/);
+    assert.ok((await pushPage.evaluate(() => window.__pushRegistrations)).every(reg =>
+      reg.url === '/profile-viewer/alloyServiceWorker.min.js' && reg.options.scope === '/profile-viewer/'));
+    await pushPage.evaluate(() => { window.__pushCalls = []; window.__rejectPushIdentity = true; });
+    await subscribe();
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls.map(call => call.command)), ['sendEvent'],
+      'An unconfirmed profile link never proceeds to subscription');
+    await pushPage.evaluate(() => { window.__pushCalls = []; window.__rejectPushIdentity = false; window.__rejectPush = true; });
+    await subscribe();
+    assert.equal(await pushPage.locator('#loyaltyStatus').getAttribute('data-error'), 'true');
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls.map(call => call.command)), ['sendEvent', 'sendPushSubscription'],
+      'A rejected subscription is reported without replay');
+    await pushPage.evaluate(() => {
+      window.__pushCalls = []; window.__rejectPush = false; window.__rotatePushIdentity = true; window.__pushIdentityReads = 0;
+    });
+    await subscribe();
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls), [], 'A changed browser ECID blocks customer linking and subscription');
+    await pushPage.evaluate(() => {
+      window.__rotatePushIdentity = false; window.__pushPermission = 'default'; window.__holdPushPermission = true;
+    });
+    await pushButton.click();
+    await pushPage.waitForFunction(() => typeof window.__releasePushPermission === 'function');
+    await pushPage.locator('#customerEmail').fill('changed-push-profile@example.invalid');
+    await pushPage.evaluate(() => window.__releasePushPermission());
+    await pushPage.waitForTimeout(600);
+    assert.deepEqual(await pushPage.evaluate(() => window.__pushCalls), [], 'Changing customer during permission blocks the stale subscription');
+    assert.equal(await pushButton.isDisabled(), true, 'A changed customer requires a fresh profile lookup');
+    await pushPage.close();
     assert.deepEqual(errors, []);
     assert.ok(writes.every(path => path === '/api/lab/env-bar-preferences'),
       'Only shared personal display preferences may be saved; no profile, event-generator or Adobe mutations');

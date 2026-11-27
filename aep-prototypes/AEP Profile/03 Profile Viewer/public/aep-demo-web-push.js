@@ -143,7 +143,8 @@
    *   scope?: string,
    *   requestPermission?: boolean,
    *   skipDailyThrottle?: boolean,
-   *   alloyWaitMs?: number
+   *   alloyWaitMs?: number,
+   *   beforeSend?: function(Function): Promise<void>
    * }} [opts]
    * @returns {Promise<boolean>} true when the Alloy command resolved
    */
@@ -164,7 +165,11 @@
       }
     }
 
-    return ensureServiceWorkerRegistered(o).then(function () {
+    return ensureServiceWorkerRegistered(o).then(function (registration) {
+      if (!registration) {
+        log('sendPushSubscriptionIfReady: service worker registration unavailable');
+        return false;
+      }
       if (global.Notification.permission === 'denied') {
         log('sendPushSubscriptionIfReady: permission denied');
         return false;
@@ -193,6 +198,9 @@
             });
           })
           .then(function () {
+            if (typeof o.beforeSend === 'function') return o.beforeSend(alloyFn);
+          })
+          .then(function () {
             return alloyFn('sendPushSubscription');
           })
           .then(function () {
@@ -214,7 +222,7 @@
 
   /**
    * User gesture path: request permission (if needed) and send subscription (ignores daily throttle).
-   * @param {{ storagePrefix?: string, workerScriptUrl?: string, scope?: string }} [opts]
+   * @param {{ storagePrefix?: string, workerScriptUrl?: string, scope?: string, beforeSend?: function(Function): Promise<void> }} [opts]
    */
   function promptAndSubscribe(opts) {
     var o = opts && typeof opts === 'object' ? opts : {};
