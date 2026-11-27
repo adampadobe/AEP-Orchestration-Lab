@@ -17,6 +17,42 @@ protected enrollment endpoint, with Adobe authentication held server-side.
 
 ## Read-only Loyalty MCP workflow
 
+### Lloyds Web Push
+
+The Lloyds page enables the existing `aep-demo-web-push.js` integration and reuses
+`/profile-viewer/alloyServiceWorker.min.js` with scope `/profile-viewer/`.
+Application ID, VAPID public key and push tracking dataset remain in the selected
+Adobe Tags/Web SDK `pushNotifications` configuration, never the page.
+
+Inject the existing configured Tags library, look up the current AEP test profile,
+then open **Active Configuration → Loyalty API options → Register web push now**
+and allow browser notifications. Registration is explicit, not automatic on Tags
+injection, because the selected customer must first be resolved. The button uses
+the existing profile-event identity builder and SDK, links that profile to the
+active browser ECID through `lloyds.loyalty.identity.stitch`, then calls the shared
+`sendPushSubscription` helper. SDK/ECID, profile, sandbox and datastream changes
+during permission/subscription preparation stop the send. No challenge signup,
+purchase, Content Card request or Featured decision is added by this action.
+
+In the page's developer console:
+
+```js
+await navigator.serviceWorker.getRegistration('/profile-viewer/')
+Notification.permission
+```
+
+The registration's active script must end in
+`/profile-viewer/alloyServiceWorker.min.js`; permission must be `granted`.
+Filter console output for `[AepDemoWebPush]`: `registered` confirms registration,
+`sendPushSubscription: success` confirms SDK command acceptance, and
+`sendPushSubscription: error` exposes SDK/configuration failures. `register failed`
+or `service worker registration unavailable` blocks subscription. Permission
+denial, absent Alloy, missing/invalid `pushNotifications` fields or rejected Edge
+requests also indicate incomplete setup. Check the browser Network panel for the
+SDK's subscription request/response; SDK acceptance is not proof of stored AJO
+subscription or notification delivery. Prove delivery with a separately reviewed
+AJO push to the selected test profile. No in-phone notification is simulated.
+
 ### Recovering a blocked demo or unresolved profile
 
 The shared **New visitor** reset blocks event submission until the live SDK
